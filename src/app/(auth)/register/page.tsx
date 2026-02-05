@@ -2,49 +2,34 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createClient } from "@/lib/supabase/client";
+import { register } from "@/actions/auth";
 
 export default function RegisterPage() {
-  const router = useRouter();
-  const [email, setEmail] = React.useState("");
-  const [password, setPassword] = React.useState("");
-  const [nom, setNom] = React.useState("");
-  const [prenom, setPrenom] = React.useState("");
-  const [organisationNom, setOrganisationNom] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    const supabase = createClient();
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          prenom,
-          nom,
-          organisation_nom: organisationNom,
-        },
-      },
+    const formData = new FormData(e.currentTarget);
+    const result = await register({
+      organisationNom: formData.get("organisation") as string,
+      prenom: formData.get("prenom") as string,
+      nom: formData.get("nom") as string,
+      email: formData.get("email") as string,
+      password: formData.get("password") as string,
     });
 
-    if (error) {
-      setError(error.message);
+    if (result?.error) {
+      setError(result.error);
       setLoading(false);
-      return;
     }
-
-    router.push("/");
-    router.refresh();
   }
 
   return (
@@ -69,9 +54,8 @@ export default function RegisterPage() {
             <Label htmlFor="organisation">Nom de l&apos;organisme</Label>
             <Input
               id="organisation"
+              name="organisation"
               placeholder="C&CO Formation"
-              value={organisationNom}
-              onChange={(e) => setOrganisationNom(e.target.value)}
               required
             />
           </div>
@@ -80,9 +64,8 @@ export default function RegisterPage() {
               <Label htmlFor="prenom">Prénom</Label>
               <Input
                 id="prenom"
+                name="prenom"
                 placeholder="Nans"
-                value={prenom}
-                onChange={(e) => setPrenom(e.target.value)}
                 required
               />
             </div>
@@ -90,9 +73,8 @@ export default function RegisterPage() {
               <Label htmlFor="nom">Nom</Label>
               <Input
                 id="nom"
+                name="nom"
                 placeholder="Dupont"
-                value={nom}
-                onChange={(e) => setNom(e.target.value)}
                 required
               />
             </div>
@@ -101,10 +83,9 @@ export default function RegisterPage() {
             <Label htmlFor="email">Email</Label>
             <Input
               id="email"
+              name="email"
               type="email"
               placeholder="nom@organisme.fr"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
               required
             />
           </div>
@@ -112,10 +93,9 @@ export default function RegisterPage() {
             <Label htmlFor="password">Mot de passe</Label>
             <Input
               id="password"
+              name="password"
               type="password"
               placeholder="Minimum 8 caractères"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
               minLength={8}
               required
             />
