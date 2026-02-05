@@ -1,0 +1,1658 @@
+# 🏗️ PLAN COMPLET — C&CO Formation v2 (Clone SmartOF Amélioré)
+
+> **Document de référence pour Claude Code**
+> Dernière mise à jour : 5 février 2026
+> Auteur : Nans (C&CO Formation)
+
+---
+
+## TABLE DES MATIÈRES
+
+1. [Vision du projet](#1-vision-du-projet)
+2. [Stack technique](#2-stack-technique)
+3. [Architecture](#3-architecture)
+4. [Modules fonctionnels (15 documentés)](#4-modules-fonctionnels)
+5. [Schéma BDD v2](#5-schéma-bdd-v2)
+6. [Design System](#6-design-system)
+7. [Roadmap par phases](#7-roadmap-par-phases)
+8. [Instructions pour Claude Code](#8-instructions-pour-claude-code)
+9. [Modules non documentés (à prévoir)](#9-modules-non-documentés)
+10. [Features killer (avantages vs SmartOF)](#10-features-killer)
+
+---
+
+## 1. VISION DU PROJET
+
+**Objectif** : Recréer un logiciel de gestion d'Organisme de Formation (OF) de type SmartOF, en mieux, pour C&CO Formation.
+
+**Contexte** :
+- L'ancienne app (Lovable + Supabase Cloud) avait ~60 tables et 63 Edge Functions → trop complexe, non maintenable
+- On repart **de zéro** : nouvelle BDD, nouveau front, nouvelle architecture
+- Le logiciel actuel SmartOF est la référence fonctionnelle → on le copie et on l'améliore
+- **Multi-tenant** : le système doit supporter plusieurs organismes de formation
+
+**Ce qu'on garde de l'ancienne app C&CO** :
+- Import PDF → remplissage auto du programme de formation (SmartOF n'a pas ça)
+- Images IA pour les formations
+- Barre de progression de complétion des fiches (95%, 2 manquants)
+
+---
+
+## 2. STACK TECHNIQUE
+
+| Composant | Technologie | Notes |
+|-----------|-------------|-------|
+| **Framework** | Next.js 16 (dernière version stable) | App Router, Turbopack, PPR |
+| **React** | React 19.2 | View Transitions, useEffectEvent, Activity |
+| **BDD** | Supabase Self-Hosted (Postgres) | Sur VPS Coolify |
+| **Auth** | Supabase Auth | Multi-tenant, rôles |
+| **Storage** | Supabase Storage | Documents, PDFs, images |
+| **Realtime** | Supabase Realtime | Notifications, mises à jour live |
+| **Emails** | Resend | Templates, relances, tracking |
+| **Tâches planifiées** | pg_cron (Postgres) | Rappels, relances automatiques |
+| **Génération docs** | pdf-lib / docx-templates | Côté API Routes Next.js |
+| **Hébergement** | VPS Coolify | Next.js + Supabase self-hosted |
+| **Code source** | GitHub | CI/CD via Coolify |
+| **Edge Functions** | 0 (sauf exception webhook) | Tout en API Routes / Server Actions |
+
+### Architecture Next.js 16
+
+```
+Next.js 16 + React 19.2
+├── Turbopack (bundler par défaut)
+├── App Router + Cache Components + PPR
+├── Server Actions (mutations BDD)
+├── API Routes /api/* (webhooks, Resend, génération docs)
+├── proxy.ts (remplace middleware — auth, redirections)
+└── Supabase self-hosted
+    ├── Postgres + pg_cron + RPC
+    ├── Auth (JWT, rôles, multi-tenant)
+    ├── Storage (documents, PDFs)
+    └── Realtime (notifications)
+```
+
+---
+
+## 3. ARCHITECTURE
+
+```
+┌──────────────────────────────────────────────────────┐
+│                    FRONTEND                           │
+│              Next.js 16 App Router                    │
+│         (SSR + Server Components + PPR)               │
+│     Design : Cursor Style (Noir / Gris / Orange)      │
+├──────────────────────────────────────────────────────┤
+│                 LOGIQUE MÉTIER                         │
+│  ┌────────────────┐    ┌──────────────────────────┐  │
+│  │ Server Actions │    │ API Routes /api/*        │  │
+│  │ (mutations)    │    │ • Webhooks entrants      │  │
+│  │                │    │ • Emails (Resend)        │  │
+│  │                │    │ • Génération PDF/DOCX    │  │
+│  │                │    │ • Import PDF IA          │  │
+│  └────────────────┘    └──────────────────────────┘  │
+├──────────────────────────────────────────────────────┤
+│              SUPABASE SELF-HOSTED (Coolify)            │
+│  ┌──────────┐  ┌────────┐  ┌──────────┐  ┌────────┐ │
+│  │ Postgres │  │  Auth  │  │ Storage  │  │Realtime│ │
+│  │ +pg_cron │  │  JWT   │  │  Docs    │  │  WS    │ │
+│  │ +RPC     │  │ Rôles  │  │  PDFs    │  │        │ │
+│  └──────────┘  └────────┘  └──────────┘  └────────┘ │
+├──────────────────────────────────────────────────────┤
+│               SERVICES EXTERNES                       │
+│  Resend (emails) │ API SIRENE (INSEE) │ IA (OpenAI?) │
+└──────────────────────────────────────────────────────┘
+```
+
+---
+
+## 4. MODULES FONCTIONNELS (15 documentés)
+
+### 4.1 — SIDEBAR / NAVIGATION
+
+**7 sections de menu :**
+
+**Section 1 — Base de contacts (CRM)**
+- Apprenants (APP-xxxx)
+- Entreprises (ENT-xxxx)
+- Contacts clients (CTC-xxxx)
+- Formateurs (FOR-xxxx)
+- Financeurs (FIN-xxxx)
+
+**Section 2 — Bibliothèque (Catalogue)**
+- Produits de formation (PROD-xxxx)
+- Questionnaires (fusion pédagogiques + enquêtes satisfaction)
+
+**Section 3 — Sessions**
+- Sessions de formation (SES-xxxx)
+- Planning (vue calendrier)
+- Inscriptions
+
+**Section 4 — Suivi d'activité**
+- Tâches
+- Indicateurs / Dashboard
+- Rapports
+- BPF (Bilan Pédagogique et Financier)
+- Emails envoyés
+- Automatisations
+
+**Section 5 — Suivi commercial**
+- Opportunités commerciales
+- Devis (D-ANNÉE-xxxx)
+
+**Section 6 — Facturation**
+- Factures (F-ANNÉE-xxxx)
+- Export comptable
+- Avoirs (A-ANNÉE-xxxx)
+
+**Section 7 — Divers**
+- Tickets
+- Salles
+- Formulaires administratifs
+- Paramètres
+
+**Conventions d'ID** : Préfixe + compteur auto (APP-0324, ENT-0056, SES-0058, D-2026-0028, F-2026-0015, A-2026-0001)
+
+---
+
+### 4.2 — APPRENANTS (APP)
+
+**Préfixe** : APP-xxxx | **324 apprenants** dans SmartOF
+
+**Pattern liste** (commun à toutes les entités) :
+- Recherche + Recherche avancée
+- Archives / Exporter / + Ajouter
+- Filtres modifiables / Colonnes modifiables
+- Vues sauvegardées en onglets (+ créer une vue custom)
+- Pagination 25/page
+- Sélection multiple → actions groupées (Modifier / Supprimer)
+- Colonnes triables avec drag & drop
+
+**Champs apprenant :**
+- ID (auto), Civilité, Prénom, Nom, Nom de naissance
+- Email, Téléphone, Date de naissance
+- Fonction, Lieu d'activité
+- Adresse complète (rue, complément, CP, ville)
+- Numéro compte comptable
+- **Statut BPF** (dropdown codes officiels : F.1.a, F.2, etc.)
+- Date de création
+
+**Relations :**
+- Entreprise(s) → many-to-many (un apprenant peut être dans plusieurs entreprises)
+- Entreprise(s) → champs relationnels visibles (nom, SIRET, email, adresse, BPF, facturation)
+
+**Intégrations futures :**
+- Pennylane (ID externe, dates sync)
+- LMS (ID externe, dates sync)
+
+---
+
+### 4.3 — ENTREPRISES (ENT)
+
+**Préfixe** : ENT-xxxx | **56 entreprises**
+
+**6 onglets sur la fiche :**
+
+**Onglet 1 — Informations générales :**
+- ID (auto), Nom, SIRET
+- Email, Téléphone
+- Adresse complète
+- Provenance BPF (dropdown codes officiels C.1, C.2.a, C.2.b, etc.)
+- Numéro compte comptable
+- Recherche INSEE (auto-complétion SIRET/SIREN via API SIRENE)
+- Configurer la fiche (personnalisation champs)
+
+**Onglet 2 — Informations de facturation :**
+- Adresse de facturation SÉPARÉE (raison sociale, adresse complète)
+- Bouton "Remplir avec les informations de l'entreprise" (copie auto)
+
+**Onglet 3 — Historique commercial :**
+- Opportunités commerciales rattachées
+- Devis (numérotation D-ANNÉE-NUMÉRO, statut, montant HT)
+- Factures rattachées
+
+**Onglet 4 — Apprenants :**
+- Liste des apprenants rattachés (many-to-many)
+- + Ajouter un apprenant
+
+**Onglet 5 — Historique des sessions :**
+- Sessions liées à l'entreprise (ID, nom, dates, statut)
+
+**Onglet 6 — Tâches et activités :**
+- Historique d'activités (+ Ajouter une note — journal CRM)
+- Tâches à venir (+ Ajouter une tâche)
+
+**Panneau latéral droit :**
+- Tâches programmées
+- Contacts clients associés (+ Associer des contacts)
+
+**Codes BPF entreprise (table de référence) :**
+- C.1 — entreprises pour formation salariés
+- C.2.a — contrats d'apprentissage
+- C.2.b — contrats de professionnalisation
+- C.2.c — promotion ou reconversion professionnelle
+- C.7 — pouvoirs publics (type 1)
+- C.8 — pouvoirs publics (type 2)
+- C.9 — contrats personnes
+- C.10 — contrats autres organismes
+- C.11 — Autres produits formation professionnelle
+
+---
+
+### 4.4 — CONTACTS CLIENTS (CTC)
+
+**Préfixe** : CTC-xxxx | **65 contacts**
+
+**Point clé** : Contact client ≠ Apprenant. Le contact est le décideur/commanditaire (responsable formation, DRH, directeur), pas celui qui suit la formation.
+
+**2 onglets :**
+
+**Onglet 1 — Informations générales :**
+- Civilité, ID (auto), Prénom, Nom
+- Email (+ bouton envoi direct), Téléphone
+- Fonction (ex: "Assistant(e) de direction")
+
+**Onglet 2 — Tâches et activités :**
+- Historique d'activités + Tâches à venir
+
+**Panneau latéral droit :**
+- Tâches programmées
+- Entreprises associées (many-to-many — un contact peut gérer plusieurs entreprises)
+- Accès extranet (inviter / révoquer / reset MDP)
+
+---
+
+### 4.5 — FORMATEURS (FOR)
+
+**Préfixe** : FOR-xxxx | **16 formateurs**
+
+**4 onglets détail :**
+
+**Onglet 1 — Informations générales :**
+- Civilité, ID, Prénom, Nom
+- Email, Téléphone
+- Adresse complète
+- **Statut BPF** : Interne (salarié) / Externe (sous-traitant) — impact direct sur BPF
+- **NDA sous-traitant** (Numéro Déclaration d'Activité — obligatoire réglementairement)
+- SIRET (pour facturation sous-traitants)
+- Compétences (multi-select)
+- Lien calendrier iCal
+
+**Panneau latéral droit :**
+- Tâches programmées
+- **Coût du formateur** : Tarif jour HT (ex: 300 €/jour) + calcul auto heure (÷7h) + Taux TVA
+- **Accès extranet** : Compte validé, reset MDP, révoquer
+
+**Onglet 2 — Sessions de formation :**
+- Liste des sessions assignées (ID, nom, dates)
+
+**Onglet 3 — Tâches et activités :**
+- Historique + Tâches à venir
+
+**Onglet 4 — Documents :**
+- Générer un document (contrat sous-traitance, convention, etc.)
+- Importer des documents
+- Liste (intitulé, catégorie, date)
+
+---
+
+### 4.6 — FINANCEURS (FIN)
+
+**Préfixe** : FIN-xxxx
+
+**Entité séparée des entreprises** — OPCO, Pôle Emploi, Région, etc.
+
+**Champs :**
+- ID (auto), Nom du financeur
+- Type (OPCO, Pôle Emploi, Région, AGEFIPH, Entreprise, Autre)
+- SIRET
+- Email, Téléphone
+- Adresse complète
+- Numéro compte comptable
+- Code BPF associé
+
+**Relations :**
+- Sessions financées (liste)
+- Inscriptions prises en charge
+- Historique des paiements
+
+---
+
+### 4.7 — PRODUITS DE FORMATION (PROD)
+
+**Préfixe** : PROD-xxxx
+
+**C'est le catalogue — la "fiche produit" d'une formation.**
+
+**SmartOF — 3 onglets + sous-configurations :**
+
+**Onglet 1 — Configuration :**
+- Intitulé, Identifiant interne
+- Sous-titre, Description (éditeur riche)
+- Domaine / Pôle (dropdown)
+- Type d'action (Action de formation, Bilan compétences, VAE, Apprentissage)
+- Modalité (Présentiel, Distanciel, Mixte, AFEST)
+- Formule (Inter, Intra, Individuel)
+
+**Onglet 2 — Tarifs :**
+- Multi-tarifs possibles (ex: prix HT / stagiaire / jour, forfait, etc.)
+- Taux TVA (0% = exonéré art. 261-4-4a du CGI)
+- Recettes par tarif
+- Templates de tarification
+
+**Onglet 3 — Configuration avancée :**
+- **BPF** : Spécialité, Catégorie (A/B/C), Niveau (I à V)
+- **Catalogue en ligne** : Toggle publication + aperçu
+- **Documents** : Templates liés (convention, programme, attestation)
+- **Évaluations** : Enquêtes satisfaction + questionnaires péda rattachés
+- **Objectifs pédagogiques** : Grille Acquis / En cours / Non acquis
+- **Ressources pédagogiques** : Fichiers partagés via extranet
+
+**App C&CO actuelle (à garder) :**
+- 5 onglets : Général, Pratique, Objectifs, Programme, Modalités, Indicateurs
+- **Import PDF IA → remplissage auto du programme** ← avantage concurrentiel !
+- **Images IA** pour les formations
+- **Barre de progression** de complétion (95%, 2 manquants)
+- Toggle publication + slug URL + image
+
+**Notre v2 fusionne le meilleur des deux :**
+
+| Feature | SmartOF | C&CO | Notre v2 |
+|---------|---------|------|----------|
+| Tarification | Multi-tarifs + TVA + templates | Prix unique TTC | Multi-tarifs SmartOF |
+| Catalogue | Toggle + aperçu | Toggle + slug + image | Les deux |
+| Documents | Auto-génération | Import PDF IA | Import PDF IA + auto-génération |
+| Évaluations | Rattachées au produit | Basique | SmartOF |
+| BPF | Spécialité + catégorie + niveau | Basique | SmartOF |
+| Import IA PDF | Non | Oui | Oui (avantage concurrentiel) |
+| Images IA | Non | Oui | Oui |
+| Progression | Non | Oui (barre %) | Oui |
+
+---
+
+### 4.8 — ENQUÊTES DE SATISFACTION + QUESTIONNAIRES PÉDAGOGIQUES (fusionnés)
+
+**Module unifié "Questionnaires"** — gère les deux types :
+
+**Types de questionnaires :**
+- Enquête de satisfaction (à chaud / à froid)
+- Questionnaire pédagogique (positionnement pré / post formation)
+- Standalone (prospection, analyse de besoins)
+
+**Multi-public :** Apprenant, Contact client, Financeur, Formateur
+
+**Types de questions :**
+- QCU (choix unique)
+- QCM (choix multiple)
+- Note (échelle 0-10)
+- Texte libre
+- Vrai/Faux
+
+**Fonctionnalités :**
+- Statistiques avec graphiques (barres, moyennes)
+- Alertes email personnalisables (si note < seuil)
+- Relances automatiques (J+3, J+7 configurables)
+- Import IA : PDF/Word → questions extraites automatiquement
+- Scoring par question (points pour évaluation)
+- Lien partageable unique par questionnaire ou par destinataire
+- Dashboard réponses + KPIs + export (CSV, PDF)
+- Duplicable
+- Mode brouillon / actif / archivé
+
+**Tables proposées :**
+```
+questionnaires (id, nom, type, public, introduction, relances_auto, formation_id, statut, is_default)
+questionnaire_questions (id, questionnaire_id, ordre, texte, type, options jsonb, obligatoire, points)
+questionnaire_invitations (id, questionnaire_id, email, nom, prenom, token, sent_at, opened_at, completed_at, relance_count, expires_at)
+questionnaire_reponses (id, questionnaire_id, invitation_id, respondent_email, respondent_name, responses jsonb, score_total, submitted_at)
+```
+
+---
+
+### 4.9 — SESSIONS DE FORMATION (SES)
+
+**Préfixe** : SES-xxxx | **39 sessions** — MODULE LE PLUS COMPLEXE
+
+**Statuts** : En projet (jaune) → Validée (vert) → Archivée
+
+**Liste — colonnes clés :**
+- ID, Statut, Nom, Commanditaire
+- **Total budget** (ex: 2 430,96 €)
+- **Coût de revient** (ex: 1 251,06 €)
+- **Rentabilité** (Budget - Coût = 1 179,90 € en vert)
+- Dates début/fin, Nombre d'apprenants (tooltip avec liste nominative)
+
+**Détail session — Structure multi-onglets :**
+
+**Onglet 1 — Général :**
+- Nom session (auto depuis produit), Statut, Dates début/fin
+- Nombre de places (min/max), Lieu (salle rattachée ou adresse libre)
+- Formateur(s) assigné(s) (multi-select)
+- Lien vers le produit de formation source
+- Paramètres : automatisation émargement, données logistiques
+
+**Onglet 2 — Commanditaires :**
+- **Pattern multi-commanditaires** : une session peut avoir PLUSIEURS entreprises/financeurs
+- Par commanditaire : entreprise, contact client, financeur (OPCO), convention
+- **Workflow configurable** par commanditaire : pipeline d'étapes (analyse → convention → signature → facturation)
+- Statut par étape (En attente, En cours, Validé, Signé)
+
+**Onglet 3 — Apprenants :**
+- Liste inscriptions par commanditaire
+- Statut inscription : Inscrit, Confirmé, Annulé, Liste d'attente
+- Ajout individuel ou import CSV
+- Tooltip apprenants avec liste nominative au survol
+
+**Onglet 4 — Créneaux / Planning :**
+- Créneaux horaires détaillés (date, heure début, heure fin, durée calculée, formateur, lieu)
+- **Émargement automatique** : toggle par créneau (ouverture/fermeture programmée)
+- Vue calendrier intégrée
+- Types de créneaux : Présentiel, Distanciel, E-learning, Stage
+
+**Onglet 5 — Évaluations :**
+- Enquêtes de satisfaction rattachées (à chaud / à froid)
+- Questionnaires pédagogiques (pré / post)
+- Importables depuis le produit de formation
+
+**Onglet 6 — Documents :**
+- Génération automatique : Convention, Convocation, Programme, Attestation, Certificat
+- Templates par catégorie d'acteur (commanditaire, formateur, apprenant)
+- Import documents manuels
+
+**Onglet 7 — Financier :**
+- **Revenus** par commanditaire (montant, statut paiement)
+- **Charges** : coût formateur (auto = tarif jour × nb jours) + charges libres ajoutables
+- **Rentabilité** : calcul automatique Revenus - Charges
+- Liens vers devis et factures associés
+
+**Onglet 8 — Extranet :**
+- Statuts d'accès par rôle : Formateur, Apprenant, Contact client
+- Statuts granulaires : Invité, En attente, Activé, Désactivé
+
+---
+
+### 4.10 — DEVIS (D)
+
+**Préfixe** : D-ANNÉE-xxxx (ex: D-2026-0033)
+
+**Workflow** : Brouillon → Envoyé → Signé / Refusé
+
+**Layout** : Édition à gauche / Aperçu PDF temps réel à droite ← très bon UX à garder
+
+**Champs :**
+- Numéro (auto), Date émission, Date échéance
+- **Destinataire** : Entreprise OU Particulier (toggle dual)
+- Contact client associé
+- Opportunité commerciale (rattachement optionnel)
+- Objet du devis
+
+**Lignes de devis :**
+- Multi-lignes (plusieurs produits/prestations)
+- Par ligne : Désignation, Description riche, Quantité, Prix unitaire HT, TVA
+- TVA souvent exonérée (art. 261-4-4a du CGI pour les OF)
+- Totaux : HT, TVA, TTC
+
+**Actions :**
+- **Transformer en session** ← conversion directe devis → session
+- Envoyer par email (Resend + suivi ouverture)
+- Dupliquer le devis
+- Archiver / Supprimer
+
+**Améliorations v2 :**
+- Templates de devis sauvegardables
+- Conversion devis → facture (en plus de devis → session)
+- Signature électronique intégrée
+- Relance automatique si pas signé après X jours
+
+---
+
+### 4.11 — FACTURES (F)
+
+**Préfixe** : F-ANNÉE-xxxx (ex: F-2026-0015)
+
+**Workflow** : Brouillon → Envoyée → Payée / En retard / Partiellement payée
+
+**Même layout que devis** : Édition gauche / Aperçu PDF droite
+
+**Champs :**
+- Numéro (auto), Date émission, Date échéance
+- Entreprise destinataire, Contact client
+- Lien session (optionnel), Lien devis source (optionnel)
+- Conditions de paiement
+- Mentions légales obligatoires (NDA, SIRET, n° TVA intracommunautaire)
+
+**Lignes facture :**
+- Même structure que devis (désignation, description, qté, PU HT, TVA)
+- Totaux calculés automatiquement
+
+**Suivi paiements :**
+- Enregistrement des paiements (date, montant, mode)
+- Calcul automatique du solde restant
+- Statut auto (Payée si solde = 0)
+
+**Relances :**
+- Relances automatiques à échéance + J+7 + J+14 + J+30
+- Historique des relances
+
+---
+
+### 4.12 — AVOIRS (A)
+
+**Préfixe** : A-ANNÉE-xxxx
+
+- Lié à une facture d'origine
+- Même structure que facture mais en négatif
+- Génération depuis la facture (partiel ou total)
+
+---
+
+### 4.13 — EXPORT COMPTABLE
+
+- Export FEC (Fichier des Écritures Comptables) pour le cabinet comptable
+- Filtres par période, par compte
+- Format CSV/FEC standard
+- Numéros de compte comptable présents sur : Entreprises, Apprenants, Financeurs
+
+---
+
+### 4.14 — TICKETS
+
+- Support interne / demandes
+- Statuts : Ouvert, En cours, Résolu, Fermé
+- Assignation à un utilisateur
+- Historique des échanges
+
+---
+
+### 4.15 — PARAMÈTRES DE L'OF
+
+**6 sections :**
+- **Général** : Nom OF, SIRET, NDA (Numéro Déclaration d'Activité), Adresse, Logo
+- **Documents** : Templates (convention, attestation, etc.), Mentions légales, Pied de page
+- **Emails** : Templates Resend, Signatures, Paramètres relance
+- **Facturation** : Numérotation auto, TVA par défaut, Conditions paiement, Coordonnées bancaires
+- **Utilisateurs et activité** : Gestion comptes + rôles + logs d'activité
+- **Avancé** : Config technique
+
+---
+
+## 5. SCHÉMA BDD v2
+
+### Conventions
+
+- **Nommage** : snake_case, pluriel pour les tables
+- **IDs** : UUID (gen_random_uuid())
+- **Timestamps** : created_at, updated_at sur toutes les tables
+- **Soft delete** : archived_at (nullable) au lieu de suppression
+- **Multi-tenant** : organisation_id sur toutes les tables métier
+- **Préfixes d'affichage** : Générés côté app (APP-0001, ENT-0002, etc.), stockés en séquence dans une table `sequences`
+
+### Tables principales
+
+```sql
+-- ═══════════════════════════════════════════
+-- ORGANISATION / MULTI-TENANT
+-- ═══════════════════════════════════════════
+
+organisations (
+  id uuid PK,
+  nom text NOT NULL,
+  siret text,
+  nda text,                          -- Numéro Déclaration d'Activité
+  email text,
+  telephone text,
+  adresse_rue text,
+  adresse_complement text,
+  adresse_cp text,
+  adresse_ville text,
+  logo_url text,
+  settings jsonb DEFAULT '{}',       -- Config générale (TVA défaut, mentions légales, etc.)
+  created_at, updated_at
+)
+
+utilisateurs (
+  id uuid PK,                        -- = auth.users.id
+  organisation_id uuid FK → organisations,
+  email text NOT NULL,
+  prenom text,
+  nom text,
+  role text DEFAULT 'user',          -- admin, manager, user
+  avatar_url text,
+  actif boolean DEFAULT true,
+  created_at, updated_at
+)
+
+-- ═══════════════════════════════════════════
+-- TABLES DE RÉFÉRENCE
+-- ═══════════════════════════════════════════
+
+bpf_categories_entreprise (          -- Codes BPF pour entreprises (C.1, C.2.a, etc.)
+  id uuid PK,
+  code text NOT NULL UNIQUE,
+  libelle text NOT NULL,
+  ordre int
+)
+
+bpf_categories_apprenant (           -- Codes BPF pour apprenants (F.1.a, F.2, etc.)
+  id uuid PK,
+  code text NOT NULL UNIQUE,
+  libelle text NOT NULL,
+  ordre int
+)
+
+bpf_specialites (                    -- Spécialités pour produits de formation
+  id uuid PK,
+  code text,
+  libelle text NOT NULL,
+  ordre int
+)
+
+sequences (                          -- Compteurs auto pour préfixes ID
+  id uuid PK,
+  organisation_id uuid FK,
+  entite text NOT NULL,              -- 'APP', 'ENT', 'SES', 'D', 'F', 'A', etc.
+  compteur int DEFAULT 0,
+  UNIQUE (organisation_id, entite)
+)
+
+-- ═══════════════════════════════════════════
+-- CRM — BASE DE CONTACTS
+-- ═══════════════════════════════════════════
+
+entreprises (
+  id uuid PK,
+  organisation_id uuid FK,
+  numero_affichage text,             -- ENT-0056 (généré)
+  nom text NOT NULL,
+  siret text,
+  email text,
+  telephone text,
+  adresse_rue text,
+  adresse_complement text,
+  adresse_cp text,
+  adresse_ville text,
+  -- Facturation (adresse séparée)
+  facturation_raison_sociale text,
+  facturation_rue text,
+  facturation_complement text,
+  facturation_cp text,
+  facturation_ville text,
+  -- BPF & Comptabilité
+  bpf_categorie_id uuid FK → bpf_categories_entreprise,
+  numero_compte_comptable text DEFAULT '411000',
+  -- Méta
+  archived_at timestamptz,
+  created_at, updated_at
+)
+
+apprenants (
+  id uuid PK,
+  organisation_id uuid FK,
+  numero_affichage text,             -- APP-0324
+  civilite text,                     -- Monsieur / Madame
+  prenom text NOT NULL,
+  nom text NOT NULL,
+  nom_naissance text,
+  email text,
+  telephone text,
+  date_naissance date,
+  fonction text,
+  lieu_activite text,
+  adresse_rue text,
+  adresse_complement text,
+  adresse_cp text,
+  adresse_ville text,
+  bpf_categorie_id uuid FK → bpf_categories_apprenant,
+  numero_compte_comptable text,
+  -- Intégrations
+  pennylane_id text,
+  lms_id text,
+  -- Méta
+  archived_at timestamptz,
+  created_at, updated_at
+)
+
+apprenant_entreprises (              -- Many-to-many
+  id uuid PK,
+  apprenant_id uuid FK → apprenants,
+  entreprise_id uuid FK → entreprises,
+  UNIQUE (apprenant_id, entreprise_id)
+)
+
+contacts_clients (
+  id uuid PK,
+  organisation_id uuid FK,
+  numero_affichage text,             -- CTC-0065
+  civilite text,
+  prenom text NOT NULL,
+  nom text NOT NULL,
+  email text,
+  telephone text,
+  fonction text,
+  -- Extranet
+  extranet_actif boolean DEFAULT false,
+  extranet_user_id uuid,             -- Lien auth.users si extranet activé
+  -- Méta
+  archived_at timestamptz,
+  created_at, updated_at
+)
+
+contact_entreprises (                -- Many-to-many
+  id uuid PK,
+  contact_client_id uuid FK → contacts_clients,
+  entreprise_id uuid FK → entreprises,
+  UNIQUE (contact_client_id, entreprise_id)
+)
+
+formateurs (
+  id uuid PK,
+  organisation_id uuid FK,
+  numero_affichage text,             -- FOR-0016
+  civilite text,
+  prenom text NOT NULL,
+  nom text NOT NULL,
+  email text,
+  telephone text,
+  adresse_rue text,
+  adresse_complement text,
+  adresse_cp text,
+  adresse_ville text,
+  -- Professionnel
+  statut_bpf text NOT NULL DEFAULT 'externe',  -- 'interne' / 'externe'
+  nda text,                          -- Numéro Déclaration d'Activité (si sous-traitant)
+  siret text,
+  -- Coûts
+  tarif_journalier numeric(10,2),    -- HT
+  taux_tva numeric(5,2) DEFAULT 0,
+  heures_par_jour numeric(4,2) DEFAULT 7,  -- Pour calcul tarif horaire auto
+  -- Extranet
+  extranet_actif boolean DEFAULT false,
+  extranet_user_id uuid,
+  lien_calendrier_ical text,
+  -- Méta
+  archived_at timestamptz,
+  created_at, updated_at
+)
+
+formateur_competences (
+  id uuid PK,
+  formateur_id uuid FK → formateurs,
+  competence text NOT NULL
+)
+
+financeurs (
+  id uuid PK,
+  organisation_id uuid FK,
+  numero_affichage text,             -- FIN-0012
+  nom text NOT NULL,
+  type text,                         -- OPCO, Pôle Emploi, Région, AGEFIPH, Entreprise, Autre
+  siret text,
+  email text,
+  telephone text,
+  adresse_rue text,
+  adresse_complement text,
+  adresse_cp text,
+  adresse_ville text,
+  numero_compte_comptable text,
+  bpf_categorie_id uuid FK → bpf_categories_entreprise,
+  archived_at timestamptz,
+  created_at, updated_at
+)
+
+-- ═══════════════════════════════════════════
+-- BIBLIOTHÈQUE — PRODUITS DE FORMATION
+-- ═══════════════════════════════════════════
+
+produits_formation (
+  id uuid PK,
+  organisation_id uuid FK,
+  numero_affichage text,             -- PROD-0025
+  intitule text NOT NULL,
+  sous_titre text,
+  description text,                  -- Éditeur riche (HTML)
+  identifiant_interne text,
+  -- Classification
+  domaine text,                      -- Pôle / domaine
+  type_action text,                  -- Action de formation, Bilan compétences, VAE, Apprentissage
+  modalite text,                     -- Présentiel, Distanciel, Mixte, AFEST
+  formule text,                      -- Inter, Intra, Individuel
+  -- Durée
+  duree_heures numeric(8,2),
+  duree_jours numeric(8,2),
+  -- BPF
+  bpf_specialite_id uuid FK → bpf_specialites,
+  bpf_categorie text,               -- A, B, C
+  bpf_niveau text,                   -- I à V
+  -- Catalogue en ligne
+  publie boolean DEFAULT false,
+  populaire boolean DEFAULT false,
+  slug text,
+  image_url text,
+  -- Complétion
+  completion_pct int DEFAULT 0,
+  -- Méta
+  archived_at timestamptz,
+  created_at, updated_at
+)
+
+produit_tarifs (
+  id uuid PK,
+  produit_id uuid FK → produits_formation,
+  nom text,                          -- Ex: "Tarif standard", "Tarif OPCO"
+  prix_ht numeric(10,2),
+  taux_tva numeric(5,2) DEFAULT 0,
+  unite text,                        -- 'stagiaire', 'groupe', 'jour', 'heure', 'forfait'
+  is_default boolean DEFAULT false,
+  created_at, updated_at
+)
+
+produit_objectifs (
+  id uuid PK,
+  produit_id uuid FK → produits_formation,
+  objectif text NOT NULL,
+  ordre int
+)
+
+produit_programme (
+  id uuid PK,
+  produit_id uuid FK → produits_formation,
+  titre text NOT NULL,
+  contenu text,                      -- HTML
+  duree text,
+  ordre int
+)
+
+produit_documents (
+  id uuid PK,
+  produit_id uuid FK → produits_formation,
+  nom text NOT NULL,
+  categorie text,                    -- programme, plaquette, convention, attestation
+  fichier_url text,
+  genere boolean DEFAULT false,      -- Auto-généré ou importé
+  created_at
+)
+
+-- ═══════════════════════════════════════════
+-- QUESTIONNAIRES (SATISFACTION + PÉDAGOGIQUE)
+-- ═══════════════════════════════════════════
+
+questionnaires (
+  id uuid PK,
+  organisation_id uuid FK,
+  nom text NOT NULL,
+  type text NOT NULL,                -- 'satisfaction_chaud', 'satisfaction_froid', 'pedagogique_pre', 'pedagogique_post', 'standalone'
+  public_cible text,                 -- 'apprenant', 'contact_client', 'financeur', 'formateur'
+  introduction text,
+  produit_id uuid FK → produits_formation,  -- Nullable (standalone = pas lié)
+  relances_auto boolean DEFAULT true,
+  relance_j3 boolean DEFAULT true,
+  relance_j7 boolean DEFAULT true,
+  statut text DEFAULT 'brouillon',   -- brouillon, actif, archivé
+  is_default boolean DEFAULT false,
+  created_at, updated_at
+)
+
+questionnaire_questions (
+  id uuid PK,
+  questionnaire_id uuid FK,
+  ordre int NOT NULL,
+  texte text NOT NULL,
+  type text NOT NULL,                -- 'libre', 'echelle', 'choix_unique', 'choix_multiple', 'vrai_faux'
+  options jsonb,                     -- Pour les choix [{label, value}]
+  obligatoire boolean DEFAULT true,
+  points int DEFAULT 0,              -- Pour scoring
+  created_at
+)
+
+questionnaire_invitations (
+  id uuid PK,
+  questionnaire_id uuid FK,
+  session_id uuid FK,               -- Nullable
+  email text NOT NULL,
+  nom text,
+  prenom text,
+  token text UNIQUE NOT NULL,        -- Lien unique
+  sent_at timestamptz,
+  opened_at timestamptz,
+  completed_at timestamptz,
+  relance_count int DEFAULT 0,
+  expires_at timestamptz,
+  created_at
+)
+
+questionnaire_reponses (
+  id uuid PK,
+  questionnaire_id uuid FK,
+  invitation_id uuid FK,            -- Nullable si anonyme
+  respondent_email text,
+  respondent_name text,
+  responses jsonb NOT NULL,          -- [{question_id, answer, score}]
+  score_total int,
+  submitted_at timestamptz NOT NULL,
+  created_at
+)
+
+questionnaire_alertes (
+  id uuid PK,
+  questionnaire_id uuid FK,
+  question_id uuid FK,
+  condition text,                    -- 'inferieur_a', 'egal_a'
+  seuil numeric,
+  email_destinataire text,
+  actif boolean DEFAULT true,
+  created_at
+)
+
+-- ═══════════════════════════════════════════
+-- SESSIONS DE FORMATION
+-- ═══════════════════════════════════════════
+
+sessions (
+  id uuid PK,
+  organisation_id uuid FK,
+  numero_affichage text,             -- SES-0058
+  produit_id uuid FK → produits_formation,
+  nom text NOT NULL,
+  statut text DEFAULT 'en_projet',   -- en_projet, validee, en_cours, terminee, archivee
+  date_debut date,
+  date_fin date,
+  places_min int,
+  places_max int,
+  lieu_salle_id uuid FK → salles,   -- Nullable
+  lieu_adresse text,                 -- Adresse libre si pas de salle
+  lieu_type text,                    -- presentiel, distanciel, mixte
+  -- Émargement
+  emargement_auto boolean DEFAULT false,
+  -- Méta
+  archived_at timestamptz,
+  created_at, updated_at
+)
+
+session_formateurs (
+  id uuid PK,
+  session_id uuid FK → sessions,
+  formateur_id uuid FK → formateurs,
+  role text DEFAULT 'principal',     -- principal, intervenant
+  UNIQUE (session_id, formateur_id)
+)
+
+-- Commanditaires (multi-commanditaires par session)
+session_commanditaires (
+  id uuid PK,
+  session_id uuid FK → sessions,
+  entreprise_id uuid FK → entreprises,
+  contact_client_id uuid FK → contacts_clients,
+  financeur_id uuid FK → financeurs,  -- Nullable (pas toujours un financeur)
+  convention_signee boolean DEFAULT false,
+  convention_url text,
+  budget numeric(10,2) DEFAULT 0,
+  statut_workflow text DEFAULT 'analyse', -- analyse, convention, signature, facturation, termine
+  notes text,
+  created_at, updated_at
+)
+
+-- Inscriptions (apprenants inscrits via un commanditaire)
+inscriptions (
+  id uuid PK,
+  session_id uuid FK → sessions,
+  apprenant_id uuid FK → apprenants,
+  commanditaire_id uuid FK → session_commanditaires,
+  statut text DEFAULT 'inscrit',     -- inscrit, confirme, annule, liste_attente
+  notes text,
+  created_at, updated_at,
+  UNIQUE (session_id, apprenant_id)
+)
+
+-- Créneaux horaires
+session_creneaux (
+  id uuid PK,
+  session_id uuid FK → sessions,
+  date date NOT NULL,
+  heure_debut time NOT NULL,
+  heure_fin time NOT NULL,
+  duree_minutes int,                 -- Calculé auto
+  formateur_id uuid FK → formateurs,
+  salle_id uuid FK → salles,
+  type text DEFAULT 'presentiel',    -- presentiel, distanciel, elearning, stage
+  emargement_ouvert boolean DEFAULT false,
+  created_at, updated_at
+)
+
+-- Émargement
+emargements (
+  id uuid PK,
+  creneau_id uuid FK → session_creneaux,
+  apprenant_id uuid FK → apprenants,
+  present boolean,
+  signature_url text,                -- Image signature
+  heure_signature timestamptz,
+  ip_address text,
+  created_at
+)
+
+-- Évaluations rattachées à la session
+session_evaluations (
+  id uuid PK,
+  session_id uuid FK → sessions,
+  questionnaire_id uuid FK → questionnaires,
+  type text,                         -- satisfaction_chaud, satisfaction_froid, pedagogique_pre, pedagogique_post
+  date_envoi timestamptz,
+  created_at
+)
+
+-- ═══════════════════════════════════════════
+-- FINANCIER — DEVIS / FACTURES / AVOIRS
+-- ═══════════════════════════════════════════
+
+devis (
+  id uuid PK,
+  organisation_id uuid FK,
+  numero_affichage text,             -- D-2026-0033
+  -- Destinataire
+  entreprise_id uuid FK → entreprises,  -- Nullable (soit entreprise soit particulier)
+  contact_client_id uuid FK → contacts_clients,
+  particulier_nom text,              -- Si particulier
+  particulier_email text,
+  particulier_adresse text,
+  -- Dates
+  date_emission date NOT NULL,
+  date_echeance date,
+  -- Contenu
+  objet text,
+  conditions text,
+  mentions_legales text,
+  -- Montants (calculés depuis les lignes)
+  total_ht numeric(10,2) DEFAULT 0,
+  total_tva numeric(10,2) DEFAULT 0,
+  total_ttc numeric(10,2) DEFAULT 0,
+  -- Workflow
+  statut text DEFAULT 'brouillon',   -- brouillon, envoye, signe, refuse, expire
+  envoye_le timestamptz,
+  signe_le timestamptz,
+  -- Relations
+  session_id uuid FK → sessions,     -- Si converti en session
+  opportunite_id uuid FK → opportunites,
+  -- Méta
+  archived_at timestamptz,
+  created_at, updated_at
+)
+
+devis_lignes (
+  id uuid PK,
+  devis_id uuid FK → devis,
+  designation text NOT NULL,
+  description text,                  -- Description riche
+  quantite numeric(10,2) DEFAULT 1,
+  prix_unitaire_ht numeric(10,2),
+  taux_tva numeric(5,2) DEFAULT 0,
+  montant_ht numeric(10,2),          -- Calculé
+  ordre int,
+  created_at
+)
+
+factures (
+  id uuid PK,
+  organisation_id uuid FK,
+  numero_affichage text,             -- F-2026-0015
+  -- Destinataire
+  entreprise_id uuid FK → entreprises,
+  contact_client_id uuid FK → contacts_clients,
+  -- Dates
+  date_emission date NOT NULL,
+  date_echeance date,
+  -- Contenu
+  objet text,
+  conditions_paiement text,
+  mentions_legales text,
+  -- Montants
+  total_ht numeric(10,2) DEFAULT 0,
+  total_tva numeric(10,2) DEFAULT 0,
+  total_ttc numeric(10,2) DEFAULT 0,
+  montant_paye numeric(10,2) DEFAULT 0,
+  -- Workflow
+  statut text DEFAULT 'brouillon',   -- brouillon, envoyee, payee, partiellement_payee, en_retard
+  envoye_le timestamptz,
+  -- Relations
+  devis_id uuid FK → devis,          -- Si générée depuis un devis
+  session_id uuid FK → sessions,
+  -- Méta
+  archived_at timestamptz,
+  created_at, updated_at
+)
+
+facture_lignes (
+  id uuid PK,
+  facture_id uuid FK → factures,
+  designation text NOT NULL,
+  description text,
+  quantite numeric(10,2) DEFAULT 1,
+  prix_unitaire_ht numeric(10,2),
+  taux_tva numeric(5,2) DEFAULT 0,
+  montant_ht numeric(10,2),
+  ordre int,
+  created_at
+)
+
+facture_paiements (
+  id uuid PK,
+  facture_id uuid FK → factures,
+  date_paiement date NOT NULL,
+  montant numeric(10,2) NOT NULL,
+  mode text,                         -- virement, chèque, CB, espèces
+  reference text,
+  notes text,
+  created_at
+)
+
+avoirs (
+  id uuid PK,
+  organisation_id uuid FK,
+  numero_affichage text,             -- A-2026-0001
+  facture_id uuid FK → factures,     -- Facture d'origine
+  date_emission date NOT NULL,
+  motif text,
+  total_ht numeric(10,2),
+  total_tva numeric(10,2),
+  total_ttc numeric(10,2),
+  statut text DEFAULT 'brouillon',
+  archived_at timestamptz,
+  created_at, updated_at
+)
+
+avoir_lignes (
+  id uuid PK,
+  avoir_id uuid FK → avoirs,
+  designation text NOT NULL,
+  description text,
+  quantite numeric(10,2),
+  prix_unitaire_ht numeric(10,2),
+  taux_tva numeric(5,2) DEFAULT 0,
+  montant_ht numeric(10,2),
+  ordre int,
+  created_at
+)
+
+-- ═══════════════════════════════════════════
+-- SUIVI COMMERCIAL
+-- ═══════════════════════════════════════════
+
+opportunites (
+  id uuid PK,
+  organisation_id uuid FK,
+  nom text NOT NULL,
+  entreprise_id uuid FK → entreprises,
+  contact_client_id uuid FK → contacts_clients,
+  montant_estime numeric(10,2),
+  statut text DEFAULT 'prospect',    -- prospect, qualification, proposition, negociation, gagne, perdu
+  date_cloture_prevue date,
+  notes text,
+  archived_at timestamptz,
+  created_at, updated_at
+)
+
+-- ═══════════════════════════════════════════
+-- TÂCHES & ACTIVITÉS (CRM intégré)
+-- ═══════════════════════════════════════════
+
+taches (
+  id uuid PK,
+  organisation_id uuid FK,
+  titre text NOT NULL,
+  description text,
+  statut text DEFAULT 'a_faire',     -- a_faire, en_cours, terminee
+  priorite text DEFAULT 'normale',   -- basse, normale, haute, urgente
+  date_echeance date,
+  assignee_id uuid FK → utilisateurs,
+  -- Polymorphique : rattachement à n'importe quelle entité
+  entite_type text,                  -- 'entreprise', 'apprenant', 'contact_client', 'formateur', 'session', etc.
+  entite_id uuid,
+  completed_at timestamptz,
+  created_at, updated_at
+)
+
+activites (                          -- Journal d'activité / notes CRM
+  id uuid PK,
+  organisation_id uuid FK,
+  auteur_id uuid FK → utilisateurs,
+  contenu text NOT NULL,
+  -- Polymorphique
+  entite_type text,
+  entite_id uuid,
+  created_at
+)
+
+-- ═══════════════════════════════════════════
+-- DOCUMENTS & GÉNÉRATION
+-- ═══════════════════════════════════════════
+
+documents (
+  id uuid PK,
+  organisation_id uuid FK,
+  nom text NOT NULL,
+  categorie text,                    -- convention, contrat_sous_traitance, attestation, certificat, programme, autre
+  fichier_url text NOT NULL,
+  taille_octets int,
+  mime_type text,
+  genere boolean DEFAULT false,
+  -- Polymorphique
+  entite_type text,                  -- 'session', 'formateur', 'apprenant', 'produit', etc.
+  entite_id uuid,
+  created_at
+)
+
+document_templates (
+  id uuid PK,
+  organisation_id uuid FK,
+  nom text NOT NULL,
+  categorie text NOT NULL,
+  contenu_html text,                 -- Template avec variables {{nom}}, {{date}}, etc.
+  actif boolean DEFAULT true,
+  created_at, updated_at
+)
+
+-- ═══════════════════════════════════════════
+-- EMAILS
+-- ═══════════════════════════════════════════
+
+emails_envoyes (
+  id uuid PK,
+  organisation_id uuid FK,
+  destinataire_email text NOT NULL,
+  destinataire_nom text,
+  sujet text NOT NULL,
+  contenu_html text,
+  statut text DEFAULT 'envoye',      -- envoye, delivre, ouvert, erreur
+  resend_id text,                    -- ID Resend pour tracking
+  -- Contexte
+  entite_type text,
+  entite_id uuid,
+  template text,
+  created_at
+)
+
+-- ═══════════════════════════════════════════
+-- DIVERS
+-- ═══════════════════════════════════════════
+
+salles (
+  id uuid PK,
+  organisation_id uuid FK,
+  nom text NOT NULL,
+  adresse text,
+  capacite int,
+  equipements text,                  -- Vidéoprojecteur, Tableau blanc, etc.
+  actif boolean DEFAULT true,
+  created_at, updated_at
+)
+
+tickets (
+  id uuid PK,
+  organisation_id uuid FK,
+  titre text NOT NULL,
+  description text,
+  statut text DEFAULT 'ouvert',      -- ouvert, en_cours, resolu, ferme
+  priorite text DEFAULT 'normale',
+  auteur_id uuid FK → utilisateurs,
+  assignee_id uuid FK → utilisateurs,
+  created_at, updated_at
+)
+
+ticket_messages (
+  id uuid PK,
+  ticket_id uuid FK → tickets,
+  auteur_id uuid FK → utilisateurs,
+  contenu text NOT NULL,
+  created_at
+)
+
+-- ═══════════════════════════════════════════
+-- EXTRANET (accès externes)
+-- ═══════════════════════════════════════════
+
+extranet_acces (
+  id uuid PK,
+  organisation_id uuid FK,
+  user_id uuid FK,                   -- auth.users
+  role text NOT NULL,                -- 'formateur', 'apprenant', 'contact_client'
+  entite_type text NOT NULL,
+  entite_id uuid NOT NULL,
+  statut text DEFAULT 'invite',      -- invite, en_attente, actif, desactive
+  invite_le timestamptz,
+  active_le timestamptz,
+  created_at, updated_at
+)
+```
+
+### Total estimé : ~45 tables
+
+---
+
+## 6. DESIGN SYSTEM
+
+### Style Cursor (Noir / Gris / Orange)
+
+**Palette :**
+- Background principal : `#0A0A0A` (noir profond)
+- Background secondaire : `#141414` (gris très foncé)
+- Background cartes/panels : `#1A1A1A`
+- Bordures : `#2A2A2A`
+- Texte principal : `#FAFAFA` (blanc cassé)
+- Texte secondaire : `#A0A0A0` (gris moyen)
+- Accent principal : `#F97316` (orange — Tailwind orange-500)
+- Accent hover : `#EA580C` (orange-600)
+- Succès : `#22C55E` (vert)
+- Erreur : `#EF4444` (rouge)
+- Warning : `#EAB308` (jaune)
+- Info : `#3B82F6` (bleu)
+
+**Typographie :**
+- Font : Inter (ou Geist si dispo)
+- Tailles : 12px (small), 14px (body), 16px (subtitle), 20px (title), 28px (heading)
+
+**Composants clés :**
+- Sidebar fixe à gauche (collapsible)
+- Header avec breadcrumb + actions
+- Tables avec colonnes triables, drag & drop colonnes
+- Modales pour création/édition
+- Panneaux latéraux droits (détails rapides)
+- Toast notifications
+- Badges colorés pour statuts
+
+**Librairies UI recommandées :**
+- Tailwind CSS v4
+- shadcn/ui (composants)
+- Lucide React (icônes)
+- Tanstack Table (tables avancées)
+- DnD Kit (drag & drop)
+
+---
+
+## 7. ROADMAP PAR PHASES
+
+### Phase 0 — Fondations (Semaine 1-2)
+> **Objectif** : App fonctionnelle mais vide, prête à recevoir les modules
+
+- [ ] Initialisation Next.js 16 + TypeScript strict
+- [ ] Configuration Tailwind v4 + shadcn/ui + design system Cursor
+- [ ] Setup Supabase self-hosted (connexion depuis Next.js)
+- [ ] Auth : login/register + proxy.ts + protection routes
+- [ ] Layout principal : Sidebar + Header + Breadcrumb
+- [ ] Migration BDD : tables organisations, utilisateurs, sequences, bpf_categories
+- [ ] RLS (Row Level Security) multi-tenant sur toutes les tables
+- [ ] Deploy sur Coolify (CI/CD GitHub → Coolify)
+- [ ] Composants de base : DataTable générique, Modal, Panel latéral, Toast, Badges
+
+### Phase 1 — CRM / Base de contacts (Semaine 3-5)
+> **Objectif** : Pouvoir gérer toutes les entités de base
+
+- [ ] Module **Entreprises** (CRUD complet, 6 onglets, recherche INSEE)
+- [ ] Module **Apprenants** (CRUD, relation many-to-many entreprises, BPF)
+- [ ] Module **Contacts clients** (CRUD, association multi-entreprises, extranet)
+- [ ] Module **Formateurs** (CRUD, 4 onglets, coûts, BPF interne/externe)
+- [ ] Module **Financeurs** (CRUD, types OPCO/PE/Région)
+- [ ] Système de **vues personnalisables** (colonnes, filtres, tri sauvegardés)
+- [ ] Système de **tâches & activités** (polymorphique, rattachable à toute entité)
+- [ ] **Recherche avancée** + **Export CSV/Excel**
+- [ ] **Archivage** (soft delete avec restauration)
+
+### Phase 2 — Catalogue & Bibliothèque (Semaine 6-7)
+> **Objectif** : Pouvoir créer et gérer le catalogue de formations
+
+- [ ] Module **Produits de formation** (fusion SmartOF + C&CO)
+- [ ] Tarification multi-tarifs + TVA
+- [ ] Programme (édition riche, ordre des modules)
+- [ ] Objectifs pédagogiques
+- [ ] Import PDF IA → remplissage auto (feature killer)
+- [ ] Images IA (feature killer)
+- [ ] Barre de progression complétion (feature killer)
+- [ ] Toggle publication catalogue en ligne
+- [ ] BPF produit (spécialité, catégorie, niveau)
+
+### Phase 3 — Sessions de formation (Semaine 8-11)
+> **Objectif** : Le coeur du métier — gestion complète des sessions
+
+- [ ] Module **Sessions** (CRUD, statuts, lien produit)
+- [ ] **Multi-commanditaires** par session (entreprises + financeurs)
+- [ ] **Inscriptions** (par commanditaire, statuts, import CSV)
+- [ ] **Créneaux horaires** (planning détaillé, types)
+- [ ] **Émargement** (ouverture/fermeture auto, signatures)
+- [ ] **Planning** (vue calendrier — semaine/mois)
+- [ ] Workflow commanditaires (pipeline d'étapes configurable)
+- [ ] Évaluations rattachées (satisfaction + pédagogique)
+- [ ] Documents session (génération auto + import)
+- [ ] Calcul **rentabilité** auto (budget - coût formateur - charges)
+- [ ] **Salles** (gestion ressources physiques)
+
+### Phase 4 — Questionnaires (Semaine 12-13)
+> **Objectif** : Enquêtes de satisfaction + évaluations pédagogiques
+
+- [ ] Module **Questionnaires** unifié (satisfaction + péda + standalone)
+- [ ] Création questions (5 types + scoring)
+- [ ] Envoi par email (Resend, lien unique par destinataire)
+- [ ] Relances automatiques (J+3, J+7 via pg_cron)
+- [ ] Dashboard réponses + graphiques statistiques
+- [ ] Alertes email configurables (si note < seuil)
+- [ ] Import IA : PDF/Word → extraction questions automatique
+- [ ] Export réponses (CSV, PDF)
+
+### Phase 5 — Commercial (Semaine 14-16)
+> **Objectif** : Pipeline commercial complet
+
+- [ ] Module **Opportunités** (pipeline, statuts, montant estimé)
+- [ ] Module **Devis** (CRUD, layout édition/aperçu PDF)
+- [ ] Multi-lignes devis + calculs auto (HT, TVA, TTC)
+- [ ] Conversion **devis → session**
+- [ ] Conversion **devis → facture**
+- [ ] Envoi devis par email (Resend + tracking ouverture)
+- [ ] Templates de devis
+- [ ] Signature électronique (à évaluer : intégration externe ou maison)
+
+### Phase 6 — Facturation (Semaine 17-19)
+> **Objectif** : Facturation complète + export comptable
+
+- [ ] Module **Factures** (CRUD, même layout que devis)
+- [ ] Multi-lignes + calculs auto
+- [ ] Suivi paiements (enregistrement, mode, solde auto)
+- [ ] Relances automatiques (échéance + J+7 + J+14 + J+30)
+- [ ] Module **Avoirs** (lié facture, partiel/total)
+- [ ] **Export comptable** FEC (Fichier Écritures Comptables)
+- [ ] Génération PDF factures/avoirs
+
+### Phase 7 — Documents & Génération (Semaine 20-21)
+> **Objectif** : Génération automatique de tous les documents réglementaires
+
+- [ ] Templates de documents (convention, attestation, certificat, programme, contrat sous-traitance)
+- [ ] Variables dynamiques ({{nom}}, {{date}}, {{session}}, etc.)
+- [ ] Génération PDF/DOCX côté serveur
+- [ ] Gestion documents par entité (upload + téléchargement)
+
+### Phase 8 — Automatisations & Suivi (Semaine 22-24)
+> **Objectif** : Workflows automatisés + dashboard
+
+- [ ] **Automatisations** : workflows configurables (inscription → convocation → rappel → émargement → attestation → satisfaction)
+- [ ] **BPF** : génération automatique du Bilan Pédagogique et Financier
+- [ ] **Dashboard / Indicateurs** : KPIs (CA, taux remplissage, rentabilité, satisfaction moyenne)
+- [ ] **Rapports** : exports personnalisables
+- [ ] **Emails envoyés** : historique avec statuts (délivré, ouvert)
+- [ ] **Tickets** : support interne
+
+### Phase 9 — Extranet & Polish (Semaine 25-27)
+> **Objectif** : Accès externes + finitions
+
+- [ ] **Extranet formateurs** : espace dédié (sessions, docs, dispos)
+- [ ] **Extranet apprenants** : espace dédié (inscriptions, émargement, docs)
+- [ ] **Extranet contacts clients** : espace dédié (sessions, factures, docs)
+- [ ] **Paramètres OF** complets (6 sections)
+- [ ] Tests E2E
+- [ ] Optimisation performances
+- [ ] Documentation utilisateur
+
+---
+
+## 8. INSTRUCTIONS POUR CLAUDE CODE
+
+### Règles générales
+
+1. **Next.js 16** avec App Router — PAS de Pages Router
+2. **TypeScript strict** partout — aucun `any`
+3. **Server Components par défaut** — Client Components uniquement quand nécessaire (interactivité)
+4. **Server Actions** pour toutes les mutations BDD
+5. **API Routes** uniquement pour : webhooks, génération PDF, intégrations externes
+6. **Supabase client** : `@supabase/ssr` pour le SSR, pas le client browser
+7. **RLS activé** sur toutes les tables — filtrage par `organisation_id`
+8. **Pas de Edge Functions** — tout dans Next.js
+
+### Structure de fichiers recommandée
+
+```
+src/
+├── app/
+│   ├── (auth)/              # Pages login/register (sans sidebar)
+│   │   ├── login/
+│   │   └── register/
+│   ├── (dashboard)/         # Pages protégées (avec sidebar)
+│   │   ├── layout.tsx       # Sidebar + Header
+│   │   ├── page.tsx         # Dashboard principal
+│   │   ├── apprenants/
+│   │   │   ├── page.tsx     # Liste
+│   │   │   └── [id]/
+│   │   │       └── page.tsx # Détail avec onglets
+│   │   ├── entreprises/
+│   │   ├── contacts-clients/
+│   │   ├── formateurs/
+│   │   ├── financeurs/
+│   │   ├── produits/
+│   │   ├── sessions/
+│   │   ├── planning/
+│   │   ├── questionnaires/
+│   │   ├── devis/
+│   │   ├── factures/
+│   │   ├── avoirs/
+│   │   ├── opportunites/
+│   │   ├── taches/
+│   │   ├── parametres/
+│   │   └── ...
+│   ├── api/
+│   │   ├── webhooks/
+│   │   ├── emails/
+│   │   ├── documents/
+│   │   └── export/
+│   ├── extranet/            # Espace externe (formateurs, apprenants, clients)
+│   │   ├── formateur/
+│   │   ├── apprenant/
+│   │   └── client/
+│   ├── layout.tsx
+│   └── globals.css
+├── components/
+│   ├── ui/                  # shadcn/ui components
+│   ├── layout/
+│   │   ├── Sidebar.tsx
+│   │   ├── Header.tsx
+│   │   └── Breadcrumb.tsx
+│   ├── data-table/          # Table générique réutilisable
+│   │   ├── DataTable.tsx
+│   │   ├── columns.tsx
+│   │   ├── toolbar.tsx
+│   │   └── view-selector.tsx
+│   ├── forms/               # Formulaires réutilisables
+│   └── shared/              # Composants partagés
+├── lib/
+│   ├── supabase/
+│   │   ├── client.ts        # Supabase browser client
+│   │   ├── server.ts        # Supabase server client
+│   │   └── middleware.ts     # ou proxy.ts
+│   ├── utils.ts
+│   ├── types.ts             # Types TypeScript générés depuis Supabase
+│   └── constants.ts
+├── actions/                 # Server Actions par module
+│   ├── apprenants.ts
+│   ├── entreprises.ts
+│   ├── sessions.ts
+│   └── ...
+└── hooks/                   # Custom hooks
+```
+
+### Pattern pour chaque module CRUD
+
+Chaque module doit implémenter le même pattern :
+
+1. **Page liste** (`page.tsx`) :
+   - DataTable avec colonnes configurables
+   - Barre de recherche + filtres + recherche avancée
+   - Vues sauvegardées (onglets)
+   - Pagination serveur (25/page)
+   - Actions groupées (sélection multiple)
+   - Bouton "+ Ajouter" → modale ou page
+
+2. **Page détail** (`[id]/page.tsx`) :
+   - Header avec ID affiché + actions (Archiver, Supprimer)
+   - Onglets (selon le module)
+   - Panneau latéral droit (tâches, relations, accès)
+   - Édition inline ou modale
+
+3. **Server Actions** (`actions/module.ts`) :
+   - create, update, archive, delete
+   - Validation avec Zod
+   - Gestion des erreurs
+
+4. **Types** (`lib/types.ts`) :
+   - Générés automatiquement depuis Supabase (`npx supabase gen types typescript`)
+
+### Numérotation automatique
+
+```typescript
+// Fonction pour générer le prochain numéro d'affichage
+async function getNextNumero(organisationId: string, entite: string): Promise<string> {
+  // Incrémente le compteur dans la table sequences
+  // Retourne le numéro formaté : APP-0325, ENT-0057, etc.
+  // Pour les devis/factures : D-2026-0034, F-2026-0016
+}
+```
+
+---
+
+## 9. MODULES NON DOCUMENTÉS (à prévoir)
+
+Ces modules n'ont pas eu de captures SmartOF mais sont dans le menu :
+
+| Module | Priorité | Notes |
+|--------|----------|-------|
+| Planning (vue calendrier) | Haute | Vue semaine/mois des créneaux sessions |
+| Inscriptions (vue dédiée) | Moyenne | Peut-être juste une vue filtrée des inscriptions |
+| Indicateurs / Dashboard | Haute | KPIs : CA, taux remplissage, rentabilité, satisfaction |
+| Rapports | Moyenne | Exports personnalisables |
+| BPF (module dédié) | Haute | Génération auto du Bilan Pédagogique et Financier |
+| Automatisations | Basse | Workflows configurables (phase 8) |
+| Opportunités commerciales | Moyenne | Pipeline commercial |
+| Salles | Basse | Gestion ressources physiques |
+| Formulaires administratifs | Basse | Templates docs réglementaires |
+
+---
+
+## 10. FEATURES KILLER (avantages vs SmartOF)
+
+| Feature | Description | SmartOF a ça ? |
+|---------|-------------|----------------|
+| **Import PDF IA** | Upload PDF programme → remplissage auto des champs | Non |
+| **Images IA** | Génération d'images IA pour les formations | Non |
+| **Barre de progression** | Complétion visuelle des fiches (95%, 2 manquants) | Non |
+| **Design Cursor** | Interface moderne noir/gris/orange, pas le violet générique | Non |
+| **Self-hosted** | Contrôle total, pas de dépendance SaaS | Non (SaaS) |
+| **Import IA questionnaires** | PDF/Word → extraction auto des questions | Non |
+| **Analyse IA réponses** | Synthèse et insights automatiques des réponses libres | Non |
+| **Signature électronique** | Intégrée nativement (à évaluer) | Non |
+| **Templates devis** | Modèles réutilisables | Non |
+| **Relances intelligentes** | Automatiques avec tracking | Basique |
+
+---
+
+## RÉSUMÉ EXÉCUTIF
+
+- **15 modules documentés** à partir de captures SmartOF
+- **~45 tables** dans le schéma BDD v2
+- **9 phases de développement** (~27 semaines)
+- **Stack** : Next.js 16 + Supabase self-hosted + Coolify + Resend
+- **Design** : Style Cursor (Noir / Gris / Orange)
+- **Avantage concurrentiel** : IA intégrée (import PDF, images, analyse)
+- **Claude Code** exécute le développement
+
+> Ce document est la référence unique pour le développement. Toute décision technique doit s'y référer.
