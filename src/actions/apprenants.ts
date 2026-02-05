@@ -92,6 +92,102 @@ export async function getApprenants(page: number = 1, search: string = "") {
   return { data: data ?? [], count: count ?? 0 };
 }
 
+export async function getApprenant(id: string) {
+  const supabase = await createClient();
+
+  const { data: apprenant, error } = await supabase
+    .from("apprenants")
+    .select("*")
+    .eq("id", id)
+    .is("archived_at", null)
+    .single();
+
+  if (error) {
+    return { data: null, entreprises: [], error: error.message };
+  }
+
+  // Fetch linked entreprises via junction table
+  const { data: liens } = await supabase
+    .from("apprenant_entreprises")
+    .select("entreprise_id, entreprises(id, nom, siret, email, adresse_ville)")
+    .eq("apprenant_id", id);
+
+  const entreprises = (liens ?? [])
+    .map((l) => {
+      const e = l.entreprises;
+      if (!e) return null;
+      // Supabase may return an object or an array depending on relationship config
+      const ent = Array.isArray(e) ? e[0] : e;
+      return ent as {
+        id: string;
+        nom: string;
+        siret: string | null;
+        email: string | null;
+        adresse_ville: string | null;
+      };
+    })
+    .filter(Boolean) as {
+    id: string;
+    nom: string;
+    siret: string | null;
+    email: string | null;
+    adresse_ville: string | null;
+  }[];
+
+  return { data: apprenant, entreprises };
+}
+
+const UpdateApprenantSchema = z.object({
+  civilite: z.string().optional(),
+  prenom: z.string().min(1, "Le prénom est requis"),
+  nom: z.string().min(1, "Le nom est requis"),
+  nom_naissance: z.string().optional(),
+  email: z.string().email("Email invalide").optional().or(z.literal("")),
+  telephone: z.string().optional(),
+  date_naissance: z.string().optional(),
+  fonction: z.string().optional(),
+  lieu_activite: z.string().optional(),
+  adresse_rue: z.string().optional(),
+  adresse_complement: z.string().optional(),
+  adresse_cp: z.string().optional(),
+  adresse_ville: z.string().optional(),
+  numero_compte_comptable: z.string().optional(),
+});
+
+export type UpdateApprenantInput = z.infer<typeof UpdateApprenantSchema>;
+
+export async function updateApprenant(id: string, input: UpdateApprenantInput) {
+  const parsed = UpdateApprenantSchema.safeParse(input);
+  if (!parsed.success) {
+    return { error: parsed.error.flatten().fieldErrors };
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: { _form: ["Non authentifié"] } };
+  }
+
+  const { data, error } = await supabase
+    .from("apprenants")
+    .update({
+      ...parsed.data,
+      email: parsed.data.email || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    return { error: { _form: [error.message] } };
+  }
+
+  revalidatePath("/apprenants");
+  revalidatePath(`/apprenants/${id}`);
+  return { data };
+}
+
 export async function archiveApprenant(id: string) {
   const supabase = await createClient();
 
