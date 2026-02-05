@@ -1,0 +1,87 @@
+@import "tailwindcss";
+
+@theme inline {
+  /* Font */
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* Colors — Cursor Style Dark Theme */
+  --color-background: #0A0A0A;
+  --color-foreground: #FAFAFA;
+
+  --color-card: #1A1A1A;
+  --color-card-foreground: #FAFAFA;
+
+  --color-popover: #1A1A1A;
+  --color-popover-foreground: #FAFAFA;
+
+  --color-primary: #F97316;
+  --color-primary-foreground: #FAFAFA;
+
+  --color-secondary: #1A1A1A;
+  --color-secondary-foreground: #FAFAFA;
+
+  --color-muted: #141414;
+  --color-muted-foreground: #A0A0A0;
+
+  --color-accent: #1A1A1A;
+  --color-accent-foreground: #FAFAFA;
+
+  --color-destructive: #EF4444;
+  --color-destructive-foreground: #FAFAFA;
+
+  --color-success: #22C55E;
+  --color-warning: #EAB308;
+  --color-info: #3B82F6;
+
+  --color-border: #2A2A2A;
+  --color-input: #2A2A2A;
+  --color-ring: #F97316;
+
+  --color-sidebar: #0A0A0A;
+  --color-sidebar-foreground: #FAFAFA;
+  --color-sidebar-border: #1A1A1A;
+  --color-sidebar-accent: #141414;
+  --color-sidebar-accent-foreground: #FAFAFA;
+  --color-sidebar-muted: #A0A0A0;
+
+  /* Radius */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2A2A2A;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3A3A3A;
+}
+
+/* Focus ring */
+*:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
