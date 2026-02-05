@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { UserCheck, Loader2 } from "lucide-react";
 import { DataTable, type Column } from "@/components/data-table/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,8 +16,9 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { useToast } from "@/components/ui/toast";
 import { getFormateurs, createFormateur, type FormateurInput } from "@/actions/formateurs";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
 
 interface Formateur {
   id: string;
@@ -32,17 +34,36 @@ interface Formateur {
 }
 
 const columns: Column<Formateur>[] = [
-  { key: "numero_affichage", label: "ID", className: "w-28" },
+  {
+    key: "numero_affichage",
+    label: "ID",
+    className: "w-28",
+    render: (item) => (
+      <span className="font-mono text-xs text-muted-foreground">
+        {item.numero_affichage}
+      </span>
+    ),
+  },
   {
     key: "nom_complet",
     label: "Nom",
     render: (item) => (
-      <span className="font-medium">
-        {item.prenom} {item.nom}
-      </span>
+      <div className="flex items-center gap-2">
+        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-500/10">
+          <UserCheck className="h-3.5 w-3.5 text-emerald-400" />
+        </div>
+        <span className="font-medium">
+          {item.prenom} {item.nom}
+        </span>
+      </div>
     ),
   },
-  { key: "email", label: "Email" },
+  {
+    key: "email",
+    label: "Email",
+    render: (item) =>
+      item.email || <span className="text-muted-foreground/40">--</span>,
+  },
   {
     key: "statut_bpf",
     label: "Statut BPF",
@@ -74,14 +95,17 @@ const columns: Column<Formateur>[] = [
   },
   {
     key: "created_at",
-    label: "Cree le",
+    label: "Cr\u00e9\u00e9 le",
     className: "w-28",
-    render: (item) => new Date(item.created_at).toLocaleDateString("fr-FR"),
+    render: (item) => (
+      <span className="text-muted-foreground">{formatDate(item.created_at)}</span>
+    ),
   },
 ];
 
 export default function FormateursPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [search, setSearch] = React.useState("");
   const [debouncedSearch, setDebouncedSearch] = React.useState("");
   const [page, setPage] = React.useState(1);
@@ -152,6 +176,11 @@ export default function FormateursPage() {
     setDialogOpen(false);
     resetForm();
     fetchData();
+    toast({
+      title: "Formateur cr\u00e9\u00e9",
+      description: "Le formateur a \u00e9t\u00e9 ajout\u00e9 avec succ\u00e8s.",
+      variant: "success",
+    });
   };
 
   return (
@@ -177,7 +206,7 @@ export default function FormateursPage() {
 
       {/* Create Formateur Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[520px]">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Ajouter un formateur</DialogTitle>
             <DialogDescription>
@@ -185,17 +214,17 @@ export default function FormateursPage() {
             </DialogDescription>
           </DialogHeader>
 
-          {formErrors._form && (
-            <div className="rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">
-              {formErrors._form.join(", ")}
-            </div>
-          )}
+          <div className="space-y-4">
+            {formErrors._form && (
+              <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {formErrors._form.join(", ")}
+              </div>
+            )}
 
-          <div className="grid gap-4 py-2">
-            {/* Civilite */}
-            <div className="grid gap-1.5">
+            {/* Civilit\u00e9 */}
+            <div className="space-y-2">
               <Label htmlFor="civilite" className="text-[13px]">
-                Civilite
+                Civilit\u00e9
               </Label>
               <select
                 id="civilite"
@@ -203,19 +232,19 @@ export default function FormateursPage() {
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, civilite: e.target.value }))
                 }
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-[13px] text-foreground"
               >
-                <option value="">--</option>
+                <option value="">-- S\u00e9lectionner --</option>
                 <option value="Monsieur">Monsieur</option>
                 <option value="Madame">Madame</option>
               </select>
             </div>
 
-            {/* Prenom + Nom */}
+            {/* Pr\u00e9nom + Nom */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
+              <div className="space-y-2">
                 <Label htmlFor="prenom" className="text-[13px]">
-                  Prenom <span className="text-destructive">*</span>
+                  Pr\u00e9nom <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="prenom"
@@ -224,13 +253,13 @@ export default function FormateursPage() {
                     setFormData((prev) => ({ ...prev, prenom: e.target.value }))
                   }
                   placeholder="Jean"
-                  className="h-9 text-[13px] bg-card border-border/60"
+                  className="h-9 text-[13px] bg-background border-border/60"
                 />
                 {formErrors.prenom && (
                   <p className="text-xs text-destructive">{formErrors.prenom[0]}</p>
                 )}
               </div>
-              <div className="grid gap-1.5">
+              <div className="space-y-2">
                 <Label htmlFor="nom" className="text-[13px]">
                   Nom <span className="text-destructive">*</span>
                 </Label>
@@ -241,7 +270,7 @@ export default function FormateursPage() {
                     setFormData((prev) => ({ ...prev, nom: e.target.value }))
                   }
                   placeholder="Dupont"
-                  className="h-9 text-[13px] bg-card border-border/60"
+                  className="h-9 text-[13px] bg-background border-border/60"
                 />
                 {formErrors.nom && (
                   <p className="text-xs text-destructive">{formErrors.nom[0]}</p>
@@ -249,9 +278,9 @@ export default function FormateursPage() {
               </div>
             </div>
 
-            {/* Email + Telephone */}
+            {/* Email + T\u00e9l\u00e9phone */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
+              <div className="space-y-2">
                 <Label htmlFor="email" className="text-[13px]">
                   Email
                 </Label>
@@ -263,15 +292,15 @@ export default function FormateursPage() {
                     setFormData((prev) => ({ ...prev, email: e.target.value }))
                   }
                   placeholder="jean@exemple.fr"
-                  className="h-9 text-[13px] bg-card border-border/60"
+                  className="h-9 text-[13px] bg-background border-border/60"
                 />
                 {formErrors.email && (
                   <p className="text-xs text-destructive">{formErrors.email[0]}</p>
                 )}
               </div>
-              <div className="grid gap-1.5">
+              <div className="space-y-2">
                 <Label htmlFor="telephone" className="text-[13px]">
-                  Telephone
+                  T\u00e9l\u00e9phone
                 </Label>
                 <Input
                   id="telephone"
@@ -280,14 +309,14 @@ export default function FormateursPage() {
                     setFormData((prev) => ({ ...prev, telephone: e.target.value }))
                   }
                   placeholder="06 12 34 56 78"
-                  className="h-9 text-[13px] bg-card border-border/60"
+                  className="h-9 text-[13px] bg-background border-border/60"
                 />
               </div>
             </div>
 
             {/* Statut BPF + Tarif journalier */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
+              <div className="space-y-2">
                 <Label htmlFor="statut_bpf" className="text-[13px]">
                   Statut BPF
                 </Label>
@@ -300,13 +329,13 @@ export default function FormateursPage() {
                       statut_bpf: e.target.value as "interne" | "externe",
                     }))
                   }
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-[13px] text-foreground"
                 >
                   <option value="externe">Externe (sous-traitant)</option>
-                  <option value="interne">Interne (salarie)</option>
+                  <option value="interne">Interne (salari\u00e9)</option>
                 </select>
               </div>
-              <div className="grid gap-1.5">
+              <div className="space-y-2">
                 <Label htmlFor="tarif_journalier" className="text-[13px]">
                   Tarif journalier HT
                 </Label>
@@ -325,26 +354,35 @@ export default function FormateursPage() {
                     }))
                   }
                   placeholder="300.00"
-                  className="h-9 text-[13px] bg-card border-border/60"
+                  className="h-9 text-[13px] bg-background border-border/60"
                 />
               </div>
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="pt-2">
             <Button
               variant="outline"
+              size="sm"
               onClick={() => setDialogOpen(false)}
-              className="text-[13px]"
+              className="h-8 text-xs border-border/60"
             >
               Annuler
             </Button>
             <Button
               onClick={handleCreate}
+              size="sm"
               disabled={isSubmitting}
-              className="text-[13px]"
+              className="h-8 text-xs"
             >
-              {isSubmitting ? "Creation..." : "Creer le formateur"}
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+                  Cr\u00e9ation...
+                </>
+              ) : (
+                "Cr\u00e9er le formateur"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

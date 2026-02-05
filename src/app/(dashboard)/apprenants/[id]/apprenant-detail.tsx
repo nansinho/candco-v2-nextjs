@@ -3,8 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Building2, Mail, Save } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, Building2, Mail, Save, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -129,9 +128,9 @@ export function ApprenantDetail({
           </Link>
 
           <div className="flex items-center gap-3">
-            <Badge variant="outline" className="font-mono text-[11px]">
+            <span className="font-mono text-xs text-muted-foreground">
               {apprenant.numero_affichage}
-            </Badge>
+            </span>
             <h1 className="text-xl font-semibold tracking-tight">
               {apprenant.prenom} {apprenant.nom}
             </h1>
@@ -168,8 +167,8 @@ export function ApprenantDetail({
             <div className="rounded-lg border border-border/60 bg-card">
               {/* Error banner */}
               {errors._form && (
-                <div className="mx-6 mt-6 rounded-md bg-destructive/10 border border-destructive/30 px-3 py-2">
-                  <p className="text-[13px] text-destructive">
+                <div className="mx-6 mt-6 rounded-md bg-destructive/10 px-3 py-2">
+                  <p className="text-sm text-destructive">
                     {errors._form[0]}
                   </p>
                 </div>
@@ -184,7 +183,7 @@ export function ApprenantDetail({
 
                   <div className="grid grid-cols-4 gap-4">
                     {/* Civilit\u00e9 */}
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       <Label htmlFor="civilite" className="text-[13px]">
                         Civilit\u00e9
                       </Label>
@@ -192,21 +191,21 @@ export function ApprenantDetail({
                         id="civilite"
                         name="civilite"
                         defaultValue={apprenant.civilite ?? ""}
-                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-[13px] text-foreground"
                       >
                         <option value="">--</option>
                         <option value="Monsieur">Monsieur</option>
                         <option value="Madame">Madame</option>
                       </select>
                       {errors.civilite && (
-                        <p className="text-[12px] text-destructive">
+                        <p className="text-xs text-destructive">
                           {errors.civilite[0]}
                         </p>
                       )}
                     </div>
 
                     {/* Pr\u00e9nom */}
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       <Label htmlFor="prenom" className="text-[13px]">
                         Pr\u00e9nom <span className="text-destructive">*</span>
                       </Label>
@@ -214,17 +213,17 @@ export function ApprenantDetail({
                         id="prenom"
                         name="prenom"
                         defaultValue={apprenant.prenom}
-                        className="text-[13px] bg-transparent border-border/60"
+                        className="h-9 text-[13px] bg-background border-border/60"
                       />
                       {errors.prenom && (
-                        <p className="text-[12px] text-destructive">
+                        <p className="text-xs text-destructive">
                           {errors.prenom[0]}
                         </p>
                       )}
                     </div>
 
                     {/* Nom */}
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       <Label htmlFor="nom" className="text-[13px]">
                         Nom <span className="text-destructive">*</span>
                       </Label>
@@ -232,17 +231,17 @@ export function ApprenantDetail({
                         id="nom"
                         name="nom"
                         defaultValue={apprenant.nom}
-                        className="text-[13px] bg-transparent border-border/60"
+                        className="h-9 text-[13px] bg-background border-border/60"
                       />
                       {errors.nom && (
-                        <p className="text-[12px] text-destructive">
+                        <p className="text-xs text-destructive">
                           {errors.nom[0]}
                         </p>
                       )}
                     </div>
 
                     {/* Nom de naissance */}
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       <Label htmlFor="nom_naissance" className="text-[13px]">
                         Nom de naissance
                       </Label>
@@ -250,10 +249,10 @@ export function ApprenantDetail({
                         id="nom_naissance"
                         name="nom_naissance"
                         defaultValue={apprenant.nom_naissance ?? ""}
-                        className="text-[13px] bg-transparent border-border/60"
+                        className="h-9 text-[13px] bg-background border-border/60"
                       />
                       {errors.nom_naissance && (
-                        <p className="text-[12px] text-destructive">
+                        <p className="text-xs text-destructive">
                           {errors.nom_naissance[0]}
                         </p>
                       )}
@@ -269,7 +268,7 @@ export function ApprenantDetail({
 
                   <div className="grid grid-cols-3 gap-4">
                     {/* Email */}
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       <Label htmlFor="email" className="text-[13px]">
                         Email
                       </Label>
@@ -278,17 +277,17 @@ export function ApprenantDetail({
                         name="email"
                         type="email"
                         defaultValue={apprenant.email ?? ""}
-                        className="text-[13px] bg-transparent border-border/60"
+                        className="h-9 text-[13px] bg-background border-border/60"
                       />
                       {errors.email && (
-                        <p className="text-[12px] text-destructive">
+                        <p className="text-xs text-destructive">
                           {errors.email[0]}
                         </p>
                       )}
                     </div>
 
                     {/* T\u00e9l\u00e9phone */}
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       <Label htmlFor="telephone" className="text-[13px]">
                         T\u00e9l\u00e9phone
                       </Label>
@@ -296,17 +295,17 @@ export function ApprenantDetail({
                         id="telephone"
                         name="telephone"
                         defaultValue={apprenant.telephone ?? ""}
-                        className="text-[13px] bg-transparent border-border/60"
+                        className="h-9 text-[13px] bg-background border-border/60"
                       />
                       {errors.telephone && (
-                        <p className="text-[12px] text-destructive">
+                        <p className="text-xs text-destructive">
                           {errors.telephone[0]}
                         </p>
                       )}
                     </div>
 
                     {/* Date de naissance */}
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       <Label htmlFor="date_naissance" className="text-[13px]">
                         Date de naissance
                       </Label>
@@ -315,10 +314,10 @@ export function ApprenantDetail({
                         name="date_naissance"
                         type="date"
                         defaultValue={apprenant.date_naissance ?? ""}
-                        className="text-[13px] bg-transparent border-border/60"
+                        className="h-9 text-[13px] bg-background border-border/60"
                       />
                       {errors.date_naissance && (
-                        <p className="text-[12px] text-destructive">
+                        <p className="text-xs text-destructive">
                           {errors.date_naissance[0]}
                         </p>
                       )}
@@ -333,7 +332,7 @@ export function ApprenantDetail({
                   </legend>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       <Label htmlFor="fonction" className="text-[13px]">
                         Fonction
                       </Label>
@@ -341,16 +340,16 @@ export function ApprenantDetail({
                         id="fonction"
                         name="fonction"
                         defaultValue={apprenant.fonction ?? ""}
-                        className="text-[13px] bg-transparent border-border/60"
+                        className="h-9 text-[13px] bg-background border-border/60"
                       />
                       {errors.fonction && (
-                        <p className="text-[12px] text-destructive">
+                        <p className="text-xs text-destructive">
                           {errors.fonction[0]}
                         </p>
                       )}
                     </div>
 
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       <Label htmlFor="lieu_activite" className="text-[13px]">
                         Lieu d&apos;activit\u00e9
                       </Label>
@@ -358,10 +357,10 @@ export function ApprenantDetail({
                         id="lieu_activite"
                         name="lieu_activite"
                         defaultValue={apprenant.lieu_activite ?? ""}
-                        className="text-[13px] bg-transparent border-border/60"
+                        className="h-9 text-[13px] bg-background border-border/60"
                       />
                       {errors.lieu_activite && (
-                        <p className="text-[12px] text-destructive">
+                        <p className="text-xs text-destructive">
                           {errors.lieu_activite[0]}
                         </p>
                       )}
@@ -376,7 +375,7 @@ export function ApprenantDetail({
                   </legend>
 
                   <div className="space-y-4">
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       <Label htmlFor="adresse_rue" className="text-[13px]">
                         Rue
                       </Label>
@@ -384,16 +383,16 @@ export function ApprenantDetail({
                         id="adresse_rue"
                         name="adresse_rue"
                         defaultValue={apprenant.adresse_rue ?? ""}
-                        className="text-[13px] bg-transparent border-border/60"
+                        className="h-9 text-[13px] bg-background border-border/60"
                       />
                       {errors.adresse_rue && (
-                        <p className="text-[12px] text-destructive">
+                        <p className="text-xs text-destructive">
                           {errors.adresse_rue[0]}
                         </p>
                       )}
                     </div>
 
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       <Label
                         htmlFor="adresse_complement"
                         className="text-[13px]"
@@ -404,17 +403,17 @@ export function ApprenantDetail({
                         id="adresse_complement"
                         name="adresse_complement"
                         defaultValue={apprenant.adresse_complement ?? ""}
-                        className="text-[13px] bg-transparent border-border/60"
+                        className="h-9 text-[13px] bg-background border-border/60"
                       />
                       {errors.adresse_complement && (
-                        <p className="text-[12px] text-destructive">
+                        <p className="text-xs text-destructive">
                           {errors.adresse_complement[0]}
                         </p>
                       )}
                     </div>
 
                     <div className="grid grid-cols-3 gap-4">
-                      <div className="space-y-1.5">
+                      <div className="space-y-2">
                         <Label htmlFor="adresse_cp" className="text-[13px]">
                           Code postal
                         </Label>
@@ -422,16 +421,16 @@ export function ApprenantDetail({
                           id="adresse_cp"
                           name="adresse_cp"
                           defaultValue={apprenant.adresse_cp ?? ""}
-                          className="text-[13px] bg-transparent border-border/60"
+                          className="h-9 text-[13px] bg-background border-border/60"
                         />
                         {errors.adresse_cp && (
-                          <p className="text-[12px] text-destructive">
+                          <p className="text-xs text-destructive">
                             {errors.adresse_cp[0]}
                           </p>
                         )}
                       </div>
 
-                      <div className="col-span-2 space-y-1.5">
+                      <div className="col-span-2 space-y-2">
                         <Label
                           htmlFor="adresse_ville"
                           className="text-[13px]"
@@ -442,10 +441,10 @@ export function ApprenantDetail({
                           id="adresse_ville"
                           name="adresse_ville"
                           defaultValue={apprenant.adresse_ville ?? ""}
-                          className="text-[13px] bg-transparent border-border/60"
+                          className="h-9 text-[13px] bg-background border-border/60"
                         />
                         {errors.adresse_ville && (
-                          <p className="text-[12px] text-destructive">
+                          <p className="text-xs text-destructive">
                             {errors.adresse_ville[0]}
                           </p>
                         )}
@@ -460,7 +459,7 @@ export function ApprenantDetail({
                     Comptabilit\u00e9
                   </legend>
 
-                  <div className="max-w-xs space-y-1.5">
+                  <div className="max-w-xs space-y-2">
                     <Label
                       htmlFor="numero_compte_comptable"
                       className="text-[13px]"
@@ -473,10 +472,10 @@ export function ApprenantDetail({
                       defaultValue={
                         apprenant.numero_compte_comptable ?? ""
                       }
-                      className="text-[13px] bg-transparent border-border/60"
+                      className="h-9 text-[13px] bg-background border-border/60"
                     />
                     {errors.numero_compte_comptable && (
-                      <p className="text-[12px] text-destructive">
+                      <p className="text-xs text-destructive">
                         {errors.numero_compte_comptable[0]}
                       </p>
                     )}
@@ -489,11 +488,20 @@ export function ApprenantDetail({
                 <Button
                   type="submit"
                   size="sm"
-                  className="text-[13px]"
+                  className="h-8 text-xs"
                   disabled={isPending}
                 >
-                  <Save className="mr-1.5 h-3.5 w-3.5" />
-                  {isPending ? "Enregistrement\u2026" : "Enregistrer"}
+                  {isPending ? (
+                    <>
+                      <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+                      Enregistrement...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-1.5 h-3.5 w-3.5" />
+                      Enregistrer
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
@@ -546,13 +554,13 @@ export function ApprenantDetail({
                         {ent.nom}
                       </td>
                       <td className="px-4 py-2.5 text-[13px] text-muted-foreground">
-                        {ent.siret ?? "\u2014"}
+                        {ent.siret ?? "--"}
                       </td>
                       <td className="px-4 py-2.5 text-[13px] text-muted-foreground">
-                        {ent.email ?? "\u2014"}
+                        {ent.email ?? "--"}
                       </td>
                       <td className="px-4 py-2.5 text-[13px] text-muted-foreground">
-                        {ent.adresse_ville ?? "\u2014"}
+                        {ent.adresse_ville ?? "--"}
                       </td>
                     </tr>
                   ))}
