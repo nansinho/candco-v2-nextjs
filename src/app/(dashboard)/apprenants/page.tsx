@@ -2,8 +2,8 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { GraduationCap, Loader2 } from "lucide-react";
 import { DataTable, type Column } from "@/components/data-table/DataTable";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/toast";
 import { getApprenants, createApprenant, type CreateApprenantInput } from "@/actions/apprenants";
+import { formatDate } from "@/lib/utils";
 
 interface Apprenant {
   id: string;
@@ -34,39 +35,44 @@ const columns: Column<Apprenant>[] = [
     label: "ID",
     className: "w-28",
     render: (item) => (
-      <Badge variant="outline" className="font-mono text-[11px]">
+      <span className="font-mono text-xs text-muted-foreground">
         {item.numero_affichage}
-      </Badge>
+      </span>
     ),
   },
   {
     key: "nom_complet",
     label: "Nom",
     render: (item) => (
-      <span className="font-medium">
-        {item.prenom} {item.nom}
-      </span>
+      <div className="flex items-center gap-2">
+        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-500/10">
+          <GraduationCap className="h-3.5 w-3.5 text-blue-400" />
+        </div>
+        <span className="font-medium">
+          {item.prenom} {item.nom}
+        </span>
+      </div>
     ),
   },
   {
     key: "email",
     label: "Email",
-    render: (item) => (
-      <span className="text-muted-foreground">{item.email ?? "\u2014"}</span>
-    ),
+    render: (item) =>
+      item.email || <span className="text-muted-foreground/40">--</span>,
   },
   {
     key: "telephone",
     label: "T\u00e9l\u00e9phone",
-    render: (item) => (
-      <span className="text-muted-foreground">{item.telephone ?? "\u2014"}</span>
-    ),
+    render: (item) =>
+      item.telephone || <span className="text-muted-foreground/40">--</span>,
   },
   {
     key: "created_at",
     label: "Cr\u00e9\u00e9 le",
-    render: (item) =>
-      new Date(item.created_at).toLocaleDateString("fr-FR"),
+    className: "w-28",
+    render: (item) => (
+      <span className="text-muted-foreground">{formatDate(item.created_at)}</span>
+    ),
   },
 ];
 
@@ -103,10 +109,14 @@ export default function ApprenantsPage() {
     fetchData();
   }, [fetchData]);
 
-  const handleCreated = () => {
+  const handleCreateSuccess = () => {
     setDialogOpen(false);
     fetchData();
-    toast({ title: "Apprenant cr\u00e9\u00e9", variant: "success" });
+    toast({
+      title: "Apprenant cr\u00e9\u00e9",
+      description: "L'apprenant a \u00e9t\u00e9 ajout\u00e9 avec succ\u00e8s.",
+      variant: "success",
+    });
   };
 
   return (
@@ -128,7 +138,7 @@ export default function ApprenantsPage() {
       />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[520px]">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Ajouter un apprenant</DialogTitle>
             <DialogDescription>
@@ -136,7 +146,7 @@ export default function ApprenantsPage() {
             </DialogDescription>
           </DialogHeader>
           <CreateApprenantForm
-            onSuccess={handleCreated}
+            onSuccess={handleCreateSuccess}
             onCancel={() => setDialogOpen(false)}
           />
         </DialogContent>
@@ -166,67 +176,64 @@ function CreateApprenantForm({
   onSuccess: () => void;
   onCancel: () => void;
 }) {
-  const [isPending, setIsPending] = React.useState(false);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [errors, setErrors] = React.useState<FormErrors>({});
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsPending(true);
+    setIsSubmitting(true);
     setErrors({});
 
     const formData = new FormData(e.currentTarget);
     const input: CreateApprenantInput = {
-      civilite: formData.get("civilite") as string || undefined,
+      civilite: (formData.get("civilite") as string) || undefined,
       prenom: formData.get("prenom") as string,
       nom: formData.get("nom") as string,
-      email: formData.get("email") as string || undefined,
-      telephone: formData.get("telephone") as string || undefined,
-      date_naissance: formData.get("date_naissance") as string || undefined,
+      email: (formData.get("email") as string) || undefined,
+      telephone: (formData.get("telephone") as string) || undefined,
+      date_naissance: (formData.get("date_naissance") as string) || undefined,
     };
 
     const result = await createApprenant(input);
 
     if (result.error) {
       setErrors(result.error as FormErrors);
-      setIsPending(false);
+      setIsSubmitting(false);
       return;
     }
 
-    setIsPending(false);
+    setIsSubmitting(false);
     onSuccess();
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {errors._form && (
-        <div className="rounded-md bg-destructive/10 border border-destructive/30 px-3 py-2">
-          <p className="text-[13px] text-destructive">{errors._form[0]}</p>
+        <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {errors._form[0]}
         </div>
       )}
 
       {/* Civilit\u00e9 */}
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         <Label htmlFor="civilite" className="text-[13px]">
           Civilit\u00e9
         </Label>
         <select
           id="civilite"
           name="civilite"
-          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           defaultValue=""
+          className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-[13px] text-foreground"
         >
           <option value="">-- S\u00e9lectionner --</option>
           <option value="Monsieur">Monsieur</option>
           <option value="Madame">Madame</option>
         </select>
-        {errors.civilite && (
-          <p className="text-[12px] text-destructive">{errors.civilite[0]}</p>
-        )}
       </div>
 
       {/* Pr\u00e9nom / Nom */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <Label htmlFor="prenom" className="text-[13px]">
             Pr\u00e9nom <span className="text-destructive">*</span>
           </Label>
@@ -234,13 +241,13 @@ function CreateApprenantForm({
             id="prenom"
             name="prenom"
             placeholder="Jean"
-            className="text-[13px] bg-transparent border-border/60"
+            className="h-9 text-[13px] bg-background border-border/60"
           />
           {errors.prenom && (
-            <p className="text-[12px] text-destructive">{errors.prenom[0]}</p>
+            <p className="text-xs text-destructive">{errors.prenom[0]}</p>
           )}
         </div>
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <Label htmlFor="nom" className="text-[13px]">
             Nom <span className="text-destructive">*</span>
           </Label>
@@ -248,16 +255,16 @@ function CreateApprenantForm({
             id="nom"
             name="nom"
             placeholder="Dupont"
-            className="text-[13px] bg-transparent border-border/60"
+            className="h-9 text-[13px] bg-background border-border/60"
           />
           {errors.nom && (
-            <p className="text-[12px] text-destructive">{errors.nom[0]}</p>
+            <p className="text-xs text-destructive">{errors.nom[0]}</p>
           )}
         </div>
       </div>
 
       {/* Email */}
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         <Label htmlFor="email" className="text-[13px]">
           Email
         </Label>
@@ -266,15 +273,15 @@ function CreateApprenantForm({
           name="email"
           type="email"
           placeholder="jean.dupont@example.com"
-          className="text-[13px] bg-transparent border-border/60"
+          className="h-9 text-[13px] bg-background border-border/60"
         />
         {errors.email && (
-          <p className="text-[12px] text-destructive">{errors.email[0]}</p>
+          <p className="text-xs text-destructive">{errors.email[0]}</p>
         )}
       </div>
 
       {/* T\u00e9l\u00e9phone */}
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         <Label htmlFor="telephone" className="text-[13px]">
           T\u00e9l\u00e9phone
         </Label>
@@ -282,15 +289,12 @@ function CreateApprenantForm({
           id="telephone"
           name="telephone"
           placeholder="06 12 34 56 78"
-          className="text-[13px] bg-transparent border-border/60"
+          className="h-9 text-[13px] bg-background border-border/60"
         />
-        {errors.telephone && (
-          <p className="text-[12px] text-destructive">{errors.telephone[0]}</p>
-        )}
       </div>
 
       {/* Date de naissance */}
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         <Label htmlFor="date_naissance" className="text-[13px]">
           Date de naissance
         </Label>
@@ -298,13 +302,8 @@ function CreateApprenantForm({
           id="date_naissance"
           name="date_naissance"
           type="date"
-          className="text-[13px] bg-transparent border-border/60"
+          className="h-9 text-[13px] bg-background border-border/60"
         />
-        {errors.date_naissance && (
-          <p className="text-[12px] text-destructive">
-            {errors.date_naissance[0]}
-          </p>
-        )}
       </div>
 
       <DialogFooter className="pt-2">
@@ -312,14 +311,21 @@ function CreateApprenantForm({
           type="button"
           variant="outline"
           size="sm"
-          className="text-[13px]"
           onClick={onCancel}
-          disabled={isPending}
+          disabled={isSubmitting}
+          className="h-8 text-xs border-border/60"
         >
           Annuler
         </Button>
-        <Button type="submit" size="sm" className="text-[13px]" disabled={isPending}>
-          {isPending ? "Enregistrement\u2026" : "Cr\u00e9er l\u2019apprenant"}
+        <Button type="submit" size="sm" disabled={isSubmitting} className="h-8 text-xs">
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+              Cr\u00e9ation...
+            </>
+          ) : (
+            "Cr\u00e9er l'apprenant"
+          )}
         </Button>
       </DialogFooter>
     </form>

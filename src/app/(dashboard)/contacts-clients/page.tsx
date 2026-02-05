@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { Users, Loader2 } from "lucide-react";
 import { DataTable, type Column } from "@/components/data-table/DataTable";
 import {
   Dialog,
@@ -14,12 +15,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2 } from "lucide-react";
+import { useToast } from "@/components/ui/toast";
 import {
   getContactsClients,
   createContactClient,
   type CreateContactClientInput,
 } from "@/actions/contacts-clients";
+import { formatDate } from "@/lib/utils";
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -38,62 +40,78 @@ interface ContactClient {
 // ─── Columns ─────────────────────────────────────────────
 
 const columns: Column<ContactClient>[] = [
-  { key: "numero_affichage", label: "ID", className: "w-28" },
+  {
+    key: "numero_affichage",
+    label: "ID",
+    className: "w-28",
+    render: (item) => (
+      <span className="font-mono text-xs text-muted-foreground">
+        {item.numero_affichage}
+      </span>
+    ),
+  },
   {
     key: "nom_complet",
     label: "Nom",
     render: (item) => (
-      <span className="font-medium">
-        {item.prenom} {item.nom}
-      </span>
+      <div className="flex items-center gap-2">
+        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-purple-500/10">
+          <Users className="h-3.5 w-3.5 text-purple-400" />
+        </div>
+        <span className="font-medium">
+          {item.prenom} {item.nom}
+        </span>
+      </div>
     ),
   },
-  { key: "email", label: "Email" },
-  { key: "fonction", label: "Fonction" },
-  { key: "telephone", label: "Telephone" },
+  {
+    key: "email",
+    label: "Email",
+    render: (item) =>
+      item.email || <span className="text-muted-foreground/40">--</span>,
+  },
+  {
+    key: "fonction",
+    label: "Fonction",
+    render: (item) =>
+      item.fonction || <span className="text-muted-foreground/40">--</span>,
+  },
+  {
+    key: "telephone",
+    label: "T\u00e9l\u00e9phone",
+    render: (item) =>
+      item.telephone || <span className="text-muted-foreground/40">--</span>,
+  },
   {
     key: "created_at",
-    label: "Cree le",
-    render: (item) => new Date(item.created_at).toLocaleDateString("fr-FR"),
+    label: "Cr\u00e9\u00e9 le",
+    className: "w-28",
+    render: (item) => (
+      <span className="text-muted-foreground">{formatDate(item.created_at)}</span>
+    ),
   },
-];
-
-// ─── Civilite options ────────────────────────────────────
-
-const CIVILITE_OPTIONS = [
-  { value: "", label: "-- Aucune --" },
-  { value: "Monsieur", label: "Monsieur" },
-  { value: "Madame", label: "Madame" },
 ];
 
 // ─── Page Component ──────────────────────────────────────
 
 export default function ContactsClientsPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [search, setSearch] = React.useState("");
+  const [debouncedSearch, setDebouncedSearch] = React.useState("");
   const [page, setPage] = React.useState(1);
   const [data, setData] = React.useState<ContactClient[]>([]);
   const [totalCount, setTotalCount] = React.useState(0);
   const [isLoading, setIsLoading] = React.useState(true);
   const [dialogOpen, setDialogOpen] = React.useState(false);
 
-  // Debounced search
-  const searchTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [debouncedSearch, setDebouncedSearch] = React.useState("");
-
+  // Debounce search
   React.useEffect(() => {
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-    searchTimeoutRef.current = setTimeout(() => {
+    const timer = setTimeout(() => {
       setDebouncedSearch(search);
       setPage(1);
     }, 300);
-    return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
-    };
+    return () => clearTimeout(timer);
   }, [search]);
 
   // Fetch data
@@ -109,9 +127,14 @@ export default function ContactsClientsPage() {
     fetchData();
   }, [fetchData]);
 
-  const handleCreated = () => {
+  const handleCreateSuccess = () => {
     setDialogOpen(false);
     fetchData();
+    toast({
+      title: "Contact cr\u00e9\u00e9",
+      description: "Le contact client a \u00e9t\u00e9 ajout\u00e9 avec succ\u00e8s.",
+      variant: "success",
+    });
   };
 
   return (
@@ -131,25 +154,33 @@ export default function ContactsClientsPage() {
         getRowId={(item) => item.id}
         isLoading={isLoading}
       />
-      <CreateContactDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        onCreated={handleCreated}
-      />
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Ajouter un contact client</DialogTitle>
+            <DialogDescription>
+              Renseignez les informations du contact client.
+            </DialogDescription>
+          </DialogHeader>
+          <CreateContactForm
+            onSuccess={handleCreateSuccess}
+            onCancel={() => setDialogOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
 
-// ─── Create Dialog ───────────────────────────────────────
+// ─── Create Form ─────────────────────────────────────────
 
-function CreateContactDialog({
-  open,
-  onOpenChange,
-  onCreated,
+function CreateContactForm({
+  onSuccess,
+  onCancel,
 }: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onCreated: () => void;
+  onSuccess: () => void;
+  onCancel: () => void;
 }) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string[] | undefined>>({});
@@ -165,13 +196,6 @@ function CreateContactDialog({
   const resetForm = () => {
     setForm({ civilite: "", prenom: "", nom: "", email: "", telephone: "", fonction: "" });
     setErrors({});
-  };
-
-  const handleOpenChange = (isOpen: boolean) => {
-    if (!isOpen) {
-      resetForm();
-    }
-    onOpenChange(isOpen);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -193,7 +217,7 @@ function CreateContactDialog({
 
     setIsSubmitting(false);
     resetForm();
-    onCreated();
+    onSuccess();
   };
 
   const updateField = (field: keyof CreateContactClientInput, value: string) => {
@@ -201,138 +225,131 @@ function CreateContactDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>Ajouter un contact client</DialogTitle>
-          <DialogDescription>
-            Renseignez les informations du contact client.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            {errors._form && (
-              <div className="rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">
-                {errors._form.join(", ")}
-              </div>
-            )}
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {errors._form && (
+        <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {errors._form.join(", ")}
+        </div>
+      )}
 
-            {/* Civilite */}
-            <div className="grid gap-1.5">
-              <Label htmlFor="civilite" className="text-xs text-muted-foreground">
-                Civilite
-              </Label>
-              <select
-                id="civilite"
-                value={form.civilite ?? ""}
-                onChange={(e) => updateField("civilite", e.target.value)}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              >
-                {CIVILITE_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+      {/* Civilit\u00e9 */}
+      <div className="space-y-2">
+        <Label htmlFor="civilite" className="text-[13px]">
+          Civilit\u00e9
+        </Label>
+        <select
+          id="civilite"
+          value={form.civilite ?? ""}
+          onChange={(e) => updateField("civilite", e.target.value)}
+          className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-[13px] text-foreground"
+        >
+          <option value="">-- S\u00e9lectionner --</option>
+          <option value="Monsieur">Monsieur</option>
+          <option value="Madame">Madame</option>
+        </select>
+      </div>
 
-            {/* Prenom / Nom */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
-                <Label htmlFor="prenom" className="text-xs text-muted-foreground">
-                  Prenom <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="prenom"
-                  value={form.prenom}
-                  onChange={(e) => updateField("prenom", e.target.value)}
-                  placeholder="Jean"
-                  className="bg-transparent text-[13px]"
-                />
-                {errors.prenom && (
-                  <p className="text-[11px] text-destructive">{errors.prenom[0]}</p>
-                )}
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="nom" className="text-xs text-muted-foreground">
-                  Nom <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="nom"
-                  value={form.nom}
-                  onChange={(e) => updateField("nom", e.target.value)}
-                  placeholder="Dupont"
-                  className="bg-transparent text-[13px]"
-                />
-                {errors.nom && (
-                  <p className="text-[11px] text-destructive">{errors.nom[0]}</p>
-                )}
-              </div>
-            </div>
+      {/* Pr\u00e9nom / Nom */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label htmlFor="prenom" className="text-[13px]">
+            Pr\u00e9nom <span className="text-destructive">*</span>
+          </Label>
+          <Input
+            id="prenom"
+            value={form.prenom}
+            onChange={(e) => updateField("prenom", e.target.value)}
+            placeholder="Jean"
+            className="h-9 text-[13px] bg-background border-border/60"
+          />
+          {errors.prenom && (
+            <p className="text-xs text-destructive">{errors.prenom[0]}</p>
+          )}
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="nom" className="text-[13px]">
+            Nom <span className="text-destructive">*</span>
+          </Label>
+          <Input
+            id="nom"
+            value={form.nom}
+            onChange={(e) => updateField("nom", e.target.value)}
+            placeholder="Dupont"
+            className="h-9 text-[13px] bg-background border-border/60"
+          />
+          {errors.nom && (
+            <p className="text-xs text-destructive">{errors.nom[0]}</p>
+          )}
+        </div>
+      </div>
 
-            {/* Email */}
-            <div className="grid gap-1.5">
-              <Label htmlFor="email" className="text-xs text-muted-foreground">
-                Email
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                value={form.email ?? ""}
-                onChange={(e) => updateField("email", e.target.value)}
-                placeholder="jean.dupont@entreprise.fr"
-                className="bg-transparent text-[13px]"
-              />
-              {errors.email && (
-                <p className="text-[11px] text-destructive">{errors.email[0]}</p>
-              )}
-            </div>
+      {/* Email */}
+      <div className="space-y-2">
+        <Label htmlFor="email" className="text-[13px]">
+          Email
+        </Label>
+        <Input
+          id="email"
+          type="email"
+          value={form.email ?? ""}
+          onChange={(e) => updateField("email", e.target.value)}
+          placeholder="jean.dupont@entreprise.fr"
+          className="h-9 text-[13px] bg-background border-border/60"
+        />
+        {errors.email && (
+          <p className="text-xs text-destructive">{errors.email[0]}</p>
+        )}
+      </div>
 
-            {/* Telephone */}
-            <div className="grid gap-1.5">
-              <Label htmlFor="telephone" className="text-xs text-muted-foreground">
-                Telephone
-              </Label>
-              <Input
-                id="telephone"
-                value={form.telephone ?? ""}
-                onChange={(e) => updateField("telephone", e.target.value)}
-                placeholder="06 12 34 56 78"
-                className="bg-transparent text-[13px]"
-              />
-            </div>
+      {/* T\u00e9l\u00e9phone / Fonction */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label htmlFor="telephone" className="text-[13px]">
+            T\u00e9l\u00e9phone
+          </Label>
+          <Input
+            id="telephone"
+            value={form.telephone ?? ""}
+            onChange={(e) => updateField("telephone", e.target.value)}
+            placeholder="06 12 34 56 78"
+            className="h-9 text-[13px] bg-background border-border/60"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="fonction" className="text-[13px]">
+            Fonction
+          </Label>
+          <Input
+            id="fonction"
+            value={form.fonction ?? ""}
+            onChange={(e) => updateField("fonction", e.target.value)}
+            placeholder="Responsable formation"
+            className="h-9 text-[13px] bg-background border-border/60"
+          />
+        </div>
+      </div>
 
-            {/* Fonction */}
-            <div className="grid gap-1.5">
-              <Label htmlFor="fonction" className="text-xs text-muted-foreground">
-                Fonction
-              </Label>
-              <Input
-                id="fonction"
-                value={form.fonction ?? ""}
-                onChange={(e) => updateField("fonction", e.target.value)}
-                placeholder="Responsable formation"
-                className="bg-transparent text-[13px]"
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => handleOpenChange(false)}
-              className="text-xs"
-            >
-              Annuler
-            </Button>
-            <Button type="submit" disabled={isSubmitting} className="text-xs">
-              {isSubmitting && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />}
-              Ajouter
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+      <DialogFooter className="pt-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onCancel}
+          className="h-8 text-xs border-border/60"
+        >
+          Annuler
+        </Button>
+        <Button type="submit" size="sm" disabled={isSubmitting} className="h-8 text-xs">
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+              Cr\u00e9ation...
+            </>
+          ) : (
+            "Cr\u00e9er le contact"
+          )}
+        </Button>
+      </DialogFooter>
+    </form>
   );
 }

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { Landmark, Loader2 } from "lucide-react";
 import { DataTable, type Column } from "@/components/data-table/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,9 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { useToast } from "@/components/ui/toast";
 import { getFinanceurs, createFinanceur } from "@/actions/financeurs";
+import { formatDate } from "@/lib/utils";
 
 interface Financeur {
   id: string;
@@ -30,8 +33,8 @@ interface Financeur {
 
 const FINANCEUR_TYPES = [
   "OPCO",
-  "Pôle Emploi",
-  "Région",
+  "P\u00f4le Emploi",
+  "R\u00e9gion",
   "AGEFIPH",
   "Entreprise",
   "Autre",
@@ -41,9 +44,9 @@ function typeBadgeClass(type: string | null): string {
   switch (type) {
     case "OPCO":
       return "border-transparent bg-blue-500/15 text-blue-400";
-    case "Pôle Emploi":
+    case "P\u00f4le Emploi":
       return "border-transparent bg-purple-500/15 text-purple-400";
-    case "Région":
+    case "R\u00e9gion":
       return "border-transparent bg-emerald-500/15 text-emerald-400";
     case "AGEFIPH":
       return "border-transparent bg-amber-500/15 text-amber-400";
@@ -57,11 +60,27 @@ function typeBadgeClass(type: string | null): string {
 }
 
 const columns: Column<Financeur>[] = [
-  { key: "numero_affichage", label: "ID", className: "w-28" },
+  {
+    key: "numero_affichage",
+    label: "ID",
+    className: "w-28",
+    render: (item) => (
+      <span className="font-mono text-xs text-muted-foreground">
+        {item.numero_affichage}
+      </span>
+    ),
+  },
   {
     key: "nom",
     label: "Nom",
-    render: (item) => <span className="font-medium">{item.nom}</span>,
+    render: (item) => (
+      <div className="flex items-center gap-2">
+        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-amber-500/10">
+          <Landmark className="h-3.5 w-3.5 text-amber-400" />
+        </div>
+        <span className="font-medium">{item.nom}</span>
+      </div>
+    ),
   },
   {
     key: "type",
@@ -87,15 +106,19 @@ const columns: Column<Financeur>[] = [
   },
   {
     key: "created_at",
-    label: "Créé le",
-    render: (item) =>
-      new Date(item.created_at).toLocaleDateString("fr-FR"),
+    label: "Cr\u00e9\u00e9 le",
+    className: "w-28",
+    render: (item) => (
+      <span className="text-muted-foreground">{formatDate(item.created_at)}</span>
+    ),
   },
 ];
 
 export default function FinanceursPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [search, setSearch] = React.useState("");
+  const [debouncedSearch, setDebouncedSearch] = React.useState("");
   const [page, setPage] = React.useState(1);
   const [data, setData] = React.useState<Financeur[]>([]);
   const [totalCount, setTotalCount] = React.useState(0);
@@ -111,30 +134,27 @@ export default function FinanceursPage() {
   const [formEmail, setFormEmail] = React.useState("");
   const [formTelephone, setFormTelephone] = React.useState("");
 
+  // Debounce search
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // Fetch data
   const fetchData = React.useCallback(async () => {
     setIsLoading(true);
-    const result = await getFinanceurs(page, search);
+    const result = await getFinanceurs(page, debouncedSearch);
     setData(result.data as Financeur[]);
     setTotalCount(result.count);
     setIsLoading(false);
-  }, [page, search]);
+  }, [page, debouncedSearch]);
 
   React.useEffect(() => {
     fetchData();
   }, [fetchData]);
-
-  // Debounced search: reset page when search changes
-  const searchTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-  const handleSearchChange = (value: string) => {
-    setSearch(value);
-    setPage(1);
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-    searchTimeoutRef.current = setTimeout(() => {
-      // fetchData will be triggered by useEffect
-    }, 300);
-  };
 
   const resetForm = () => {
     setFormNom("");
@@ -151,7 +171,7 @@ export default function FinanceursPage() {
 
     const result = await createFinanceur({
       nom: formNom,
-      type: formType as typeof FINANCEUR_TYPES[number] | "",
+      type: formType as (typeof FINANCEUR_TYPES)[number] | "",
       siret: formSiret,
       email: formEmail,
       telephone: formTelephone,
@@ -166,7 +186,7 @@ export default function FinanceursPage() {
       } else if ("nom" in errors && Array.isArray(errors.nom)) {
         setFormError(errors.nom[0] ?? "Le nom est requis");
       } else {
-        setFormError("Erreur lors de la création");
+        setFormError("Erreur lors de la cr\u00e9ation");
       }
       return;
     }
@@ -174,6 +194,11 @@ export default function FinanceursPage() {
     setDialogOpen(false);
     resetForm();
     fetchData();
+    toast({
+      title: "Financeur cr\u00e9\u00e9",
+      description: "Le financeur a \u00e9t\u00e9 ajout\u00e9 avec succ\u00e8s.",
+      variant: "success",
+    });
   };
 
   return (
@@ -186,7 +211,7 @@ export default function FinanceursPage() {
         page={page}
         onPageChange={setPage}
         searchValue={search}
-        onSearchChange={handleSearchChange}
+        onSearchChange={setSearch}
         onAdd={() => {
           resetForm();
           setDialogOpen(true);
@@ -198,17 +223,17 @@ export default function FinanceursPage() {
       />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Ajouter un financeur</DialogTitle>
             <DialogDescription>
-              Créez un nouveau financeur (OPCO, Pôle Emploi, Région, etc.)
+              Cr\u00e9ez un nouveau financeur (OPCO, P\u00f4le Emploi, R\u00e9gion, etc.)
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-2">
+          <div className="space-y-4">
             {formError && (
-              <div className="rounded-md bg-destructive/10 px-3 py-2 text-[13px] text-destructive">
+              <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
                 {formError}
               </div>
             )}
@@ -236,7 +261,7 @@ export default function FinanceursPage() {
                 onChange={(e) => setFormType(e.target.value)}
                 className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-[13px] text-foreground"
               >
-                <option value="">-- Sélectionner --</option>
+                <option value="">-- S\u00e9lectionner --</option>
                 {FINANCEUR_TYPES.map((t) => (
                   <option key={t} value={t}>
                     {t}
@@ -258,7 +283,7 @@ export default function FinanceursPage() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-[13px]">
                   Email
@@ -274,7 +299,7 @@ export default function FinanceursPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="telephone" className="text-[13px]">
-                  Téléphone
+                  T\u00e9l\u00e9phone
                 </Label>
                 <Input
                   id="telephone"
@@ -287,20 +312,29 @@ export default function FinanceursPage() {
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="pt-2">
             <Button
               variant="outline"
+              size="sm"
               onClick={() => setDialogOpen(false)}
-              className="text-[13px]"
+              className="h-8 text-xs border-border/60"
             >
               Annuler
             </Button>
             <Button
               onClick={handleCreate}
+              size="sm"
               disabled={saving || !formNom.trim()}
-              className="text-[13px]"
+              className="h-8 text-xs"
             >
-              {saving ? "Création..." : "Créer le financeur"}
+              {saving ? (
+                <>
+                  <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+                  Cr\u00e9ation...
+                </>
+              ) : (
+                "Cr\u00e9er le financeur"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
