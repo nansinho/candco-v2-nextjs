@@ -1,29 +1,25 @@
 "use client";
 
-import { Bell, Search, LogOut } from "lucide-react";
+import { Bell, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Breadcrumb } from "./Breadcrumb";
 
 export function Header() {
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-background/95 px-6 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-background/80 px-6 backdrop-blur-md">
       <Breadcrumb />
 
-      <div className="flex items-center gap-2">
-        {/* Search */}
-        <Button variant="ghost" size="icon" className="text-muted-foreground">
+      <div className="flex items-center gap-1">
+        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground/60 hover:text-foreground">
           <Search className="h-4 w-4" />
         </Button>
-
-        {/* Notifications */}
-        <Button variant="ghost" size="icon" className="text-muted-foreground">
+        <Button variant="ghost" size="icon" className="relative h-8 w-8 text-muted-foreground/60 hover:text-foreground">
           <Bell className="h-4 w-4" />
+          <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-primary" />
         </Button>
-
-        {/* User menu */}
-        <Button variant="ghost" size="icon" className="text-muted-foreground">
-          <LogOut className="h-4 w-4" />
-        </Button>
+        <div className="ml-2 flex h-8 w-8 items-center justify-center rounded-full bg-primary/15 text-xs font-medium text-primary">
+          N
+        </div>
       </div>
     </header>
   );
