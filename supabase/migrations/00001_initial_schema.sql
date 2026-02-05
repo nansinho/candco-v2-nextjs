@@ -364,10 +364,13 @@ ALTER TABLE taches ENABLE ROW LEVEL SECURITY;
 ALTER TABLE activites ENABLE ROW LEVEL SECURITY;
 
 -- Helper: get current user's organisation_id
+-- SECURITY DEFINER bypasses RLS to avoid circular dependency
+-- (utilisateurs RLS calls auth_organisation_id which reads utilisateurs)
 CREATE OR REPLACE FUNCTION auth_organisation_id()
 RETURNS uuid
 LANGUAGE sql
 STABLE
+SECURITY DEFINER
 AS $$
   SELECT organisation_id FROM utilisateurs WHERE id = auth.uid()
 $$;

@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getOrganisationId } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -30,35 +31,23 @@ export async function createFormateur(input: FormateurInput) {
     return { error: parsed.error.flatten().fieldErrors };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return { error: { _form: ["Non authentifie"] } };
+  const result = await getOrganisationId();
+  if ("error" in result) {
+    return { error: { _form: [result.error] } };
   }
 
-  // Get user's organisation
-  const { data: utilisateur } = await supabase
-    .from("utilisateurs")
-    .select("organisation_id")
-    .eq("id", user.id)
-    .single();
-
-  if (!utilisateur) {
-    return { error: { _form: ["Utilisateur non trouve"] } };
-  }
+  const { organisationId, supabase } = result;
 
   // Generate display number
   const { data: numero } = await supabase.rpc("next_numero", {
-    p_organisation_id: utilisateur.organisation_id,
+    p_organisation_id: organisationId,
     p_entite: "FOR",
   });
 
   const { data, error } = await supabase
     .from("formateurs")
     .insert({
-      organisation_id: utilisateur.organisation_id,
+      organisation_id: organisationId,
       numero_affichage: numero,
       civilite: parsed.data.civilite || null,
       prenom: parsed.data.prenom,
@@ -137,12 +126,6 @@ export async function updateFormateur(id: string, input: Partial<FormateurInput>
   }
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return { error: { _form: ["Non authentifie"] } };
-  }
 
   // Build update payload, converting empty strings to null
   const updateData: Record<string, unknown> = {};

@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getOrganisationId } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -25,33 +26,23 @@ export async function createApprenant(input: CreateApprenantInput) {
     return { error: parsed.error.flatten().fieldErrors };
   }
 
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return { error: { _form: ["Non authentifié"] } };
+  const result = await getOrganisationId();
+  if ("error" in result) {
+    return { error: { _form: [result.error] } };
   }
 
-  // Get user's organisation
-  const { data: utilisateur } = await supabase
-    .from("utilisateurs")
-    .select("organisation_id")
-    .eq("id", user.id)
-    .single();
-
-  if (!utilisateur) {
-    return { error: { _form: ["Utilisateur non trouvé"] } };
-  }
+  const { organisationId, supabase } = result;
 
   // Generate display number
   const { data: numero } = await supabase.rpc("next_numero", {
-    p_organisation_id: utilisateur.organisation_id,
+    p_organisation_id: organisationId,
     p_entite: "APP",
   });
 
   const { data, error } = await supabase
     .from("apprenants")
     .insert({
-      organisation_id: utilisateur.organisation_id,
+      organisation_id: organisationId,
       numero_affichage: numero,
       ...parsed.data,
       email: parsed.data.email || null,
@@ -116,7 +107,6 @@ export async function getApprenant(id: string) {
     .map((l) => {
       const e = l.entreprises;
       if (!e) return null;
-      // Supabase may return an object or an array depending on relationship config
       const ent = Array.isArray(e) ? e[0] : e;
       return ent as {
         id: string;
@@ -163,10 +153,6 @@ export async function updateApprenant(id: string, input: UpdateApprenantInput) {
   }
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return { error: { _form: ["Non authentifié"] } };
-  }
 
   const { data, error } = await supabase
     .from("apprenants")

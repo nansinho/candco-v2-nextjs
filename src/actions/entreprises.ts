@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getOrganisationId } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -40,28 +41,6 @@ function cleanEmptyStrings<T extends Record<string, unknown>>(data: T): T {
     }
   }
   return cleaned;
-}
-
-async function getOrganisationId() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return { error: "Non authentifié" };
-  }
-
-  const { data: utilisateur } = await supabase
-    .from("utilisateurs")
-    .select("organisation_id")
-    .eq("id", user.id)
-    .single();
-
-  if (!utilisateur) {
-    return { error: "Utilisateur non trouvé" };
-  }
-
-  return { organisationId: utilisateur.organisation_id, supabase };
 }
 
 // ─── Actions ─────────────────────────────────────────────
@@ -131,14 +110,11 @@ export async function createEntreprise(input: CreateEntrepriseInput) {
   }
 
   const result = await getOrganisationId();
-  if ("error" in result && !("supabase" in result)) {
+  if ("error" in result) {
     return { error: { _form: [result.error] } };
   }
 
-  const { organisationId, supabase } = result as {
-    organisationId: string;
-    supabase: Awaited<ReturnType<typeof createClient>>;
-  };
+  const { organisationId, supabase } = result;
 
   // Generate display number
   const { data: numero } = await supabase.rpc("next_numero", {
