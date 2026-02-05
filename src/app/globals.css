@@ -15,8 +15,8 @@
   --color-popover: #1A1A1A;
   --color-popover-foreground: #FAFAFA;
 
-  --color-primary: #F97316;
-  --color-primary-foreground: #FAFAFA;
+  --color-primary: #FF7C4C;
+  --color-primary-foreground: #FFFFFF;
 
   --color-secondary: #1A1A1A;
   --color-secondary-foreground: #FAFAFA;
@@ -36,7 +36,7 @@
 
   --color-border: #2A2A2A;
   --color-input: #2A2A2A;
-  --color-ring: #F97316;
+  --color-ring: #FF7C4C;
 
   --color-sidebar: #0A0A0A;
   --color-sidebar-foreground: #FAFAFA;
