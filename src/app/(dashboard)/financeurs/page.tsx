@@ -162,9 +162,9 @@ export default function FinanceursPage() {
     if (result.error) {
       const errors = result.error;
       if ("_form" in errors && Array.isArray(errors._form)) {
-        setFormError(errors._form[0]);
+        setFormError(errors._form[0] ?? "Erreur inconnue");
       } else if ("nom" in errors && Array.isArray(errors.nom)) {
-        setFormError(errors.nom[0]);
+        setFormError(errors.nom[0] ?? "Le nom est requis");
       } else {
         setFormError("Erreur lors de la création");
       }
