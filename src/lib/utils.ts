@@ -27,3 +27,11 @@ export function formatDate(date: string | Date): string {
     year: "numeric",
   }).format(new Date(date));
 }
+
+// ─── Filter types for advanced search ─────────────────────
+
+export interface QueryFilter {
+  key: string;
+  operator: string;
+  value: string;
+}

@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getOrganisationId } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import type { QueryFilter } from "@/lib/utils";
 
 const CreateApprenantSchema = z.object({
   civilite: z.string().optional(),
@@ -64,6 +65,7 @@ export async function getApprenants(
   showArchived: boolean = false,
   sortBy: string = "created_at",
   sortDir: "asc" | "desc" = "desc",
+  filters: QueryFilter[] = [],
 ) {
   const supabase = await createClient();
   const limit = 25;
@@ -83,6 +85,17 @@ export async function getApprenants(
 
   if (search) {
     query = query.or(`nom.ilike.%${search}%,prenom.ilike.%${search}%,email.ilike.%${search}%`);
+  }
+
+  for (const f of filters) {
+    if (!f.value) continue;
+    if (f.operator === "contains") query = query.ilike(f.key, `%${f.value}%`);
+    else if (f.operator === "not_contains") query = query.not(f.key, "ilike", `%${f.value}%`);
+    else if (f.operator === "equals") query = query.eq(f.key, f.value);
+    else if (f.operator === "not_equals") query = query.neq(f.key, f.value);
+    else if (f.operator === "starts_with") query = query.ilike(f.key, `${f.value}%`);
+    else if (f.operator === "after") query = query.gt(f.key, f.value);
+    else if (f.operator === "before") query = query.lt(f.key, f.value);
   }
 
   const { data, count, error } = await query;
@@ -301,6 +314,17 @@ export async function importApprenants(
     entrepriseCache.set(ent.nom.toLowerCase().trim(), ent.id);
   }
 
+  // 3. Contrôle de doublons — pré-charger les emails existants
+  const { data: existingApprenants } = await supabase
+    .from("apprenants")
+    .select("email")
+    .eq("organisation_id", organisationId)
+    .not("email", "is", null);
+  const existingEmails = new Set<string>(
+    (existingApprenants ?? []).map((a) => a.email!.toLowerCase())
+  );
+  const batchEmails = new Set<string>();
+
   // ─── Traitement de chaque ligne ────────────────────────
 
   for (let i = 0; i < rows.length; i++) {
@@ -319,6 +343,16 @@ export async function importApprenants(
     if (!prenom || !nom) {
       importErrors.push(`Ligne ${i + 1}: Prénom et nom requis`);
       continue;
+    }
+
+    // 1b. Contrôle de doublons par email
+    const email = row.email?.trim().toLowerCase();
+    if (email) {
+      if (existingEmails.has(email) || batchEmails.has(email)) {
+        importErrors.push(`Ligne ${i + 1} (${prenom} ${nom}): Email "${row.email?.trim()}" déjà existant — ignoré`);
+        continue;
+      }
+      batchEmails.add(email);
     }
 
     // 2. Résoudre BPF

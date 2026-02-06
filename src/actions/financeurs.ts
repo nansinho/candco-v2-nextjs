@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getOrganisationId } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import type { QueryFilter } from "@/lib/utils";
 
 const FINANCEUR_TYPES = [
   "OPCO",
@@ -81,6 +82,7 @@ export async function getFinanceurs(
   showArchived: boolean = false,
   sortBy: string = "created_at",
   sortDir: "asc" | "desc" = "desc",
+  filters: QueryFilter[] = [],
 ) {
   const supabase = await createClient();
   const limit = 25;
@@ -102,6 +104,17 @@ export async function getFinanceurs(
     query = query.or(
       `nom.ilike.%${search}%,siret.ilike.%${search}%,email.ilike.%${search}%`
     );
+  }
+
+  for (const f of filters) {
+    if (!f.value) continue;
+    if (f.operator === "contains") query = query.ilike(f.key, `%${f.value}%`);
+    else if (f.operator === "not_contains") query = query.not(f.key, "ilike", `%${f.value}%`);
+    else if (f.operator === "equals") query = query.eq(f.key, f.value);
+    else if (f.operator === "not_equals") query = query.neq(f.key, f.value);
+    else if (f.operator === "starts_with") query = query.ilike(f.key, `${f.value}%`);
+    else if (f.operator === "after") query = query.gt(f.key, f.value);
+    else if (f.operator === "before") query = query.lt(f.key, f.value);
   }
 
   const { data, count, error } = await query;
@@ -210,4 +223,124 @@ export async function unarchiveFinanceur(id: string) {
 
   revalidatePath("/financeurs");
   return { success: true };
+}
+
+// ─── Import ──────────────────────────────────────────────
+
+function extractBpfCode(statut: string): string {
+  const parts = statut.split(" - ");
+  return parts[0].trim();
+}
+
+export async function importFinanceurs(
+  rows: {
+    nom?: string; type?: string; siret?: string;
+    email?: string; telephone?: string;
+    adresse_rue?: string; adresse_complement?: string;
+    adresse_cp?: string; adresse_ville?: string;
+    numero_compte_comptable?: string;
+    bpf_categorie?: string;
+  }[]
+): Promise<{ success: number; errors: string[] }> {
+  const authResult = await getOrganisationId();
+  if ("error" in authResult) {
+    return { success: 0, errors: [String(authResult.error)] };
+  }
+
+  const { organisationId, supabase } = authResult;
+  let successCount = 0;
+  const importErrors: string[] = [];
+
+  // Pré-charger les catégories BPF entreprise → Map<code_lower, id>
+  const { data: bpfCategories } = await supabase
+    .from("bpf_categories_entreprise")
+    .select("id, code");
+  const bpfMap = new Map<string, string>();
+  for (const cat of bpfCategories ?? []) {
+    bpfMap.set(cat.code.toLowerCase(), cat.id);
+  }
+
+  // Normaliser le type financeur
+  const typeMap = new Map<string, string>();
+  for (const t of FINANCEUR_TYPES) {
+    typeMap.set(t.toLowerCase(), t);
+  }
+
+  // Contrôle de doublons — pré-charger SIRET existants
+  const { data: existingFins } = await supabase
+    .from("financeurs")
+    .select("siret")
+    .eq("organisation_id", organisationId)
+    .not("siret", "is", null);
+  const existingSirets = new Set<string>(
+    (existingFins ?? []).map((f) => f.siret!.replace(/\s/g, "").toLowerCase())
+  );
+  const batchSirets = new Set<string>();
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const nom = row.nom?.trim();
+
+    if (!nom) {
+      importErrors.push(`Ligne ${i + 1}: Nom requis`);
+      continue;
+    }
+
+    // Contrôle doublon SIRET
+    const siret = row.siret?.trim().replace(/\s/g, "").toLowerCase();
+    if (siret) {
+      if (existingSirets.has(siret) || batchSirets.has(siret)) {
+        importErrors.push(`Ligne ${i + 1} (${nom}): SIRET "${row.siret?.trim()}" déjà existant — ignoré`);
+        continue;
+      }
+      batchSirets.add(siret);
+    }
+
+    // Résoudre type
+    let resolvedType: string | null = null;
+    if (row.type?.trim()) {
+      resolvedType = typeMap.get(row.type.trim().toLowerCase()) ?? row.type.trim();
+    }
+
+    // Résoudre BPF
+    let bpfCategorieId: string | null = null;
+    if (row.bpf_categorie?.trim()) {
+      const code = extractBpfCode(row.bpf_categorie);
+      bpfCategorieId = bpfMap.get(code.toLowerCase()) ?? null;
+    }
+
+    // Générer numéro et insérer
+    const { data: numero } = await supabase.rpc("next_numero", {
+      p_organisation_id: organisationId,
+      p_entite: "FIN",
+    });
+
+    const { error } = await supabase
+      .from("financeurs")
+      .insert({
+        organisation_id: organisationId,
+        numero_affichage: numero,
+        nom,
+        type: resolvedType,
+        siret: row.siret?.trim() || null,
+        email: row.email?.trim() || null,
+        telephone: row.telephone?.trim() || null,
+        adresse_rue: row.adresse_rue?.trim() || null,
+        adresse_complement: row.adresse_complement?.trim() || null,
+        adresse_cp: row.adresse_cp?.trim() || null,
+        adresse_ville: row.adresse_ville?.trim() || null,
+        numero_compte_comptable: row.numero_compte_comptable?.trim() || null,
+        bpf_categorie_id: bpfCategorieId,
+      });
+
+    if (error) {
+      importErrors.push(`Ligne ${i + 1} (${nom}): ${error.message}`);
+      continue;
+    }
+
+    successCount++;
+  }
+
+  revalidatePath("/financeurs");
+  return { success: successCount, errors: importErrors };
 }

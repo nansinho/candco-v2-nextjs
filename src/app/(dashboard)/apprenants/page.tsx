@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { GraduationCap, Building2, Loader2 } from "lucide-react";
-import { DataTable, type Column } from "@/components/data-table/DataTable";
+import { DataTable, type Column, type ActiveFilter } from "@/components/data-table/DataTable";
 import {
   Dialog,
   DialogContent,
@@ -71,6 +71,7 @@ const columns: Column<Apprenant>[] = [
     label: "Nom",
     sortable: true,
     minWidth: 200,
+    filterType: "text",
     render: (item) => (
       <div className="flex items-center gap-2">
         <div className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-500/10">
@@ -87,6 +88,7 @@ const columns: Column<Apprenant>[] = [
     label: "Email",
     sortable: true,
     minWidth: 200,
+    filterType: "text",
     render: (item) =>
       item.email || <span className="text-muted-foreground/40">--</span>,
   },
@@ -113,6 +115,8 @@ const columns: Column<Apprenant>[] = [
         </div>
       );
     },
+    exportValue: (item) =>
+      (item.apprenant_entreprises ?? []).map((ae) => ae.entreprises?.nom).filter(Boolean).join(", "),
   },
   {
     key: "bpf",
@@ -126,11 +130,13 @@ const columns: Column<Apprenant>[] = [
       ) : (
         <span className="text-muted-foreground/40">--</span>
       ),
+    exportValue: (item) => item.bpf_categories_apprenant?.code ?? "",
   },
   {
     key: "created_at",
     label: "Créé le",
     sortable: true,
+    filterType: "date",
     minWidth: 100,
     defaultVisible: false,
     render: (item) => (
@@ -153,6 +159,7 @@ export default function ApprenantsPage() {
   const [importOpen, setImportOpen] = React.useState(false);
   const [sortBy, setSortBy] = React.useState("created_at");
   const [sortDir, setSortDir] = React.useState<"asc" | "desc">("desc");
+  const [filters, setFilters] = React.useState<ActiveFilter[]>([]);
 
   // Debounce search
   React.useEffect(() => {
@@ -166,11 +173,11 @@ export default function ApprenantsPage() {
   // Fetch data
   const fetchData = React.useCallback(async () => {
     setIsLoading(true);
-    const result = await getApprenants(page, debouncedSearch, showArchived, sortBy, sortDir);
+    const result = await getApprenants(page, debouncedSearch, showArchived, sortBy, sortDir, filters);
     setData(result.data as Apprenant[]);
     setTotalCount(result.count);
     setIsLoading(false);
-  }, [page, debouncedSearch, showArchived, sortBy, sortDir]);
+  }, [page, debouncedSearch, showArchived, sortBy, sortDir, filters]);
 
   React.useEffect(() => {
     fetchData();
@@ -214,6 +221,8 @@ export default function ApprenantsPage() {
         sortBy={sortBy}
         sortDir={sortDir}
         onSortChange={handleSortChange}
+        filters={filters}
+        onFiltersChange={(f) => { setFilters(f); setPage(1); }}
         showArchived={showArchived}
         onToggleArchived={(show) => { setShowArchived(show); setPage(1); }}
         onArchive={async (ids) => {

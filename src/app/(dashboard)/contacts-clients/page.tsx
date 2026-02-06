@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Users, Building2, Loader2 } from "lucide-react";
-import { DataTable, type Column } from "@/components/data-table/DataTable";
+import { DataTable, type Column, type ActiveFilter } from "@/components/data-table/DataTable";
 import {
   Dialog,
   DialogContent,
@@ -22,9 +22,22 @@ import {
   archiveContactClient,
   unarchiveContactClient,
   deleteContactsClients,
+  importContactsClients,
   type CreateContactClientInput,
 } from "@/actions/contacts-clients";
+import { CsvImport, type ImportColumn } from "@/components/shared/csv-import";
 import { formatDate } from "@/lib/utils";
+
+const CONTACT_CLIENT_IMPORT_COLUMNS: ImportColumn[] = [
+  { key: "civilite", label: "Civilité", aliases: ["civ", "titre", "gender"] },
+  { key: "nom_complet", label: "Nom complet", aliases: ["nom du contact", "nom contact", "nom complet", "full name", "name"] },
+  { key: "prenom", label: "Prénom", aliases: ["first name", "firstname", "prenom contact"] },
+  { key: "nom", label: "Nom", aliases: ["last name", "lastname", "nom de famille"] },
+  { key: "email", label: "Email", aliases: ["mail", "e-mail", "courriel", "adresse email", "adresse e mail", "adresse e-mail"] },
+  { key: "telephone", label: "Téléphone", aliases: ["tel", "phone", "portable", "mobile", "numero telephone", "numero de telephone", "n de telephone"] },
+  { key: "fonction", label: "Fonction", aliases: ["poste", "job", "position", "role", "titre poste"] },
+  { key: "entreprise_nom", label: "Entreprise", aliases: ["entreprise", "societe", "company", "nom entreprise", "raison sociale"] },
+];
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -59,6 +72,7 @@ const columns: Column<ContactClient>[] = [
     key: "nom",
     label: "Nom",
     sortable: true,
+    filterType: "text",
     minWidth: 200,
     render: (item) => (
       <div className="flex items-center gap-2">
@@ -75,6 +89,7 @@ const columns: Column<ContactClient>[] = [
     key: "email",
     label: "Email",
     sortable: true,
+    filterType: "text",
     minWidth: 200,
     render: (item) =>
       item.email || <span className="text-muted-foreground/40">--</span>,
@@ -83,6 +98,7 @@ const columns: Column<ContactClient>[] = [
     key: "fonction",
     label: "Fonction",
     sortable: true,
+    filterType: "text",
     minWidth: 160,
     render: (item) =>
       item.fonction || <span className="text-muted-foreground/40">--</span>,
@@ -110,11 +126,14 @@ const columns: Column<ContactClient>[] = [
         </div>
       );
     },
+    exportValue: (item) =>
+      (item.contact_entreprises ?? []).map((ce) => ce.entreprises?.nom).filter(Boolean).join(", "),
   },
   {
     key: "created_at",
     label: "Créé le",
     sortable: true,
+    filterType: "date",
     minWidth: 100,
     defaultVisible: false,
     render: (item) => (
@@ -136,8 +155,10 @@ export default function ContactsClientsPage() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [showArchived, setShowArchived] = React.useState(false);
   const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [importOpen, setImportOpen] = React.useState(false);
   const [sortBy, setSortBy] = React.useState("created_at");
   const [sortDir, setSortDir] = React.useState<"asc" | "desc">("desc");
+  const [filters, setFilters] = React.useState<ActiveFilter[]>([]);
 
   // Debounce search
   React.useEffect(() => {
@@ -151,11 +172,11 @@ export default function ContactsClientsPage() {
   // Fetch data
   const fetchData = React.useCallback(async () => {
     setIsLoading(true);
-    const result = await getContactsClients(page, debouncedSearch, showArchived, sortBy, sortDir);
+    const result = await getContactsClients(page, debouncedSearch, showArchived, sortBy, sortDir, filters);
     setData(result.data as ContactClient[]);
     setTotalCount(result.count);
     setIsLoading(false);
-  }, [page, debouncedSearch, showArchived, sortBy, sortDir]);
+  }, [page, debouncedSearch, showArchived, sortBy, sortDir, filters]);
 
   React.useEffect(() => {
     fetchData();
@@ -189,6 +210,7 @@ export default function ContactsClientsPage() {
         onPageChange={setPage}
         searchValue={search}
         onSearchChange={setSearch}
+        onImport={() => setImportOpen(true)}
         onAdd={() => setDialogOpen(true)}
         addLabel="Ajouter un contact"
         onRowClick={(item) => router.push(`/contacts-clients/${item.id}`)}
@@ -198,6 +220,8 @@ export default function ContactsClientsPage() {
         sortBy={sortBy}
         sortDir={sortDir}
         onSortChange={handleSortChange}
+        filters={filters}
+        onFiltersChange={(f) => { setFilters(f); setPage(1); }}
         showArchived={showArchived}
         onToggleArchived={(show) => { setShowArchived(show); setPage(1); }}
         onArchive={async (ids) => {
@@ -235,6 +259,20 @@ export default function ContactsClientsPage() {
           />
         </DialogContent>
       </Dialog>
+
+      <CsvImport
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        title="Importer des contacts clients"
+        description="Importez vos contacts clients depuis un fichier CSV, Excel ou JSON."
+        columns={CONTACT_CLIENT_IMPORT_COLUMNS}
+        onImport={async (rows) => {
+          const result = await importContactsClients(rows as Parameters<typeof importContactsClients>[0]);
+          await fetchData();
+          return result;
+        }}
+        templateFilename="modele-contacts-clients"
+      />
     </>
   );
 }
