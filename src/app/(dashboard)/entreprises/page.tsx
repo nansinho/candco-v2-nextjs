@@ -146,11 +146,13 @@ export default function EntreprisesPage() {
         onToggleArchived={(show) => { setShowArchived(show); setPage(1); }}
         onArchive={async (ids) => {
           await Promise.all(ids.map((id) => archiveEntreprise(id)));
-          fetchData();
+          await fetchData();
+          toast({ title: "Archivé", description: `${ids.length} élément(s) archivé(s).`, variant: "success" });
         }}
         onUnarchive={async (ids) => {
           await Promise.all(ids.map((id) => unarchiveEntreprise(id)));
-          fetchData();
+          setShowArchived(false);
+          toast({ title: "Restauré", description: `${ids.length} élément(s) restauré(s).`, variant: "success" });
         }}
       />
 

@@ -226,11 +226,13 @@ export default function FinanceursPage() {
         onToggleArchived={(show) => { setShowArchived(show); setPage(1); }}
         onArchive={async (ids) => {
           await Promise.all(ids.map((id) => archiveFinanceur(id)));
-          fetchData();
+          await fetchData();
+          toast({ title: "Archivé", description: `${ids.length} élément(s) archivé(s).`, variant: "success" });
         }}
         onUnarchive={async (ids) => {
           await Promise.all(ids.map((id) => unarchiveFinanceur(id)));
-          fetchData();
+          setShowArchived(false);
+          toast({ title: "Restauré", description: `${ids.length} élément(s) restauré(s).`, variant: "success" });
         }}
       />
 
