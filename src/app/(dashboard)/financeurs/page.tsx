@@ -17,7 +17,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toast";
-import { getFinanceurs, createFinanceur } from "@/actions/financeurs";
+import { getFinanceurs, createFinanceur, archiveFinanceur, unarchiveFinanceur } from "@/actions/financeurs";
 import { formatDate } from "@/lib/utils";
 
 interface Financeur {
@@ -123,6 +123,7 @@ export default function FinanceursPage() {
   const [data, setData] = React.useState<Financeur[]>([]);
   const [totalCount, setTotalCount] = React.useState(0);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [showArchived, setShowArchived] = React.useState(false);
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [formError, setFormError] = React.useState<string | null>(null);
@@ -146,11 +147,11 @@ export default function FinanceursPage() {
   // Fetch data
   const fetchData = React.useCallback(async () => {
     setIsLoading(true);
-    const result = await getFinanceurs(page, debouncedSearch);
+    const result = await getFinanceurs(page, debouncedSearch, showArchived);
     setData(result.data as Financeur[]);
     setTotalCount(result.count);
     setIsLoading(false);
-  }, [page, debouncedSearch]);
+  }, [page, debouncedSearch, showArchived]);
 
   React.useEffect(() => {
     fetchData();
@@ -221,6 +222,16 @@ export default function FinanceursPage() {
         getRowId={(item) => item.id}
         isLoading={isLoading}
         exportFilename="financeurs"
+        showArchived={showArchived}
+        onToggleArchived={(show) => { setShowArchived(show); setPage(1); }}
+        onArchive={async (ids) => {
+          await Promise.all(ids.map((id) => archiveFinanceur(id)));
+          fetchData();
+        }}
+        onUnarchive={async (ids) => {
+          await Promise.all(ids.map((id) => unarchiveFinanceur(id)));
+          fetchData();
+        }}
       />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

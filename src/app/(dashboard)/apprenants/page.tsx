@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DatePicker } from "@/components/ui/date-picker";
 import { useToast } from "@/components/ui/toast";
-import { getApprenants, createApprenant, type CreateApprenantInput } from "@/actions/apprenants";
+import { getApprenants, createApprenant, archiveApprenant, unarchiveApprenant, type CreateApprenantInput } from "@/actions/apprenants";
 import { formatDate } from "@/lib/utils";
 
 interface Apprenant {
@@ -86,6 +86,7 @@ export default function ApprenantsPage() {
   const [data, setData] = React.useState<Apprenant[]>([]);
   const [totalCount, setTotalCount] = React.useState(0);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [showArchived, setShowArchived] = React.useState(false);
   const [dialogOpen, setDialogOpen] = React.useState(false);
 
   // Debounce search
@@ -100,11 +101,11 @@ export default function ApprenantsPage() {
   // Fetch data
   const fetchData = React.useCallback(async () => {
     setIsLoading(true);
-    const result = await getApprenants(page, debouncedSearch);
+    const result = await getApprenants(page, debouncedSearch, showArchived);
     setData(result.data as Apprenant[]);
     setTotalCount(result.count);
     setIsLoading(false);
-  }, [page, debouncedSearch]);
+  }, [page, debouncedSearch, showArchived]);
 
   React.useEffect(() => {
     fetchData();
@@ -137,6 +138,16 @@ export default function ApprenantsPage() {
         getRowId={(item) => item.id}
         isLoading={isLoading}
         exportFilename="apprenants"
+        showArchived={showArchived}
+        onToggleArchived={(show) => { setShowArchived(show); setPage(1); }}
+        onArchive={async (ids) => {
+          await Promise.all(ids.map((id) => archiveApprenant(id)));
+          fetchData();
+        }}
+        onUnarchive={async (ids) => {
+          await Promise.all(ids.map((id) => unarchiveApprenant(id)));
+          fetchData();
+        }}
       />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

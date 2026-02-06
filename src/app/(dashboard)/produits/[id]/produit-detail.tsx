@@ -13,6 +13,7 @@ import {
   Trash2,
   GripVertical,
   Euro,
+  ArchiveRestore,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,7 @@ import { formatDate, formatCurrency } from "@/lib/utils";
 import {
   updateProduit,
   archiveProduit,
+  unarchiveProduit,
   addTarif,
   deleteTarif,
   addObjectif,
@@ -167,8 +169,25 @@ export function ProduitDetail({
     router.push("/produits");
   };
 
+  const isArchived = !!(produit as unknown as { archived_at?: string }).archived_at;
+
+  const handleUnarchive = async () => {
+    await unarchiveProduit(produit.id);
+    router.push("/produits");
+  };
+
   return (
     <div className="space-y-6">
+      {isArchived && (
+        <div className="flex items-center justify-between rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+          <p className="text-sm text-amber-400">Ce produit est archivé.</p>
+          <Button size="sm" variant="outline" className="h-8 text-xs text-amber-400 border-amber-500/30 hover:bg-amber-500/10" onClick={handleUnarchive}>
+            <ArchiveRestore className="mr-1.5 h-3 w-3" />
+            Restaurer
+          </Button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">

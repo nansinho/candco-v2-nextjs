@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Search, Plus, Archive, Download, ChevronLeft, ChevronRight, Inbox, Trash2 } from "lucide-react";
+import { Search, Plus, Archive, ArchiveRestore, Download, ChevronLeft, ChevronRight, Inbox, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -34,6 +34,9 @@ interface DataTableProps<T> {
   onArchive?: (ids: string[]) => Promise<void>;
   onDelete?: (ids: string[]) => Promise<void>;
   onExport?: () => void;
+  showArchived?: boolean;
+  onToggleArchived?: (show: boolean) => void;
+  onUnarchive?: (ids: string[]) => Promise<void>;
 }
 
 export function DataTable<T>({
@@ -54,6 +57,9 @@ export function DataTable<T>({
   onArchive,
   onDelete,
   onExport,
+  showArchived = false,
+  onToggleArchived,
+  onUnarchive,
 }: DataTableProps<T>) {
   const { toast } = useToast();
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
@@ -125,6 +131,13 @@ export function DataTable<T>({
     }
   };
 
+  const handleUnarchive = async () => {
+    if (onUnarchive) {
+      await onUnarchive(Array.from(selectedIds));
+      setSelectedIds(new Set());
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Toolbar */}
@@ -136,15 +149,27 @@ export function DataTable<T>({
               <span className="text-xs text-muted-foreground">
                 {selectedIds.size} sélectionné(s)
               </span>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 text-xs"
-                onClick={handleArchive}
-              >
-                <Archive className="mr-1.5 h-3 w-3" />
-                Archiver
-              </Button>
+              {showArchived ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
+                  onClick={handleUnarchive}
+                >
+                  <ArchiveRestore className="mr-1.5 h-3 w-3" />
+                  Restaurer
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs"
+                  onClick={handleArchive}
+                >
+                  <Archive className="mr-1.5 h-3 w-3" />
+                  Archiver
+                </Button>
+              )}
               {onDelete && (
                 <Button
                   variant="outline"
@@ -157,6 +182,20 @@ export function DataTable<T>({
                 </Button>
               )}
             </>
+          )}
+          {onToggleArchived && (
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn(
+                "h-8 text-xs border-border/60",
+                showArchived && "bg-amber-500/10 text-amber-400 border-amber-500/30"
+              )}
+              onClick={() => onToggleArchived(!showArchived)}
+            >
+              <Archive className="mr-1.5 h-3 w-3" />
+              <span className="hidden sm:inline">Archives</span>
+            </Button>
           )}
           <Button
             variant="outline"
@@ -237,9 +276,13 @@ export function DataTable<T>({
                       <Inbox className="h-6 w-6 text-muted-foreground/30" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground/60">Aucune donnée</p>
+                      <p className="text-sm font-medium text-muted-foreground/60">
+                        {showArchived ? "Aucun élément archivé" : "Aucune donnée"}
+                      </p>
                       <p className="mt-0.5 text-xs text-muted-foreground/40">
-                        Commencez par ajouter un élément
+                        {showArchived
+                          ? "Les éléments archivés apparaîtront ici"
+                          : "Commencez par ajouter un élément"}
                       </p>
                     </div>
                   </div>

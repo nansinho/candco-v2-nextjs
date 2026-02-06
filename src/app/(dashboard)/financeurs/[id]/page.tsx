@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Archive, Loader2, Save } from "lucide-react";
+import { ArrowLeft, Archive, ArchiveRestore, Loader2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,7 @@ import {
   getFinanceur,
   updateFinanceur,
   archiveFinanceur,
+  unarchiveFinanceur,
 } from "@/actions/financeurs";
 
 const FINANCEUR_TYPES = [
@@ -179,8 +180,25 @@ export default function FinanceurDetailPage() {
     );
   }
 
+  const isArchived = !!(financeur as unknown as { archived_at?: string }).archived_at;
+
+  const handleUnarchive = async () => {
+    await unarchiveFinanceur(id);
+    router.push("/financeurs");
+  };
+
   return (
     <div className="space-y-6">
+      {isArchived && (
+        <div className="flex items-center justify-between rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+          <p className="text-sm text-amber-400">Ce financeur est archivé.</p>
+          <Button size="sm" variant="outline" className="h-8 text-xs text-amber-400 border-amber-500/30 hover:bg-amber-500/10" onClick={handleUnarchive}>
+            <ArchiveRestore className="mr-1.5 h-3 w-3" />
+            Restaurer
+          </Button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">

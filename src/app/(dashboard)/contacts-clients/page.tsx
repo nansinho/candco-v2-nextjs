@@ -19,6 +19,8 @@ import { useToast } from "@/components/ui/toast";
 import {
   getContactsClients,
   createContactClient,
+  archiveContactClient,
+  unarchiveContactClient,
   type CreateContactClientInput,
 } from "@/actions/contacts-clients";
 import { formatDate } from "@/lib/utils";
@@ -103,6 +105,7 @@ export default function ContactsClientsPage() {
   const [data, setData] = React.useState<ContactClient[]>([]);
   const [totalCount, setTotalCount] = React.useState(0);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [showArchived, setShowArchived] = React.useState(false);
   const [dialogOpen, setDialogOpen] = React.useState(false);
 
   // Debounce search
@@ -117,11 +120,11 @@ export default function ContactsClientsPage() {
   // Fetch data
   const fetchData = React.useCallback(async () => {
     setIsLoading(true);
-    const result = await getContactsClients(page, debouncedSearch);
+    const result = await getContactsClients(page, debouncedSearch, showArchived);
     setData(result.data as ContactClient[]);
     setTotalCount(result.count);
     setIsLoading(false);
-  }, [page, debouncedSearch]);
+  }, [page, debouncedSearch, showArchived]);
 
   React.useEffect(() => {
     fetchData();
@@ -154,6 +157,16 @@ export default function ContactsClientsPage() {
         getRowId={(item) => item.id}
         isLoading={isLoading}
         exportFilename="contacts-clients"
+        showArchived={showArchived}
+        onToggleArchived={(show) => { setShowArchived(show); setPage(1); }}
+        onArchive={async (ids) => {
+          await Promise.all(ids.map((id) => archiveContactClient(id)));
+          fetchData();
+        }}
+        onUnarchive={async (ids) => {
+          await Promise.all(ids.map((id) => unarchiveContactClient(id)));
+          fetchData();
+        }}
       />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

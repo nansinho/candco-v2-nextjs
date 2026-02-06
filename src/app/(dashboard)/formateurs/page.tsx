@@ -17,7 +17,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toast";
-import { getFormateurs, createFormateur, type FormateurInput } from "@/actions/formateurs";
+import { getFormateurs, createFormateur, archiveFormateur, unarchiveFormateur, type FormateurInput } from "@/actions/formateurs";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 interface Formateur {
@@ -112,6 +112,7 @@ export default function FormateursPage() {
   const [data, setData] = React.useState<Formateur[]>([]);
   const [totalCount, setTotalCount] = React.useState(0);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [showArchived, setShowArchived] = React.useState(false);
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [formErrors, setFormErrors] = React.useState<Record<string, string[]>>({});
@@ -128,11 +129,11 @@ export default function FormateursPage() {
   // Fetch data
   const fetchData = React.useCallback(async () => {
     setIsLoading(true);
-    const result = await getFormateurs(page, debouncedSearch);
+    const result = await getFormateurs(page, debouncedSearch, showArchived);
     setData(result.data as Formateur[]);
     setTotalCount(result.count);
     setIsLoading(false);
-  }, [page, debouncedSearch]);
+  }, [page, debouncedSearch, showArchived]);
 
   React.useEffect(() => {
     fetchData();
@@ -203,6 +204,16 @@ export default function FormateursPage() {
         getRowId={(item) => item.id}
         isLoading={isLoading}
         exportFilename="formateurs"
+        showArchived={showArchived}
+        onToggleArchived={(show) => { setShowArchived(show); setPage(1); }}
+        onArchive={async (ids) => {
+          await Promise.all(ids.map((id) => archiveFormateur(id)));
+          fetchData();
+        }}
+        onUnarchive={async (ids) => {
+          await Promise.all(ids.map((id) => unarchiveFormateur(id)));
+          fetchData();
+        }}
       />
 
       {/* Create Formateur Dialog */}
