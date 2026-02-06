@@ -67,8 +67,11 @@ function cleanEmptyStrings<T extends Record<string, unknown>>(data: T): T {
   return cleaned;
 }
 
-/** Calculate completion percentage based on filled fields */
-function calculateCompletion(produit: Record<string, unknown>): number {
+/** Calculate completion percentage based on filled fields + related data counts */
+function calculateCompletion(
+  produit: Record<string, unknown>,
+  counts?: { tarifs: number; objectifs: number; programme: number },
+): number {
   const fields = [
     "intitule",
     "sous_titre",
@@ -89,7 +92,42 @@ function calculateCompletion(produit: Record<string, unknown>): number {
       filled++;
     }
   }
-  return Math.round((filled / fields.length) * 100);
+  // Include related data in completion (3 extra criteria)
+  let total = fields.length;
+  if (counts) {
+    total += 3;
+    if (counts.tarifs > 0) filled++;
+    if (counts.objectifs > 0) filled++;
+    if (counts.programme > 0) filled++;
+  }
+  return Math.round((filled / total) * 100);
+}
+
+/** Recalculate and persist completion_pct for a product */
+async function recalculateCompletion(produitId: string, supabase: Awaited<ReturnType<typeof createClient>>) {
+  const { data: produit } = await supabase
+    .from("produits_formation")
+    .select("*")
+    .eq("id", produitId)
+    .single();
+  if (!produit) return;
+
+  const [tarifsRes, objectifsRes, programmeRes] = await Promise.all([
+    supabase.from("produit_tarifs").select("id", { count: "exact", head: true }).eq("produit_id", produitId),
+    supabase.from("produit_objectifs").select("id", { count: "exact", head: true }).eq("produit_id", produitId),
+    supabase.from("produit_programme").select("id", { count: "exact", head: true }).eq("produit_id", produitId),
+  ]);
+
+  const pct = calculateCompletion(produit as Record<string, unknown>, {
+    tarifs: tarifsRes.count ?? 0,
+    objectifs: objectifsRes.count ?? 0,
+    programme: programmeRes.count ?? 0,
+  });
+
+  await supabase
+    .from("produits_formation")
+    .update({ completion_pct: pct })
+    .eq("id", produitId);
 }
 
 // ─── CRUD Actions ────────────────────────────────────────
@@ -231,8 +269,18 @@ export async function updateProduit(id: string, input: UpdateProduitInput) {
   const supabase = await createClient();
   const cleanedData = cleanEmptyStrings(parsed.data);
 
-  // Calculate completion
-  const completion_pct = calculateCompletion(cleanedData);
+  // Query related data counts for completion calculation
+  const [tarifsRes, objectifsRes, programmeRes] = await Promise.all([
+    supabase.from("produit_tarifs").select("id", { count: "exact", head: true }).eq("produit_id", id),
+    supabase.from("produit_objectifs").select("id", { count: "exact", head: true }).eq("produit_id", id),
+    supabase.from("produit_programme").select("id", { count: "exact", head: true }).eq("produit_id", id),
+  ]);
+
+  const completion_pct = calculateCompletion(cleanedData, {
+    tarifs: tarifsRes.count ?? 0,
+    objectifs: objectifsRes.count ?? 0,
+    programme: programmeRes.count ?? 0,
+  });
 
   const { data, error } = await supabase
     .from("produits_formation")
@@ -335,6 +383,7 @@ export async function addTarif(produitId: string, input: TarifInput) {
     return { error: { _form: [error.message] } };
   }
 
+  await recalculateCompletion(produitId, supabase);
   revalidatePath(`/produits/${produitId}`);
   return { data };
 }
@@ -380,6 +429,7 @@ export async function deleteTarif(tarifId: string, produitId: string) {
     return { error: error.message };
   }
 
+  await recalculateCompletion(produitId, supabase);
   revalidatePath(`/produits/${produitId}`);
   return { success: true };
 }
@@ -409,6 +459,7 @@ export async function addObjectif(produitId: string, objectif: string) {
     return { error: error.message };
   }
 
+  await recalculateCompletion(produitId, supabase);
   revalidatePath(`/produits/${produitId}`);
   return { data };
 }
@@ -441,6 +492,7 @@ export async function deleteObjectif(objectifId: string, produitId: string) {
     return { error: error.message };
   }
 
+  await recalculateCompletion(produitId, supabase);
   revalidatePath(`/produits/${produitId}`);
   return { success: true };
 }
@@ -489,6 +541,7 @@ export async function addProgrammeModule(produitId: string, input: ProgrammeModu
     return { error: { _form: [error.message] } };
   }
 
+  await recalculateCompletion(produitId, supabase);
   revalidatePath(`/produits/${produitId}`);
   return { data };
 }
@@ -534,8 +587,142 @@ export async function deleteProgrammeModule(moduleId: string, produitId: string)
     return { error: error.message };
   }
 
+  await recalculateCompletion(produitId, supabase);
   revalidatePath(`/produits/${produitId}`);
   return { success: true };
+}
+
+// ─── Import ──────────────────────────────────────────────
+
+const TYPE_ACTION_MAP = new Map<string, string>([
+  ["action de formation", "action_formation"],
+  ["formation", "action_formation"],
+  ["bilan de compétences", "bilan_competences"],
+  ["bilan competences", "bilan_competences"],
+  ["bilan", "bilan_competences"],
+  ["vae", "vae"],
+  ["apprentissage", "apprentissage"],
+]);
+
+const MODALITE_MAP = new Map<string, string>([
+  ["présentiel", "presentiel"],
+  ["presentiel", "presentiel"],
+  ["distanciel", "distanciel"],
+  ["mixte", "mixte"],
+  ["afest", "afest"],
+]);
+
+const FORMULE_MAP = new Map<string, string>([
+  ["inter", "inter"],
+  ["intra", "intra"],
+  ["individuel", "individuel"],
+]);
+
+export async function importProduits(
+  rows: {
+    intitule?: string;
+    sous_titre?: string;
+    description?: string;
+    identifiant_interne?: string;
+    domaine?: string;
+    type_action?: string;
+    modalite?: string;
+    formule?: string;
+    duree_heures?: string;
+    duree_jours?: string;
+  }[]
+): Promise<{ success: number; errors: string[] }> {
+  const authResult = await getOrganisationId();
+  if ("error" in authResult) {
+    return { success: 0, errors: [String(authResult.error)] };
+  }
+
+  const { organisationId, supabase } = authResult;
+  let successCount = 0;
+  const importErrors: string[] = [];
+
+  // Contrôle de doublons — pré-charger intitulés existants
+  const { data: existingProduits } = await supabase
+    .from("produits_formation")
+    .select("intitule")
+    .eq("organisation_id", organisationId)
+    .is("archived_at", null);
+  const existingIntitules = new Set<string>(
+    (existingProduits ?? []).map((p) => p.intitule.trim().toLowerCase())
+  );
+  const batchIntitules = new Set<string>();
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const intitule = row.intitule?.trim();
+
+    if (!intitule) {
+      importErrors.push(`Ligne ${i + 1}: Intitulé requis`);
+      continue;
+    }
+
+    // Contrôle doublon
+    const intituleLower = intitule.toLowerCase();
+    if (existingIntitules.has(intituleLower) || batchIntitules.has(intituleLower)) {
+      importErrors.push(`Ligne ${i + 1} (${intitule}): Intitulé déjà existant — ignoré`);
+      continue;
+    }
+    batchIntitules.add(intituleLower);
+
+    // Résoudre enums
+    const typeAction = row.type_action?.trim()
+      ? TYPE_ACTION_MAP.get(row.type_action.trim().toLowerCase()) ?? null
+      : null;
+    const modalite = row.modalite?.trim()
+      ? MODALITE_MAP.get(row.modalite.trim().toLowerCase()) ?? null
+      : null;
+    const formule = row.formule?.trim()
+      ? FORMULE_MAP.get(row.formule.trim().toLowerCase()) ?? null
+      : null;
+
+    // Durées
+    const dureeHeures = row.duree_heures ? parseFloat(row.duree_heures.replace(",", ".")) : null;
+    const dureeJours = row.duree_jours ? parseFloat(row.duree_jours.replace(",", ".")) : null;
+
+    // Générer numéro
+    const { data: numero } = await supabase.rpc("next_numero", {
+      p_organisation_id: organisationId,
+      p_entite: "PROD",
+    });
+
+    const insertData: Record<string, unknown> = {
+      organisation_id: organisationId,
+      numero_affichage: numero,
+      intitule,
+      sous_titre: row.sous_titre?.trim() || null,
+      description: row.description?.trim() || null,
+      identifiant_interne: row.identifiant_interne?.trim() || null,
+      domaine: row.domaine?.trim() || null,
+      type_action: typeAction,
+      modalite,
+      formule,
+      duree_heures: dureeHeures && !isNaN(dureeHeures) ? dureeHeures : null,
+      duree_jours: dureeJours && !isNaN(dureeJours) ? dureeJours : null,
+    };
+
+    // Calculate completion
+    const completion_pct = calculateCompletion(insertData);
+    insertData.completion_pct = completion_pct;
+
+    const { error } = await supabase
+      .from("produits_formation")
+      .insert(insertData);
+
+    if (error) {
+      importErrors.push(`Ligne ${i + 1} (${intitule}): ${error.message}`);
+      continue;
+    }
+
+    successCount++;
+  }
+
+  revalidatePath("/produits");
+  return { success: successCount, errors: importErrors };
 }
 
 // ─── BPF Spécialités ─────────────────────────────────────

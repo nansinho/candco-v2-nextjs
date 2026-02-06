@@ -17,8 +17,22 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toast";
-import { getProduits, createProduit, archiveProduit, unarchiveProduit, deleteProduits, type CreateProduitInput } from "@/actions/produits";
+import { getProduits, createProduit, archiveProduit, unarchiveProduit, deleteProduits, importProduits, type CreateProduitInput } from "@/actions/produits";
+import { CsvImport, type ImportColumn } from "@/components/shared/csv-import";
 import { formatDate } from "@/lib/utils";
+
+const PRODUIT_IMPORT_COLUMNS: ImportColumn[] = [
+  { key: "intitule", label: "Intitulé", required: true, aliases: ["nom", "titre", "intitulé", "name", "title", "intitule formation", "nom formation"] },
+  { key: "sous_titre", label: "Sous-titre", aliases: ["subtitle", "sous titre", "sous-titre"] },
+  { key: "description", label: "Description", aliases: ["desc", "résumé", "resume", "detail"] },
+  { key: "identifiant_interne", label: "Identifiant interne", aliases: ["id interne", "ref", "référence", "reference", "code"] },
+  { key: "domaine", label: "Domaine", aliases: ["pôle", "pole", "categorie", "catégorie", "domain"] },
+  { key: "type_action", label: "Type d'action", aliases: ["type", "type action", "type d action", "type de formation"] },
+  { key: "modalite", label: "Modalité", aliases: ["modalité", "mode", "format"] },
+  { key: "formule", label: "Formule", aliases: ["inter intra", "formule commerciale"] },
+  { key: "duree_heures", label: "Durée (heures)", aliases: ["heures", "durée heures", "duree heures", "nb heures", "nombre heures", "hours"] },
+  { key: "duree_jours", label: "Durée (jours)", aliases: ["jours", "durée jours", "duree jours", "nb jours", "nombre jours", "days"] },
+];
 
 interface Produit {
   id: string;
@@ -202,6 +216,7 @@ export default function ProduitsPage() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [showArchived, setShowArchived] = React.useState(false);
   const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [importOpen, setImportOpen] = React.useState(false);
   const [sortBy, setSortBy] = React.useState("created_at");
   const [sortDir, setSortDir] = React.useState<"asc" | "desc">("desc");
   const [filters, setFilters] = React.useState<ActiveFilter[]>([]);
@@ -254,6 +269,7 @@ export default function ProduitsPage() {
         onPageChange={setPage}
         searchValue={search}
         onSearchChange={setSearch}
+        onImport={() => setImportOpen(true)}
         onAdd={() => setDialogOpen(true)}
         addLabel="Ajouter un produit"
         onRowClick={(item) => router.push(`/produits/${item.id}`)}
@@ -302,6 +318,20 @@ export default function ProduitsPage() {
           />
         </DialogContent>
       </Dialog>
+
+      <CsvImport
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        title="Importer des produits de formation"
+        description="Importez vos produits de formation depuis un fichier CSV, Excel ou JSON."
+        columns={PRODUIT_IMPORT_COLUMNS}
+        onImport={async (rows) => {
+          const result = await importProduits(rows as Parameters<typeof importProduits>[0]);
+          await fetchData();
+          return result;
+        }}
+        templateFilename="modele-produits-formation"
+      />
     </>
   );
 }
