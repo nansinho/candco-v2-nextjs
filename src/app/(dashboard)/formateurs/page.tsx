@@ -56,7 +56,8 @@ const columns: Column<Formateur>[] = [
   {
     key: "numero_affichage",
     label: "ID",
-    className: "w-28",
+    sortable: true,
+    minWidth: 100,
     render: (item) => (
       <span className="font-mono text-xs text-muted-foreground">
         {item.numero_affichage}
@@ -64,8 +65,10 @@ const columns: Column<Formateur>[] = [
     ),
   },
   {
-    key: "nom_complet",
+    key: "nom",
     label: "Nom",
+    sortable: true,
+    minWidth: 200,
     render: (item) => (
       <div className="flex items-center gap-2">
         <div className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-500/10">
@@ -80,19 +83,22 @@ const columns: Column<Formateur>[] = [
   {
     key: "email",
     label: "Email",
+    sortable: true,
+    minWidth: 200,
     render: (item) =>
       item.email || <span className="text-muted-foreground/40">--</span>,
   },
   {
     key: "telephone",
     label: "Téléphone",
+    minWidth: 140,
     render: (item) =>
       item.telephone || <span className="text-muted-foreground/40">--</span>,
   },
   {
     key: "statut_bpf",
     label: "Statut BPF",
-    className: "w-32",
+    minWidth: 120,
     render: (item) => (
       <Badge
         className={
@@ -108,7 +114,8 @@ const columns: Column<Formateur>[] = [
   {
     key: "tarif_journalier",
     label: "Tarif/jour",
-    className: "w-32",
+    sortable: true,
+    minWidth: 120,
     render: (item) =>
       item.tarif_journalier != null ? (
         <span className="text-muted-foreground">
@@ -121,7 +128,9 @@ const columns: Column<Formateur>[] = [
   {
     key: "created_at",
     label: "Créé le",
-    className: "w-28",
+    sortable: true,
+    minWidth: 100,
+    defaultVisible: false,
     render: (item) => (
       <span className="text-muted-foreground">{formatDate(item.created_at)}</span>
     ),
@@ -142,6 +151,8 @@ export default function FormateursPage() {
   const [importOpen, setImportOpen] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [formErrors, setFormErrors] = React.useState<Record<string, string[]>>({});
+  const [sortBy, setSortBy] = React.useState("created_at");
+  const [sortDir, setSortDir] = React.useState<"asc" | "desc">("desc");
 
   // Debounce search
   React.useEffect(() => {
@@ -155,11 +166,11 @@ export default function FormateursPage() {
   // Fetch data
   const fetchData = React.useCallback(async () => {
     setIsLoading(true);
-    const result = await getFormateurs(page, debouncedSearch, showArchived);
+    const result = await getFormateurs(page, debouncedSearch, showArchived, sortBy, sortDir);
     setData(result.data as Formateur[]);
     setTotalCount(result.count);
     setIsLoading(false);
-  }, [page, debouncedSearch, showArchived]);
+  }, [page, debouncedSearch, showArchived, sortBy, sortDir]);
 
   React.useEffect(() => {
     fetchData();
@@ -210,10 +221,17 @@ export default function FormateursPage() {
     });
   };
 
+  const handleSortChange = (key: string, dir: "asc" | "desc") => {
+    setSortBy(key);
+    setSortDir(dir);
+    setPage(1);
+  };
+
   return (
     <>
       <DataTable
         title="Formateurs"
+        tableId="formateurs"
         columns={columns}
         data={data}
         totalCount={totalCount}
@@ -231,6 +249,9 @@ export default function FormateursPage() {
         getRowId={(item) => item.id}
         isLoading={isLoading}
         exportFilename="formateurs"
+        sortBy={sortBy}
+        sortDir={sortDir}
+        onSortChange={handleSortChange}
         showArchived={showArchived}
         onToggleArchived={(show) => { setShowArchived(show); setPage(1); }}
         onArchive={async (ids) => {

@@ -24,6 +24,7 @@ import {
   deleteContactsClients,
   type CreateContactClientInput,
 } from "@/actions/contacts-clients";
+import { formatDate } from "@/lib/utils";
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -46,7 +47,8 @@ const columns: Column<ContactClient>[] = [
   {
     key: "numero_affichage",
     label: "ID",
-    className: "w-28",
+    sortable: true,
+    minWidth: 100,
     render: (item) => (
       <span className="font-mono text-xs text-muted-foreground">
         {item.numero_affichage}
@@ -54,8 +56,10 @@ const columns: Column<ContactClient>[] = [
     ),
   },
   {
-    key: "nom_complet",
+    key: "nom",
     label: "Nom",
+    sortable: true,
+    minWidth: 200,
     render: (item) => (
       <div className="flex items-center gap-2">
         <div className="flex h-7 w-7 items-center justify-center rounded-md bg-purple-500/10">
@@ -70,24 +74,30 @@ const columns: Column<ContactClient>[] = [
   {
     key: "email",
     label: "Email",
+    sortable: true,
+    minWidth: 200,
     render: (item) =>
       item.email || <span className="text-muted-foreground/40">--</span>,
   },
   {
     key: "fonction",
     label: "Fonction",
+    sortable: true,
+    minWidth: 160,
     render: (item) =>
       item.fonction || <span className="text-muted-foreground/40">--</span>,
   },
   {
     key: "telephone",
     label: "Téléphone",
+    minWidth: 140,
     render: (item) =>
       item.telephone || <span className="text-muted-foreground/40">--</span>,
   },
   {
     key: "entreprises",
     label: "Entreprise(s)",
+    minWidth: 200,
     render: (item) => {
       const entreprises = (item.contact_entreprises ?? [])
         .map((ce) => ce.entreprises?.nom)
@@ -100,6 +110,16 @@ const columns: Column<ContactClient>[] = [
         </div>
       );
     },
+  },
+  {
+    key: "created_at",
+    label: "Créé le",
+    sortable: true,
+    minWidth: 100,
+    defaultVisible: false,
+    render: (item) => (
+      <span className="text-muted-foreground">{formatDate(item.created_at)}</span>
+    ),
   },
 ];
 
@@ -116,6 +136,8 @@ export default function ContactsClientsPage() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [showArchived, setShowArchived] = React.useState(false);
   const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [sortBy, setSortBy] = React.useState("created_at");
+  const [sortDir, setSortDir] = React.useState<"asc" | "desc">("desc");
 
   // Debounce search
   React.useEffect(() => {
@@ -129,11 +151,11 @@ export default function ContactsClientsPage() {
   // Fetch data
   const fetchData = React.useCallback(async () => {
     setIsLoading(true);
-    const result = await getContactsClients(page, debouncedSearch, showArchived);
+    const result = await getContactsClients(page, debouncedSearch, showArchived, sortBy, sortDir);
     setData(result.data as ContactClient[]);
     setTotalCount(result.count);
     setIsLoading(false);
-  }, [page, debouncedSearch, showArchived]);
+  }, [page, debouncedSearch, showArchived, sortBy, sortDir]);
 
   React.useEffect(() => {
     fetchData();
@@ -149,10 +171,17 @@ export default function ContactsClientsPage() {
     });
   };
 
+  const handleSortChange = (key: string, dir: "asc" | "desc") => {
+    setSortBy(key);
+    setSortDir(dir);
+    setPage(1);
+  };
+
   return (
     <>
       <DataTable
         title="Contacts clients"
+        tableId="contacts-clients"
         columns={columns}
         data={data}
         totalCount={totalCount}
@@ -166,6 +195,9 @@ export default function ContactsClientsPage() {
         getRowId={(item) => item.id}
         isLoading={isLoading}
         exportFilename="contacts-clients"
+        sortBy={sortBy}
+        sortDir={sortDir}
+        onSortChange={handleSortChange}
         showArchived={showArchived}
         onToggleArchived={(show) => { setShowArchived(show); setPage(1); }}
         onArchive={async (ids) => {

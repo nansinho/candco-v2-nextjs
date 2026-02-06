@@ -29,6 +29,7 @@ interface Financeur {
   email: string | null;
   telephone: string | null;
   created_at: string;
+  bpf_categories_entreprise: { code: string; libelle: string } | null;
 }
 
 const FINANCEUR_TYPES = [
@@ -63,7 +64,8 @@ const columns: Column<Financeur>[] = [
   {
     key: "numero_affichage",
     label: "ID",
-    className: "w-28",
+    sortable: true,
+    minWidth: 100,
     render: (item) => (
       <span className="font-mono text-xs text-muted-foreground">
         {item.numero_affichage}
@@ -73,6 +75,8 @@ const columns: Column<Financeur>[] = [
   {
     key: "nom",
     label: "Nom",
+    sortable: true,
+    minWidth: 200,
     render: (item) => (
       <div className="flex items-center gap-2">
         <div className="flex h-7 w-7 items-center justify-center rounded-md bg-amber-500/10">
@@ -85,6 +89,7 @@ const columns: Column<Financeur>[] = [
   {
     key: "type",
     label: "Type",
+    minWidth: 120,
     render: (item) =>
       item.type ? (
         <Badge className={typeBadgeClass(item.type)}>{item.type}</Badge>
@@ -95,25 +100,44 @@ const columns: Column<Financeur>[] = [
   {
     key: "siret",
     label: "SIRET",
+    minWidth: 160,
     render: (item) =>
       item.siret || <span className="text-muted-foreground/40">--</span>,
   },
   {
     key: "email",
     label: "Email",
+    sortable: true,
+    minWidth: 200,
     render: (item) =>
       item.email || <span className="text-muted-foreground/40">--</span>,
   },
   {
     key: "telephone",
     label: "Téléphone",
+    minWidth: 140,
     render: (item) =>
       item.telephone || <span className="text-muted-foreground/40">--</span>,
   },
   {
+    key: "bpf",
+    label: "BPF",
+    minWidth: 100,
+    render: (item) =>
+      item.bpf_categories_entreprise ? (
+        <span className="text-xs text-muted-foreground" title={item.bpf_categories_entreprise.libelle}>
+          {item.bpf_categories_entreprise.code}
+        </span>
+      ) : (
+        <span className="text-muted-foreground/40">--</span>
+      ),
+  },
+  {
     key: "created_at",
     label: "Créé le",
-    className: "w-28",
+    sortable: true,
+    minWidth: 100,
+    defaultVisible: false,
     render: (item) => (
       <span className="text-muted-foreground">{formatDate(item.created_at)}</span>
     ),
@@ -133,6 +157,8 @@ export default function FinanceursPage() {
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [formError, setFormError] = React.useState<string | null>(null);
+  const [sortBy, setSortBy] = React.useState("created_at");
+  const [sortDir, setSortDir] = React.useState<"asc" | "desc">("desc");
 
   // Form state
   const [formNom, setFormNom] = React.useState("");
@@ -153,11 +179,11 @@ export default function FinanceursPage() {
   // Fetch data
   const fetchData = React.useCallback(async () => {
     setIsLoading(true);
-    const result = await getFinanceurs(page, debouncedSearch, showArchived);
+    const result = await getFinanceurs(page, debouncedSearch, showArchived, sortBy, sortDir);
     setData(result.data as Financeur[]);
     setTotalCount(result.count);
     setIsLoading(false);
-  }, [page, debouncedSearch, showArchived]);
+  }, [page, debouncedSearch, showArchived, sortBy, sortDir]);
 
   React.useEffect(() => {
     fetchData();
@@ -208,10 +234,17 @@ export default function FinanceursPage() {
     });
   };
 
+  const handleSortChange = (key: string, dir: "asc" | "desc") => {
+    setSortBy(key);
+    setSortDir(dir);
+    setPage(1);
+  };
+
   return (
     <>
       <DataTable
         title="Financeurs"
+        tableId="financeurs"
         columns={columns}
         data={data}
         totalCount={totalCount}
@@ -228,6 +261,9 @@ export default function FinanceursPage() {
         getRowId={(item) => item.id}
         isLoading={isLoading}
         exportFilename="financeurs"
+        sortBy={sortBy}
+        sortDir={sortDir}
+        onSortChange={handleSortChange}
         showArchived={showArchived}
         onToggleArchived={(show) => { setShowArchived(show); setPage(1); }}
         onArchive={async (ids) => {

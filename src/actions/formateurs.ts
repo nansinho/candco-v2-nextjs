@@ -76,7 +76,13 @@ export async function createFormateur(input: FormateurInput) {
   return { data };
 }
 
-export async function getFormateurs(page: number = 1, search: string = "", showArchived: boolean = false) {
+export async function getFormateurs(
+  page: number = 1,
+  search: string = "",
+  showArchived: boolean = false,
+  sortBy: string = "created_at",
+  sortDir: "asc" | "desc" = "desc",
+) {
   const supabase = await createClient();
   const limit = 25;
   const offset = (page - 1) * limit;
@@ -84,7 +90,7 @@ export async function getFormateurs(page: number = 1, search: string = "", showA
   let query = supabase
     .from("formateurs")
     .select("*", { count: "exact" })
-    .order("created_at", { ascending: false })
+    .order(sortBy, { ascending: sortDir === "asc" })
     .range(offset, offset + limit - 1);
 
   if (showArchived) {

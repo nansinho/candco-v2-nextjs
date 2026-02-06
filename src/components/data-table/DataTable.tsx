@@ -1,7 +1,25 @@
 "use client";
 
 import * as React from "react";
-import { Search, Plus, Archive, ArchiveRestore, Download, Upload, ChevronLeft, ChevronRight, Inbox, Trash2, AlertTriangle } from "lucide-react";
+import {
+  Search,
+  Plus,
+  Archive,
+  ArchiveRestore,
+  Download,
+  Upload,
+  ChevronLeft,
+  ChevronRight,
+  Inbox,
+  Trash2,
+  AlertTriangle,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
+  Columns3,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -12,6 +30,11 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { ITEMS_PER_PAGE } from "@/lib/constants";
 import { useToast } from "@/components/ui/toast";
@@ -21,6 +44,8 @@ export interface Column<T> {
   label: string;
   sortable?: boolean;
   className?: string;
+  minWidth?: number;
+  defaultVisible?: boolean;
   render?: (item: T) => React.ReactNode;
 }
 
@@ -46,6 +71,32 @@ interface DataTableProps<T> {
   showArchived?: boolean;
   onToggleArchived?: (show: boolean) => void;
   onUnarchive?: (ids: string[]) => Promise<void>;
+  // Sort
+  tableId?: string;
+  sortBy?: string;
+  sortDir?: "asc" | "desc";
+  onSortChange?: (key: string, dir: "asc" | "desc") => void;
+}
+
+// ─── Column visibility persistence ─────────────────────────
+
+function getStoredVisibility(tableId: string): Record<string, boolean> | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const stored = localStorage.getItem(`dt-cols-${tableId}`);
+    return stored ? JSON.parse(stored) : null;
+  } catch {
+    return null;
+  }
+}
+
+function storeVisibility(tableId: string, visibility: Record<string, boolean>) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(`dt-cols-${tableId}`, JSON.stringify(visibility));
+  } catch {
+    // ignore
+  }
 }
 
 export function DataTable<T>({
@@ -70,6 +121,10 @@ export function DataTable<T>({
   showArchived = false,
   onToggleArchived,
   onUnarchive,
+  tableId,
+  sortBy,
+  sortDir,
+  onSortChange,
 }: DataTableProps<T>) {
   const { toast } = useToast();
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
@@ -77,15 +132,69 @@ export function DataTable<T>({
   const [isDeleting, setIsDeleting] = React.useState(false);
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
+  // ─── Column visibility ──────────────────────────────────
+
+  const [colVisibility, setColVisibility] = React.useState<Record<string, boolean>>(() => {
+    // Try stored value first, fall back to defaults
+    const stored = tableId ? getStoredVisibility(tableId) : null;
+    if (stored) return stored;
+
+    const defaults: Record<string, boolean> = {};
+    for (const col of columns) {
+      defaults[col.key] = col.defaultVisible !== false;
+    }
+    return defaults;
+  });
+
+  // Persist visibility changes
+  React.useEffect(() => {
+    if (tableId) {
+      storeVisibility(tableId, colVisibility);
+    }
+  }, [tableId, colVisibility]);
+
+  const visibleColumns = columns.filter((col) => colVisibility[col.key] !== false);
+
+  const toggleColumnVisibility = (key: string) => {
+    setColVisibility((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      // Ensure at least 1 column stays visible
+      const visibleCount = Object.values(next).filter(Boolean).length;
+      if (visibleCount === 0) return prev;
+      return next;
+    });
+  };
+
+  const resetColumnVisibility = () => {
+    const defaults: Record<string, boolean> = {};
+    for (const col of columns) {
+      defaults[col.key] = col.defaultVisible !== false;
+    }
+    setColVisibility(defaults);
+  };
+
+  // ─── Sort handler ────────────────────────────────────────
+
+  const handleSort = (colKey: string) => {
+    if (!onSortChange) return;
+    if (sortBy === colKey) {
+      // Toggle direction
+      onSortChange(colKey, sortDir === "asc" ? "desc" : "asc");
+    } else {
+      onSortChange(colKey, "asc");
+    }
+  };
+
+  // ─── Existing handlers ───────────────────────────────────
+
   const handleExportCSV = () => {
     if (data.length === 0) return;
 
-    const headers = columns.map((col) => col.label);
+    const headers = visibleColumns.map((col) => col.label);
     const rows = data.map((item) =>
-      columns.map((col) => {
+      visibleColumns.map((col) => {
         const raw = (item as Record<string, unknown>)[col.key];
         const value = raw === null || raw === undefined ? "" : String(raw);
-        // Escape quotes and wrap in quotes if contains comma, quote, or newline
         if (value.includes(",") || value.includes('"') || value.includes("\n")) {
           return `"${value.replace(/"/g, '""')}"`;
         }
@@ -94,7 +203,7 @@ export function DataTable<T>({
     );
 
     const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-    const BOM = "\uFEFF"; // UTF-8 BOM for Excel compatibility
+    const BOM = "\uFEFF";
     const blob = new Blob([BOM + csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -156,6 +265,8 @@ export function DataTable<T>({
       setSelectedIds(new Set());
     }
   };
+
+  // ─── Render ──────────────────────────────────────────────
 
   return (
     <div className="space-y-4">
@@ -237,6 +348,56 @@ export function DataTable<T>({
             <Download className="mr-1.5 h-3 w-3" />
             <span className="hidden sm:inline">Exporter</span>
           </Button>
+
+          {/* Column visibility */}
+          {tableId && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs border-border/60"
+                >
+                  <Columns3 className="mr-1.5 h-3 w-3" />
+                  <span className="hidden sm:inline">Colonnes</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-56 p-2">
+                <div className="mb-2 flex items-center justify-between px-1">
+                  <span className="text-xs font-medium text-muted-foreground">Colonnes visibles</span>
+                  <button
+                    type="button"
+                    onClick={resetColumnVisibility}
+                    className="text-[11px] text-primary hover:underline"
+                  >
+                    Réinitialiser
+                  </button>
+                </div>
+                <div className="space-y-0.5">
+                  {columns.map((col) => (
+                    <button
+                      key={col.key}
+                      type="button"
+                      onClick={() => toggleColumnVisibility(col.key)}
+                      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs hover:bg-muted/50 transition-colors"
+                    >
+                      {colVisibility[col.key] !== false ? (
+                        <Eye className="h-3 w-3 text-primary shrink-0" />
+                      ) : (
+                        <EyeOff className="h-3 w-3 text-muted-foreground/40 shrink-0" />
+                      )}
+                      <span className={cn(
+                        colVisibility[col.key] !== false ? "text-foreground" : "text-muted-foreground/60"
+                      )}>
+                        {col.label}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
+
           {onAdd && (
             <Button size="sm" onClick={onAdd} className="h-8 text-xs">
               <Plus className="mr-1.5 h-3 w-3" />
@@ -260,12 +421,12 @@ export function DataTable<T>({
         </div>
       )}
 
-      {/* Table */}
-      <div className="overflow-x-auto rounded-lg border border-border/60 bg-card">
-        <table className="w-full min-w-[600px]">
+      {/* Table with horizontal scroll */}
+      <div className="overflow-x-auto rounded-lg border border-border/60 bg-card thin-scrollbar">
+        <table className="w-full" style={{ minWidth: "max-content" }}>
           <thead>
             <tr className="border-b border-border/60 bg-muted/30">
-              <th className="w-10 px-4 py-2.5">
+              <th className="sticky left-0 z-10 bg-muted/30 w-10 px-4 py-2.5">
                 <input
                   type="checkbox"
                   checked={data.length > 0 && selectedIds.size === data.length}
@@ -273,24 +434,46 @@ export function DataTable<T>({
                   className="h-3.5 w-3.5 rounded border-border accent-primary cursor-pointer"
                 />
               </th>
-              {columns.map((col) => (
-                <th
-                  key={col.key}
-                  className={cn(
-                    "px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60",
-                    col.className
-                  )}
-                >
-                  {col.label}
-                </th>
-              ))}
+              {visibleColumns.map((col) => {
+                const isSortable = col.sortable && onSortChange;
+                const isActive = sortBy === col.key;
+
+                return (
+                  <th
+                    key={col.key}
+                    className={cn(
+                      "px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60 whitespace-nowrap",
+                      isSortable && "cursor-pointer select-none hover:text-muted-foreground transition-colors",
+                      isActive && "text-foreground",
+                      col.className,
+                    )}
+                    style={col.minWidth ? { minWidth: col.minWidth } : undefined}
+                    onClick={isSortable ? () => handleSort(col.key) : undefined}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      {col.label}
+                      {isSortable && (
+                        isActive ? (
+                          sortDir === "asc" ? (
+                            <ArrowUp className="h-3 w-3" />
+                          ) : (
+                            <ArrowDown className="h-3 w-3" />
+                          )
+                        ) : (
+                          <ArrowUpDown className="h-3 w-3 opacity-30" />
+                        )
+                      )}
+                    </span>
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={i} className="border-b border-border/40">
-                  <td className="px-4 py-3" colSpan={columns.length + 1}>
+                  <td className="px-4 py-3" colSpan={visibleColumns.length + 1}>
                     <div className="h-4 w-full animate-pulse rounded bg-muted/50" />
                   </td>
                 </tr>
@@ -299,7 +482,7 @@ export function DataTable<T>({
               <tr>
                 <td
                   className="px-4 py-16 text-center"
-                  colSpan={columns.length + 1}
+                  colSpan={visibleColumns.length + 1}
                 >
                   <div className="flex flex-col items-center gap-3">
                     <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50">
@@ -330,7 +513,7 @@ export function DataTable<T>({
                     )}
                     onClick={() => onRowClick?.(item)}
                   >
-                    <td className="px-4 py-2.5" onClick={(e) => e.stopPropagation()}>
+                    <td className="sticky left-0 z-10 bg-card px-4 py-2.5" onClick={(e) => e.stopPropagation()}>
                       <input
                         type="checkbox"
                         checked={selectedIds.has(id)}
@@ -338,8 +521,12 @@ export function DataTable<T>({
                         className="h-3.5 w-3.5 rounded border-border accent-primary cursor-pointer"
                       />
                     </td>
-                    {columns.map((col) => (
-                      <td key={col.key} className={cn("px-4 py-2.5 text-[13px]", col.className)}>
+                    {visibleColumns.map((col) => (
+                      <td
+                        key={col.key}
+                        className={cn("px-4 py-2.5 text-[13px] whitespace-nowrap", col.className)}
+                        style={col.minWidth ? { minWidth: col.minWidth } : undefined}
+                      >
                         {col.render
                           ? col.render(item)
                           : String((item as Record<string, unknown>)[col.key] ?? "")}
