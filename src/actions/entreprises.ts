@@ -440,6 +440,21 @@ export async function unlinkApprenantFromEntreprise(entrepriseId: string, appren
   return { success: true };
 }
 
+// ─── Dropdown helper ────────────────────────────────────
+
+export async function getAllEntreprises() {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("entreprises")
+    .select("id, nom, email, siret")
+    .is("archived_at", null)
+    .order("nom", { ascending: true });
+
+  if (error) return { data: [] };
+  return { data: data ?? [] };
+}
+
 export async function searchApprenantsForLinking(search: string, excludeIds: string[]) {
   const supabase = await createClient();
 
