@@ -228,13 +228,41 @@ export async function deleteApprenants(ids: string[]) {
   return { success: true };
 }
 
+/**
+ * Split "Nom Prénom" (format SmartOF) en { nom, prenom }.
+ * Convention SmartOF : le nom est en premier, le prénom est le dernier mot.
+ * Exemples :
+ *   "Porte Julie" → { nom: "Porte", prenom: "Julie" }
+ *   "DA SILVA FERREIRA DOMINGUES FILIPE" → { nom: "DA SILVA FERREIRA DOMINGUES", prenom: "FILIPE" }
+ */
+function splitNomComplet(nomComplet: string): { nom: string; prenom: string } {
+  const parts = nomComplet.trim().split(/\s+/);
+  if (parts.length <= 1) {
+    return { nom: parts[0] || "", prenom: "" };
+  }
+  const prenom = parts[parts.length - 1];
+  const nom = parts.slice(0, -1).join(" ");
+  return { nom, prenom };
+}
+
+/**
+ * Extrait le code BPF depuis une chaîne SmartOF.
+ * "F.1.a - Salariés d'employeurs privés hors apprentis" → "F.1.a"
+ */
+function extractBpfCode(statut: string): string {
+  const parts = statut.split(" - ");
+  return parts[0].trim();
+}
+
 export async function importApprenants(
   rows: {
-    prenom: string; nom: string; email?: string; telephone?: string;
+    prenom?: string; nom?: string; nom_complet?: string;
+    email?: string; telephone?: string;
     civilite?: string; nom_naissance?: string; date_naissance?: string;
     fonction?: string; lieu_activite?: string;
     adresse_rue?: string; adresse_complement?: string; adresse_cp?: string; adresse_ville?: string;
     numero_compte_comptable?: string;
+    statut_bpf?: string; entreprise_nom?: string; created_at?: string;
   }[]
 ): Promise<{ success: number; errors: string[] }> {
   const authResult = await getOrganisationId();
@@ -246,23 +274,101 @@ export async function importApprenants(
   let successCount = 0;
   const importErrors: string[] = [];
 
+  // ─── Pré-chargement des données de référence ───────────
+
+  // 1. Charger toutes les catégories BPF apprenant → Map<code, id>
+  const { data: bpfCategories } = await supabase
+    .from("bpf_categories_apprenant")
+    .select("id, code");
+  const bpfMap = new Map<string, string>();
+  for (const cat of bpfCategories ?? []) {
+    bpfMap.set(cat.code.toLowerCase(), cat.id);
+  }
+
+  // 2. Charger toutes les entreprises de l'organisation → Map<nom_lower, id>
+  const { data: existingEntreprises } = await supabase
+    .from("entreprises")
+    .select("id, nom")
+    .eq("organisation_id", organisationId);
+  const entrepriseCache = new Map<string, string>();
+  for (const ent of existingEntreprises ?? []) {
+    entrepriseCache.set(ent.nom.toLowerCase().trim(), ent.id);
+  }
+
+  // ─── Traitement de chaque ligne ────────────────────────
+
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
-    if (!row.prenom?.trim() || !row.nom?.trim()) {
+
+    // 1. Résoudre nom/prénom (split si nom_complet fourni)
+    let prenom = row.prenom?.trim() || "";
+    let nom = row.nom?.trim() || "";
+
+    if (row.nom_complet?.trim() && (!prenom || !nom)) {
+      const split = splitNomComplet(row.nom_complet);
+      if (!prenom) prenom = split.prenom;
+      if (!nom) nom = split.nom;
+    }
+
+    if (!prenom || !nom) {
       importErrors.push(`Ligne ${i + 1}: Prénom et nom requis`);
       continue;
     }
 
+    // 2. Résoudre BPF
+    let bpfCategorieId: string | null = null;
+    if (row.statut_bpf?.trim()) {
+      const code = extractBpfCode(row.statut_bpf);
+      bpfCategorieId = bpfMap.get(code.toLowerCase()) ?? null;
+    }
+
+    // 3. Résoudre entreprise (lookup ou création)
+    let entrepriseId: string | null = null;
+    if (row.entreprise_nom?.trim()) {
+      const entNom = row.entreprise_nom.trim();
+      const entKey = entNom.toLowerCase();
+
+      if (entrepriseCache.has(entKey)) {
+        entrepriseId = entrepriseCache.get(entKey)!;
+      } else {
+        // Créer l'entreprise
+        const { data: numero } = await supabase.rpc("next_numero", {
+          p_organisation_id: organisationId,
+          p_entite: "ENT",
+        });
+        const { data: newEnt, error: entError } = await supabase
+          .from("entreprises")
+          .insert({
+            organisation_id: organisationId,
+            numero_affichage: numero,
+            nom: entNom,
+          })
+          .select("id")
+          .single();
+
+        if (entError) {
+          importErrors.push(`Ligne ${i + 1}: Erreur création entreprise "${entNom}": ${entError.message}`);
+        } else if (newEnt) {
+          entrepriseId = newEnt.id;
+          entrepriseCache.set(entKey, newEnt.id);
+        }
+      }
+    }
+
+    // 4. Déterminer la date de création
+    const createdAt = row.created_at?.trim() || undefined;
+
+    // 5. Générer numéro et insérer l'apprenant
     const { data: numero } = await supabase.rpc("next_numero", {
       p_organisation_id: organisationId,
       p_entite: "APP",
     });
 
-    const { error } = await supabase.from("apprenants").insert({
+    const insertData: Record<string, unknown> = {
       organisation_id: organisationId,
       numero_affichage: numero,
-      prenom: row.prenom.trim(),
-      nom: row.nom.trim(),
+      prenom,
+      nom,
       nom_naissance: row.nom_naissance?.trim() || null,
       email: row.email?.trim() || null,
       telephone: row.telephone?.trim() || null,
@@ -275,16 +381,37 @@ export async function importApprenants(
       adresse_cp: row.adresse_cp?.trim() || null,
       adresse_ville: row.adresse_ville?.trim() || null,
       numero_compte_comptable: row.numero_compte_comptable?.trim() || null,
-    });
+      bpf_categorie_id: bpfCategorieId,
+    };
+
+    if (createdAt) {
+      insertData.created_at = createdAt;
+    }
+
+    const { data: newApprenant, error } = await supabase
+      .from("apprenants")
+      .insert(insertData)
+      .select("id")
+      .single();
 
     if (error) {
-      importErrors.push(`Ligne ${i + 1} (${row.prenom} ${row.nom}): ${error.message}`);
-    } else {
-      successCount++;
+      importErrors.push(`Ligne ${i + 1} (${prenom} ${nom}): ${error.message}`);
+      continue;
     }
+
+    // 6. Rattacher à l'entreprise si trouvée/créée
+    if (entrepriseId && newApprenant) {
+      await supabase
+        .from("apprenant_entreprises")
+        .insert({ apprenant_id: newApprenant.id, entreprise_id: entrepriseId })
+        .single();
+    }
+
+    successCount++;
   }
 
   revalidatePath("/apprenants");
+  revalidatePath("/entreprises");
   return { success: successCount, errors: importErrors };
 }
 

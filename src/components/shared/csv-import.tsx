@@ -119,11 +119,73 @@ function parseExcel(buffer: ArrayBuffer): { headers: string[]; rows: string[][] 
   return { headers, rows };
 }
 
-/** Parse un fichier (CSV ou Excel) et retourne des objets mappés */
+/** Parse un fichier JSON (array d'objets) */
+function parseJson(
+  text: string,
+  columns: ImportColumn[]
+): { rows: Record<string, string>[]; headerMap: Record<number, string>; headers: string[]; error?: string } {
+  let jsonData: unknown;
+  try {
+    jsonData = JSON.parse(text);
+  } catch {
+    return { rows: [], headerMap: {}, headers: [], error: "Fichier JSON invalide." };
+  }
+
+  if (!Array.isArray(jsonData) || jsonData.length === 0) {
+    return { rows: [], headerMap: {}, headers: [], error: "Le fichier JSON est vide ou n'est pas un tableau." };
+  }
+
+  const headers = Object.keys(jsonData[0] as Record<string, unknown>);
+  const headerMap: Record<number, string> = {};
+  const matchedColumns = new Set<string>();
+
+  headers.forEach((h, i) => {
+    const matched = matchColumn(h, columns);
+    if (matched && !matchedColumns.has(matched.key)) {
+      headerMap[i] = matched.key;
+      matchedColumns.add(matched.key);
+    }
+  });
+
+  if (Object.keys(headerMap).length === 0) {
+    const expected = columns.map((c) => c.label).join(", ");
+    return { rows: [], headerMap: {}, headers, error: `Aucune colonne reconnue. Colonnes attendues : ${expected}` };
+  }
+
+  // Vérifier les colonnes requises
+  const requiredMissing = columns
+    .filter((c) => c.required && !matchedColumns.has(c.key))
+    .map((c) => c.label);
+
+  if (requiredMissing.length > 0) {
+    return { rows: [], headerMap, headers, error: `Colonnes requises manquantes : ${requiredMissing.join(", ")}` };
+  }
+
+  const rows = (jsonData as Record<string, unknown>[]).map((obj) => {
+    const row: Record<string, string> = {};
+    headers.forEach((h, i) => {
+      if (headerMap[i] !== undefined) {
+        const val = (obj as Record<string, unknown>)[h];
+        row[headerMap[i]] = val != null ? String(val) : "";
+      }
+    });
+    return row;
+  });
+
+  return { rows, headerMap, headers };
+}
+
+/** Parse un fichier (CSV, Excel ou JSON) et retourne des objets mappés */
 async function parseFile(
   file: File,
   columns: ImportColumn[]
 ): Promise<{ rows: Record<string, string>[]; headerMap: Record<number, string>; headers: string[]; error?: string }> {
+  // Détection JSON
+  if (/\.json$/i.test(file.name)) {
+    const text = await file.text();
+    return parseJson(text, columns);
+  }
+
   const isExcel = /\.(xls|xlsx)$/i.test(file.name);
 
   let headers: string[];
@@ -293,6 +355,7 @@ export function CsvImport({
   };
 
   const isExcel = file && /\.(xls|xlsx)$/i.test(file.name);
+  const isJson = file && /\.json$/i.test(file.name);
 
   return (
     <Dialog
@@ -317,7 +380,7 @@ export function CsvImport({
             <FileText className="h-4 w-4 text-muted-foreground/60 shrink-0 mt-0.5" />
             <div className="flex-1 space-y-1">
               <p className="text-xs text-muted-foreground">
-                <strong>Formats acceptés :</strong> CSV, XLS, XLSX
+                <strong>Formats acceptés :</strong> CSV, XLS, XLSX, JSON
               </p>
               <p className="text-[11px] text-muted-foreground/60">
                 Colonnes reconnues : {columns.map((c) => `${c.label}${c.required ? "*" : ""}`).join(", ")}
@@ -342,7 +405,7 @@ export function CsvImport({
             <input
               ref={fileInputRef}
               type="file"
-              accept=".csv,.txt,.xls,.xlsx"
+              accept=".csv,.txt,.xls,.xlsx,.json"
               onChange={handleFileChange}
               className="hidden"
             />
@@ -357,6 +420,8 @@ export function CsvImport({
                   <>
                     {isExcel ? (
                       <FileSpreadsheet className="h-5 w-5 text-emerald-500" />
+                    ) : isJson ? (
+                      <FileText className="h-5 w-5 text-amber-400" />
                     ) : (
                       <FileText className="h-5 w-5 text-blue-400" />
                     )}
@@ -369,7 +434,7 @@ export function CsvImport({
                   <>
                     <Upload className="h-5 w-5 text-muted-foreground/60" />
                     <span className="text-xs text-muted-foreground">
-                      Cliquez pour choisir un fichier CSV ou Excel
+                      Cliquez pour choisir un fichier CSV, Excel ou JSON
                     </span>
                   </>
                 )}

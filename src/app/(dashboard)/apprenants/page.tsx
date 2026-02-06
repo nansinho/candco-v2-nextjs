@@ -23,11 +23,12 @@ import { formatDate } from "@/lib/utils";
 
 const APPRENANT_IMPORT_COLUMNS: ImportColumn[] = [
   { key: "civilite", label: "Civilité", aliases: ["civilite", "titre", "civ", "gender"] },
-  { key: "prenom", label: "Prénom", required: true, aliases: ["first name", "firstname", "prenom apprenant"] },
-  { key: "nom", label: "Nom", required: true, aliases: ["last name", "lastname", "nom apprenant", "nom de famille"] },
+  { key: "nom_complet", label: "Nom complet", aliases: ["nom de lapprenant", "nom apprenant", "nom complet", "full name", "name"] },
+  { key: "prenom", label: "Prénom", aliases: ["first name", "firstname", "prenom apprenant"] },
+  { key: "nom", label: "Nom", aliases: ["last name", "lastname", "nom de famille"] },
   { key: "nom_naissance", label: "Nom de naissance", aliases: ["maiden name", "nom jeune fille"] },
-  { key: "email", label: "Email", aliases: ["mail", "e-mail", "courriel", "email apprenant", "adresse email"] },
-  { key: "telephone", label: "Téléphone", aliases: ["tel", "phone", "portable", "mobile", "tel apprenant", "numero telephone"] },
+  { key: "email", label: "Email", aliases: ["mail", "e-mail", "courriel", "email apprenant", "adresse email", "adresse e mail"] },
+  { key: "telephone", label: "Téléphone", aliases: ["tel", "phone", "portable", "mobile", "tel apprenant", "numero de telephone", "numero telephone"] },
   { key: "date_naissance", label: "Date de naissance", aliases: ["birthday", "date naissance", "ne le", "ne(e) le"] },
   { key: "fonction", label: "Fonction", aliases: ["poste", "job", "metier", "emploi", "fonction apprenant"] },
   { key: "lieu_activite", label: "Lieu d'activité", aliases: ["lieu activite", "site", "etablissement"] },
@@ -36,6 +37,9 @@ const APPRENANT_IMPORT_COLUMNS: ImportColumn[] = [
   { key: "adresse_cp", label: "Code postal", aliases: ["cp", "zip", "code postal", "postal code"] },
   { key: "adresse_ville", label: "Ville", aliases: ["city", "commune", "localite"] },
   { key: "numero_compte_comptable", label: "N° compte comptable", aliases: ["compte comptable", "compte client"] },
+  { key: "statut_bpf", label: "Statut BPF", aliases: ["statut bpf par defaut", "statut bpf", "bpf", "categorie bpf"] },
+  { key: "entreprise_nom", label: "Entreprise", aliases: ["entreprises", "entreprise", "societe", "company", "nom entreprise"] },
+  { key: "created_at", label: "Date de création", aliases: ["date de creation", "date creation", "cree le", "created at"] },
 ];
 
 interface Apprenant {
@@ -231,7 +235,7 @@ export default function ApprenantsPage() {
         open={importOpen}
         onOpenChange={setImportOpen}
         title="Importer des apprenants"
-        description="Importez une liste d'apprenants depuis un fichier CSV."
+        description="Importez une liste d'apprenants depuis un fichier CSV, Excel ou JSON (SmartOF)."
         columns={APPRENANT_IMPORT_COLUMNS}
         templateFilename="apprenants"
         onImport={async (rows) => {
