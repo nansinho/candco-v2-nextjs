@@ -14,6 +14,8 @@ import {
   GripVertical,
   Euro,
   ArchiveRestore,
+  FileUp,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -121,6 +123,37 @@ export function ProduitDetail({
   const { toast } = useToast();
   const [isPending, setIsPending] = React.useState(false);
   const [isArchiving, setIsArchiving] = React.useState(false);
+  const [isGeneratingImage, setIsGeneratingImage] = React.useState(false);
+  const [currentImageUrl, setCurrentImageUrl] = React.useState(produit.image_url);
+
+  const handleGenerateImage = async () => {
+    setIsGeneratingImage(true);
+    try {
+      const response = await fetch("/api/ai/generate-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: produit.intitule + (produit.domaine ? ` - ${produit.domaine}` : ""),
+          produitId: produit.id,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        toast({ title: "Erreur", description: result.error, variant: "destructive" });
+        return;
+      }
+
+      setCurrentImageUrl(result.data.image_url);
+      toast({ title: "Image générée", description: "L'image a été générée et enregistrée.", variant: "success" });
+      router.refresh();
+    } catch {
+      toast({ title: "Erreur", description: "Impossible de générer l'image.", variant: "destructive" });
+    } finally {
+      setIsGeneratingImage(false);
+    }
+  };
 
   // ─── Config form submit ────────────────────────────────
 
@@ -554,6 +587,67 @@ export function ProduitDetail({
                       className="h-9 text-[13px] border-border/60"
                     />
                   </div>
+
+                  {/* Image */}
+                  <div className="space-y-3">
+                    <Label className="text-[13px]">Image de couverture</Label>
+                    {currentImageUrl ? (
+                      <div className="relative max-w-md overflow-hidden rounded-lg border border-border/60">
+                        <img
+                          src={currentImageUrl}
+                          alt={produit.intitule}
+                          className="w-full h-40 object-cover"
+                        />
+                        <div className="absolute bottom-2 right-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-[11px] bg-background/80 backdrop-blur-sm"
+                            onClick={handleGenerateImage}
+                            disabled={isGeneratingImage}
+                          >
+                            {isGeneratingImage ? (
+                              <>
+                                <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                Génération...
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="mr-1 h-3 w-3 text-primary" />
+                                Régénérer
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="max-w-md">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-9 text-xs border-border/60 w-full"
+                          onClick={handleGenerateImage}
+                          disabled={isGeneratingImage}
+                        >
+                          {isGeneratingImage ? (
+                            <>
+                              <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+                              Génération IA en cours...
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="mr-1.5 h-3 w-3 text-primary" />
+                              Générer une image avec l&apos;IA
+                            </>
+                          )}
+                        </Button>
+                        <p className="mt-1.5 text-[11px] text-muted-foreground/50">
+                          Génère une illustration automatique basée sur l&apos;intitulé de la formation.
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </fieldset>
               </div>
 
@@ -786,6 +880,8 @@ function ProgrammeTab({
   const { toast } = useToast();
   const [isAdding, setIsAdding] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
+  const [isExtracting, setIsExtracting] = React.useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleAdd = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -818,16 +914,118 @@ function ProgrammeTab({
     router.refresh();
   };
 
+  const handlePdfImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsExtracting(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/ai/extract-programme", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        toast({ title: "Erreur", description: result.error, variant: "destructive" });
+        setIsExtracting(false);
+        return;
+      }
+
+      const data = result.data as {
+        intitule?: string;
+        description?: string;
+        duree_heures?: number;
+        duree_jours?: number;
+        modules?: { titre: string; contenu?: string; duree?: string }[];
+        objectifs?: string[];
+      };
+
+      // Add extracted modules
+      let addedModules = 0;
+      for (const mod of data.modules ?? []) {
+        if (!mod.titre) continue;
+        await addProgrammeModule(produitId, {
+          titre: mod.titre,
+          contenu: mod.contenu || "",
+          duree: mod.duree || "",
+        });
+        addedModules++;
+      }
+
+      // Add extracted objectives
+      let addedObjectifs = 0;
+      for (const obj of data.objectifs ?? []) {
+        if (!obj) continue;
+        await addObjectif(produitId, obj);
+        addedObjectifs++;
+      }
+
+      const parts: string[] = [];
+      if (addedModules > 0) parts.push(`${addedModules} module(s)`);
+      if (addedObjectifs > 0) parts.push(`${addedObjectifs} objectif(s)`);
+
+      toast({
+        title: "Import PDF terminé",
+        description: parts.length > 0
+          ? `${parts.join(" et ")} ajouté(s) depuis le PDF.`
+          : "Aucun élément extrait du PDF.",
+        variant: parts.length > 0 ? "success" : "default",
+      });
+
+      router.refresh();
+    } catch {
+      toast({ title: "Erreur", description: "Impossible d'analyser le PDF.", variant: "destructive" });
+    } finally {
+      setIsExtracting(false);
+      // Reset file input
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
           Structurez le programme en modules ou sections.
         </p>
-        <Button size="sm" className="h-8 text-xs" onClick={() => setIsAdding(true)}>
-          <Plus className="mr-1.5 h-3 w-3" />
-          Ajouter un module
-        </Button>
+        <div className="flex items-center gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/pdf"
+            className="hidden"
+            onChange={handlePdfImport}
+          />
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 text-xs border-border/60"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isExtracting}
+          >
+            {isExtracting ? (
+              <>
+                <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+                Analyse IA...
+              </>
+            ) : (
+              <>
+                <Sparkles className="mr-1.5 h-3 w-3 text-primary" />
+                <FileUp className="mr-1 h-3 w-3" />
+                Import PDF (IA)
+              </>
+            )}
+          </Button>
+          <Button size="sm" className="h-8 text-xs" onClick={() => setIsAdding(true)}>
+            <Plus className="mr-1.5 h-3 w-3" />
+            Ajouter un module
+          </Button>
+        </div>
       </div>
 
       {isAdding && (
@@ -868,6 +1066,9 @@ function ProgrammeTab({
             <GripVertical className="h-6 w-6 text-muted-foreground/30" />
           </div>
           <p className="text-sm text-muted-foreground/60">Aucun module de programme</p>
+          <p className="text-xs text-muted-foreground/40">
+            Importez un programme PDF avec l&apos;IA ou ajoutez des modules manuellement.
+          </p>
         </div>
       ) : (
         <div className="space-y-2">
