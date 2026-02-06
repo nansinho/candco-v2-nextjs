@@ -105,6 +105,12 @@ const columns: Column<Financeur>[] = [
       item.email || <span className="text-muted-foreground/40">--</span>,
   },
   {
+    key: "telephone",
+    label: "Téléphone",
+    render: (item) =>
+      item.telephone || <span className="text-muted-foreground/40">--</span>,
+  },
+  {
     key: "created_at",
     label: "Créé le",
     className: "w-28",

@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toast";
 import { getEntreprises, createEntreprise, archiveEntreprise, unarchiveEntreprise } from "@/actions/entreprises";
-import { formatDate } from "@/lib/utils";
 
 interface Entreprise {
   id: string;
@@ -72,12 +71,10 @@ const columns: Column<Entreprise>[] = [
       item.telephone || <span className="text-muted-foreground/40">--</span>,
   },
   {
-    key: "created_at",
-    label: "Créé le",
-    className: "w-28",
-    render: (item) => (
-      <span className="text-muted-foreground">{formatDate(item.created_at)}</span>
-    ),
+    key: "adresse_ville",
+    label: "Ville",
+    render: (item) =>
+      item.adresse_ville || <span className="text-muted-foreground/40">--</span>,
   },
 ];
 

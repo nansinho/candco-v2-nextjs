@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Users, Loader2 } from "lucide-react";
+import { Users, Building2, Loader2 } from "lucide-react";
 import { DataTable, type Column } from "@/components/data-table/DataTable";
 import {
   Dialog,
@@ -23,7 +23,6 @@ import {
   unarchiveContactClient,
   type CreateContactClientInput,
 } from "@/actions/contacts-clients";
-import { formatDate } from "@/lib/utils";
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -37,6 +36,7 @@ interface ContactClient {
   telephone: string | null;
   fonction: string | null;
   created_at: string;
+  contact_entreprises: { entreprise_id: string; entreprises: { nom: string } | null }[];
 }
 
 // ─── Columns ─────────────────────────────────────────────
@@ -85,12 +85,20 @@ const columns: Column<ContactClient>[] = [
       item.telephone || <span className="text-muted-foreground/40">--</span>,
   },
   {
-    key: "created_at",
-    label: "Créé le",
-    className: "w-28",
-    render: (item) => (
-      <span className="text-muted-foreground">{formatDate(item.created_at)}</span>
-    ),
+    key: "entreprises",
+    label: "Entreprise(s)",
+    render: (item) => {
+      const entreprises = (item.contact_entreprises ?? [])
+        .map((ce) => ce.entreprises?.nom)
+        .filter(Boolean);
+      if (entreprises.length === 0) return <span className="text-muted-foreground/40">--</span>;
+      return (
+        <div className="flex items-center gap-1.5">
+          <Building2 className="h-3 w-3 text-muted-foreground/50 shrink-0" />
+          <span className="text-[13px] truncate max-w-[200px]">{entreprises.join(", ")}</span>
+        </div>
+      );
+    },
   },
 ];
 

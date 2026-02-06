@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { GraduationCap, Loader2 } from "lucide-react";
+import { GraduationCap, Building2, Loader2 } from "lucide-react";
 import { DataTable, type Column } from "@/components/data-table/DataTable";
 import {
   Dialog,
@@ -28,6 +28,8 @@ interface Apprenant {
   email: string | null;
   telephone: string | null;
   created_at: string;
+  bpf_categories_apprenant: { code: string; libelle: string } | null;
+  apprenant_entreprises: { entreprise_id: string; entreprises: { nom: string } | null }[];
 }
 
 const columns: Column<Apprenant>[] = [
@@ -66,6 +68,35 @@ const columns: Column<Apprenant>[] = [
     label: "Téléphone",
     render: (item) =>
       item.telephone || <span className="text-muted-foreground/40">--</span>,
+  },
+  {
+    key: "entreprises",
+    label: "Entreprise(s)",
+    render: (item) => {
+      const entreprises = (item.apprenant_entreprises ?? [])
+        .map((ae) => ae.entreprises?.nom)
+        .filter(Boolean);
+      if (entreprises.length === 0) return <span className="text-muted-foreground/40">--</span>;
+      return (
+        <div className="flex items-center gap-1.5">
+          <Building2 className="h-3 w-3 text-muted-foreground/50 shrink-0" />
+          <span className="text-[13px] truncate max-w-[200px]">{entreprises.join(", ")}</span>
+        </div>
+      );
+    },
+  },
+  {
+    key: "bpf",
+    label: "BPF",
+    className: "w-24",
+    render: (item) =>
+      item.bpf_categories_apprenant ? (
+        <span className="text-xs text-muted-foreground" title={item.bpf_categories_apprenant.libelle}>
+          {item.bpf_categories_apprenant.code}
+        </span>
+      ) : (
+        <span className="text-muted-foreground/40">--</span>
+      ),
   },
   {
     key: "created_at",
