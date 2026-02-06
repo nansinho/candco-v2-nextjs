@@ -31,6 +31,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toast";
+import { SiretSearch } from "@/components/shared/siret-search";
+import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
 import {
   getAgences,
   createAgence,
@@ -527,6 +529,25 @@ function AgenceDialog({
   const [errors, setErrors] = React.useState<Record<string, string[]>>({});
   const isEdit = !!agence;
 
+  // Controlled state for fields that SiretSearch/AddressAutocomplete need to update
+  const [nom, setNom] = React.useState(agence?.nom ?? "");
+  const [siret, setSiret] = React.useState(agence?.siret ?? "");
+  const [adresseRue, setAdresseRue] = React.useState(agence?.adresse_rue ?? "");
+  const [adresseCp, setAdresseCp] = React.useState(agence?.adresse_cp ?? "");
+  const [adresseVille, setAdresseVille] = React.useState(agence?.adresse_ville ?? "");
+
+  // Reset state when dialog opens with different agence
+  React.useEffect(() => {
+    if (open) {
+      setNom(agence?.nom ?? "");
+      setSiret(agence?.siret ?? "");
+      setAdresseRue(agence?.adresse_rue ?? "");
+      setAdresseCp(agence?.adresse_cp ?? "");
+      setAdresseVille(agence?.adresse_ville ?? "");
+      setErrors({});
+    }
+  }, [open, agence]);
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setIsSubmitting(true);
@@ -534,12 +555,12 @@ function AgenceDialog({
 
     const fd = new FormData(e.currentTarget);
     const input = {
-      nom: fd.get("nom") as string,
-      siret: fd.get("siret") as string,
-      adresse_rue: fd.get("adresse_rue") as string,
+      nom,
+      siret,
+      adresse_rue: adresseRue,
       adresse_complement: fd.get("adresse_complement") as string,
-      adresse_cp: fd.get("adresse_cp") as string,
-      adresse_ville: fd.get("adresse_ville") as string,
+      adresse_cp: adresseCp,
+      adresse_ville: adresseVille,
       telephone: fd.get("telephone") as string,
       email: fd.get("email") as string,
       est_siege: fd.get("est_siege") === "on",
@@ -584,6 +605,20 @@ function AgenceDialog({
             </div>
           )}
 
+          {/* SIRET Search */}
+          <div className="space-y-2">
+            <Label className="text-[13px]">Recherche SIRET / SIREN</Label>
+            <SiretSearch
+              onSelect={(r) => {
+                setNom(r.nom || nom);
+                setSiret(r.siret || r.siren || siret);
+                setAdresseRue(r.adresse_rue || adresseRue);
+                setAdresseCp(r.adresse_cp || adresseCp);
+                setAdresseVille(r.adresse_ville || adresseVille);
+              }}
+            />
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="agence_nom" className="text-[13px]">
               Nom <span className="text-destructive">*</span>
@@ -591,7 +626,8 @@ function AgenceDialog({
             <Input
               id="agence_nom"
               name="nom"
-              defaultValue={agence?.nom ?? ""}
+              value={nom}
+              onChange={(e) => setNom(e.target.value)}
               required
               placeholder="Ex: Siège Paris, Agence Lyon"
               className="h-9 text-[13px] border-border/60"
@@ -604,7 +640,8 @@ function AgenceDialog({
               <Input
                 id="agence_siret"
                 name="siret"
-                defaultValue={agence?.siret ?? ""}
+                value={siret}
+                onChange={(e) => setSiret(e.target.value)}
                 placeholder="123 456 789 00012"
                 className="h-9 text-[13px] border-border/60"
               />
@@ -633,14 +670,20 @@ function AgenceDialog({
             />
           </div>
 
+          {/* Address with autocomplete */}
           <div className="space-y-2">
-            <Label htmlFor="agence_adresse_rue" className="text-[13px]">Adresse</Label>
-            <Input
+            <Label className="text-[13px]">Adresse</Label>
+            <AddressAutocomplete
+              value={adresseRue}
+              onChange={(v) => setAdresseRue(v)}
+              onSelect={(r) => {
+                setAdresseRue(r.rue);
+                setAdresseCp(r.cp);
+                setAdresseVille(r.ville);
+              }}
+              placeholder="Numéro et nom de rue"
               id="agence_adresse_rue"
               name="adresse_rue"
-              defaultValue={agence?.adresse_rue ?? ""}
-              placeholder="Numéro et nom de rue"
-              className="h-9 text-[13px] border-border/60"
             />
           </div>
 
@@ -650,7 +693,8 @@ function AgenceDialog({
               <Input
                 id="agence_cp"
                 name="adresse_cp"
-                defaultValue={agence?.adresse_cp ?? ""}
+                value={adresseCp}
+                onChange={(e) => setAdresseCp(e.target.value)}
                 placeholder="75001"
                 className="h-9 text-[13px] border-border/60"
               />
@@ -660,7 +704,8 @@ function AgenceDialog({
               <Input
                 id="agence_ville"
                 name="adresse_ville"
-                defaultValue={agence?.adresse_ville ?? ""}
+                value={adresseVille}
+                onChange={(e) => setAdresseVille(e.target.value)}
                 placeholder="Paris"
                 className="h-9 text-[13px] border-border/60"
               />
