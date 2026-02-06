@@ -27,6 +27,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast";
 import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
+import { SiretSearch } from "@/components/shared/siret-search";
 import {
   getEntreprise,
   updateEntreprise,
@@ -290,7 +291,9 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
   const [isSaving, setIsSaving] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string[]>>({});
 
-  // Controlled state for address (autocomplete fills CP/Ville)
+  // Controlled state for fields updated by SiretSearch + AddressAutocomplete
+  const [nom, setNom] = React.useState(entreprise.nom);
+  const [siret, setSiret] = React.useState(entreprise.siret ?? "");
   const [adresseRue, setAdresseRue] = React.useState(entreprise.adresse_rue ?? "");
   const [adresseCp, setAdresseCp] = React.useState(entreprise.adresse_cp ?? "");
   const [adresseVille, setAdresseVille] = React.useState(entreprise.adresse_ville ?? "");
@@ -352,6 +355,23 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
           </div>
         )}
 
+        {/* Recherche INSEE */}
+        <section className="rounded-lg border border-border/60 bg-card p-5">
+          <h3 className="mb-4 text-sm font-semibold">Recherche INSEE (SIRET / Nom)</h3>
+          <SiretSearch
+            onSelect={(r) => {
+              setNom(r.nom || nom);
+              setSiret(r.siret || siret);
+              setAdresseRue(r.adresse_rue || adresseRue);
+              setAdresseCp(r.adresse_cp || adresseCp);
+              setAdresseVille(r.adresse_ville || adresseVille);
+            }}
+          />
+          <p className="mt-2 text-[11px] text-muted-foreground/50">
+            Recherchez par SIRET, SIREN ou nom pour mettre à jour automatiquement les informations.
+          </p>
+        </section>
+
         {/* Identification */}
         <section className="rounded-lg border border-border/60 bg-card p-5">
           <h3 className="mb-4 text-sm font-semibold">Identification</h3>
@@ -363,7 +383,8 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
               <Input
                 id="nom"
                 name="nom"
-                defaultValue={entreprise.nom}
+                value={nom}
+                onChange={(e) => setNom(e.target.value)}
                 required
                 className="h-9 text-[13px] border-border/60"
               />
@@ -378,7 +399,8 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
               <Input
                 id="siret"
                 name="siret"
-                defaultValue={entreprise.siret ?? ""}
+                value={siret}
+                onChange={(e) => setSiret(e.target.value)}
                 placeholder="123 456 789 00012"
                 className="h-9 text-[13px] border-border/60"
               />
