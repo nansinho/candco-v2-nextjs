@@ -6,13 +6,13 @@ export default function DashboardPage() {
     { label: "Apprenants", value: "0", icon: GraduationCap, href: "/apprenants", color: "text-blue-400", bg: "bg-blue-400/10" },
     { label: "Entreprises", value: "0", icon: Building2, href: "/entreprises", color: "text-emerald-400", bg: "bg-emerald-400/10" },
     { label: "Sessions", value: "0", icon: Calendar, href: "/sessions", color: "text-purple-400", bg: "bg-purple-400/10" },
-    { label: "Factures", value: "0 \u20ac", icon: Receipt, href: "/factures", color: "text-primary", bg: "bg-primary/10" },
+    { label: "Factures", value: "0 €", icon: Receipt, href: "/factures", color: "text-primary", bg: "bg-primary/10" },
   ];
 
   const quickActions = [
     { label: "Ajouter un apprenant", href: "/apprenants", icon: GraduationCap },
     { label: "Ajouter une entreprise", href: "/entreprises", icon: Building2 },
-    { label: "Cr\u00e9er une session", href: "/sessions", icon: Calendar },
+    { label: "Créer une session", href: "/sessions", icon: Calendar },
   ];
 
   return (

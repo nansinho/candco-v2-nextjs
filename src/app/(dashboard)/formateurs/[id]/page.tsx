@@ -102,8 +102,8 @@ export default function FormateurDetailPage() {
     }
 
     toast({
-      title: "Formateur mis \u00e0 jour",
-      description: "Les informations ont \u00e9t\u00e9 enregistr\u00e9es.",
+      title: "Formateur mis à jour",
+      description: "Les informations ont été enregistrées.",
       variant: "success",
     });
   };
@@ -113,8 +113,8 @@ export default function FormateurDetailPage() {
     setIsArchiving(true);
     await archiveFormateur(id);
     toast({
-      title: "Formateur archiv\u00e9",
-      description: "Le formateur a \u00e9t\u00e9 archiv\u00e9 avec succ\u00e8s.",
+      title: "Formateur archivé",
+      description: "Le formateur a été archivé avec succès.",
       variant: "success",
     });
     router.push("/formateurs");
@@ -257,22 +257,22 @@ export default function FormateurDetailPage() {
             Informations
           </TabsTrigger>
           <TabsTrigger value="couts" className="text-xs">
-            Co\u00fbts
+            Coûts
           </TabsTrigger>
           <TabsTrigger value="taches" className="text-xs">
-            T\u00e2ches et activit\u00e9s
+            Tâches et activités
           </TabsTrigger>
         </TabsList>
 
         {/* Tab 1 - Informations */}
         <TabsContent value="informations" className="mt-6">
           <div className="space-y-6">
-            {/* Identit\u00e9 */}
+            {/* Identité */}
             <section className="rounded-lg border border-border/60 bg-card p-5">
-              <h3 className="mb-4 text-sm font-semibold">Identit\u00e9</h3>
+              <h3 className="mb-4 text-sm font-semibold">Identité</h3>
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-[13px]">Civilit\u00e9</Label>
+                  <Label className="text-[13px]">Civilité</Label>
                   <select
                     value={form.civilite ?? ""}
                     onChange={(e) =>
@@ -287,7 +287,7 @@ export default function FormateurDetailPage() {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-[13px]">
-                    Pr\u00e9nom <span className="text-destructive">*</span>
+                    Prénom <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     value={form.prenom ?? ""}
@@ -321,7 +321,7 @@ export default function FormateurDetailPage() {
             {/* Contact */}
             <section className="rounded-lg border border-border/60 bg-card p-5">
               <h3 className="mb-4 text-sm font-semibold">Contact</h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label className="text-[13px]">Email</Label>
                   <Input
@@ -338,7 +338,7 @@ export default function FormateurDetailPage() {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-[13px]">T\u00e9l\u00e9phone</Label>
+                  <Label className="text-[13px]">Téléphone</Label>
                   <Input
                     value={form.telephone ?? ""}
                     onChange={(e) =>
@@ -367,17 +367,17 @@ export default function FormateurDetailPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-[13px]">Compl\u00e9ment</Label>
+                  <Label className="text-[13px]">Complément</Label>
                   <Input
                     value={form.adresse_complement ?? ""}
                     onChange={(e) =>
                       setForm((prev) => ({ ...prev, adresse_complement: e.target.value }))
                     }
-                    placeholder="B\u00e2timent A, 2e \u00e9tage"
+                    placeholder="Bâtiment A, 2e étage"
                     className="h-9 text-[13px] bg-background border-border/60"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label className="text-[13px]">Code postal</Label>
                     <Input
@@ -421,7 +421,7 @@ export default function FormateurDetailPage() {
                     className="h-9 w-full rounded-md border border-border/60 bg-background px-3 py-1 text-[13px] text-foreground"
                   >
                     <option value="externe">Externe (sous-traitant)</option>
-                    <option value="interne">Interne (salari\u00e9)</option>
+                    <option value="interne">Interne (salarié)</option>
                   </select>
                 </div>
                 <div className="space-y-2">
@@ -451,7 +451,7 @@ export default function FormateurDetailPage() {
           </div>
         </TabsContent>
 
-        {/* Tab 2 - Co\u00fbts */}
+        {/* Tab 2 - Coûts */}
         <TabsContent value="couts" className="mt-6">
           <div className="space-y-6">
             <section className="rounded-lg border border-border/60 bg-card p-5">
@@ -534,9 +534,9 @@ export default function FormateurDetailPage() {
               </div>
             </section>
 
-            {/* R\u00e9capitulatif */}
+            {/* Récapitulatif */}
             <section className="rounded-lg border border-border/60 bg-card p-5">
-              <h3 className="mb-4 text-sm font-semibold">R\u00e9capitulatif</h3>
+              <h3 className="mb-4 text-sm font-semibold">Récapitulatif</h3>
               <div className="grid grid-cols-3 gap-4">
                 <div className="rounded-lg border border-border/40 bg-muted/20 p-4">
                   <p className="text-[11px] uppercase tracking-wider text-muted-foreground/60 mb-1">
@@ -580,7 +580,7 @@ export default function FormateurDetailPage() {
           </div>
         </TabsContent>
 
-        {/* Tab 3 - T\u00e2ches et activit\u00e9s */}
+        {/* Tab 3 - Tâches et activités */}
         <TabsContent value="taches" className="mt-6">
           <TachesActivitesTab entiteType="formateur" entiteId={formateur.id} />
         </TabsContent>

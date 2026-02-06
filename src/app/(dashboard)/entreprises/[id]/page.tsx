@@ -113,8 +113,8 @@ export default function EntrepriseDetailPage() {
       return;
     }
     toast({
-      title: "Entreprise archiv\u00e9e",
-      description: "L'entreprise a \u00e9t\u00e9 archiv\u00e9e avec succ\u00e8s.",
+      title: "Entreprise archivée",
+      description: "L'entreprise a été archivée avec succès.",
       variant: "success",
     });
     router.push("/entreprises");
@@ -200,7 +200,7 @@ export default function EntrepriseDetailPage() {
       <Tabs defaultValue="general">
         <TabsList className="bg-muted/50">
           <TabsTrigger value="general" className="text-xs">
-            Informations g\u00e9n\u00e9rales
+            Informations générales
           </TabsTrigger>
           <TabsTrigger value="facturation" className="text-xs">
             Facturation
@@ -209,7 +209,7 @@ export default function EntrepriseDetailPage() {
             Apprenants
           </TabsTrigger>
           <TabsTrigger value="taches" className="text-xs">
-            T\u00e2ches et activit\u00e9s
+            Tâches et activités
           </TabsTrigger>
         </TabsList>
 
@@ -294,8 +294,8 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
     }
 
     toast({
-      title: "Modifications enregistr\u00e9es",
-      description: "Les informations de l'entreprise ont \u00e9t\u00e9 mises \u00e0 jour.",
+      title: "Modifications enregistrées",
+      description: "Les informations de l'entreprise ont été mises à jour.",
       variant: "success",
     });
     setIsSaving(false);
@@ -366,7 +366,7 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
             </div>
             <div className="space-y-2">
               <Label htmlFor="telephone" className="text-[13px]">
-                T\u00e9l\u00e9phone
+                Téléphone
               </Label>
               <Input
                 id="telephone"
@@ -391,19 +391,19 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
                 id="adresse_rue"
                 name="adresse_rue"
                 defaultValue={entreprise.adresse_rue ?? ""}
-                placeholder="Num\u00e9ro et nom de rue"
+                placeholder="Numéro et nom de rue"
                 className="h-9 text-[13px] bg-background border-border/60"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="adresse_complement" className="text-[13px]">
-                Compl\u00e9ment d&apos;adresse
+                Complément d&apos;adresse
               </Label>
               <Input
                 id="adresse_complement"
                 name="adresse_complement"
                 defaultValue={entreprise.adresse_complement ?? ""}
-                placeholder="B\u00e2timent, \u00e9tage, etc."
+                placeholder="Bâtiment, étage, etc."
                 className="h-9 text-[13px] bg-background border-border/60"
               />
             </div>
@@ -438,7 +438,7 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
 
         {/* BPF & Comptabilité */}
         <section className="rounded-lg border border-border/60 bg-card p-5">
-          <h3 className="mb-4 text-sm font-semibold">BPF & Comptabilit\u00e9</h3>
+          <h3 className="mb-4 text-sm font-semibold">BPF & Comptabilité</h3>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="bpf_categorie_id" className="text-[13px]">
@@ -460,7 +460,7 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
             </div>
             <div className="space-y-2">
               <Label htmlFor="numero_compte_comptable" className="text-[13px]">
-                N\u00b0 compte comptable
+                N° compte comptable
               </Label>
               <Input
                 id="numero_compte_comptable"
@@ -524,8 +524,8 @@ function FacturationTab({ entreprise, onUpdate }: FacturationTabProps) {
     if (villeInput) villeInput.value = entreprise.adresse_ville ?? "";
 
     toast({
-      title: "Adresse copi\u00e9e",
-      description: "Les informations de l'entreprise ont \u00e9t\u00e9 copi\u00e9es.",
+      title: "Adresse copiée",
+      description: "Les informations de l'entreprise ont été copiées.",
     });
   }
 
@@ -565,8 +565,8 @@ function FacturationTab({ entreprise, onUpdate }: FacturationTabProps) {
     }
 
     toast({
-      title: "Modifications enregistr\u00e9es",
-      description: "Les informations de facturation ont \u00e9t\u00e9 mises \u00e0 jour.",
+      title: "Modifications enregistrées",
+      description: "Les informations de facturation ont été mises à jour.",
       variant: "success",
     });
     setIsSaving(false);
@@ -617,19 +617,19 @@ function FacturationTab({ entreprise, onUpdate }: FacturationTabProps) {
                 id="facturation_rue"
                 name="facturation_rue"
                 defaultValue={entreprise.facturation_rue ?? ""}
-                placeholder="Num\u00e9ro et nom de rue"
+                placeholder="Numéro et nom de rue"
                 className="h-9 text-[13px] bg-background border-border/60"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="facturation_complement" className="text-[13px]">
-                Compl\u00e9ment d&apos;adresse
+                Complément d&apos;adresse
               </Label>
               <Input
                 id="facturation_complement"
                 name="facturation_complement"
                 defaultValue={entreprise.facturation_complement ?? ""}
-                placeholder="B\u00e2timent, \u00e9tage, etc."
+                placeholder="Bâtiment, étage, etc."
                 className="h-9 text-[13px] bg-background border-border/60"
               />
             </div>
@@ -736,7 +736,7 @@ function ApprenantsTab({ entrepriseId }: { entrepriseId: string }) {
     setSearchResults([]);
     setShowSearch(false);
     fetchApprenants();
-    toast({ title: "Apprenant rattach\u00e9", variant: "success" });
+    toast({ title: "Apprenant rattaché", variant: "success" });
   };
 
   const handleUnlink = async (apprenantId: string) => {
@@ -751,7 +751,7 @@ function ApprenantsTab({ entrepriseId }: { entrepriseId: string }) {
       return;
     }
     fetchApprenants();
-    toast({ title: "Apprenant retir\u00e9", variant: "success" });
+    toast({ title: "Apprenant retiré", variant: "success" });
   };
 
   return (
@@ -759,7 +759,7 @@ function ApprenantsTab({ entrepriseId }: { entrepriseId: string }) {
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-border/60">
         <h3 className="text-sm font-semibold">
-          Apprenants rattach\u00e9s
+          Apprenants rattachés
           {apprenants.length > 0 && (
             <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary/10 px-1.5 text-[11px] font-medium text-primary">
               {apprenants.length}
@@ -837,7 +837,7 @@ function ApprenantsTab({ entrepriseId }: { entrepriseId: string }) {
           )}
           {searchQuery.trim() && !isSearching && searchResults.length === 0 && (
             <p className="mt-2 text-xs text-muted-foreground/50">
-              Aucun apprenant trouv\u00e9 pour &laquo; {searchQuery} &raquo;
+              Aucun apprenant trouvé pour &laquo; {searchQuery} &raquo;
             </p>
           )}
         </div>
@@ -857,7 +857,7 @@ function ApprenantsTab({ entrepriseId }: { entrepriseId: string }) {
           </div>
           <div className="text-center">
             <p className="text-sm font-medium text-muted-foreground/60">
-              Aucun apprenant rattach\u00e9
+              Aucun apprenant rattaché
             </p>
             <p className="mt-0.5 text-xs text-muted-foreground/40">
               Utilisez le bouton ci-dessus pour rattacher des apprenants.
@@ -878,7 +878,7 @@ function ApprenantsTab({ entrepriseId }: { entrepriseId: string }) {
                 Email
               </th>
               <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-                T\u00e9l\u00e9phone
+                Téléphone
               </th>
               <th className="w-10" />
             </tr>

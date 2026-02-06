@@ -86,8 +86,8 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
 
     setIsSaving(false);
     toast({
-      title: "Contact mis \u00e0 jour",
-      description: "Les informations ont \u00e9t\u00e9 enregistr\u00e9es.",
+      title: "Contact mis à jour",
+      description: "Les informations ont été enregistrées.",
       variant: "success",
     });
   };
@@ -97,8 +97,8 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
     setIsArchiving(true);
     await archiveContactClient(contact.id);
     toast({
-      title: "Contact archiv\u00e9",
-      description: "Le contact a \u00e9t\u00e9 archiv\u00e9 avec succ\u00e8s.",
+      title: "Contact archivé",
+      description: "Le contact a été archivé avec succès.",
       variant: "success",
     });
     router.push("/contacts-clients");
@@ -182,7 +182,7 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
             )}
           </TabsTrigger>
           <TabsTrigger value="taches" className="text-xs">
-            T\u00e2ches et activit\u00e9s
+            Tâches et activités
           </TabsTrigger>
         </TabsList>
 
@@ -196,9 +196,9 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
             )}
 
             <div className="grid gap-5">
-              {/* Civilit\u00e9 */}
+              {/* Civilité */}
               <div className="space-y-2">
-                <Label className="text-[13px]">Civilit\u00e9</Label>
+                <Label className="text-[13px]">Civilité</Label>
                 <select
                   value={form.civilite ?? ""}
                   onChange={(e) => updateField("civilite", e.target.value)}
@@ -210,11 +210,11 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
                 </select>
               </div>
 
-              {/* Pr\u00e9nom / Nom */}
-              <div className="grid grid-cols-2 gap-4">
+              {/* Prénom / Nom */}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label className="text-[13px]">
-                    Pr\u00e9nom <span className="text-destructive">*</span>
+                    Prénom <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     value={form.prenom ?? ""}
@@ -269,9 +269,9 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
                 )}
               </div>
 
-              {/* T\u00e9l\u00e9phone */}
+              {/* Téléphone */}
               <div className="space-y-2">
-                <Label className="text-[13px]">T\u00e9l\u00e9phone</Label>
+                <Label className="text-[13px]">Téléphone</Label>
                 <div className="flex items-center gap-2">
                   <Input
                     value={form.telephone ?? ""}
@@ -309,11 +309,11 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
             {/* Meta info */}
             <div className="mt-6 flex items-center gap-4 border-t border-border/40 pt-4">
               <p className="text-[11px] text-muted-foreground/50">
-                Cr\u00e9\u00e9 le {formatDate(contact.created_at)}
+                Créé le {formatDate(contact.created_at)}
               </p>
               {contact.updated_at && (
                 <p className="text-[11px] text-muted-foreground/50">
-                  Modifi\u00e9 le {formatDate(contact.updated_at)}
+                  Modifié le {formatDate(contact.updated_at)}
                 </p>
               )}
             </div>
@@ -329,10 +329,10 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
                   <Building2 className="h-6 w-6 text-muted-foreground/30" />
                 </div>
                 <p className="mt-3 text-sm font-medium text-muted-foreground/60">
-                  Aucune entreprise associ\u00e9e
+                  Aucune entreprise associée
                 </p>
                 <p className="mt-0.5 text-xs text-muted-foreground/40">
-                  Ce contact n&apos;est rattach\u00e9 \u00e0 aucune entreprise pour le moment.
+                  Ce contact n&apos;est rattaché à aucune entreprise pour le moment.
                 </p>
               </div>
             ) : (
@@ -384,7 +384,7 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
           </div>
         </TabsContent>
 
-        {/* Tab 3: T\u00e2ches et activit\u00e9s */}
+        {/* Tab 3: Tâches et activités */}
         <TabsContent value="taches" className="mt-6">
           <TachesActivitesTab entiteType="contact_client" entiteId={contact.id} />
         </TabsContent>

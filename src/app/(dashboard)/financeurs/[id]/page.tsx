@@ -241,7 +241,7 @@ export default function FinanceurDetailPage() {
         </div>
         <div className="space-y-6 p-6">
           {/* Row 1: Nom + Type */}
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="nom" className="text-[13px]">
                 Nom <span className="text-destructive">*</span>
@@ -288,7 +288,7 @@ export default function FinanceurDetailPage() {
           </div>
 
           {/* Row 3: Email + Téléphone */}
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="email" className="text-[13px]">
                 Email
@@ -346,7 +346,7 @@ export default function FinanceurDetailPage() {
                   className="h-9 text-[13px] bg-background border-border/60"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="adresse_cp" className="text-[13px]">
                     Code postal

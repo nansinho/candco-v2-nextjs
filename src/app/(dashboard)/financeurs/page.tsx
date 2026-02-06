@@ -33,8 +33,8 @@ interface Financeur {
 
 const FINANCEUR_TYPES = [
   "OPCO",
-  "P\u00f4le Emploi",
-  "R\u00e9gion",
+  "Pôle Emploi",
+  "Région",
   "AGEFIPH",
   "Entreprise",
   "Autre",
@@ -44,9 +44,9 @@ function typeBadgeClass(type: string | null): string {
   switch (type) {
     case "OPCO":
       return "border-transparent bg-blue-500/15 text-blue-400";
-    case "P\u00f4le Emploi":
+    case "Pôle Emploi":
       return "border-transparent bg-purple-500/15 text-purple-400";
-    case "R\u00e9gion":
+    case "Région":
       return "border-transparent bg-emerald-500/15 text-emerald-400";
     case "AGEFIPH":
       return "border-transparent bg-amber-500/15 text-amber-400";
@@ -106,7 +106,7 @@ const columns: Column<Financeur>[] = [
   },
   {
     key: "created_at",
-    label: "Cr\u00e9\u00e9 le",
+    label: "Créé le",
     className: "w-28",
     render: (item) => (
       <span className="text-muted-foreground">{formatDate(item.created_at)}</span>
@@ -186,7 +186,7 @@ export default function FinanceursPage() {
       } else if ("nom" in errors && Array.isArray(errors.nom)) {
         setFormError(errors.nom[0] ?? "Le nom est requis");
       } else {
-        setFormError("Erreur lors de la cr\u00e9ation");
+        setFormError("Erreur lors de la création");
       }
       return;
     }
@@ -195,8 +195,8 @@ export default function FinanceursPage() {
     resetForm();
     fetchData();
     toast({
-      title: "Financeur cr\u00e9\u00e9",
-      description: "Le financeur a \u00e9t\u00e9 ajout\u00e9 avec succ\u00e8s.",
+      title: "Financeur créé",
+      description: "Le financeur a été ajouté avec succès.",
       variant: "success",
     });
   };
@@ -228,7 +228,7 @@ export default function FinanceursPage() {
           <DialogHeader>
             <DialogTitle>Ajouter un financeur</DialogTitle>
             <DialogDescription>
-              Cr\u00e9ez un nouveau financeur (OPCO, P\u00f4le Emploi, R\u00e9gion, etc.)
+              Créez un nouveau financeur (OPCO, Pôle Emploi, Région, etc.)
             </DialogDescription>
           </DialogHeader>
 
@@ -262,7 +262,7 @@ export default function FinanceursPage() {
                 onChange={(e) => setFormType(e.target.value)}
                 className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-[13px] text-foreground"
               >
-                <option value="">-- S\u00e9lectionner --</option>
+                <option value="">-- Sélectionner --</option>
                 {FINANCEUR_TYPES.map((t) => (
                   <option key={t} value={t}>
                     {t}
@@ -300,7 +300,7 @@ export default function FinanceursPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="telephone" className="text-[13px]">
-                  T\u00e9l\u00e9phone
+                  Téléphone
                 </Label>
                 <Input
                   id="telephone"
@@ -331,10 +331,10 @@ export default function FinanceursPage() {
               {saving ? (
                 <>
                   <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
-                  Cr\u00e9ation...
+                  Création...
                 </>
               ) : (
-                "Cr\u00e9er le financeur"
+                "Créer le financeur"
               )}
             </Button>
           </DialogFooter>
