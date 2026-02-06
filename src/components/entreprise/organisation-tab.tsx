@@ -31,8 +31,10 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/ui/alert-dialog";
 import { SiretSearch } from "@/components/shared/siret-search";
 import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
+import { FonctionSelect } from "@/components/shared/fonction-select";
 import {
   getAgences,
   createAgence,
@@ -77,6 +79,7 @@ interface OrganisationTabProps {
 
 export function OrganisationTab({ entrepriseId }: OrganisationTabProps) {
   const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [agences, setAgences] = React.useState<Agence[]>([]);
   const [poles, setPoles] = React.useState<(Pole & { agence_nom?: string })[]>([]);
   const [membres, setMembres] = React.useState<Membre[]>([]);
@@ -203,7 +206,7 @@ export function OrganisationTab({ entrepriseId }: OrganisationTabProps) {
                     </button>
                     <button
                       onClick={async () => {
-                        if (!confirm("Supprimer cette agence ?")) return;
+                        if (!(await confirm({ title: "Supprimer cette agence ?", description: "Cette action est irréversible. Les pôles et membres rattachés seront détachés.", confirmLabel: "Supprimer", variant: "destructive" }))) return;
                         const result = await deleteAgence(agence.id, entrepriseId);
                         if (result.error) {
                           toast({ title: "Erreur", description: typeof result.error === "string" ? result.error : "Erreur", variant: "destructive" });
@@ -296,7 +299,7 @@ export function OrganisationTab({ entrepriseId }: OrganisationTabProps) {
                     </button>
                     <button
                       onClick={async () => {
-                        if (!confirm("Supprimer ce pôle ?")) return;
+                        if (!(await confirm({ title: "Supprimer ce pôle ?", description: "Les membres rattachés seront détachés de ce pôle.", confirmLabel: "Supprimer", variant: "destructive" }))) return;
                         const result = await deletePole(pole.id, entrepriseId);
                         if (result.error) {
                           toast({ title: "Erreur", description: typeof result.error === "string" ? result.error : "Erreur", variant: "destructive" });
@@ -437,7 +440,7 @@ export function OrganisationTab({ entrepriseId }: OrganisationTabProps) {
                           </button>
                           <button
                             onClick={async () => {
-                              if (!confirm("Retirer ce membre ?")) return;
+                              if (!(await confirm({ title: "Retirer ce membre ?", description: "Le membre sera retiré de l'organigramme.", confirmLabel: "Retirer", variant: "destructive" }))) return;
                               const result = await deleteMembre(m.id, entrepriseId);
                               if (result.error) {
                                 toast({ title: "Erreur", description: typeof result.error === "string" ? result.error : "Erreur", variant: "destructive" });
@@ -489,6 +492,8 @@ export function OrganisationTab({ entrepriseId }: OrganisationTabProps) {
         poles={poles}
         onSuccess={() => { setMembreDialog(false); fetchAll(); }}
       />
+
+      <ConfirmDialog />
     </div>
   );
 }
@@ -1163,13 +1168,11 @@ function MembreDialog({
               </select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="membre_fonction" className="text-[13px]">Fonction / Poste</Label>
-              <Input
-                id="membre_fonction"
+              <Label className="text-[13px]">Fonction / Poste</Label>
+              <FonctionSelect
                 value={fonction}
-                onChange={(e) => setFonction(e.target.value)}
-                placeholder="Ex: DRH, Chef de projet"
-                className="h-9 text-[13px] border-border/60"
+                onChange={setFonction}
+                placeholder="Sélectionner une fonction"
               />
             </div>
           </div>

@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Save, Archive, ArchiveRestore, Loader2, Building2, Mail, Phone } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/ui/alert-dialog";
 import {
   updateContactClient,
   archiveContactClient,
@@ -52,6 +53,7 @@ interface ContactClientDetailProps {
 export function ContactClientDetail({ contact, entreprises }: ContactClientDetailProps) {
   const router = useRouter();
   const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [isSaving, setIsSaving] = React.useState(false);
   const [isArchiving, setIsArchiving] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string[] | undefined>>({});
@@ -94,7 +96,7 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
   };
 
   const handleArchive = async () => {
-    if (!confirm("Archiver ce contact client ?")) return;
+    if (!(await confirm({ title: "Archiver ce contact client ?", description: "Le contact sera masqué des listes mais pourra être restauré.", confirmLabel: "Archiver", variant: "destructive" }))) return;
     setIsArchiving(true);
     await archiveContactClient(contact.id);
     toast({
@@ -407,6 +409,7 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
           <TachesActivitesTab entiteType="contact_client" entiteId={contact.id} />
         </TabsContent>
       </Tabs>
+      <ConfirmDialog />
     </div>
   );
 }

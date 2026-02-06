@@ -26,6 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/ui/alert-dialog";
 import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
 import { SiretSearch } from "@/components/shared/siret-search";
 import {
@@ -47,6 +48,7 @@ import {
 } from "@/actions/entreprises";
 import { createContactClient, type CreateContactClientInput } from "@/actions/contacts-clients";
 import { TachesActivitesTab } from "@/components/shared/taches-activites";
+import { FonctionSelect } from "@/components/shared/fonction-select";
 import { OrganisationTab } from "@/components/entreprise/organisation-tab";
 
 // ─── Types ───────────────────────────────────────────────
@@ -86,6 +88,7 @@ export default function EntrepriseDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
   const id = params.id as string;
 
   const [entreprise, setEntreprise] = React.useState<EntrepriseData | null>(null);
@@ -114,7 +117,7 @@ export default function EntrepriseDetailPage() {
   }, [id]);
 
   async function handleArchive() {
-    if (!confirm("Voulez-vous vraiment archiver cette entreprise ?")) return;
+    if (!(await confirm({ title: "Archiver cette entreprise ?", description: "L'entreprise sera masquée des listes mais pourra être restaurée.", confirmLabel: "Archiver", variant: "destructive" }))) return;
     setIsArchiving(true);
     const result = await archiveEntreprise(id);
     if (result.error) {
@@ -274,6 +277,7 @@ export default function EntrepriseDetailPage() {
           <TachesActivitesTab entiteType="entreprise" entiteId={entreprise.id} />
         </TabsContent>
       </Tabs>
+      <ConfirmDialog />
     </div>
   );
 }
@@ -761,6 +765,7 @@ function FacturationTab({ entreprise, onUpdate }: FacturationTabProps) {
 
 function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
   const { toast } = useToast();
+  const { confirm: confirmAction, ConfirmDialog: ContactConfirmDialog } = useConfirm();
   const [contacts, setContacts] = React.useState<ContactLink[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [showSearch, setShowSearch] = React.useState(false);
@@ -769,6 +774,7 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
   const [searchResults, setSearchResults] = React.useState<ContactLink[]>([]);
   const [isSearching, setIsSearching] = React.useState(false);
   const [isCreating, setIsCreating] = React.useState(false);
+  const [newContactFonction, setNewContactFonction] = React.useState("");
 
   const fetchContacts = React.useCallback(async () => {
     setIsLoading(true);
@@ -811,7 +817,7 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
   };
 
   const handleUnlink = async (contactId: string) => {
-    if (!confirm("Retirer ce contact de l'entreprise ?")) return;
+    if (!(await confirmAction({ title: "Retirer ce contact ?", description: "Le contact sera détaché de cette entreprise mais ne sera pas supprimé.", confirmLabel: "Retirer", variant: "destructive" }))) return;
     const result = await unlinkContactFromEntreprise(entrepriseId, contactId);
     if (result.error) {
       toast({ title: "Erreur", description: typeof result.error === "string" ? result.error : "Une erreur est survenue", variant: "destructive" });
@@ -831,7 +837,7 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
       nom: formData.get("nom") as string,
       email: formData.get("email") as string,
       telephone: formData.get("telephone") as string,
-      fonction: formData.get("fonction") as string,
+      fonction: newContactFonction,
     };
 
     const result = await createContactClient(input);
@@ -848,6 +854,7 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
 
     setShowCreate(false);
     setIsCreating(false);
+    setNewContactFonction("");
     fetchContacts();
     toast({ title: "Contact créé et rattaché", variant: "success" });
   };
@@ -906,7 +913,11 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
             </div>
             <div className="space-y-1.5">
               <Label className="text-[12px]">Fonction</Label>
-              <Input name="fonction" placeholder="Responsable formation" className="h-9 text-[13px] border-border/60" />
+              <FonctionSelect
+                value={newContactFonction}
+                onChange={setNewContactFonction}
+                placeholder="Sélectionner une fonction"
+              />
             </div>
             <div className="space-y-1.5">
               <Label className="text-[12px]">Prénom <span className="text-destructive">*</span></Label>
@@ -1064,6 +1075,7 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
           </table>
         </div>
       )}
+      <ContactConfirmDialog />
     </section>
   );
 }
@@ -1073,6 +1085,7 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
 function ApprenantsTab({ entrepriseId }: { entrepriseId: string }) {
   const router = useRouter();
   const { toast } = useToast();
+  const { confirm: confirmAction, ConfirmDialog: ApprenantConfirmDialog } = useConfirm();
   const [apprenants, setApprenants] = React.useState<ApprenantLink[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [showSearch, setShowSearch] = React.useState(false);
@@ -1125,7 +1138,7 @@ function ApprenantsTab({ entrepriseId }: { entrepriseId: string }) {
   };
 
   const handleUnlink = async (apprenantId: string) => {
-    if (!confirm("Retirer cet apprenant de l'entreprise ?")) return;
+    if (!(await confirmAction({ title: "Retirer cet apprenant ?", description: "L'apprenant sera détaché de cette entreprise mais ne sera pas supprimé.", confirmLabel: "Retirer", variant: "destructive" }))) return;
     const result = await unlinkApprenantFromEntreprise(entrepriseId, apprenantId);
     if (result.error) {
       toast({
@@ -1304,6 +1317,7 @@ function ApprenantsTab({ entrepriseId }: { entrepriseId: string }) {
           </tbody>
         </table>
       )}
+      <ApprenantConfirmDialog />
     </section>
   );
 }

@@ -384,7 +384,7 @@ export function CsvImport({
         onOpenChange(o);
       }}
     >
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-4xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5 text-primary" />
@@ -511,7 +511,7 @@ export function CsvImport({
                         {columns
                           .filter((c) => matchedColumnsInfo.includes(c.label))
                           .map((c) => (
-                            <td key={c.key} className="px-2 py-1 truncate max-w-[150px]">
+                            <td key={c.key} className="px-2 py-1 truncate max-w-[200px]">
                               {row[c.key] || <span className="text-muted-foreground/30">--</span>}
                             </td>
                           ))}
@@ -534,24 +534,50 @@ export function CsvImport({
                   </p>
                 </div>
               )}
-              {result.errors.length > 0 && (
-                <div className="space-y-1 rounded-md bg-destructive/10 px-3 py-2">
-                  <div className="flex items-center gap-2">
-                    <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
-                    <p className="text-xs text-destructive font-medium">
-                      {result.errors.length} erreur(s) :
-                    </p>
-                  </div>
-                  <ul className="text-[11px] text-destructive/80 space-y-0.5 ml-6">
-                    {result.errors.slice(0, 5).map((err, i) => (
-                      <li key={i}>{err}</li>
-                    ))}
-                    {result.errors.length > 5 && (
-                      <li>... et {result.errors.length - 5} autre(s)</li>
+              {result.errors.length > 0 && (() => {
+                const warnings = result.errors.filter((e) => e.includes("doublon") || e.includes("en doublon"));
+                const errors = result.errors.filter((e) => !e.includes("doublon") && !e.includes("en doublon"));
+                return (
+                  <>
+                    {warnings.length > 0 && (
+                      <div className="space-y-1 rounded-md bg-amber-500/10 px-3 py-2 border border-amber-500/20">
+                        <div className="flex items-center gap-2">
+                          <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
+                          <p className="text-xs text-amber-400 font-medium">
+                            {warnings.length} avertissement(s) :
+                          </p>
+                        </div>
+                        <ul className="text-[11px] text-amber-400/80 space-y-0.5 ml-6 max-h-24 overflow-y-auto">
+                          {warnings.slice(0, 10).map((w, i) => (
+                            <li key={i}>{w}</li>
+                          ))}
+                          {warnings.length > 10 && (
+                            <li>... et {warnings.length - 10} autre(s)</li>
+                          )}
+                        </ul>
+                      </div>
                     )}
-                  </ul>
-                </div>
-              )}
+                    {errors.length > 0 && (
+                      <div className="space-y-1 rounded-md bg-destructive/10 px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
+                          <p className="text-xs text-destructive font-medium">
+                            {errors.length} erreur(s) :
+                          </p>
+                        </div>
+                        <ul className="text-[11px] text-destructive/80 space-y-0.5 ml-6 max-h-24 overflow-y-auto">
+                          {errors.slice(0, 10).map((err, i) => (
+                            <li key={i}>{err}</li>
+                          ))}
+                          {errors.length > 10 && (
+                            <li>... et {errors.length - 10} autre(s)</li>
+                          )}
+                        </ul>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           )}
         </div>

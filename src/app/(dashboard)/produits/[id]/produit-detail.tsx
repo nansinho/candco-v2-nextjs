@@ -23,6 +23,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/ui/alert-dialog";
 import { TachesActivitesTab } from "@/components/shared/taches-activites";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import {
@@ -121,6 +122,7 @@ export function ProduitDetail({
 }) {
   const router = useRouter();
   const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [isPending, setIsPending] = React.useState(false);
   const [isArchiving, setIsArchiving] = React.useState(false);
   const [isGeneratingImage, setIsGeneratingImage] = React.useState(false);
@@ -195,7 +197,7 @@ export function ProduitDetail({
   };
 
   const handleArchive = async () => {
-    if (!confirm("Archiver ce produit de formation ?")) return;
+    if (!(await confirm({ title: "Archiver ce produit de formation ?", description: "Le produit sera masqué du catalogue mais pourra être restauré.", confirmLabel: "Archiver", variant: "destructive" }))) return;
     setIsArchiving(true);
     await archiveProduit(produit.id);
     toast({ title: "Produit archivé", variant: "success" });
@@ -701,6 +703,7 @@ export function ProduitDetail({
           <TachesActivitesTab entiteType="produit" entiteId={produit.id} />
         </TabsContent>
       </Tabs>
+      <ConfirmDialog />
     </div>
   );
 }
@@ -710,6 +713,7 @@ export function ProduitDetail({
 function TarifsTab({ produitId, tarifs }: { produitId: string; tarifs: Tarif[] }) {
   const router = useRouter();
   const { toast } = useToast();
+  const { confirm: confirmTarif, ConfirmDialog: ConfirmTarifDialog } = useConfirm();
   const [isAdding, setIsAdding] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
 
@@ -740,7 +744,7 @@ function TarifsTab({ produitId, tarifs }: { produitId: string; tarifs: Tarif[] }
   };
 
   const handleDelete = async (tarifId: string) => {
-    if (!confirm("Supprimer ce tarif ?")) return;
+    if (!(await confirmTarif({ title: "Supprimer ce tarif ?", description: "Cette action est irréversible.", confirmLabel: "Supprimer", variant: "destructive" }))) return;
     await deleteTarif(tarifId, produitId);
     toast({ title: "Tarif supprimé", variant: "success" });
     router.refresh();
@@ -863,6 +867,7 @@ function TarifsTab({ produitId, tarifs }: { produitId: string; tarifs: Tarif[] }
           </table>
         </div>
       )}
+      <ConfirmTarifDialog />
     </div>
   );
 }
@@ -878,6 +883,7 @@ function ProgrammeTab({
 }) {
   const router = useRouter();
   const { toast } = useToast();
+  const { confirm: confirmModule, ConfirmDialog: ConfirmModuleDialog } = useConfirm();
   const [isAdding, setIsAdding] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [isExtracting, setIsExtracting] = React.useState(false);
@@ -908,7 +914,7 @@ function ProgrammeTab({
   };
 
   const handleDelete = async (moduleId: string) => {
-    if (!confirm("Supprimer ce module ?")) return;
+    if (!(await confirmModule({ title: "Supprimer ce module ?", description: "Le contenu du module sera perdu.", confirmLabel: "Supprimer", variant: "destructive" }))) return;
     await deleteProgrammeModule(moduleId, produitId);
     toast({ title: "Module supprimé", variant: "success" });
     router.refresh();
@@ -1105,6 +1111,7 @@ function ProgrammeTab({
           ))}
         </div>
       )}
+      <ConfirmModuleDialog />
     </div>
   );
 }
