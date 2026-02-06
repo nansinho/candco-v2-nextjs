@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { BookOpen, Loader2, Globe, Clock } from "lucide-react";
-import { DataTable, type Column } from "@/components/data-table/DataTable";
+import { DataTable, type Column, type ActiveFilter } from "@/components/data-table/DataTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -71,6 +71,7 @@ const columns: Column<Produit>[] = [
     key: "intitule",
     label: "Intitulé",
     sortable: true,
+    filterType: "text",
     minWidth: 280,
     render: (item) => (
       <div className="flex items-center gap-2">
@@ -104,6 +105,8 @@ const columns: Column<Produit>[] = [
   {
     key: "modalite",
     label: "Modalité",
+    filterType: "select",
+    filterOptions: [{ label: "Présentiel", value: "Présentiel" }, { label: "Distanciel", value: "Distanciel" }, { label: "Mixte", value: "Mixte" }, { label: "AFEST", value: "AFEST" }],
     minWidth: 120,
     render: (item) =>
       item.modalite ? (
@@ -179,6 +182,7 @@ const columns: Column<Produit>[] = [
     key: "created_at",
     label: "Créé le",
     sortable: true,
+    filterType: "date",
     minWidth: 100,
     defaultVisible: false,
     render: (item) => (
@@ -200,6 +204,7 @@ export default function ProduitsPage() {
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [sortBy, setSortBy] = React.useState("created_at");
   const [sortDir, setSortDir] = React.useState<"asc" | "desc">("desc");
+  const [filters, setFilters] = React.useState<ActiveFilter[]>([]);
 
   React.useEffect(() => {
     const timer = setTimeout(() => {
@@ -211,11 +216,11 @@ export default function ProduitsPage() {
 
   const fetchData = React.useCallback(async () => {
     setIsLoading(true);
-    const result = await getProduits(page, debouncedSearch, showArchived, sortBy, sortDir);
+    const result = await getProduits(page, debouncedSearch, showArchived, sortBy, sortDir, filters);
     setData(result.data as Produit[]);
     setTotalCount(result.count);
     setIsLoading(false);
-  }, [page, debouncedSearch, showArchived, sortBy, sortDir]);
+  }, [page, debouncedSearch, showArchived, sortBy, sortDir, filters]);
 
   React.useEffect(() => {
     fetchData();
@@ -258,6 +263,8 @@ export default function ProduitsPage() {
         sortBy={sortBy}
         sortDir={sortDir}
         onSortChange={handleSortChange}
+        filters={filters}
+        onFiltersChange={(f) => { setFilters(f); setPage(1); }}
         showArchived={showArchived}
         onToggleArchived={(show) => { setShowArchived(show); setPage(1); }}
         onArchive={async (ids) => {

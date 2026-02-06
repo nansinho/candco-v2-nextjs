@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Landmark, Loader2 } from "lucide-react";
-import { DataTable, type Column } from "@/components/data-table/DataTable";
+import { DataTable, type Column, type ActiveFilter } from "@/components/data-table/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -91,6 +91,7 @@ const columns: Column<Financeur>[] = [
     key: "nom",
     label: "Nom",
     sortable: true,
+    filterType: "text",
     minWidth: 200,
     render: (item) => (
       <div className="flex items-center gap-2">
@@ -104,6 +105,8 @@ const columns: Column<Financeur>[] = [
   {
     key: "type",
     label: "Type",
+    filterType: "select",
+    filterOptions: [{ label: "OPCO", value: "OPCO" }, { label: "Pôle Emploi", value: "Pôle Emploi" }, { label: "Région", value: "Région" }, { label: "AGEFIPH", value: "AGEFIPH" }, { label: "Entreprise", value: "Entreprise" }, { label: "Autre", value: "Autre" }],
     minWidth: 120,
     render: (item) =>
       item.type ? (
@@ -123,6 +126,7 @@ const columns: Column<Financeur>[] = [
     key: "email",
     label: "Email",
     sortable: true,
+    filterType: "text",
     minWidth: 200,
     render: (item) =>
       item.email || <span className="text-muted-foreground/40">--</span>,
@@ -152,6 +156,7 @@ const columns: Column<Financeur>[] = [
     key: "created_at",
     label: "Créé le",
     sortable: true,
+    filterType: "date",
     minWidth: 100,
     defaultVisible: false,
     render: (item) => (
@@ -176,6 +181,7 @@ export default function FinanceursPage() {
   const [formError, setFormError] = React.useState<string | null>(null);
   const [sortBy, setSortBy] = React.useState("created_at");
   const [sortDir, setSortDir] = React.useState<"asc" | "desc">("desc");
+  const [filters, setFilters] = React.useState<ActiveFilter[]>([]);
 
   // Form state
   const [formNom, setFormNom] = React.useState("");
@@ -196,11 +202,11 @@ export default function FinanceursPage() {
   // Fetch data
   const fetchData = React.useCallback(async () => {
     setIsLoading(true);
-    const result = await getFinanceurs(page, debouncedSearch, showArchived, sortBy, sortDir);
+    const result = await getFinanceurs(page, debouncedSearch, showArchived, sortBy, sortDir, filters);
     setData(result.data as Financeur[]);
     setTotalCount(result.count);
     setIsLoading(false);
-  }, [page, debouncedSearch, showArchived, sortBy, sortDir]);
+  }, [page, debouncedSearch, showArchived, sortBy, sortDir, filters]);
 
   React.useEffect(() => {
     fetchData();
@@ -282,6 +288,8 @@ export default function FinanceursPage() {
         sortBy={sortBy}
         sortDir={sortDir}
         onSortChange={handleSortChange}
+        filters={filters}
+        onFiltersChange={(f) => { setFilters(f); setPage(1); }}
         showArchived={showArchived}
         onToggleArchived={(show) => { setShowArchived(show); setPage(1); }}
         onArchive={async (ids) => {

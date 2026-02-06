@@ -20,6 +20,8 @@ import {
   Eye,
   EyeOff,
   X,
+  SlidersHorizontal,
+  Minus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,7 +51,34 @@ export interface Column<T> {
   defaultVisible?: boolean;
   render?: (item: T) => React.ReactNode;
   exportValue?: (item: T) => string;
+  filterType?: "text" | "select" | "date";
+  filterOptions?: { label: string; value: string }[];
+  filterKey?: string; // actual DB column to filter (defaults to key)
 }
+
+export interface ActiveFilter {
+  key: string;
+  operator: string;
+  value: string;
+}
+
+const TEXT_OPERATORS = [
+  { label: "Contient", value: "contains" },
+  { label: "Égal à", value: "equals" },
+  { label: "Commence par", value: "starts_with" },
+  { label: "Ne contient pas", value: "not_contains" },
+] as const;
+
+const SELECT_OPERATORS = [
+  { label: "Égal à", value: "equals" },
+  { label: "Différent de", value: "not_equals" },
+] as const;
+
+const DATE_OPERATORS = [
+  { label: "Après le", value: "after" },
+  { label: "Avant le", value: "before" },
+  { label: "Égal à", value: "equals" },
+] as const;
 
 interface DataTableProps<T> {
   title: string;
@@ -78,6 +107,9 @@ interface DataTableProps<T> {
   sortBy?: string;
   sortDir?: "asc" | "desc";
   onSortChange?: (key: string, dir: "asc" | "desc") => void;
+  // Filters
+  filters?: ActiveFilter[];
+  onFiltersChange?: (filters: ActiveFilter[]) => void;
 }
 
 // ─── Column visibility persistence ─────────────────────────
@@ -127,11 +159,16 @@ export function DataTable<T>({
   sortBy,
   sortDir,
   onSortChange,
+  filters = [],
+  onFiltersChange,
 }: DataTableProps<T>) {
   const { toast } = useToast();
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
   const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
+  const [showFilters, setShowFilters] = React.useState(false);
+
+  const filterableColumns = columns.filter((col) => col.filterType);
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
   // ─── Column visibility ──────────────────────────────────
@@ -429,8 +466,180 @@ export function DataTable<T>({
         </div>
       )}
 
-      {/* Search */}
-      {onSearchChange && (
+      {/* Search + Filter toggle */}
+      {(onSearchChange || (onFiltersChange && filterableColumns.length > 0)) && (
+        <div className="flex flex-wrap items-center gap-2">
+          {onSearchChange && (
+            <div className="relative w-full sm:max-w-xs">
+              <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/50" />
+              <Input
+                placeholder="Rechercher..."
+                value={searchValue}
+                onChange={(e) => onSearchChange(e.target.value)}
+                className="h-8 pl-9 text-xs bg-card border-border/60"
+              />
+            </div>
+          )}
+          {onFiltersChange && filterableColumns.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn(
+                "h-8 text-xs border-border/60",
+                filters.length > 0 && "bg-primary/10 text-primary border-primary/30"
+              )}
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              <SlidersHorizontal className="mr-1.5 h-3 w-3" />
+              Filtres
+              {filters.length > 0 && (
+                <span className="ml-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                  {filters.length}
+                </span>
+              )}
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* Advanced filter panel */}
+      {showFilters && onFiltersChange && filterableColumns.length > 0 && (
+        <div className="rounded-lg border border-border/60 bg-card p-3 space-y-2">
+          {filters.map((filter, idx) => {
+            const col = columns.find((c) => (c.filterKey || c.key) === filter.key);
+            const operators =
+              col?.filterType === "select" ? SELECT_OPERATORS :
+              col?.filterType === "date" ? DATE_OPERATORS :
+              TEXT_OPERATORS;
+
+            return (
+              <div key={idx} className="flex flex-wrap items-center gap-2">
+                <select
+                  value={filter.key}
+                  onChange={(e) => {
+                    const newFilters = [...filters];
+                    const newCol = columns.find((c) => (c.filterKey || c.key) === e.target.value);
+                    const newOps =
+                      newCol?.filterType === "select" ? SELECT_OPERATORS :
+                      newCol?.filterType === "date" ? DATE_OPERATORS :
+                      TEXT_OPERATORS;
+                    newFilters[idx] = { key: e.target.value, operator: newOps[0].value, value: "" };
+                    onFiltersChange(newFilters);
+                  }}
+                  className="h-8 rounded-md border border-border/60 bg-muted px-2 text-xs text-foreground min-w-[120px]"
+                >
+                  {filterableColumns.map((c) => (
+                    <option key={c.filterKey || c.key} value={c.filterKey || c.key}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={filter.operator}
+                  onChange={(e) => {
+                    const newFilters = [...filters];
+                    newFilters[idx] = { ...filter, operator: e.target.value };
+                    onFiltersChange(newFilters);
+                  }}
+                  className="h-8 rounded-md border border-border/60 bg-muted px-2 text-xs text-foreground min-w-[110px]"
+                >
+                  {operators.map((op) => (
+                    <option key={op.value} value={op.value}>
+                      {op.label}
+                    </option>
+                  ))}
+                </select>
+
+                {col?.filterType === "select" && col.filterOptions ? (
+                  <select
+                    value={filter.value}
+                    onChange={(e) => {
+                      const newFilters = [...filters];
+                      newFilters[idx] = { ...filter, value: e.target.value };
+                      onFiltersChange(newFilters);
+                    }}
+                    className="h-8 flex-1 min-w-[140px] rounded-md border border-border/60 bg-muted px-2 text-xs text-foreground"
+                  >
+                    <option value="">-- Sélectionner --</option>
+                    {col.filterOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                ) : col?.filterType === "date" ? (
+                  <input
+                    type="date"
+                    value={filter.value}
+                    onChange={(e) => {
+                      const newFilters = [...filters];
+                      newFilters[idx] = { ...filter, value: e.target.value };
+                      onFiltersChange(newFilters);
+                    }}
+                    className="h-8 flex-1 min-w-[140px] rounded-md border border-border/60 bg-muted px-2 text-xs text-foreground"
+                  />
+                ) : (
+                  <Input
+                    value={filter.value}
+                    onChange={(e) => {
+                      const newFilters = [...filters];
+                      newFilters[idx] = { ...filter, value: e.target.value };
+                      onFiltersChange(newFilters);
+                    }}
+                    placeholder="Valeur..."
+                    className="h-8 flex-1 min-w-[140px] text-xs bg-muted border-border/60"
+                  />
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newFilters = filters.filter((_, i) => i !== idx);
+                    onFiltersChange(newFilters);
+                  }}
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                >
+                  <Minus className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            );
+          })}
+
+          <div className="flex items-center gap-2 pt-1">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs border-border/60"
+              onClick={() => {
+                const firstCol = filterableColumns[0];
+                const firstKey = firstCol.filterKey || firstCol.key;
+                const firstOp =
+                  firstCol.filterType === "select" ? "equals" :
+                  firstCol.filterType === "date" ? "after" :
+                  "contains";
+                onFiltersChange([...filters, { key: firstKey, operator: firstOp, value: "" }]);
+              }}
+            >
+              <Plus className="mr-1 h-3 w-3" />
+              Ajouter un filtre
+            </Button>
+            {filters.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs text-muted-foreground hover:text-destructive"
+                onClick={() => onFiltersChange([])}
+              >
+                Tout effacer
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Search (standalone - when no filter system) */}
+      {onSearchChange && !(onFiltersChange && filterableColumns.length > 0) && (
         <div className="relative w-full sm:max-w-xs">
           <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/50" />
           <Input

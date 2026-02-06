@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Users, Building2, Loader2 } from "lucide-react";
-import { DataTable, type Column } from "@/components/data-table/DataTable";
+import { DataTable, type Column, type ActiveFilter } from "@/components/data-table/DataTable";
 import {
   Dialog,
   DialogContent,
@@ -72,6 +72,7 @@ const columns: Column<ContactClient>[] = [
     key: "nom",
     label: "Nom",
     sortable: true,
+    filterType: "text",
     minWidth: 200,
     render: (item) => (
       <div className="flex items-center gap-2">
@@ -88,6 +89,7 @@ const columns: Column<ContactClient>[] = [
     key: "email",
     label: "Email",
     sortable: true,
+    filterType: "text",
     minWidth: 200,
     render: (item) =>
       item.email || <span className="text-muted-foreground/40">--</span>,
@@ -96,6 +98,7 @@ const columns: Column<ContactClient>[] = [
     key: "fonction",
     label: "Fonction",
     sortable: true,
+    filterType: "text",
     minWidth: 160,
     render: (item) =>
       item.fonction || <span className="text-muted-foreground/40">--</span>,
@@ -130,6 +133,7 @@ const columns: Column<ContactClient>[] = [
     key: "created_at",
     label: "Créé le",
     sortable: true,
+    filterType: "date",
     minWidth: 100,
     defaultVisible: false,
     render: (item) => (
@@ -154,6 +158,7 @@ export default function ContactsClientsPage() {
   const [importOpen, setImportOpen] = React.useState(false);
   const [sortBy, setSortBy] = React.useState("created_at");
   const [sortDir, setSortDir] = React.useState<"asc" | "desc">("desc");
+  const [filters, setFilters] = React.useState<ActiveFilter[]>([]);
 
   // Debounce search
   React.useEffect(() => {
@@ -167,11 +172,11 @@ export default function ContactsClientsPage() {
   // Fetch data
   const fetchData = React.useCallback(async () => {
     setIsLoading(true);
-    const result = await getContactsClients(page, debouncedSearch, showArchived, sortBy, sortDir);
+    const result = await getContactsClients(page, debouncedSearch, showArchived, sortBy, sortDir, filters);
     setData(result.data as ContactClient[]);
     setTotalCount(result.count);
     setIsLoading(false);
-  }, [page, debouncedSearch, showArchived, sortBy, sortDir]);
+  }, [page, debouncedSearch, showArchived, sortBy, sortDir, filters]);
 
   React.useEffect(() => {
     fetchData();
@@ -215,6 +220,8 @@ export default function ContactsClientsPage() {
         sortBy={sortBy}
         sortDir={sortDir}
         onSortChange={handleSortChange}
+        filters={filters}
+        onFiltersChange={(f) => { setFilters(f); setPage(1); }}
         showArchived={showArchived}
         onToggleArchived={(show) => { setShowArchived(show); setPage(1); }}
         onArchive={async (ids) => {

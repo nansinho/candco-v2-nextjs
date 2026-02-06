@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { UserCheck, Loader2 } from "lucide-react";
-import { DataTable, type Column } from "@/components/data-table/DataTable";
+import { DataTable, type Column, type ActiveFilter } from "@/components/data-table/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -69,6 +69,7 @@ const columns: Column<Formateur>[] = [
     key: "nom",
     label: "Nom",
     sortable: true,
+    filterType: "text",
     minWidth: 200,
     render: (item) => (
       <div className="flex items-center gap-2">
@@ -85,6 +86,7 @@ const columns: Column<Formateur>[] = [
     key: "email",
     label: "Email",
     sortable: true,
+    filterType: "text",
     minWidth: 200,
     render: (item) =>
       item.email || <span className="text-muted-foreground/40">--</span>,
@@ -99,6 +101,8 @@ const columns: Column<Formateur>[] = [
   {
     key: "statut_bpf",
     label: "Statut BPF",
+    filterType: "select",
+    filterOptions: [{ label: "Interne", value: "interne" }, { label: "Externe", value: "externe" }],
     minWidth: 120,
     render: (item) => (
       <Badge
@@ -130,6 +134,7 @@ const columns: Column<Formateur>[] = [
     key: "created_at",
     label: "Créé le",
     sortable: true,
+    filterType: "date",
     minWidth: 100,
     defaultVisible: false,
     render: (item) => (
@@ -154,6 +159,7 @@ export default function FormateursPage() {
   const [formErrors, setFormErrors] = React.useState<Record<string, string[]>>({});
   const [sortBy, setSortBy] = React.useState("created_at");
   const [sortDir, setSortDir] = React.useState<"asc" | "desc">("desc");
+  const [filters, setFilters] = React.useState<ActiveFilter[]>([]);
 
   // Debounce search
   React.useEffect(() => {
@@ -167,11 +173,11 @@ export default function FormateursPage() {
   // Fetch data
   const fetchData = React.useCallback(async () => {
     setIsLoading(true);
-    const result = await getFormateurs(page, debouncedSearch, showArchived, sortBy, sortDir);
+    const result = await getFormateurs(page, debouncedSearch, showArchived, sortBy, sortDir, filters);
     setData(result.data as Formateur[]);
     setTotalCount(result.count);
     setIsLoading(false);
-  }, [page, debouncedSearch, showArchived, sortBy, sortDir]);
+  }, [page, debouncedSearch, showArchived, sortBy, sortDir, filters]);
 
   React.useEffect(() => {
     fetchData();
@@ -253,6 +259,8 @@ export default function FormateursPage() {
         sortBy={sortBy}
         sortDir={sortDir}
         onSortChange={handleSortChange}
+        filters={filters}
+        onFiltersChange={(f) => { setFilters(f); setPage(1); }}
         showArchived={showArchived}
         onToggleArchived={(show) => { setShowArchived(show); setPage(1); }}
         onArchive={async (ids) => {

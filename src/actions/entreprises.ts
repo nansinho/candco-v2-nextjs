@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getOrganisationId } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import type { QueryFilter } from "@/lib/utils";
 
 // ─── Schemas ─────────────────────────────────────────────
 
@@ -51,6 +52,7 @@ export async function getEntreprises(
   showArchived: boolean = false,
   sortBy: string = "created_at",
   sortDir: "asc" | "desc" = "desc",
+  filters: QueryFilter[] = [],
 ) {
   const supabase = await createClient();
   const limit = 25;
@@ -72,6 +74,17 @@ export async function getEntreprises(
     query = query.or(
       `nom.ilike.%${search}%,siret.ilike.%${search}%,email.ilike.%${search}%`
     );
+  }
+
+  for (const f of filters) {
+    if (!f.value) continue;
+    if (f.operator === "contains") query = query.ilike(f.key, `%${f.value}%`);
+    else if (f.operator === "not_contains") query = query.not(f.key, "ilike", `%${f.value}%`);
+    else if (f.operator === "equals") query = query.eq(f.key, f.value);
+    else if (f.operator === "not_equals") query = query.neq(f.key, f.value);
+    else if (f.operator === "starts_with") query = query.ilike(f.key, `${f.value}%`);
+    else if (f.operator === "after") query = query.gt(f.key, f.value);
+    else if (f.operator === "before") query = query.lt(f.key, f.value);
   }
 
   const { data, count, error } = await query;
