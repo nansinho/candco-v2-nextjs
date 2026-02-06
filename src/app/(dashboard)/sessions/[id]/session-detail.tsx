@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast";
 import { TachesActivitesTab } from "@/components/shared/taches-activites";
+import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import {
   updateSession,
@@ -43,6 +44,8 @@ import {
   type CommanditaireInput,
   type CreneauInput,
 } from "@/actions/sessions";
+import { createFormateur } from "@/actions/formateurs";
+import { createApprenant } from "@/actions/apprenants";
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -894,12 +897,30 @@ function AddFormateurInline({
   onClose: () => void;
   onSuccess: () => void;
 }) {
+  const [mode, setMode] = React.useState<"select" | "create">("select");
   const [formateurId, setFormateurId] = React.useState("");
   const [role, setRole] = React.useState("principal");
   const [loading, setLoading] = React.useState(false);
   const { toast } = useToast();
 
-  const handleAdd = async () => {
+  // Create form state
+  const [newForm, setNewForm] = React.useState({
+    civilite: "",
+    prenom: "",
+    nom: "",
+    email: "",
+    telephone: "",
+    statut_bpf: "externe" as "interne" | "externe",
+    tarif_journalier: "",
+    siret: "",
+    nda: "",
+    adresse_rue: "",
+    adresse_complement: "",
+    adresse_cp: "",
+    adresse_ville: "",
+  });
+
+  const handleAddExisting = async () => {
     if (!formateurId) return;
     setLoading(true);
     const res = await addSessionFormateur(sessionId, formateurId, role);
@@ -912,40 +933,194 @@ function AddFormateurInline({
     onSuccess();
   };
 
+  const handleCreateAndAdd = async () => {
+    if (!newForm.prenom.trim() || !newForm.nom.trim()) {
+      toast({ title: "Erreur", description: "Prénom et nom sont requis.", variant: "destructive" });
+      return;
+    }
+    setLoading(true);
+
+    // 1. Create the formateur
+    const createRes = await createFormateur({
+      civilite: newForm.civilite || undefined,
+      prenom: newForm.prenom,
+      nom: newForm.nom,
+      email: newForm.email || undefined,
+      telephone: newForm.telephone || undefined,
+      statut_bpf: newForm.statut_bpf,
+      tarif_journalier: newForm.tarif_journalier ? Number(newForm.tarif_journalier) : undefined,
+      siret: newForm.siret || undefined,
+      nda: newForm.nda || undefined,
+      adresse_rue: newForm.adresse_rue || undefined,
+      adresse_complement: newForm.adresse_complement || undefined,
+      adresse_cp: newForm.adresse_cp || undefined,
+      adresse_ville: newForm.adresse_ville || undefined,
+    });
+
+    if (createRes.error || !createRes.data) {
+      setLoading(false);
+      const msg = createRes.error && typeof createRes.error === "object" && "_form" in createRes.error
+        ? (createRes.error as { _form: string[] })._form[0]
+        : "Erreur lors de la création du formateur.";
+      toast({ title: "Erreur", description: msg, variant: "destructive" });
+      return;
+    }
+
+    // 2. Link to session
+    const linkRes = await addSessionFormateur(sessionId, createRes.data.id, role);
+    setLoading(false);
+
+    if (linkRes.error) {
+      toast({ title: "Erreur", description: String(linkRes.error), variant: "destructive" });
+      return;
+    }
+
+    toast({ title: "Formateur créé et ajouté", description: `${newForm.prenom} ${newForm.nom}`, variant: "success" });
+    onSuccess();
+  };
+
+  const selectClass = "h-8 w-full rounded-md border border-input bg-muted px-2 text-[13px] text-foreground";
+
   return (
-    <div className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-3">
+    <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-medium">Ajouter un formateur</p>
+        <p className="text-sm font-medium">
+          {mode === "select" ? "Ajouter un formateur existant" : "Créer un nouveau formateur"}
+        </p>
         <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">
-          <X className="h-3.5 w-3.5" />
+          <X className="h-4 w-4" />
         </button>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2">
-        <select
-          value={formateurId}
-          onChange={(e) => setFormateurId(e.target.value)}
-          className="h-8 rounded-md border border-input bg-muted px-2 text-[13px] text-foreground"
-        >
-          <option value="">-- Sélectionner --</option>
-          {formateurs.map((f) => (
-            <option key={f.id} value={f.id}>
-              {f.prenom} {f.nom}{f.tarif_journalier ? ` (${f.tarif_journalier}€/j)` : ""}
-            </option>
-          ))}
-        </select>
-        <select
-          value={role}
-          onChange={(e) => setRole(e.target.value)}
-          className="h-8 rounded-md border border-input bg-muted px-2 text-[13px] text-foreground"
-        >
-          <option value="principal">Principal</option>
-          <option value="intervenant">Intervenant</option>
-        </select>
-        <Button size="sm" className="h-8 text-xs" onClick={handleAdd} disabled={!formateurId || loading}>
-          {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="mr-1 h-3 w-3" />}
-          Ajouter
-        </Button>
-      </div>
+
+      {mode === "select" ? (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2">
+            <select value={formateurId} onChange={(e) => setFormateurId(e.target.value)} className={selectClass}>
+              <option value="">-- Sélectionner --</option>
+              {formateurs.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.prenom} {f.nom}{f.tarif_journalier ? ` (${f.tarif_journalier}€/j)` : ""}
+                </option>
+              ))}
+            </select>
+            <select value={role} onChange={(e) => setRole(e.target.value)} className={selectClass.replace("w-full ", "")}>
+              <option value="principal">Principal</option>
+              <option value="intervenant">Intervenant</option>
+            </select>
+            <Button size="sm" className="h-8 text-xs" onClick={handleAddExisting} disabled={!formateurId || loading}>
+              {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="mr-1 h-3 w-3" />}
+              Ajouter
+            </Button>
+          </div>
+          <button
+            type="button"
+            onClick={() => setMode("create")}
+            className="text-xs text-primary hover:underline"
+          >
+            + Créer un nouveau formateur
+          </button>
+        </>
+      ) : (
+        <div className="space-y-3">
+          {/* Identity */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="space-y-1">
+              <Label className="text-[11px] text-muted-foreground">Civilité</Label>
+              <select value={newForm.civilite} onChange={(e) => setNewForm((p) => ({ ...p, civilite: e.target.value }))} className={selectClass}>
+                <option value="">--</option>
+                <option value="Monsieur">Monsieur</option>
+                <option value="Madame">Madame</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[11px] text-muted-foreground">Prénom *</Label>
+              <Input value={newForm.prenom} onChange={(e) => setNewForm((p) => ({ ...p, prenom: e.target.value }))} placeholder="Prénom" className="h-8 text-[13px] border-border/60" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[11px] text-muted-foreground">Nom *</Label>
+              <Input value={newForm.nom} onChange={(e) => setNewForm((p) => ({ ...p, nom: e.target.value }))} placeholder="Nom" className="h-8 text-[13px] border-border/60" />
+            </div>
+          </div>
+
+          {/* Contact */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <Label className="text-[11px] text-muted-foreground">Email</Label>
+              <Input type="email" value={newForm.email} onChange={(e) => setNewForm((p) => ({ ...p, email: e.target.value }))} placeholder="email@exemple.fr" className="h-8 text-[13px] border-border/60" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[11px] text-muted-foreground">Téléphone</Label>
+              <Input value={newForm.telephone} onChange={(e) => setNewForm((p) => ({ ...p, telephone: e.target.value }))} placeholder="06 12 34 56 78" className="h-8 text-[13px] border-border/60" />
+            </div>
+          </div>
+
+          {/* Professional */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="space-y-1">
+              <Label className="text-[11px] text-muted-foreground">Statut BPF</Label>
+              <select value={newForm.statut_bpf} onChange={(e) => setNewForm((p) => ({ ...p, statut_bpf: e.target.value as "interne" | "externe" }))} className={selectClass}>
+                <option value="externe">Externe (sous-traitant)</option>
+                <option value="interne">Interne (salarié)</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[11px] text-muted-foreground">Tarif journalier HT (€)</Label>
+              <Input type="number" step="0.01" min="0" value={newForm.tarif_journalier} onChange={(e) => setNewForm((p) => ({ ...p, tarif_journalier: e.target.value }))} placeholder="350" className="h-8 text-[13px] border-border/60" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[11px] text-muted-foreground">Rôle dans la session</Label>
+              <select value={role} onChange={(e) => setRole(e.target.value)} className={selectClass}>
+                <option value="principal">Principal</option>
+                <option value="intervenant">Intervenant</option>
+              </select>
+            </div>
+          </div>
+
+          {/* SIRET / NDA */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <Label className="text-[11px] text-muted-foreground">SIRET</Label>
+              <Input value={newForm.siret} onChange={(e) => setNewForm((p) => ({ ...p, siret: e.target.value }))} placeholder="123 456 789 00012" className="h-8 text-[13px] border-border/60" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[11px] text-muted-foreground">NDA (sous-traitant)</Label>
+              <Input value={newForm.nda} onChange={(e) => setNewForm((p) => ({ ...p, nda: e.target.value }))} placeholder="N° déclaration d'activité" className="h-8 text-[13px] border-border/60" />
+            </div>
+          </div>
+
+          {/* Address with autocomplete */}
+          <div className="space-y-2">
+            <Label className="text-[11px] text-muted-foreground">Adresse</Label>
+            <AddressAutocomplete
+              value={newForm.adresse_rue}
+              onChange={(val) => setNewForm((p) => ({ ...p, adresse_rue: val }))}
+              onSelect={(r) => setNewForm((p) => ({ ...p, adresse_rue: r.rue, adresse_cp: r.cp, adresse_ville: r.ville }))}
+              placeholder="Rechercher une adresse..."
+            />
+            <Input value={newForm.adresse_complement} onChange={(e) => setNewForm((p) => ({ ...p, adresse_complement: e.target.value }))} placeholder="Complément (bâtiment, étage...)" className="h-8 text-[13px] border-border/60" />
+            <div className="grid grid-cols-[120px_1fr] gap-2">
+              <Input value={newForm.adresse_cp} onChange={(e) => setNewForm((p) => ({ ...p, adresse_cp: e.target.value }))} placeholder="CP" className="h-8 text-[13px] border-border/60" />
+              <Input value={newForm.adresse_ville} onChange={(e) => setNewForm((p) => ({ ...p, adresse_ville: e.target.value }))} placeholder="Ville" className="h-8 text-[13px] border-border/60" />
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center justify-between pt-1">
+            <button type="button" onClick={() => setMode("select")} className="text-xs text-muted-foreground hover:text-foreground">
+              ← Sélectionner un existant
+            </button>
+            <div className="flex gap-2">
+              <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={onClose}>
+                Annuler
+              </Button>
+              <Button size="sm" className="h-7 text-xs" onClick={handleCreateAndAdd} disabled={!newForm.prenom.trim() || !newForm.nom.trim() || loading}>
+                {loading ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Plus className="mr-1 h-3 w-3" />}
+                Créer et ajouter
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1063,12 +1238,27 @@ function AddApprenantInline({
   onClose: () => void;
   onSuccess: () => void;
 }) {
+  const [mode, setMode] = React.useState<"select" | "create">("select");
   const [apprenantId, setApprenantId] = React.useState("");
   const [commanditaireId, setCommanditaireId] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const { toast } = useToast();
 
-  const handleAdd = async () => {
+  // Create form state
+  const [newForm, setNewForm] = React.useState({
+    civilite: "",
+    prenom: "",
+    nom: "",
+    email: "",
+    telephone: "",
+    date_naissance: "",
+    fonction: "",
+    adresse_rue: "",
+    adresse_cp: "",
+    adresse_ville: "",
+  });
+
+  const handleAddExisting = async () => {
     if (!apprenantId) return;
     setLoading(true);
     const res = await addInscription(sessionId, apprenantId, commanditaireId || undefined);
@@ -1081,46 +1271,189 @@ function AddApprenantInline({
     onSuccess();
   };
 
+  const handleCreateAndAdd = async () => {
+    if (!newForm.prenom.trim() || !newForm.nom.trim()) {
+      toast({ title: "Erreur", description: "Prénom et nom sont requis.", variant: "destructive" });
+      return;
+    }
+    setLoading(true);
+
+    // 1. Create the apprenant
+    const createRes = await createApprenant({
+      civilite: newForm.civilite || undefined,
+      prenom: newForm.prenom,
+      nom: newForm.nom,
+      email: newForm.email || undefined,
+      telephone: newForm.telephone || undefined,
+      date_naissance: newForm.date_naissance || undefined,
+      fonction: newForm.fonction || undefined,
+      adresse_rue: newForm.adresse_rue || undefined,
+      adresse_cp: newForm.adresse_cp || undefined,
+      adresse_ville: newForm.adresse_ville || undefined,
+    });
+
+    if (createRes.error || !createRes.data) {
+      setLoading(false);
+      const msg = createRes.error && typeof createRes.error === "object" && "_form" in createRes.error
+        ? (createRes.error as { _form: string[] })._form[0]
+        : "Erreur lors de la création de l'apprenant.";
+      toast({ title: "Erreur", description: msg, variant: "destructive" });
+      return;
+    }
+
+    // 2. Inscribe to session
+    const linkRes = await addInscription(sessionId, createRes.data.id, commanditaireId || undefined);
+    setLoading(false);
+
+    if (linkRes.error) {
+      toast({ title: "Erreur", description: String(linkRes.error), variant: "destructive" });
+      return;
+    }
+
+    toast({ title: "Apprenant créé et inscrit", description: `${newForm.prenom} ${newForm.nom}`, variant: "success" });
+    onSuccess();
+  };
+
+  const selectClass = "h-8 w-full rounded-md border border-input bg-muted px-2 text-[13px] text-foreground";
+
   return (
-    <div className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-3">
+    <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-medium">Inscrire un apprenant</p>
+        <p className="text-sm font-medium">
+          {mode === "select" ? "Inscrire un apprenant existant" : "Créer un nouvel apprenant"}
+        </p>
         <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">
-          <X className="h-3.5 w-3.5" />
+          <X className="h-4 w-4" />
         </button>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2">
-        <select
-          value={apprenantId}
-          onChange={(e) => setApprenantId(e.target.value)}
-          className="h-8 rounded-md border border-input bg-muted px-2 text-[13px] text-foreground"
-        >
-          <option value="">-- Sélectionner un apprenant --</option>
-          {apprenants.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.prenom} {a.nom} ({a.numero_affichage})
-            </option>
-          ))}
-        </select>
-        {commanditaires.length > 0 && (
-          <select
-            value={commanditaireId}
-            onChange={(e) => setCommanditaireId(e.target.value)}
-            className="h-8 rounded-md border border-input bg-muted px-2 text-[13px] text-foreground"
+
+      {mode === "select" ? (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2">
+            <select value={apprenantId} onChange={(e) => setApprenantId(e.target.value)} className={selectClass}>
+              <option value="">-- Sélectionner un apprenant --</option>
+              {apprenants.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.prenom} {a.nom} ({a.numero_affichage})
+                </option>
+              ))}
+            </select>
+            {commanditaires.length > 0 && (
+              <select value={commanditaireId} onChange={(e) => setCommanditaireId(e.target.value)} className={selectClass}>
+                <option value="">-- Commanditaire (optionnel) --</option>
+                {commanditaires.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.entreprises?.nom ?? "Commanditaire"}
+                  </option>
+                ))}
+              </select>
+            )}
+            <Button size="sm" className="h-8 text-xs" onClick={handleAddExisting} disabled={!apprenantId || loading}>
+              {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <UserPlus className="mr-1 h-3 w-3" />}
+              Inscrire
+            </Button>
+          </div>
+          <button
+            type="button"
+            onClick={() => setMode("create")}
+            className="text-xs text-primary hover:underline"
           >
-            <option value="">-- Commanditaire (optionnel) --</option>
-            {commanditaires.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.entreprises?.nom ?? "Commanditaire"}
-              </option>
-            ))}
-          </select>
-        )}
-        <Button size="sm" className="h-8 text-xs" onClick={handleAdd} disabled={!apprenantId || loading}>
-          {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <UserPlus className="mr-1 h-3 w-3" />}
-          Inscrire
-        </Button>
-      </div>
+            + Créer un nouvel apprenant
+          </button>
+        </>
+      ) : (
+        <div className="space-y-3">
+          {/* Identity */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="space-y-1">
+              <Label className="text-[11px] text-muted-foreground">Civilité</Label>
+              <select value={newForm.civilite} onChange={(e) => setNewForm((p) => ({ ...p, civilite: e.target.value }))} className={selectClass}>
+                <option value="">--</option>
+                <option value="Monsieur">Monsieur</option>
+                <option value="Madame">Madame</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[11px] text-muted-foreground">Prénom *</Label>
+              <Input value={newForm.prenom} onChange={(e) => setNewForm((p) => ({ ...p, prenom: e.target.value }))} placeholder="Prénom" className="h-8 text-[13px] border-border/60" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[11px] text-muted-foreground">Nom *</Label>
+              <Input value={newForm.nom} onChange={(e) => setNewForm((p) => ({ ...p, nom: e.target.value }))} placeholder="Nom" className="h-8 text-[13px] border-border/60" />
+            </div>
+          </div>
+
+          {/* Contact */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <Label className="text-[11px] text-muted-foreground">Email</Label>
+              <Input type="email" value={newForm.email} onChange={(e) => setNewForm((p) => ({ ...p, email: e.target.value }))} placeholder="email@exemple.fr" className="h-8 text-[13px] border-border/60" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[11px] text-muted-foreground">Téléphone</Label>
+              <Input value={newForm.telephone} onChange={(e) => setNewForm((p) => ({ ...p, telephone: e.target.value }))} placeholder="06 12 34 56 78" className="h-8 text-[13px] border-border/60" />
+            </div>
+          </div>
+
+          {/* Professional + Birth */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <Label className="text-[11px] text-muted-foreground">Date de naissance</Label>
+              <Input type="date" value={newForm.date_naissance} onChange={(e) => setNewForm((p) => ({ ...p, date_naissance: e.target.value }))} className="h-8 text-[13px] border-border/60" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[11px] text-muted-foreground">Fonction</Label>
+              <Input value={newForm.fonction} onChange={(e) => setNewForm((p) => ({ ...p, fonction: e.target.value }))} placeholder="Poste occupé" className="h-8 text-[13px] border-border/60" />
+            </div>
+          </div>
+
+          {/* Commanditaire */}
+          {commanditaires.length > 0 && (
+            <div className="space-y-1">
+              <Label className="text-[11px] text-muted-foreground">Commanditaire (optionnel)</Label>
+              <select value={commanditaireId} onChange={(e) => setCommanditaireId(e.target.value)} className={selectClass}>
+                <option value="">-- Aucun --</option>
+                {commanditaires.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.entreprises?.nom ?? "Commanditaire"}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Address with autocomplete */}
+          <div className="space-y-2">
+            <Label className="text-[11px] text-muted-foreground">Adresse</Label>
+            <AddressAutocomplete
+              value={newForm.adresse_rue}
+              onChange={(val) => setNewForm((p) => ({ ...p, adresse_rue: val }))}
+              onSelect={(r) => setNewForm((p) => ({ ...p, adresse_rue: r.rue, adresse_cp: r.cp, adresse_ville: r.ville }))}
+              placeholder="Rechercher une adresse..."
+            />
+            <div className="grid grid-cols-[120px_1fr] gap-2">
+              <Input value={newForm.adresse_cp} onChange={(e) => setNewForm((p) => ({ ...p, adresse_cp: e.target.value }))} placeholder="CP" className="h-8 text-[13px] border-border/60" />
+              <Input value={newForm.adresse_ville} onChange={(e) => setNewForm((p) => ({ ...p, adresse_ville: e.target.value }))} placeholder="Ville" className="h-8 text-[13px] border-border/60" />
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center justify-between pt-1">
+            <button type="button" onClick={() => setMode("select")} className="text-xs text-muted-foreground hover:text-foreground">
+              ← Sélectionner un existant
+            </button>
+            <div className="flex gap-2">
+              <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={onClose}>
+                Annuler
+              </Button>
+              <Button size="sm" className="h-7 text-xs" onClick={handleCreateAndAdd} disabled={!newForm.prenom.trim() || !newForm.nom.trim() || loading}>
+                {loading ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <UserPlus className="mr-1 h-3 w-3" />}
+                Créer et inscrire
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast";
+import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
 import {
   updateApprenant,
   archiveApprenant,
@@ -106,6 +107,11 @@ export function ApprenantDetail({
   const [isPending, setIsPending] = React.useState(false);
   const [isArchiving, setIsArchiving] = React.useState(false);
   const [errors, setErrors] = React.useState<FormErrors>({});
+
+  // Controlled state for address (so autocomplete can update CP/Ville)
+  const [adresseRue, setAdresseRue] = React.useState(apprenant.adresse_rue ?? "");
+  const [adresseCp, setAdresseCp] = React.useState(apprenant.adresse_cp ?? "");
+  const [adresseVille, setAdresseVille] = React.useState(apprenant.adresse_ville ?? "");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -470,11 +476,13 @@ export function ApprenantDetail({
                       <Label htmlFor="adresse_rue" className="text-[13px]">
                         Rue
                       </Label>
-                      <Input
+                      <AddressAutocomplete
                         id="adresse_rue"
                         name="adresse_rue"
-                        defaultValue={apprenant.adresse_rue ?? ""}
-                        className="h-9 text-[13px] border-border/60"
+                        value={adresseRue}
+                        onChange={(val) => setAdresseRue(val)}
+                        onSelect={(r) => { setAdresseRue(r.rue); setAdresseCp(r.cp); setAdresseVille(r.ville); }}
+                        placeholder="Rechercher une adresse..."
                       />
                       {errors.adresse_rue && (
                         <p className="text-xs text-destructive">
@@ -511,7 +519,8 @@ export function ApprenantDetail({
                         <Input
                           id="adresse_cp"
                           name="adresse_cp"
-                          defaultValue={apprenant.adresse_cp ?? ""}
+                          value={adresseCp}
+                          onChange={(e) => setAdresseCp(e.target.value)}
                           className="h-9 text-[13px] border-border/60"
                         />
                         {errors.adresse_cp && (
@@ -531,7 +540,8 @@ export function ApprenantDetail({
                         <Input
                           id="adresse_ville"
                           name="adresse_ville"
-                          defaultValue={apprenant.adresse_ville ?? ""}
+                          value={adresseVille}
+                          onChange={(e) => setAdresseVille(e.target.value)}
                           className="h-9 text-[13px] border-border/60"
                         />
                         {errors.adresse_ville && (

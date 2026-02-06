@@ -19,6 +19,7 @@ import {
 } from "@/actions/formateurs";
 import { formatCurrency } from "@/lib/utils";
 import { TachesActivitesTab } from "@/components/shared/taches-activites";
+import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
 
 interface FormateurData {
   id: string;
@@ -371,13 +372,11 @@ export default function FormateurDetailPage() {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label className="text-[13px]">Rue</Label>
-                  <Input
+                  <AddressAutocomplete
                     value={form.adresse_rue ?? ""}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, adresse_rue: e.target.value }))
-                    }
-                    placeholder="12 rue de la Formation"
-                    className="h-9 text-[13px] border-border/60"
+                    onChange={(val) => setForm((prev) => ({ ...prev, adresse_rue: val }))}
+                    onSelect={(r) => setForm((prev) => ({ ...prev, adresse_rue: r.rue, adresse_cp: r.cp, adresse_ville: r.ville }))}
+                    placeholder="Rechercher une adresse..."
                   />
                 </div>
                 <div className="space-y-2">
