@@ -558,11 +558,11 @@ function AgenceDialog({
       nom,
       siret,
       adresse_rue: adresseRue,
-      adresse_complement: fd.get("adresse_complement") as string,
+      adresse_complement: (fd.get("adresse_complement") as string) ?? "",
       adresse_cp: adresseCp,
       adresse_ville: adresseVille,
-      telephone: fd.get("telephone") as string,
-      email: fd.get("email") as string,
+      telephone: (fd.get("telephone") as string) ?? "",
+      email: (fd.get("email") as string) ?? "",
       est_siege: fd.get("est_siege") === "on",
     };
 

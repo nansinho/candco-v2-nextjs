@@ -1,9 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Search, Building2, Loader2, Check } from "lucide-react";
+import { Search, Building2, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface SiretResult {
@@ -29,6 +28,7 @@ export function SiretSearch({ onSelect, className }: SiretSearchProps) {
   const [showResults, setShowResults] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const containerRef = React.useRef<HTMLDivElement>(null);
+  const debounceRef = React.useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // Close dropdown on outside click
   React.useEffect(() => {
@@ -41,35 +41,19 @@ export function SiretSearch({ onSelect, className }: SiretSearchProps) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleSearch = async () => {
-    if (!query.trim() || query.trim().length < 3) return;
+  const doSearch = React.useCallback(async (searchQuery: string) => {
+    if (!searchQuery.trim() || searchQuery.trim().length < 3) {
+      setResults([]);
+      setShowResults(false);
+      return;
+    }
+
     setIsSearching(true);
     setError(null);
-    setResults([]);
 
     try {
-      const cleanQuery = query.replace(/\s/g, "");
-      // Determine if it's a SIRET/SIREN number or a company name
-      const isNumber = /^\d+$/.test(cleanQuery);
-
-      let url: string;
-      if (isNumber && cleanQuery.length >= 9) {
-        // Search by SIREN (9 digits) or SIRET (14 digits)
-        if (cleanQuery.length === 14) {
-          url = `https://api.insee.fr/api-sirene/3.11/siret/${cleanQuery}`;
-        } else if (cleanQuery.length === 9) {
-          url = `https://api.insee.fr/api-sirene/3.11/siren/${cleanQuery}`;
-        } else {
-          url = `https://recherche-entreprises.api.gouv.fr/search?q=${encodeURIComponent(query)}&per_page=5`;
-        }
-      } else {
-        // Search by name using the free API
-        url = `https://recherche-entreprises.api.gouv.fr/search?q=${encodeURIComponent(query)}&per_page=5`;
-      }
-
-      // Use the free recherche-entreprises API (no key required)
       const response = await fetch(
-        `https://recherche-entreprises.api.gouv.fr/search?q=${encodeURIComponent(query)}&per_page=8`
+        `https://recherche-entreprises.api.gouv.fr/search?q=${encodeURIComponent(searchQuery)}&per_page=8`
       );
 
       if (!response.ok) {
@@ -106,42 +90,45 @@ export function SiretSearch({ onSelect, className }: SiretSearchProps) {
     } finally {
       setIsSearching(false);
     }
+  }, []);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setQuery(val);
+
+    // Debounce search — auto-search as user types
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      doSearch(val);
+    }, 400);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      handleSearch();
+      // Immediate search on Enter
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      doSearch(query);
     }
   };
 
   return (
     <div ref={containerRef} className={cn("relative", className)}>
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/50" />
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Rechercher par SIRET, SIREN ou nom..."
-            className="h-9 pl-9 text-[13px] border-border/60"
-          />
-        </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={handleSearch}
-          disabled={isSearching || query.trim().length < 3}
-          className="h-9 text-xs border-border/60"
-        >
-          {isSearching ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            "Rechercher"
-          )}
-        </Button>
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/50" />
+        <Input
+          value={query}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+          onFocus={() => {
+            if (results.length > 0) setShowResults(true);
+          }}
+          placeholder="Rechercher par SIRET, SIREN ou nom..."
+          className="h-9 pl-9 text-[13px] border-border/60"
+        />
+        {isSearching && (
+          <Loader2 className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-muted-foreground/50" />
+        )}
       </div>
 
       {error && (
@@ -174,7 +161,6 @@ export function SiretSearch({ onSelect, className }: SiretSearchProps) {
                       SIRET: {r.siret || r.siren} {r.adresse_cp && `— ${r.adresse_cp} ${r.adresse_ville}`}
                     </p>
                   </div>
-                  <Check className="h-3.5 w-3.5 text-primary/0 group-hover:text-primary ml-auto shrink-0 mt-1" />
                 </div>
               </button>
             ))
