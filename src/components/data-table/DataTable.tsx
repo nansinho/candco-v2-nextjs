@@ -19,6 +19,7 @@ import {
   Columns3,
   Eye,
   EyeOff,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -271,142 +272,156 @@ export function DataTable<T>({
   return (
     <div className="space-y-4">
       {/* Toolbar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
-        <div className="flex flex-wrap items-center gap-2">
-          {selectedIds.size > 0 && (
-            <>
-              <span className="text-xs text-muted-foreground">
-                {selectedIds.size} sélectionné(s)
-              </span>
-              {showArchived ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 text-xs text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
-                  onClick={handleUnarchive}
-                >
-                  <ArchiveRestore className="mr-1.5 h-3 w-3" />
-                  Restaurer
-                </Button>
-              ) : (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 text-xs"
-                  onClick={handleArchive}
-                >
-                  <Archive className="mr-1.5 h-3 w-3" />
-                  Archiver
-                </Button>
-              )}
-              {onDelete && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 text-xs text-destructive hover:text-destructive"
-                  onClick={handleDeleteClick}
-                >
-                  <Trash2 className="mr-1.5 h-3 w-3" />
-                  Supprimer
-                </Button>
-              )}
-            </>
-          )}
-          {onToggleArchived && (
-            <Button
-              variant="outline"
-              size="sm"
-              className={cn(
-                "h-8 text-xs border-border/60",
-                showArchived && "bg-amber-500/10 text-amber-400 border-amber-500/30"
-              )}
-              onClick={() => onToggleArchived(!showArchived)}
+      {selectedIds.size > 0 ? (
+        /* ─── Selection Bar ─── */
+        <div className="flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 px-4 py-2.5">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setSelectedIds(new Set())}
+              className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
             >
-              <Archive className="mr-1.5 h-3 w-3" />
-              <span className="hidden sm:inline">Archives</span>
-            </Button>
-          )}
-          {onImport && (
+              <X className="h-4 w-4" />
+            </button>
+            <span className="text-sm font-medium">
+              {selectedIds.size} sélectionné(s)
+            </span>
+          </div>
+          <div className="flex items-center gap-6">
+            {showArchived ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
+                onClick={handleUnarchive}
+              >
+                <ArchiveRestore className="mr-1.5 h-3.5 w-3.5" />
+                Restaurer
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs"
+                onClick={handleArchive}
+              >
+                <Archive className="mr-1.5 h-3.5 w-3.5" />
+                Archiver
+              </Button>
+            )}
+            {onDelete && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
+                onClick={handleDeleteClick}
+              >
+                <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                Supprimer
+              </Button>
+            )}
+          </div>
+        </div>
+      ) : (
+        /* ─── Normal Toolbar ─── */
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
+          <div className="flex flex-wrap items-center gap-2">
+            {onToggleArchived && (
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn(
+                  "h-8 text-xs border-border/60",
+                  showArchived && "bg-amber-500/10 text-amber-400 border-amber-500/30"
+                )}
+                onClick={() => onToggleArchived(!showArchived)}
+              >
+                <Archive className="mr-1.5 h-3 w-3" />
+                <span className="hidden sm:inline">Archives</span>
+              </Button>
+            )}
+            {onImport && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs border-border/60"
+                onClick={onImport}
+              >
+                <Upload className="mr-1.5 h-3 w-3" />
+                <span className="hidden sm:inline">Importer</span>
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
               className="h-8 text-xs border-border/60"
-              onClick={onImport}
+              onClick={onExport ?? handleExportCSV}
+              disabled={data.length === 0}
             >
-              <Upload className="mr-1.5 h-3 w-3" />
-              <span className="hidden sm:inline">Importer</span>
+              <Download className="mr-1.5 h-3 w-3" />
+              <span className="hidden sm:inline">Exporter</span>
             </Button>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 text-xs border-border/60"
-            onClick={onExport ?? handleExportCSV}
-            disabled={data.length === 0}
-          >
-            <Download className="mr-1.5 h-3 w-3" />
-            <span className="hidden sm:inline">Exporter</span>
-          </Button>
 
-          {/* Column visibility */}
-          {tableId && (
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 text-xs border-border/60"
-                >
-                  <Columns3 className="mr-1.5 h-3 w-3" />
-                  <span className="hidden sm:inline">Colonnes</span>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent align="end" className="w-56 p-2">
-                <div className="mb-2 flex items-center justify-between px-1">
-                  <span className="text-xs font-medium text-muted-foreground">Colonnes visibles</span>
-                  <button
-                    type="button"
-                    onClick={resetColumnVisibility}
-                    className="text-[11px] text-primary hover:underline"
+            {/* Column visibility */}
+            {tableId && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs border-border/60"
                   >
-                    Réinitialiser
-                  </button>
-                </div>
-                <div className="space-y-0.5">
-                  {columns.map((col) => (
+                    <Columns3 className="mr-1.5 h-3 w-3" />
+                    <span className="hidden sm:inline">Colonnes</span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-56 p-2">
+                  <div className="mb-2 flex items-center justify-between px-1">
+                    <span className="text-xs font-medium text-muted-foreground">Colonnes visibles</span>
                     <button
-                      key={col.key}
                       type="button"
-                      onClick={() => toggleColumnVisibility(col.key)}
-                      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs hover:bg-muted/50 transition-colors"
+                      onClick={resetColumnVisibility}
+                      className="text-[11px] text-primary hover:underline"
                     >
-                      {colVisibility[col.key] !== false ? (
-                        <Eye className="h-3 w-3 text-primary shrink-0" />
-                      ) : (
-                        <EyeOff className="h-3 w-3 text-muted-foreground/40 shrink-0" />
-                      )}
-                      <span className={cn(
-                        colVisibility[col.key] !== false ? "text-foreground" : "text-muted-foreground/60"
-                      )}>
-                        {col.label}
-                      </span>
+                      Réinitialiser
                     </button>
-                  ))}
-                </div>
-              </PopoverContent>
-            </Popover>
-          )}
+                  </div>
+                  <div className="space-y-0.5">
+                    {columns.map((col) => (
+                      <button
+                        key={col.key}
+                        type="button"
+                        onClick={() => toggleColumnVisibility(col.key)}
+                        className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs hover:bg-muted/50 transition-colors"
+                      >
+                        {colVisibility[col.key] !== false ? (
+                          <Eye className="h-3 w-3 text-primary shrink-0" />
+                        ) : (
+                          <EyeOff className="h-3 w-3 text-muted-foreground/40 shrink-0" />
+                        )}
+                        <span className={cn(
+                          colVisibility[col.key] !== false ? "text-foreground" : "text-muted-foreground/60"
+                        )}>
+                          {col.label}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
 
-          {onAdd && (
-            <Button size="sm" onClick={onAdd} className="h-8 text-xs">
-              <Plus className="mr-1.5 h-3 w-3" />
-              <span className="hidden sm:inline">{addLabel}</span>
-              <span className="sm:hidden">Ajouter</span>
-            </Button>
-          )}
+            {onAdd && (
+              <Button size="sm" onClick={onAdd} className="h-8 text-xs">
+                <Plus className="mr-1.5 h-3 w-3" />
+                <span className="hidden sm:inline">{addLabel}</span>
+                <span className="sm:hidden">Ajouter</span>
+              </Button>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Search */}
       {onSearchChange && (
