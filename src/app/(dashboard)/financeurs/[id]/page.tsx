@@ -250,7 +250,7 @@ export default function FinanceurDetailPage() {
                 id="nom"
                 value={formNom}
                 onChange={(e) => setFormNom(e.target.value)}
-                className="h-9 text-[13px] bg-background border-border/60"
+                className="h-9 text-[13px] border-border/60"
               />
             </div>
             <div className="space-y-2">
@@ -261,7 +261,7 @@ export default function FinanceurDetailPage() {
                 id="type"
                 value={formType}
                 onChange={(e) => setFormType(e.target.value)}
-                className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-[13px] text-foreground"
+                className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-[13px] text-foreground"
               >
                 <option value="">-- Sélectionner --</option>
                 {FINANCEUR_TYPES.map((t) => (
@@ -283,7 +283,7 @@ export default function FinanceurDetailPage() {
               value={formSiret}
               onChange={(e) => setFormSiret(e.target.value)}
               placeholder="Ex: 123 456 789 00012"
-              className="h-9 text-[13px] bg-background border-border/60 max-w-md"
+              className="h-9 text-[13px] border-border/60 max-w-md"
             />
           </div>
 
@@ -299,7 +299,7 @@ export default function FinanceurDetailPage() {
                 value={formEmail}
                 onChange={(e) => setFormEmail(e.target.value)}
                 placeholder="contact@opco.fr"
-                className="h-9 text-[13px] bg-background border-border/60"
+                className="h-9 text-[13px] border-border/60"
               />
             </div>
             <div className="space-y-2">
@@ -311,7 +311,7 @@ export default function FinanceurDetailPage() {
                 value={formTelephone}
                 onChange={(e) => setFormTelephone(e.target.value)}
                 placeholder="01 23 45 67 89"
-                className="h-9 text-[13px] bg-background border-border/60"
+                className="h-9 text-[13px] border-border/60"
               />
             </div>
           </div>
@@ -331,7 +331,7 @@ export default function FinanceurDetailPage() {
                   value={formAdresseRue}
                   onChange={(e) => setFormAdresseRue(e.target.value)}
                   placeholder="Numéro et nom de rue"
-                  className="h-9 text-[13px] bg-background border-border/60"
+                  className="h-9 text-[13px] border-border/60"
                 />
               </div>
               <div className="space-y-2">
@@ -343,7 +343,7 @@ export default function FinanceurDetailPage() {
                   value={formAdresseComplement}
                   onChange={(e) => setFormAdresseComplement(e.target.value)}
                   placeholder="Bâtiment, étage, etc."
-                  className="h-9 text-[13px] bg-background border-border/60"
+                  className="h-9 text-[13px] border-border/60"
                 />
               </div>
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -356,7 +356,7 @@ export default function FinanceurDetailPage() {
                     value={formAdresseCp}
                     onChange={(e) => setFormAdresseCp(e.target.value)}
                     placeholder="75001"
-                    className="h-9 text-[13px] bg-background border-border/60"
+                    className="h-9 text-[13px] border-border/60"
                   />
                 </div>
                 <div className="space-y-2">
@@ -368,7 +368,7 @@ export default function FinanceurDetailPage() {
                     value={formAdresseVille}
                     onChange={(e) => setFormAdresseVille(e.target.value)}
                     placeholder="Paris"
-                    className="h-9 text-[13px] bg-background border-border/60"
+                    className="h-9 text-[13px] border-border/60"
                   />
                 </div>
               </div>
@@ -389,7 +389,7 @@ export default function FinanceurDetailPage() {
                 value={formCompteComptable}
                 onChange={(e) => setFormCompteComptable(e.target.value)}
                 placeholder="411000"
-                className="h-9 text-[13px] bg-background border-border/60 max-w-xs"
+                className="h-9 text-[13px] border-border/60 max-w-xs"
               />
             </div>
           </div>

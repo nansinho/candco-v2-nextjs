@@ -257,7 +257,7 @@ export function ApprenantDetail({
                         id="civilite"
                         name="civilite"
                         defaultValue={apprenant.civilite ?? ""}
-                        className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-[13px] text-foreground"
+                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-[13px] text-foreground"
                       >
                         <option value="">--</option>
                         <option value="Monsieur">Monsieur</option>
@@ -279,7 +279,7 @@ export function ApprenantDetail({
                         id="prenom"
                         name="prenom"
                         defaultValue={apprenant.prenom}
-                        className="h-9 text-[13px] bg-background border-border/60"
+                        className="h-9 text-[13px] border-border/60"
                       />
                       {errors.prenom && (
                         <p className="text-xs text-destructive">
@@ -297,7 +297,7 @@ export function ApprenantDetail({
                         id="nom"
                         name="nom"
                         defaultValue={apprenant.nom}
-                        className="h-9 text-[13px] bg-background border-border/60"
+                        className="h-9 text-[13px] border-border/60"
                       />
                       {errors.nom && (
                         <p className="text-xs text-destructive">
@@ -315,7 +315,7 @@ export function ApprenantDetail({
                         id="nom_naissance"
                         name="nom_naissance"
                         defaultValue={apprenant.nom_naissance ?? ""}
-                        className="h-9 text-[13px] bg-background border-border/60"
+                        className="h-9 text-[13px] border-border/60"
                       />
                       {errors.nom_naissance && (
                         <p className="text-xs text-destructive">
@@ -343,7 +343,7 @@ export function ApprenantDetail({
                         name="email"
                         type="email"
                         defaultValue={apprenant.email ?? ""}
-                        className="h-9 text-[13px] bg-background border-border/60"
+                        className="h-9 text-[13px] border-border/60"
                       />
                       {errors.email && (
                         <p className="text-xs text-destructive">
@@ -361,7 +361,7 @@ export function ApprenantDetail({
                         id="telephone"
                         name="telephone"
                         defaultValue={apprenant.telephone ?? ""}
-                        className="h-9 text-[13px] bg-background border-border/60"
+                        className="h-9 text-[13px] border-border/60"
                       />
                       {errors.telephone && (
                         <p className="text-xs text-destructive">
@@ -404,7 +404,7 @@ export function ApprenantDetail({
                         id="fonction"
                         name="fonction"
                         defaultValue={apprenant.fonction ?? ""}
-                        className="h-9 text-[13px] bg-background border-border/60"
+                        className="h-9 text-[13px] border-border/60"
                       />
                       {errors.fonction && (
                         <p className="text-xs text-destructive">
@@ -421,7 +421,7 @@ export function ApprenantDetail({
                         id="lieu_activite"
                         name="lieu_activite"
                         defaultValue={apprenant.lieu_activite ?? ""}
-                        className="h-9 text-[13px] bg-background border-border/60"
+                        className="h-9 text-[13px] border-border/60"
                       />
                       {errors.lieu_activite && (
                         <p className="text-xs text-destructive">
@@ -447,7 +447,7 @@ export function ApprenantDetail({
                         id="adresse_rue"
                         name="adresse_rue"
                         defaultValue={apprenant.adresse_rue ?? ""}
-                        className="h-9 text-[13px] bg-background border-border/60"
+                        className="h-9 text-[13px] border-border/60"
                       />
                       {errors.adresse_rue && (
                         <p className="text-xs text-destructive">
@@ -467,7 +467,7 @@ export function ApprenantDetail({
                         id="adresse_complement"
                         name="adresse_complement"
                         defaultValue={apprenant.adresse_complement ?? ""}
-                        className="h-9 text-[13px] bg-background border-border/60"
+                        className="h-9 text-[13px] border-border/60"
                       />
                       {errors.adresse_complement && (
                         <p className="text-xs text-destructive">
@@ -485,7 +485,7 @@ export function ApprenantDetail({
                           id="adresse_cp"
                           name="adresse_cp"
                           defaultValue={apprenant.adresse_cp ?? ""}
-                          className="h-9 text-[13px] bg-background border-border/60"
+                          className="h-9 text-[13px] border-border/60"
                         />
                         {errors.adresse_cp && (
                           <p className="text-xs text-destructive">
@@ -505,7 +505,7 @@ export function ApprenantDetail({
                           id="adresse_ville"
                           name="adresse_ville"
                           defaultValue={apprenant.adresse_ville ?? ""}
-                          className="h-9 text-[13px] bg-background border-border/60"
+                          className="h-9 text-[13px] border-border/60"
                         />
                         {errors.adresse_ville && (
                           <p className="text-xs text-destructive">
@@ -533,7 +533,7 @@ export function ApprenantDetail({
                         id="bpf_categorie_id"
                         name="bpf_categorie_id"
                         defaultValue={apprenant.bpf_categorie_id ?? ""}
-                        className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-[13px] text-foreground"
+                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-[13px] text-foreground"
                       >
                         <option value="">-- Aucun --</option>
                         {bpfCategories.map((cat) => (
@@ -563,7 +563,7 @@ export function ApprenantDetail({
                         defaultValue={
                           apprenant.numero_compte_comptable ?? ""
                         }
-                        className="h-9 text-[13px] bg-background border-border/60"
+                        className="h-9 text-[13px] border-border/60"
                       />
                       {errors.numero_compte_comptable && (
                         <p className="text-xs text-destructive">

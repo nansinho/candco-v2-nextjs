@@ -278,7 +278,7 @@ export default function FormateurDetailPage() {
                     onChange={(e) =>
                       setForm((prev) => ({ ...prev, civilite: e.target.value }))
                     }
-                    className="h-9 w-full rounded-md border border-border/60 bg-background px-3 py-1 text-[13px] text-foreground"
+                    className="h-9 w-full rounded-md border border-border/60 bg-transparent px-3 py-1 text-[13px] text-foreground"
                   >
                     <option value="">--</option>
                     <option value="Monsieur">Monsieur</option>
@@ -294,7 +294,7 @@ export default function FormateurDetailPage() {
                     onChange={(e) =>
                       setForm((prev) => ({ ...prev, prenom: e.target.value }))
                     }
-                    className="h-9 text-[13px] bg-background border-border/60"
+                    className="h-9 text-[13px] border-border/60"
                   />
                   {formErrors.prenom && (
                     <p className="text-xs text-destructive">{formErrors.prenom[0]}</p>
@@ -309,7 +309,7 @@ export default function FormateurDetailPage() {
                     onChange={(e) =>
                       setForm((prev) => ({ ...prev, nom: e.target.value }))
                     }
-                    className="h-9 text-[13px] bg-background border-border/60"
+                    className="h-9 text-[13px] border-border/60"
                   />
                   {formErrors.nom && (
                     <p className="text-xs text-destructive">{formErrors.nom[0]}</p>
@@ -331,7 +331,7 @@ export default function FormateurDetailPage() {
                       setForm((prev) => ({ ...prev, email: e.target.value }))
                     }
                     placeholder="jean@exemple.fr"
-                    className="h-9 text-[13px] bg-background border-border/60"
+                    className="h-9 text-[13px] border-border/60"
                   />
                   {formErrors.email && (
                     <p className="text-xs text-destructive">{formErrors.email[0]}</p>
@@ -345,7 +345,7 @@ export default function FormateurDetailPage() {
                       setForm((prev) => ({ ...prev, telephone: e.target.value }))
                     }
                     placeholder="06 12 34 56 78"
-                    className="h-9 text-[13px] bg-background border-border/60"
+                    className="h-9 text-[13px] border-border/60"
                   />
                 </div>
               </div>
@@ -363,7 +363,7 @@ export default function FormateurDetailPage() {
                       setForm((prev) => ({ ...prev, adresse_rue: e.target.value }))
                     }
                     placeholder="12 rue de la Formation"
-                    className="h-9 text-[13px] bg-background border-border/60"
+                    className="h-9 text-[13px] border-border/60"
                   />
                 </div>
                 <div className="space-y-2">
@@ -374,7 +374,7 @@ export default function FormateurDetailPage() {
                       setForm((prev) => ({ ...prev, adresse_complement: e.target.value }))
                     }
                     placeholder="Bâtiment A, 2e étage"
-                    className="h-9 text-[13px] bg-background border-border/60"
+                    className="h-9 text-[13px] border-border/60"
                   />
                 </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -386,7 +386,7 @@ export default function FormateurDetailPage() {
                         setForm((prev) => ({ ...prev, adresse_cp: e.target.value }))
                       }
                       placeholder="75001"
-                      className="h-9 text-[13px] bg-background border-border/60"
+                      className="h-9 text-[13px] border-border/60"
                     />
                   </div>
                   <div className="space-y-2">
@@ -397,7 +397,7 @@ export default function FormateurDetailPage() {
                         setForm((prev) => ({ ...prev, adresse_ville: e.target.value }))
                       }
                       placeholder="Paris"
-                      className="h-9 text-[13px] bg-background border-border/60"
+                      className="h-9 text-[13px] border-border/60"
                     />
                   </div>
                 </div>
@@ -418,7 +418,7 @@ export default function FormateurDetailPage() {
                         statut_bpf: e.target.value as "interne" | "externe",
                       }))
                     }
-                    className="h-9 w-full rounded-md border border-border/60 bg-background px-3 py-1 text-[13px] text-foreground"
+                    className="h-9 w-full rounded-md border border-border/60 bg-transparent px-3 py-1 text-[13px] text-foreground"
                   >
                     <option value="externe">Externe (sous-traitant)</option>
                     <option value="interne">Interne (salarié)</option>
@@ -432,7 +432,7 @@ export default function FormateurDetailPage() {
                       setForm((prev) => ({ ...prev, nda: e.target.value }))
                     }
                     placeholder="11755555555"
-                    className="h-9 text-[13px] bg-background border-border/60"
+                    className="h-9 text-[13px] border-border/60"
                   />
                 </div>
                 <div className="space-y-2">
@@ -443,7 +443,7 @@ export default function FormateurDetailPage() {
                       setForm((prev) => ({ ...prev, siret: e.target.value }))
                     }
                     placeholder="123 456 789 00012"
-                    className="h-9 text-[13px] bg-background border-border/60"
+                    className="h-9 text-[13px] border-border/60"
                   />
                 </div>
               </div>
@@ -474,7 +474,7 @@ export default function FormateurDetailPage() {
                         }))
                       }
                       placeholder="300.00"
-                      className="h-9 text-[13px] bg-background border-border/60 pr-12"
+                      className="h-9 text-[13px] border-border/60 pr-12"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                       EUR
@@ -499,7 +499,7 @@ export default function FormateurDetailPage() {
                         }))
                       }
                       placeholder="0.00"
-                      className="h-9 text-[13px] bg-background border-border/60 pr-8"
+                      className="h-9 text-[13px] border-border/60 pr-8"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                       %
@@ -524,7 +524,7 @@ export default function FormateurDetailPage() {
                         }))
                       }
                       placeholder="7"
-                      className="h-9 text-[13px] bg-background border-border/60 pr-8"
+                      className="h-9 text-[13px] border-border/60 pr-8"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                       h

@@ -225,7 +225,7 @@ function CreateApprenantForm({
           id="civilite"
           name="civilite"
           defaultValue=""
-          className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-[13px] text-foreground"
+          className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-[13px] text-foreground"
         >
           <option value="">-- Sélectionner --</option>
           <option value="Monsieur">Monsieur</option>
@@ -243,7 +243,7 @@ function CreateApprenantForm({
             id="prenom"
             name="prenom"
             placeholder="Jean"
-            className="h-9 text-[13px] bg-background border-border/60"
+            className="h-9 text-[13px] border-border/60"
           />
           {errors.prenom && (
             <p className="text-xs text-destructive">{errors.prenom[0]}</p>
@@ -257,7 +257,7 @@ function CreateApprenantForm({
             id="nom"
             name="nom"
             placeholder="Dupont"
-            className="h-9 text-[13px] bg-background border-border/60"
+            className="h-9 text-[13px] border-border/60"
           />
           {errors.nom && (
             <p className="text-xs text-destructive">{errors.nom[0]}</p>
@@ -275,7 +275,7 @@ function CreateApprenantForm({
           name="email"
           type="email"
           placeholder="jean.dupont@example.com"
-          className="h-9 text-[13px] bg-background border-border/60"
+          className="h-9 text-[13px] border-border/60"
         />
         {errors.email && (
           <p className="text-xs text-destructive">{errors.email[0]}</p>
@@ -291,7 +291,7 @@ function CreateApprenantForm({
           id="telephone"
           name="telephone"
           placeholder="06 12 34 56 78"
-          className="h-9 text-[13px] bg-background border-border/60"
+          className="h-9 text-[13px] border-border/60"
         />
       </div>
 

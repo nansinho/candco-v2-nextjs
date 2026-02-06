@@ -311,7 +311,7 @@ function CreateProduitForm({ onSuccess, onCancel }: CreateFormProps) {
           name="intitule"
           required
           placeholder="Ex: Formation React avancé"
-          className="h-9 text-[13px] bg-background border-border/60"
+          className="h-9 text-[13px] border-border/60"
         />
         {errors.intitule && (
           <p className="text-xs text-destructive">{errors.intitule[0]}</p>
@@ -326,7 +326,7 @@ function CreateProduitForm({ onSuccess, onCancel }: CreateFormProps) {
           id="domaine"
           name="domaine"
           placeholder="Ex: Développement web"
-          className="h-9 text-[13px] bg-background border-border/60"
+          className="h-9 text-[13px] border-border/60"
         />
       </div>
 
@@ -338,7 +338,7 @@ function CreateProduitForm({ onSuccess, onCancel }: CreateFormProps) {
           <select
             id="type_action"
             name="type_action"
-            className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-[13px] text-foreground"
+            className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-[13px] text-foreground"
           >
             <option value="">--</option>
             <option value="action_formation">Action de formation</option>
@@ -355,7 +355,7 @@ function CreateProduitForm({ onSuccess, onCancel }: CreateFormProps) {
           <select
             id="modalite"
             name="modalite"
-            className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-[13px] text-foreground"
+            className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-[13px] text-foreground"
           >
             <option value="">--</option>
             <option value="presentiel">Présentiel</option>
@@ -372,7 +372,7 @@ function CreateProduitForm({ onSuccess, onCancel }: CreateFormProps) {
           <select
             id="formule"
             name="formule"
-            className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-[13px] text-foreground"
+            className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-[13px] text-foreground"
           >
             <option value="">--</option>
             <option value="inter">Inter</option>
@@ -394,7 +394,7 @@ function CreateProduitForm({ onSuccess, onCancel }: CreateFormProps) {
             step="0.5"
             min="0"
             placeholder="Ex: 14"
-            className="h-9 text-[13px] bg-background border-border/60"
+            className="h-9 text-[13px] border-border/60"
           />
         </div>
         <div className="space-y-2">
@@ -408,7 +408,7 @@ function CreateProduitForm({ onSuccess, onCancel }: CreateFormProps) {
             step="0.5"
             min="0"
             placeholder="Ex: 2"
-            className="h-9 text-[13px] bg-background border-border/60"
+            className="h-9 text-[13px] border-border/60"
           />
         </div>
       </div>

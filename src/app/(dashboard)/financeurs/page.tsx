@@ -248,7 +248,7 @@ export default function FinanceursPage() {
                 value={formNom}
                 onChange={(e) => setFormNom(e.target.value)}
                 placeholder="Ex: OPCO Atlas"
-                className="h-9 text-[13px] bg-background border-border/60"
+                className="h-9 text-[13px] border-border/60"
               />
             </div>
 
@@ -260,7 +260,7 @@ export default function FinanceursPage() {
                 id="type"
                 value={formType}
                 onChange={(e) => setFormType(e.target.value)}
-                className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-[13px] text-foreground"
+                className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-[13px] text-foreground"
               >
                 <option value="">-- Sélectionner --</option>
                 {FINANCEUR_TYPES.map((t) => (
@@ -280,7 +280,7 @@ export default function FinanceursPage() {
                 value={formSiret}
                 onChange={(e) => setFormSiret(e.target.value)}
                 placeholder="Ex: 123 456 789 00012"
-                className="h-9 text-[13px] bg-background border-border/60"
+                className="h-9 text-[13px] border-border/60"
               />
             </div>
 
@@ -295,7 +295,7 @@ export default function FinanceursPage() {
                   value={formEmail}
                   onChange={(e) => setFormEmail(e.target.value)}
                   placeholder="contact@opco.fr"
-                  className="h-9 text-[13px] bg-background border-border/60"
+                  className="h-9 text-[13px] border-border/60"
                 />
               </div>
               <div className="space-y-2">
@@ -307,7 +307,7 @@ export default function FinanceursPage() {
                   value={formTelephone}
                   onChange={(e) => setFormTelephone(e.target.value)}
                   placeholder="01 23 45 67 89"
-                  className="h-9 text-[13px] bg-background border-border/60"
+                  className="h-9 text-[13px] border-border/60"
                 />
               </div>
             </div>

@@ -323,7 +323,7 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
                 name="nom"
                 defaultValue={entreprise.nom}
                 required
-                className="h-9 text-[13px] bg-background border-border/60"
+                className="h-9 text-[13px] border-border/60"
               />
               {errors.nom && (
                 <p className="text-xs text-destructive">{errors.nom[0]}</p>
@@ -338,7 +338,7 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
                 name="siret"
                 defaultValue={entreprise.siret ?? ""}
                 placeholder="123 456 789 00012"
-                className="h-9 text-[13px] bg-background border-border/60"
+                className="h-9 text-[13px] border-border/60"
               />
             </div>
           </div>
@@ -358,7 +358,7 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
                 type="email"
                 defaultValue={entreprise.email ?? ""}
                 placeholder="contact@entreprise.fr"
-                className="h-9 text-[13px] bg-background border-border/60"
+                className="h-9 text-[13px] border-border/60"
               />
               {errors.email && (
                 <p className="text-xs text-destructive">{errors.email[0]}</p>
@@ -373,7 +373,7 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
                 name="telephone"
                 defaultValue={entreprise.telephone ?? ""}
                 placeholder="01 23 45 67 89"
-                className="h-9 text-[13px] bg-background border-border/60"
+                className="h-9 text-[13px] border-border/60"
               />
             </div>
           </div>
@@ -392,7 +392,7 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
                 name="adresse_rue"
                 defaultValue={entreprise.adresse_rue ?? ""}
                 placeholder="Numéro et nom de rue"
-                className="h-9 text-[13px] bg-background border-border/60"
+                className="h-9 text-[13px] border-border/60"
               />
             </div>
             <div className="space-y-2">
@@ -404,7 +404,7 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
                 name="adresse_complement"
                 defaultValue={entreprise.adresse_complement ?? ""}
                 placeholder="Bâtiment, étage, etc."
-                className="h-9 text-[13px] bg-background border-border/60"
+                className="h-9 text-[13px] border-border/60"
               />
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -417,7 +417,7 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
                   name="adresse_cp"
                   defaultValue={entreprise.adresse_cp ?? ""}
                   placeholder="75001"
-                  className="h-9 text-[13px] bg-background border-border/60"
+                  className="h-9 text-[13px] border-border/60"
                 />
               </div>
               <div className="space-y-2">
@@ -429,7 +429,7 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
                   name="adresse_ville"
                   defaultValue={entreprise.adresse_ville ?? ""}
                   placeholder="Paris"
-                  className="h-9 text-[13px] bg-background border-border/60"
+                  className="h-9 text-[13px] border-border/60"
                 />
               </div>
             </div>
@@ -448,7 +448,7 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
                 id="bpf_categorie_id"
                 name="bpf_categorie_id"
                 defaultValue={entreprise.bpf_categorie_id ?? ""}
-                className="flex h-9 w-full rounded-md border border-border/60 bg-background px-3 py-1 text-[13px] text-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="flex h-9 w-full rounded-md border border-border/60 bg-transparent px-3 py-1 text-[13px] text-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               >
                 <option value="">-- Aucune --</option>
                 {bpfCategories.map((cat) => (
@@ -467,7 +467,7 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
                 name="numero_compte_comptable"
                 defaultValue={entreprise.numero_compte_comptable ?? "411000"}
                 placeholder="411000"
-                className="h-9 text-[13px] bg-background border-border/60"
+                className="h-9 text-[13px] border-border/60"
               />
             </div>
           </div>
@@ -606,7 +606,7 @@ function FacturationTab({ entreprise, onUpdate }: FacturationTabProps) {
                 name="facturation_raison_sociale"
                 defaultValue={entreprise.facturation_raison_sociale ?? ""}
                 placeholder="Raison sociale de facturation"
-                className="h-9 text-[13px] bg-background border-border/60"
+                className="h-9 text-[13px] border-border/60"
               />
             </div>
             <div className="space-y-2">
@@ -618,7 +618,7 @@ function FacturationTab({ entreprise, onUpdate }: FacturationTabProps) {
                 name="facturation_rue"
                 defaultValue={entreprise.facturation_rue ?? ""}
                 placeholder="Numéro et nom de rue"
-                className="h-9 text-[13px] bg-background border-border/60"
+                className="h-9 text-[13px] border-border/60"
               />
             </div>
             <div className="space-y-2">
@@ -630,7 +630,7 @@ function FacturationTab({ entreprise, onUpdate }: FacturationTabProps) {
                 name="facturation_complement"
                 defaultValue={entreprise.facturation_complement ?? ""}
                 placeholder="Bâtiment, étage, etc."
-                className="h-9 text-[13px] bg-background border-border/60"
+                className="h-9 text-[13px] border-border/60"
               />
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -643,7 +643,7 @@ function FacturationTab({ entreprise, onUpdate }: FacturationTabProps) {
                   name="facturation_cp"
                   defaultValue={entreprise.facturation_cp ?? ""}
                   placeholder="75001"
-                  className="h-9 text-[13px] bg-background border-border/60"
+                  className="h-9 text-[13px] border-border/60"
                 />
               </div>
               <div className="space-y-2">
@@ -655,7 +655,7 @@ function FacturationTab({ entreprise, onUpdate }: FacturationTabProps) {
                   name="facturation_ville"
                   defaultValue={entreprise.facturation_ville ?? ""}
                   placeholder="Paris"
-                  className="h-9 text-[13px] bg-background border-border/60"
+                  className="h-9 text-[13px] border-border/60"
                 />
               </div>
             </div>
@@ -795,7 +795,7 @@ function ApprenantsTab({ entrepriseId }: { entrepriseId: string }) {
               placeholder="Rechercher un apprenant par nom ou email..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-8 pl-9 text-xs bg-background border-border/60"
+              className="h-8 pl-9 text-xs border-border/60"
               autoFocus
             />
           </div>

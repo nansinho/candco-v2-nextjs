@@ -291,7 +291,7 @@ export function ProduitDetail({
                         id="intitule"
                         name="intitule"
                         defaultValue={produit.intitule}
-                        className="h-9 text-[13px] bg-background border-border/60"
+                        className="h-9 text-[13px] border-border/60"
                       />
                     </div>
                     <div className="space-y-2">
@@ -302,7 +302,7 @@ export function ProduitDetail({
                         id="sous_titre"
                         name="sous_titre"
                         defaultValue={produit.sous_titre ?? ""}
-                        className="h-9 text-[13px] bg-background border-border/60"
+                        className="h-9 text-[13px] border-border/60"
                       />
                     </div>
                   </div>
@@ -316,7 +316,7 @@ export function ProduitDetail({
                         id="identifiant_interne"
                         name="identifiant_interne"
                         defaultValue={produit.identifiant_interne ?? ""}
-                        className="h-9 text-[13px] bg-background border-border/60"
+                        className="h-9 text-[13px] border-border/60"
                       />
                     </div>
                     <div className="space-y-2">
@@ -327,7 +327,7 @@ export function ProduitDetail({
                         id="domaine"
                         name="domaine"
                         defaultValue={produit.domaine ?? ""}
-                        className="h-9 text-[13px] bg-background border-border/60"
+                        className="h-9 text-[13px] border-border/60"
                       />
                     </div>
                   </div>
@@ -341,7 +341,7 @@ export function ProduitDetail({
                       name="description"
                       rows={4}
                       defaultValue={produit.description ?? ""}
-                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-[13px] text-foreground resize-y"
+                      className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-[13px] text-foreground resize-y"
                     />
                   </div>
                 </fieldset>
@@ -361,7 +361,7 @@ export function ProduitDetail({
                         id="type_action"
                         name="type_action"
                         defaultValue={produit.type_action ?? ""}
-                        className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-[13px] text-foreground"
+                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-[13px] text-foreground"
                       >
                         <option value="">--</option>
                         <option value="action_formation">Action de formation</option>
@@ -379,7 +379,7 @@ export function ProduitDetail({
                         id="modalite"
                         name="modalite"
                         defaultValue={produit.modalite ?? ""}
-                        className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-[13px] text-foreground"
+                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-[13px] text-foreground"
                       >
                         <option value="">--</option>
                         <option value="presentiel">Présentiel</option>
@@ -397,7 +397,7 @@ export function ProduitDetail({
                         id="formule"
                         name="formule"
                         defaultValue={produit.formule ?? ""}
-                        className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-[13px] text-foreground"
+                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-[13px] text-foreground"
                       >
                         <option value="">--</option>
                         <option value="inter">Inter</option>
@@ -419,7 +419,7 @@ export function ProduitDetail({
                         step="0.5"
                         min="0"
                         defaultValue={produit.duree_heures ?? ""}
-                        className="h-9 text-[13px] bg-background border-border/60"
+                        className="h-9 text-[13px] border-border/60"
                       />
                     </div>
                     <div className="space-y-2">
@@ -433,7 +433,7 @@ export function ProduitDetail({
                         step="0.5"
                         min="0"
                         defaultValue={produit.duree_jours ?? ""}
-                        className="h-9 text-[13px] bg-background border-border/60"
+                        className="h-9 text-[13px] border-border/60"
                       />
                     </div>
                   </div>
@@ -454,7 +454,7 @@ export function ProduitDetail({
                         id="bpf_specialite_id"
                         name="bpf_specialite_id"
                         defaultValue={produit.bpf_specialite_id ?? ""}
-                        className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-[13px] text-foreground"
+                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-[13px] text-foreground"
                       >
                         <option value="">-- Aucune --</option>
                         {bpfSpecialites.map((s) => (
@@ -473,7 +473,7 @@ export function ProduitDetail({
                         id="bpf_categorie"
                         name="bpf_categorie"
                         defaultValue={produit.bpf_categorie ?? ""}
-                        className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-[13px] text-foreground"
+                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-[13px] text-foreground"
                       >
                         <option value="">--</option>
                         <option value="A">A — Actions de formation</option>
@@ -490,7 +490,7 @@ export function ProduitDetail({
                         id="bpf_niveau"
                         name="bpf_niveau"
                         defaultValue={produit.bpf_niveau ?? ""}
-                        className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-[13px] text-foreground"
+                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-[13px] text-foreground"
                       >
                         <option value="">--</option>
                         <option value="I">Niveau I</option>
@@ -532,7 +532,7 @@ export function ProduitDetail({
                       name="slug"
                       defaultValue={produit.slug ?? ""}
                       placeholder="formation-react-avance"
-                      className="h-9 text-[13px] bg-background border-border/60"
+                      className="h-9 text-[13px] border-border/60"
                     />
                   </div>
                 </fieldset>
@@ -651,19 +651,19 @@ function TarifsTab({ produitId, tarifs }: { produitId: string; tarifs: Tarif[] }
           <div className="grid grid-cols-5 gap-3">
             <div className="space-y-1">
               <Label className="text-[11px]">Nom</Label>
-              <Input name="nom" placeholder="Tarif standard" className="h-8 text-xs bg-background border-border/60" />
+              <Input name="nom" placeholder="Tarif standard" className="h-8 text-xs border-border/60" />
             </div>
             <div className="space-y-1">
               <Label className="text-[11px]">Prix HT</Label>
-              <Input name="prix_ht" type="number" step="0.01" min="0" required className="h-8 text-xs bg-background border-border/60" />
+              <Input name="prix_ht" type="number" step="0.01" min="0" required className="h-8 text-xs border-border/60" />
             </div>
             <div className="space-y-1">
               <Label className="text-[11px]">TVA %</Label>
-              <Input name="taux_tva" type="number" step="0.01" min="0" max="100" defaultValue="0" className="h-8 text-xs bg-background border-border/60" />
+              <Input name="taux_tva" type="number" step="0.01" min="0" max="100" defaultValue="0" className="h-8 text-xs border-border/60" />
             </div>
             <div className="space-y-1">
               <Label className="text-[11px]">Unité</Label>
-              <select name="unite" className="h-8 w-full rounded-md border border-input bg-background px-2 py-1 text-xs text-foreground">
+              <select name="unite" className="h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-xs text-foreground">
                 <option value="">--</option>
                 <option value="stagiaire">/ stagiaire</option>
                 <option value="groupe">/ groupe</option>
@@ -816,11 +816,11 @@ function ProgrammeTab({
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1">
               <Label className="text-[11px]">Titre *</Label>
-              <Input name="titre" required placeholder="Module 1 : Introduction" className="h-8 text-xs bg-background border-border/60" />
+              <Input name="titre" required placeholder="Module 1 : Introduction" className="h-8 text-xs border-border/60" />
             </div>
             <div className="space-y-1">
               <Label className="text-[11px]">Durée</Label>
-              <Input name="duree" placeholder="2h" className="h-8 text-xs bg-background border-border/60" />
+              <Input name="duree" placeholder="2h" className="h-8 text-xs border-border/60" />
             </div>
             <div className="flex items-end gap-2">
               <Button type="submit" size="sm" className="h-8 text-xs" disabled={saving}>
@@ -837,7 +837,7 @@ function ProgrammeTab({
               name="contenu"
               rows={3}
               placeholder="Décrivez le contenu de ce module..."
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs text-foreground resize-y"
+              className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-xs text-foreground resize-y"
             />
           </div>
         </form>
@@ -938,7 +938,7 @@ function ObjectifsTab({
           value={newObjectif}
           onChange={(e) => setNewObjectif(e.target.value)}
           placeholder="Être capable de..."
-          className="h-9 text-[13px] bg-background border-border/60 flex-1"
+          className="h-9 text-[13px] border-border/60 flex-1"
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();

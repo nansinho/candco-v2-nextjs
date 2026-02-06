@@ -202,7 +202,7 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
                 <select
                   value={form.civilite ?? ""}
                   onChange={(e) => updateField("civilite", e.target.value)}
-                  className="h-9 w-full max-w-xs rounded-md border border-border/60 bg-background px-3 py-1 text-[13px] text-foreground"
+                  className="h-9 w-full max-w-xs rounded-md border border-border/60 bg-transparent px-3 py-1 text-[13px] text-foreground"
                 >
                   <option value="">-- Aucune --</option>
                   <option value="Monsieur">Monsieur</option>
@@ -219,7 +219,7 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
                   <Input
                     value={form.prenom ?? ""}
                     onChange={(e) => updateField("prenom", e.target.value)}
-                    className="h-9 text-[13px] bg-background border-border/60"
+                    className="h-9 text-[13px] border-border/60"
                   />
                   {errors.prenom && (
                     <p className="text-xs text-destructive">{errors.prenom[0]}</p>
@@ -232,7 +232,7 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
                   <Input
                     value={form.nom ?? ""}
                     onChange={(e) => updateField("nom", e.target.value)}
-                    className="h-9 text-[13px] bg-background border-border/60"
+                    className="h-9 text-[13px] border-border/60"
                   />
                   {errors.nom && (
                     <p className="text-xs text-destructive">{errors.nom[0]}</p>
@@ -248,7 +248,7 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
                     type="email"
                     value={form.email ?? ""}
                     onChange={(e) => updateField("email", e.target.value)}
-                    className="h-9 text-[13px] bg-background border-border/60"
+                    className="h-9 text-[13px] border-border/60"
                   />
                   {form.email && (
                     <Button
@@ -276,7 +276,7 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
                   <Input
                     value={form.telephone ?? ""}
                     onChange={(e) => updateField("telephone", e.target.value)}
-                    className="h-9 text-[13px] bg-background border-border/60"
+                    className="h-9 text-[13px] border-border/60"
                   />
                   {form.telephone && (
                     <Button
@@ -301,7 +301,7 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
                   value={form.fonction ?? ""}
                   onChange={(e) => updateField("fonction", e.target.value)}
                   placeholder="Ex: Responsable formation, DRH, Directeur..."
-                  className="h-9 text-[13px] bg-background border-border/60"
+                  className="h-9 text-[13px] border-border/60"
                 />
               </div>
             </div>
