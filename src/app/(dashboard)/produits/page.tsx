@@ -17,7 +17,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toast";
-import { getProduits, createProduit, type CreateProduitInput } from "@/actions/produits";
+import { getProduits, createProduit, archiveProduit, unarchiveProduit, type CreateProduitInput } from "@/actions/produits";
 
 interface Produit {
   id: string;
@@ -182,6 +182,7 @@ export default function ProduitsPage() {
   const [data, setData] = React.useState<Produit[]>([]);
   const [totalCount, setTotalCount] = React.useState(0);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [showArchived, setShowArchived] = React.useState(false);
   const [dialogOpen, setDialogOpen] = React.useState(false);
 
   React.useEffect(() => {
@@ -194,11 +195,11 @@ export default function ProduitsPage() {
 
   const fetchData = React.useCallback(async () => {
     setIsLoading(true);
-    const result = await getProduits(page, debouncedSearch);
+    const result = await getProduits(page, debouncedSearch, showArchived);
     setData(result.data as Produit[]);
     setTotalCount(result.count);
     setIsLoading(false);
-  }, [page, debouncedSearch]);
+  }, [page, debouncedSearch, showArchived]);
 
   React.useEffect(() => {
     fetchData();
@@ -231,6 +232,16 @@ export default function ProduitsPage() {
         getRowId={(item) => item.id}
         isLoading={isLoading}
         exportFilename="produits-formation"
+        showArchived={showArchived}
+        onToggleArchived={(show) => { setShowArchived(show); setPage(1); }}
+        onArchive={async (ids) => {
+          await Promise.all(ids.map((id) => archiveProduit(id)));
+          fetchData();
+        }}
+        onUnarchive={async (ids) => {
+          await Promise.all(ids.map((id) => unarchiveProduit(id)));
+          fetchData();
+        }}
       />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -338,7 +349,7 @@ function CreateProduitForm({ onSuccess, onCancel }: CreateFormProps) {
           <select
             id="type_action"
             name="type_action"
-            className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-[13px] text-foreground"
+            className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
           >
             <option value="">--</option>
             <option value="action_formation">Action de formation</option>
@@ -355,7 +366,7 @@ function CreateProduitForm({ onSuccess, onCancel }: CreateFormProps) {
           <select
             id="modalite"
             name="modalite"
-            className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-[13px] text-foreground"
+            className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
           >
             <option value="">--</option>
             <option value="presentiel">Présentiel</option>
@@ -372,7 +383,7 @@ function CreateProduitForm({ onSuccess, onCancel }: CreateFormProps) {
           <select
             id="formule"
             name="formule"
-            className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-[13px] text-foreground"
+            className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
           >
             <option value="">--</option>
             <option value="inter">Inter</option>

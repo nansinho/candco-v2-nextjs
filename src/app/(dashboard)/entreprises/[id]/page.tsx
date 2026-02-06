@@ -13,6 +13,7 @@ import {
   Search,
   X,
   Unlink,
+  ArchiveRestore,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,7 @@ import {
   getEntreprise,
   updateEntreprise,
   archiveEntreprise,
+  unarchiveEntreprise,
   getBpfCategoriesEntreprise,
   getEntrepriseApprenants,
   linkApprenantToEntreprise,
@@ -140,8 +142,25 @@ export default function EntrepriseDetailPage() {
     );
   }
 
+  const isArchived = !!(entreprise as unknown as { archived_at?: string }).archived_at;
+
+  const handleUnarchive = async () => {
+    await unarchiveEntreprise(id);
+    router.push("/entreprises");
+  };
+
   return (
     <div className="space-y-6">
+      {isArchived && (
+        <div className="flex items-center justify-between rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+          <p className="text-sm text-amber-400">Cette entreprise est archivée.</p>
+          <Button size="sm" variant="outline" className="h-8 text-xs text-amber-400 border-amber-500/30 hover:bg-amber-500/10" onClick={handleUnarchive}>
+            <ArchiveRestore className="mr-1.5 h-3 w-3" />
+            Restaurer
+          </Button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -440,7 +459,7 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
                 id="bpf_categorie_id"
                 name="bpf_categorie_id"
                 defaultValue={entreprise.bpf_categorie_id ?? ""}
-                className="flex h-9 w-full rounded-md border border-border/60 bg-transparent px-3 py-1 text-[13px] text-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="flex h-9 w-full rounded-md border border-border/60 bg-muted px-3 py-1 text-[13px] text-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               >
                 <option value="">-- Aucune --</option>
                 {bpfCategories.map((cat) => (

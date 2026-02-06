@@ -7,11 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Save, Archive, Loader2, Building2, Mail, Phone } from "lucide-react";
+import { ArrowLeft, Save, Archive, ArchiveRestore, Loader2, Building2, Mail, Phone } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import {
   updateContactClient,
   archiveContactClient,
+  unarchiveContactClient,
   type UpdateContactClientInput,
 } from "@/actions/contacts-clients";
 import { TachesActivitesTab } from "@/components/shared/taches-activites";
@@ -104,8 +105,25 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
     router.push("/contacts-clients");
   };
 
+  const isArchived = !!(contact as unknown as { archived_at?: string }).archived_at;
+
+  const handleUnarchive = async () => {
+    await unarchiveContactClient(contact.id);
+    router.push("/contacts-clients");
+  };
+
   return (
     <div className="space-y-6">
+      {isArchived && (
+        <div className="flex items-center justify-between rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+          <p className="text-sm text-amber-400">Ce contact est archivé.</p>
+          <Button size="sm" variant="outline" className="h-8 text-xs text-amber-400 border-amber-500/30 hover:bg-amber-500/10" onClick={handleUnarchive}>
+            <ArchiveRestore className="mr-1.5 h-3 w-3" />
+            Restaurer
+          </Button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -202,7 +220,7 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
                 <select
                   value={form.civilite ?? ""}
                   onChange={(e) => updateField("civilite", e.target.value)}
-                  className="h-9 w-full max-w-xs rounded-md border border-border/60 bg-transparent px-3 py-1 text-[13px] text-foreground"
+                  className="h-9 w-full max-w-xs rounded-md border border-border/60 bg-muted px-3 py-1 text-[13px] text-foreground"
                 >
                   <option value="">-- Aucune --</option>
                   <option value="Monsieur">Monsieur</option>

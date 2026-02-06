@@ -16,7 +16,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toast";
-import { getEntreprises, createEntreprise } from "@/actions/entreprises";
+import { getEntreprises, createEntreprise, archiveEntreprise, unarchiveEntreprise } from "@/actions/entreprises";
 import { formatDate } from "@/lib/utils";
 
 interface Entreprise {
@@ -90,6 +90,7 @@ export default function EntreprisesPage() {
   const [data, setData] = React.useState<Entreprise[]>([]);
   const [totalCount, setTotalCount] = React.useState(0);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [showArchived, setShowArchived] = React.useState(false);
   const [dialogOpen, setDialogOpen] = React.useState(false);
 
   // Debounce search
@@ -104,11 +105,11 @@ export default function EntreprisesPage() {
   // Fetch data
   const fetchData = React.useCallback(async () => {
     setIsLoading(true);
-    const result = await getEntreprises(page, debouncedSearch);
+    const result = await getEntreprises(page, debouncedSearch, showArchived);
     setData(result.data as Entreprise[]);
     setTotalCount(result.count);
     setIsLoading(false);
-  }, [page, debouncedSearch]);
+  }, [page, debouncedSearch, showArchived]);
 
   React.useEffect(() => {
     fetchData();
@@ -141,6 +142,16 @@ export default function EntreprisesPage() {
         getRowId={(item) => item.id}
         isLoading={isLoading}
         exportFilename="entreprises"
+        showArchived={showArchived}
+        onToggleArchived={(show) => { setShowArchived(show); setPage(1); }}
+        onArchive={async (ids) => {
+          await Promise.all(ids.map((id) => archiveEntreprise(id)));
+          fetchData();
+        }}
+        onUnarchive={async (ids) => {
+          await Promise.all(ids.map((id) => unarchiveEntreprise(id)));
+          fetchData();
+        }}
       />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

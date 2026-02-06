@@ -256,7 +256,7 @@ export function TachesActivitesTab({ entiteType, entiteId }: TachesActivitesTabP
                 <select
                   value={tachePriorite}
                   onChange={(e) => setTachePriorite(e.target.value)}
-                  className="h-8 w-full rounded-md border border-border/60 bg-transparent px-3 text-[13px] text-foreground"
+                  className="h-8 w-full rounded-md border border-border/60 bg-muted px-3 text-[13px] text-foreground"
                 >
                   <option value="basse">Basse</option>
                   <option value="normale">Normale</option>

@@ -75,7 +75,7 @@ export async function createFinanceur(input: FinanceurInput) {
   return { data };
 }
 
-export async function getFinanceurs(page: number = 1, search: string = "") {
+export async function getFinanceurs(page: number = 1, search: string = "", showArchived: boolean = false) {
   const supabase = await createClient();
   const limit = 25;
   const offset = (page - 1) * limit;
@@ -83,9 +83,14 @@ export async function getFinanceurs(page: number = 1, search: string = "") {
   let query = supabase
     .from("financeurs")
     .select("*", { count: "exact" })
-    .is("archived_at", null)
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
+
+  if (showArchived) {
+    query = query.not("archived_at", "is", null);
+  } else {
+    query = query.is("archived_at", null);
+  }
 
   if (search) {
     query = query.or(

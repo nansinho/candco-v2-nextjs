@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
+  ArchiveRestore,
   Building2,
   Mail,
   Save,
@@ -21,6 +22,7 @@ import { useToast } from "@/components/ui/toast";
 import {
   updateApprenant,
   archiveApprenant,
+  unarchiveApprenant,
   type UpdateApprenantInput,
 } from "@/actions/apprenants";
 import { TachesActivitesTab } from "@/components/shared/taches-activites";
@@ -160,8 +162,33 @@ export function ApprenantDetail({
     router.push("/apprenants");
   };
 
+  const isArchived = !!(apprenant as unknown as { archived_at?: string }).archived_at;
+
+  const handleUnarchive = async () => {
+    await unarchiveApprenant(apprenant.id);
+    router.push("/apprenants");
+  };
+
   return (
     <div className="space-y-6">
+      {/* Archived banner */}
+      {isArchived && (
+        <div className="flex items-center justify-between rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+          <p className="text-sm text-amber-400">
+            Cet apprenant est archivé.
+          </p>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 text-xs text-amber-400 border-amber-500/30 hover:bg-amber-500/10"
+            onClick={handleUnarchive}
+          >
+            <ArchiveRestore className="mr-1.5 h-3 w-3" />
+            Restaurer
+          </Button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -257,7 +284,7 @@ export function ApprenantDetail({
                         id="civilite"
                         name="civilite"
                         defaultValue={apprenant.civilite ?? ""}
-                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-[13px] text-foreground"
+                        className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
                       >
                         <option value="">--</option>
                         <option value="Monsieur">Monsieur</option>
@@ -533,7 +560,7 @@ export function ApprenantDetail({
                         id="bpf_categorie_id"
                         name="bpf_categorie_id"
                         defaultValue={apprenant.bpf_categorie_id ?? ""}
-                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-[13px] text-foreground"
+                        className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
                       >
                         <option value="">-- Aucun --</option>
                         {bpfCategories.map((cat) => (
