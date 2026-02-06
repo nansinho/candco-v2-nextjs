@@ -48,6 +48,7 @@ export interface Column<T> {
   minWidth?: number;
   defaultVisible?: boolean;
   render?: (item: T) => React.ReactNode;
+  exportValue?: (item: T) => string;
 }
 
 interface DataTableProps<T> {
@@ -194,8 +195,13 @@ export function DataTable<T>({
     const headers = visibleColumns.map((col) => col.label);
     const rows = data.map((item) =>
       visibleColumns.map((col) => {
-        const raw = (item as Record<string, unknown>)[col.key];
-        const value = raw === null || raw === undefined ? "" : String(raw);
+        let value: string;
+        if (col.exportValue) {
+          value = col.exportValue(item);
+        } else {
+          const raw = (item as Record<string, unknown>)[col.key];
+          value = raw === null || raw === undefined ? "" : String(raw);
+        }
         if (value.includes(",") || value.includes('"') || value.includes("\n")) {
           return `"${value.replace(/"/g, '""')}"`;
         }

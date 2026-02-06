@@ -123,6 +123,8 @@ const columns: Column<ContactClient>[] = [
         </div>
       );
     },
+    exportValue: (item) =>
+      (item.contact_entreprises ?? []).map((ce) => ce.entreprises?.nom).filter(Boolean).join(", "),
   },
   {
     key: "created_at",

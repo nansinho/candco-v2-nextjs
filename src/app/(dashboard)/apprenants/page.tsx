@@ -113,6 +113,8 @@ const columns: Column<Apprenant>[] = [
         </div>
       );
     },
+    exportValue: (item) =>
+      (item.apprenant_entreprises ?? []).map((ae) => ae.entreprises?.nom).filter(Boolean).join(", "),
   },
   {
     key: "bpf",
@@ -126,6 +128,7 @@ const columns: Column<Apprenant>[] = [
       ) : (
         <span className="text-muted-foreground/40">--</span>
       ),
+    exportValue: (item) => item.bpf_categories_apprenant?.code ?? "",
   },
   {
     key: "created_at",

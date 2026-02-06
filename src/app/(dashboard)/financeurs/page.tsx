@@ -146,6 +146,7 @@ const columns: Column<Financeur>[] = [
       ) : (
         <span className="text-muted-foreground/40">--</span>
       ),
+    exportValue: (item) => item.bpf_categories_entreprise?.code ?? "",
   },
   {
     key: "created_at",
