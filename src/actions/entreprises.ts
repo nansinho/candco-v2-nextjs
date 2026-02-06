@@ -455,6 +455,104 @@ export async function getAllEntreprises() {
   return { data: data ?? [] };
 }
 
+// ─── Contacts clients linked to Entreprise ──────────────
+
+export interface ContactLink {
+  id: string;
+  numero_affichage: string;
+  civilite: string | null;
+  prenom: string;
+  nom: string;
+  email: string | null;
+  telephone: string | null;
+  fonction: string | null;
+}
+
+export async function getEntrepriseContacts(entrepriseId: string) {
+  const supabase = await createClient();
+
+  const { data: links, error } = await supabase
+    .from("contact_entreprises")
+    .select("contact_client_id, contacts_clients(id, numero_affichage, civilite, prenom, nom, email, telephone, fonction)")
+    .eq("entreprise_id", entrepriseId);
+
+  if (error) {
+    return { data: [], error: error.message };
+  }
+
+  interface ContactJoin {
+    contacts_clients: ContactLink | null;
+  }
+
+  const contacts: ContactLink[] = ((links ?? []) as unknown as ContactJoin[])
+    .map((link) => link.contacts_clients)
+    .filter((c): c is ContactLink => c !== null);
+
+  return { data: contacts };
+}
+
+export async function linkContactToEntreprise(entrepriseId: string, contactId: string) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("contact_entreprises")
+    .insert({ entreprise_id: entrepriseId, contact_client_id: contactId });
+
+  if (error) {
+    if (error.code === "23505") {
+      return { error: "Ce contact est déjà rattaché à cette entreprise." };
+    }
+    return { error: error.message };
+  }
+
+  revalidatePath(`/entreprises/${entrepriseId}`);
+  return { success: true };
+}
+
+export async function unlinkContactFromEntreprise(entrepriseId: string, contactId: string) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("contact_entreprises")
+    .delete()
+    .eq("entreprise_id", entrepriseId)
+    .eq("contact_client_id", contactId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath(`/entreprises/${entrepriseId}`);
+  return { success: true };
+}
+
+export async function searchContactsForLinking(search: string, excludeIds: string[]) {
+  const supabase = await createClient();
+
+  let query = supabase
+    .from("contacts_clients")
+    .select("id, numero_affichage, prenom, nom, email, fonction")
+    .is("archived_at", null)
+    .order("nom", { ascending: true })
+    .limit(10);
+
+  if (search) {
+    query = query.or(`nom.ilike.%${search}%,prenom.ilike.%${search}%,email.ilike.%${search}%`);
+  }
+
+  if (excludeIds.length > 0) {
+    query = query.not("id", "in", `(${excludeIds.join(",")})`);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    return { data: [], error: error.message };
+  }
+
+  return { data: data ?? [] };
+}
+
 export async function searchApprenantsForLinking(search: string, excludeIds: string[]) {
   const supabase = await createClient();
 

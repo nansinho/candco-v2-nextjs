@@ -14,6 +14,10 @@ import {
   X,
   Unlink,
   ArchiveRestore,
+  Users,
+  UserPlus,
+  Mail,
+  Phone,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,8 +37,14 @@ import {
   linkApprenantToEntreprise,
   unlinkApprenantFromEntreprise,
   searchApprenantsForLinking,
+  getEntrepriseContacts,
+  linkContactToEntreprise,
+  unlinkContactFromEntreprise,
+  searchContactsForLinking,
   type ApprenantLink,
+  type ContactLink,
 } from "@/actions/entreprises";
+import { createContactClient, type CreateContactClientInput } from "@/actions/contacts-clients";
 import { TachesActivitesTab } from "@/components/shared/taches-activites";
 import { OrganisationTab } from "@/components/entreprise/organisation-tab";
 
@@ -218,6 +228,9 @@ export default function EntrepriseDetailPage() {
           <TabsTrigger value="facturation" className="text-xs">
             Facturation
           </TabsTrigger>
+          <TabsTrigger value="contacts" className="text-xs">
+            Contacts
+          </TabsTrigger>
           <TabsTrigger value="apprenants" className="text-xs">
             Apprenants
           </TabsTrigger>
@@ -242,6 +255,10 @@ export default function EntrepriseDetailPage() {
             entreprise={entreprise}
             onUpdate={setEntreprise}
           />
+        </TabsContent>
+
+        <TabsContent value="contacts" className="mt-6">
+          <ContactsTab entrepriseId={entreprise.id} />
         </TabsContent>
 
         <TabsContent value="apprenants" className="mt-6">
@@ -715,6 +732,317 @@ function FacturationTab({ entreprise, onUpdate }: FacturationTabProps) {
         </div>
       </div>
     </form>
+  );
+}
+
+// ─── Contacts Tab ───────────────────────────────────────
+
+function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
+  const { toast } = useToast();
+  const [contacts, setContacts] = React.useState<ContactLink[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [showSearch, setShowSearch] = React.useState(false);
+  const [showCreate, setShowCreate] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const [searchResults, setSearchResults] = React.useState<ContactLink[]>([]);
+  const [isSearching, setIsSearching] = React.useState(false);
+  const [isCreating, setIsCreating] = React.useState(false);
+
+  const fetchContacts = React.useCallback(async () => {
+    setIsLoading(true);
+    const result = await getEntrepriseContacts(entrepriseId);
+    setContacts(result.data);
+    setIsLoading(false);
+  }, [entrepriseId]);
+
+  React.useEffect(() => {
+    fetchContacts();
+  }, [fetchContacts]);
+
+  // Search for contacts to link
+  React.useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
+      const excludeIds = contacts.map((c) => c.id);
+      const result = await searchContactsForLinking(searchQuery, excludeIds);
+      setSearchResults(result.data as ContactLink[]);
+      setIsSearching(false);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery, contacts]);
+
+  const handleLink = async (contactId: string) => {
+    const result = await linkContactToEntreprise(entrepriseId, contactId);
+    if (result.error) {
+      toast({ title: "Erreur", description: typeof result.error === "string" ? result.error : "Une erreur est survenue", variant: "destructive" });
+      return;
+    }
+    setSearchQuery("");
+    setSearchResults([]);
+    setShowSearch(false);
+    fetchContacts();
+    toast({ title: "Contact rattaché", variant: "success" });
+  };
+
+  const handleUnlink = async (contactId: string) => {
+    if (!confirm("Retirer ce contact de l'entreprise ?")) return;
+    const result = await unlinkContactFromEntreprise(entrepriseId, contactId);
+    if (result.error) {
+      toast({ title: "Erreur", description: typeof result.error === "string" ? result.error : "Une erreur est survenue", variant: "destructive" });
+      return;
+    }
+    fetchContacts();
+    toast({ title: "Contact retiré", variant: "success" });
+  };
+
+  const handleCreateContact = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsCreating(true);
+    const formData = new FormData(e.currentTarget);
+    const input: CreateContactClientInput = {
+      civilite: formData.get("civilite") as string,
+      prenom: formData.get("prenom") as string,
+      nom: formData.get("nom") as string,
+      email: formData.get("email") as string,
+      telephone: formData.get("telephone") as string,
+      fonction: formData.get("fonction") as string,
+    };
+
+    const result = await createContactClient(input);
+    if (result.error) {
+      toast({ title: "Erreur", description: "Impossible de créer le contact.", variant: "destructive" });
+      setIsCreating(false);
+      return;
+    }
+
+    // Link to this entreprise
+    if (result.data) {
+      await linkContactToEntreprise(entrepriseId, result.data.id);
+    }
+
+    setShowCreate(false);
+    setIsCreating(false);
+    fetchContacts();
+    toast({ title: "Contact créé et rattaché", variant: "success" });
+  };
+
+  const selectClass = "flex h-9 w-full rounded-md border border-border/60 bg-muted px-3 py-1 text-[13px] text-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring";
+
+  return (
+    <section className="rounded-lg border border-border/60 bg-card">
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 py-4 border-b border-border/60">
+        <h3 className="text-sm font-semibold">
+          Contacts de l&apos;entreprise
+          {contacts.length > 0 && (
+            <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary/10 px-1.5 text-[11px] font-medium text-primary">
+              {contacts.length}
+            </span>
+          )}
+        </h3>
+        <div className="flex gap-1.5">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-[11px] border-border/60"
+            onClick={() => { setShowCreate(!showCreate); setShowSearch(false); }}
+          >
+            <UserPlus className="mr-1 h-3 w-3" />
+            Créer un contact
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-[11px] border-border/60"
+            onClick={() => { setShowSearch(!showSearch); setShowCreate(false); }}
+          >
+            {showSearch ? (
+              <><X className="mr-1 h-3 w-3" />Fermer</>
+            ) : (
+              <><Plus className="mr-1 h-3 w-3" />Rattacher existant</>
+            )}
+          </Button>
+        </div>
+      </div>
+
+      {/* Create form */}
+      {showCreate && (
+        <form onSubmit={handleCreateContact} className="px-5 py-4 border-b border-border/40 bg-muted/10">
+          <p className="text-xs font-medium mb-3">Nouveau contact</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label className="text-[12px]">Civilité</Label>
+              <select name="civilite" className={selectClass}>
+                <option value="">--</option>
+                <option value="Monsieur">Monsieur</option>
+                <option value="Madame">Madame</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[12px]">Fonction</Label>
+              <Input name="fonction" placeholder="Responsable formation" className="h-9 text-[13px] border-border/60" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[12px]">Prénom <span className="text-destructive">*</span></Label>
+              <Input name="prenom" required className="h-9 text-[13px] border-border/60" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[12px]">Nom <span className="text-destructive">*</span></Label>
+              <Input name="nom" required className="h-9 text-[13px] border-border/60" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[12px]">Email</Label>
+              <Input name="email" type="email" placeholder="contact@example.fr" className="h-9 text-[13px] border-border/60" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[12px]">Téléphone</Label>
+              <Input name="telephone" placeholder="06 12 34 56 78" className="h-9 text-[13px] border-border/60" />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button type="button" variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => setShowCreate(false)}>
+              Annuler
+            </Button>
+            <Button type="submit" size="sm" className="h-7 text-[11px]" disabled={isCreating}>
+              {isCreating ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <UserPlus className="mr-1 h-3 w-3" />}
+              Créer et rattacher
+            </Button>
+          </div>
+        </form>
+      )}
+
+      {/* Search for linking */}
+      {showSearch && (
+        <div className="px-5 py-3 border-b border-border/40 bg-muted/10">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/50" />
+            <Input
+              placeholder="Rechercher un contact par nom ou email..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-8 pl-9 text-xs border-border/60"
+              autoFocus
+            />
+          </div>
+          {isSearching && (
+            <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Recherche...
+            </div>
+          )}
+          {searchResults.length > 0 && (
+            <div className="mt-2 space-y-1">
+              {searchResults.map((c) => (
+                <div key={c.id} className="flex items-center justify-between rounded-md px-3 py-2 hover:bg-muted/30 transition-colors">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-3.5 w-3.5 text-purple-400" />
+                    <span className="text-[13px] font-medium">{c.prenom} {c.nom}</span>
+                    {c.fonction && <span className="text-[11px] text-muted-foreground/50">{c.fonction}</span>}
+                    {c.email && <span className="text-[11px] text-muted-foreground/40">{c.email}</span>}
+                  </div>
+                  <Button size="sm" className="h-6 text-[10px] px-2" onClick={() => handleLink(c.id)}>
+                    <Plus className="mr-0.5 h-3 w-3" />
+                    Rattacher
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+          {searchQuery.trim() && !isSearching && searchResults.length === 0 && (
+            <p className="mt-2 text-xs text-muted-foreground/50">
+              Aucun contact trouvé pour &laquo; {searchQuery} &raquo;
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* List */}
+      {isLoading ? (
+        <div className="p-5 space-y-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-10 animate-pulse rounded bg-muted/30" />
+          ))}
+        </div>
+      ) : contacts.length === 0 ? (
+        <div className="flex flex-col items-center gap-3 py-16">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50">
+            <Users className="h-6 w-6 text-muted-foreground/30" />
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-medium text-muted-foreground/60">Aucun contact rattaché</p>
+            <p className="mt-0.5 text-xs text-muted-foreground/40">
+              Créez un nouveau contact ou rattachez un contact existant.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-border/60 bg-muted/30">
+                <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">ID</th>
+                <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Nom</th>
+                <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Fonction</th>
+                <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Email</th>
+                <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Téléphone</th>
+                <th className="w-10" />
+              </tr>
+            </thead>
+            <tbody>
+              {contacts.map((c) => (
+                <tr key={c.id} className="border-b border-border/40 transition-colors hover:bg-muted/20 group">
+                  <td className="px-4 py-2.5">
+                    <span className="font-mono text-xs text-muted-foreground">{c.numero_affichage}</span>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <div className="flex items-center gap-2">
+                      <Users className="h-3.5 w-3.5 text-purple-400" />
+                      <span className="text-[13px] font-medium">{c.prenom} {c.nom}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-2.5 text-[13px] text-muted-foreground">
+                    {c.fonction ?? <span className="text-muted-foreground/40">--</span>}
+                  </td>
+                  <td className="px-4 py-2.5">
+                    {c.email ? (
+                      <a href={`mailto:${c.email}`} className="flex items-center gap-1.5 text-[13px] text-primary hover:underline" onClick={(e) => e.stopPropagation()}>
+                        <Mail className="h-3 w-3" />
+                        {c.email}
+                      </a>
+                    ) : (
+                      <span className="text-[13px] text-muted-foreground/40">--</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-2.5">
+                    {c.telephone ? (
+                      <a href={`tel:${c.telephone}`} className="flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground" onClick={(e) => e.stopPropagation()}>
+                        <Phone className="h-3 w-3" />
+                        {c.telephone}
+                      </a>
+                    ) : (
+                      <span className="text-[13px] text-muted-foreground/40">--</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <button
+                      onClick={() => handleUnlink(c.id)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground/40 hover:text-destructive"
+                      title="Retirer de l'entreprise"
+                    >
+                      <Unlink className="h-3.5 w-3.5" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
   );
 }
 
