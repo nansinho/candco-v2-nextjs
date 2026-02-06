@@ -46,22 +46,41 @@ function normalizeHeader(h: string): string {
     .replace(/\s+/g, " ");
 }
 
+/** Supprime tous les espaces d'une chaîne normalisée (pour comparaison compacte) */
+function compactHeader(h: string): string {
+  return normalizeHeader(h).replace(/\s+/g, "");
+}
+
 /** Trouve la colonne correspondante à un header donné */
 function matchColumn(header: string, columns: ImportColumn[]): ImportColumn | undefined {
   const normalized = normalizeHeader(header);
 
+  // Pass 1 : match exact (avec espaces)
   for (const col of columns) {
-    // Match exact sur key ou label
     if (normalizeHeader(col.key) === normalized) return col;
     if (normalizeHeader(col.label) === normalized) return col;
 
-    // Match sur les alias
     if (col.aliases) {
       for (const alias of col.aliases) {
         if (normalizeHeader(alias) === normalized) return col;
       }
     }
   }
+
+  // Pass 2 : match compact (sans espaces) — résout les apostrophes françaises
+  // Ex: "Nom de l'apprenant" → "nomdelapprenant" == "nomdelapprenant" ← alias "nom de lapprenant"
+  const compact = compactHeader(header);
+  for (const col of columns) {
+    if (compactHeader(col.key) === compact) return col;
+    if (compactHeader(col.label) === compact) return col;
+
+    if (col.aliases) {
+      for (const alias of col.aliases) {
+        if (compactHeader(alias) === compact) return col;
+      }
+    }
+  }
+
   return undefined;
 }
 

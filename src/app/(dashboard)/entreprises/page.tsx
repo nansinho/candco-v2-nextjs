@@ -22,19 +22,19 @@ import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
 import { CsvImport, type ImportColumn } from "@/components/shared/csv-import";
 
 const ENTREPRISE_IMPORT_COLUMNS: ImportColumn[] = [
-  { key: "nom", label: "Nom", required: true, aliases: ["raison sociale", "nom entreprise", "nom de lentreprise", "societe", "société", "company", "company name", "denomination"] },
+  { key: "nom", label: "Nom", required: true, aliases: ["raison sociale", "nom entreprise", "nom de lentreprise", "nom de l entreprise", "societe", "société", "company", "company name", "denomination"] },
   { key: "siret", label: "SIRET", aliases: ["n siret", "siret entreprise", "numero siret", "siren"] },
-  { key: "email", label: "Email", aliases: ["mail", "e-mail", "courriel", "email entreprise", "adresse email", "adresse e mail", "adresse e-mail de contact"] },
-  { key: "telephone", label: "Téléphone", aliases: ["tel", "phone", "telephone entreprise", "numero telephone", "numero de telephone"] },
+  { key: "email", label: "Email", aliases: ["mail", "e-mail", "courriel", "email entreprise", "adresse email", "adresse e mail", "adresse e-mail", "adresse e-mail de contact", "adresse e mail de contact"] },
+  { key: "telephone", label: "Téléphone", aliases: ["tel", "phone", "telephone entreprise", "numero telephone", "numero de telephone", "n de telephone"] },
   { key: "adresse_rue", label: "Adresse", aliases: ["rue", "adresse postale", "adresse rue", "address", "n et rue", "adresse"] },
-  { key: "adresse_complement", label: "Complément adresse", aliases: ["complement", "adresse complement", "bat", "batiment"] },
+  { key: "adresse_complement", label: "Complément adresse", aliases: ["complement", "adresse complement", "complement adresse", "complement d adresse", "bat", "batiment"] },
   { key: "adresse_cp", label: "Code postal", aliases: ["cp", "zip", "code postal", "postal code"] },
   { key: "adresse_ville", label: "Ville", aliases: ["city", "commune", "localite"] },
-  { key: "facturation_raison_sociale", label: "Facturation - Raison sociale", aliases: ["raison sociale facturation", "facturation societe"] },
+  { key: "facturation_raison_sociale", label: "Facturation - Raison sociale", aliases: ["raison sociale facturation", "facturation societe", "facturation raison sociale"] },
   { key: "facturation_rue", label: "Facturation - Adresse", aliases: ["adresse facturation", "facturation adresse", "facturation rue"] },
   { key: "facturation_cp", label: "Facturation - CP", aliases: ["cp facturation", "code postal facturation", "facturation code postal"] },
   { key: "facturation_ville", label: "Facturation - Ville", aliases: ["ville facturation", "facturation ville"] },
-  { key: "numero_compte_comptable", label: "N° compte comptable", aliases: ["compte comptable", "compte client", "numero compte", "numero de compte comptable"] },
+  { key: "numero_compte_comptable", label: "N° compte comptable", aliases: ["compte comptable", "compte client", "numero compte", "numero de compte comptable", "n compte comptable"] },
   { key: "bpf_provenance", label: "Provenance BPF", aliases: ["provenance bpf", "provenance des produits bpf par defaut", "provenance des produits bpf", "bpf", "categorie bpf", "bpf par defaut"] },
   { key: "created_at", label: "Date de création", aliases: ["date de creation", "date creation", "cree le", "created at"] },
 ];
