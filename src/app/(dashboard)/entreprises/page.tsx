@@ -53,9 +53,24 @@ const columns: Column<Entreprise>[] = [
       </div>
     ),
   },
-  { key: "siret", label: "SIRET" },
-  { key: "email", label: "Email" },
-  { key: "telephone", label: "Téléphone" },
+  {
+    key: "siret",
+    label: "SIRET",
+    render: (item) =>
+      item.siret || <span className="text-muted-foreground/40">--</span>,
+  },
+  {
+    key: "email",
+    label: "Email",
+    render: (item) =>
+      item.email || <span className="text-muted-foreground/40">--</span>,
+  },
+  {
+    key: "telephone",
+    label: "Téléphone",
+    render: (item) =>
+      item.telephone || <span className="text-muted-foreground/40">--</span>,
+  },
   {
     key: "created_at",
     label: "Créé le",

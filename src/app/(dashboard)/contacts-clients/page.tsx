@@ -78,13 +78,13 @@ const columns: Column<ContactClient>[] = [
   },
   {
     key: "telephone",
-    label: "T\u00e9l\u00e9phone",
+    label: "Téléphone",
     render: (item) =>
       item.telephone || <span className="text-muted-foreground/40">--</span>,
   },
   {
     key: "created_at",
-    label: "Cr\u00e9\u00e9 le",
+    label: "Créé le",
     className: "w-28",
     render: (item) => (
       <span className="text-muted-foreground">{formatDate(item.created_at)}</span>
@@ -131,8 +131,8 @@ export default function ContactsClientsPage() {
     setDialogOpen(false);
     fetchData();
     toast({
-      title: "Contact cr\u00e9\u00e9",
-      description: "Le contact client a \u00e9t\u00e9 ajout\u00e9 avec succ\u00e8s.",
+      title: "Contact créé",
+      description: "Le contact client a été ajouté avec succès.",
       variant: "success",
     });
   };
@@ -232,10 +232,10 @@ function CreateContactForm({
         </div>
       )}
 
-      {/* Civilit\u00e9 */}
+      {/* Civilité */}
       <div className="space-y-2">
         <Label htmlFor="civilite" className="text-[13px]">
-          Civilit\u00e9
+          Civilité
         </Label>
         <select
           id="civilite"
@@ -243,17 +243,17 @@ function CreateContactForm({
           onChange={(e) => updateField("civilite", e.target.value)}
           className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-[13px] text-foreground"
         >
-          <option value="">-- S\u00e9lectionner --</option>
+          <option value="">-- Sélectionner --</option>
           <option value="Monsieur">Monsieur</option>
           <option value="Madame">Madame</option>
         </select>
       </div>
 
-      {/* Pr\u00e9nom / Nom */}
+      {/* Prénom / Nom */}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
           <Label htmlFor="prenom" className="text-[13px]">
-            Pr\u00e9nom <span className="text-destructive">*</span>
+            Prénom <span className="text-destructive">*</span>
           </Label>
           <Input
             id="prenom"
@@ -301,11 +301,11 @@ function CreateContactForm({
         )}
       </div>
 
-      {/* T\u00e9l\u00e9phone / Fonction */}
+      {/* Téléphone / Fonction */}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
           <Label htmlFor="telephone" className="text-[13px]">
-            T\u00e9l\u00e9phone
+            Téléphone
           </Label>
           <Input
             id="telephone"
@@ -343,10 +343,10 @@ function CreateContactForm({
           {isSubmitting ? (
             <>
               <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
-              Cr\u00e9ation...
+              Création...
             </>
           ) : (
-            "Cr\u00e9er le contact"
+            "Créer le contact"
           )}
         </Button>
       </DialogFooter>

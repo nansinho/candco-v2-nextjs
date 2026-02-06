@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DatePicker } from "@/components/ui/date-picker";
 import { useToast } from "@/components/ui/toast";
 import { getApprenants, createApprenant, type CreateApprenantInput } from "@/actions/apprenants";
 import { formatDate } from "@/lib/utils";
@@ -62,13 +63,13 @@ const columns: Column<Apprenant>[] = [
   },
   {
     key: "telephone",
-    label: "T\u00e9l\u00e9phone",
+    label: "Téléphone",
     render: (item) =>
       item.telephone || <span className="text-muted-foreground/40">--</span>,
   },
   {
     key: "created_at",
-    label: "Cr\u00e9\u00e9 le",
+    label: "Créé le",
     className: "w-28",
     render: (item) => (
       <span className="text-muted-foreground">{formatDate(item.created_at)}</span>
@@ -113,8 +114,8 @@ export default function ApprenantsPage() {
     setDialogOpen(false);
     fetchData();
     toast({
-      title: "Apprenant cr\u00e9\u00e9",
-      description: "L'apprenant a \u00e9t\u00e9 ajout\u00e9 avec succ\u00e8s.",
+      title: "Apprenant créé",
+      description: "L'apprenant a été ajouté avec succès.",
       variant: "success",
     });
   };
@@ -214,10 +215,10 @@ function CreateApprenantForm({
         </div>
       )}
 
-      {/* Civilit\u00e9 */}
+      {/* Civilité */}
       <div className="space-y-2">
         <Label htmlFor="civilite" className="text-[13px]">
-          Civilit\u00e9
+          Civilité
         </Label>
         <select
           id="civilite"
@@ -225,17 +226,17 @@ function CreateApprenantForm({
           defaultValue=""
           className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-[13px] text-foreground"
         >
-          <option value="">-- S\u00e9lectionner --</option>
+          <option value="">-- Sélectionner --</option>
           <option value="Monsieur">Monsieur</option>
           <option value="Madame">Madame</option>
         </select>
       </div>
 
-      {/* Pr\u00e9nom / Nom */}
+      {/* Prénom / Nom */}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
           <Label htmlFor="prenom" className="text-[13px]">
-            Pr\u00e9nom <span className="text-destructive">*</span>
+            Prénom <span className="text-destructive">*</span>
           </Label>
           <Input
             id="prenom"
@@ -280,10 +281,10 @@ function CreateApprenantForm({
         )}
       </div>
 
-      {/* T\u00e9l\u00e9phone */}
+      {/* Téléphone */}
       <div className="space-y-2">
         <Label htmlFor="telephone" className="text-[13px]">
-          T\u00e9l\u00e9phone
+          Téléphone
         </Label>
         <Input
           id="telephone"
@@ -298,11 +299,9 @@ function CreateApprenantForm({
         <Label htmlFor="date_naissance" className="text-[13px]">
           Date de naissance
         </Label>
-        <Input
+        <DatePicker
           id="date_naissance"
           name="date_naissance"
-          type="date"
-          className="h-9 text-[13px] bg-background border-border/60"
         />
       </div>
 
@@ -321,10 +320,10 @@ function CreateApprenantForm({
           {isSubmitting ? (
             <>
               <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
-              Cr\u00e9ation...
+              Création...
             </>
           ) : (
-            "Cr\u00e9er l'apprenant"
+            "Créer l'apprenant"
           )}
         </Button>
       </DialogFooter>

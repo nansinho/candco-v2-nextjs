@@ -275,7 +275,7 @@ export default function FormateurDetailPage() {
             {/* Contact Section */}
             <div>
               <h3 className="text-sm font-medium mb-4">Contact</h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="grid gap-1.5">
                   <Label className="text-[13px] text-muted-foreground">Email</Label>
                   <Input
@@ -336,7 +336,7 @@ export default function FormateurDetailPage() {
                     className="h-9 text-[13px] bg-card border-border/60"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="grid gap-1.5">
                     <Label className="text-[13px] text-muted-foreground">
                       Code postal

@@ -1,11 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { Search, Plus, Archive, Download, ChevronLeft, ChevronRight, Inbox } from "lucide-react";
+import { Search, Plus, Archive, Download, ChevronLeft, ChevronRight, Inbox, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { ITEMS_PER_PAGE } from "@/lib/constants";
+import { useToast } from "@/components/ui/toast";
 
 export interface Column<T> {
   key: string;
@@ -29,6 +30,9 @@ interface DataTableProps<T> {
   onRowClick?: (item: T) => void;
   getRowId: (item: T) => string;
   isLoading?: boolean;
+  onArchive?: (ids: string[]) => Promise<void>;
+  onDelete?: (ids: string[]) => Promise<void>;
+  onExport?: () => void;
 }
 
 export function DataTable<T>({
@@ -45,7 +49,11 @@ export function DataTable<T>({
   onRowClick,
   getRowId,
   isLoading,
+  onArchive,
+  onDelete,
+  onExport,
 }: DataTableProps<T>) {
+  const { toast } = useToast();
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
@@ -69,31 +77,83 @@ export function DataTable<T>({
     }
   };
 
+  const handleArchive = async () => {
+    if (onArchive) {
+      await onArchive(Array.from(selectedIds));
+      setSelectedIds(new Set());
+    } else {
+      toast({
+        title: "Archivage",
+        description: `${selectedIds.size} élément(s) sélectionné(s) pour archivage.`,
+      });
+    }
+  };
+
+  const handleDelete = async () => {
+    if (onDelete) {
+      await onDelete(Array.from(selectedIds));
+      setSelectedIds(new Set());
+    }
+  };
+
+  const handleExport = () => {
+    if (onExport) {
+      onExport();
+    } else {
+      toast({
+        title: "Export",
+        description: "L'export sera disponible prochainement.",
+      });
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Toolbar */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {selectedIds.size > 0 && (
             <>
               <span className="text-xs text-muted-foreground">
                 {selectedIds.size} sélectionné(s)
               </span>
-              <Button variant="outline" size="sm" className="h-8 text-xs">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs"
+                onClick={handleArchive}
+              >
                 <Archive className="mr-1.5 h-3 w-3" />
                 Archiver
               </Button>
+              {onDelete && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs text-destructive hover:text-destructive"
+                  onClick={handleDelete}
+                >
+                  <Trash2 className="mr-1.5 h-3 w-3" />
+                  Supprimer
+                </Button>
+              )}
             </>
           )}
-          <Button variant="outline" size="sm" className="h-8 text-xs border-border/60">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs border-border/60"
+            onClick={handleExport}
+          >
             <Download className="mr-1.5 h-3 w-3" />
-            Exporter
+            <span className="hidden sm:inline">Exporter</span>
           </Button>
           {onAdd && (
             <Button size="sm" onClick={onAdd} className="h-8 text-xs">
               <Plus className="mr-1.5 h-3 w-3" />
-              {addLabel}
+              <span className="hidden sm:inline">{addLabel}</span>
+              <span className="sm:hidden">Ajouter</span>
             </Button>
           )}
         </div>
@@ -101,7 +161,7 @@ export function DataTable<T>({
 
       {/* Search */}
       {onSearchChange && (
-        <div className="relative max-w-xs">
+        <div className="relative w-full sm:max-w-xs">
           <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/50" />
           <Input
             placeholder="Rechercher..."
@@ -113,8 +173,8 @@ export function DataTable<T>({
       )}
 
       {/* Table */}
-      <div className="overflow-hidden rounded-lg border border-border/60 bg-card">
-        <table className="w-full">
+      <div className="overflow-x-auto rounded-lg border border-border/60 bg-card">
+        <table className="w-full min-w-[600px]">
           <thead>
             <tr className="border-b border-border/60 bg-muted/30">
               <th className="w-10 px-4 py-2.5">
@@ -205,7 +265,7 @@ export function DataTable<T>({
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-xs text-muted-foreground/60">
-            {totalCount} résultat(s) — Page {page} sur {totalPages}
+            {totalCount} résultat(s) — Page {page}/{totalPages}
           </p>
           <div className="flex items-center gap-1">
             <Button
