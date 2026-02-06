@@ -23,11 +23,12 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 
 const FORMATEUR_IMPORT_COLUMNS: ImportColumn[] = [
   { key: "civilite", label: "Civilité", aliases: ["civ", "titre", "gender"] },
-  { key: "prenom", label: "Prénom", required: true, aliases: ["first name", "firstname", "prenom formateur"] },
-  { key: "nom", label: "Nom", required: true, aliases: ["last name", "lastname", "nom formateur", "nom de famille"] },
+  { key: "nom_complet", label: "Nom complet", aliases: ["nom du formateur", "nom formateur", "full name", "name", "nom complet"] },
+  { key: "prenom", label: "Prénom", aliases: ["first name", "firstname", "prenom formateur"] },
+  { key: "nom", label: "Nom", aliases: ["last name", "lastname", "nom de famille"] },
   { key: "email", label: "Email", aliases: ["mail", "e-mail", "courriel", "email formateur", "adresse email", "adresse e mail", "adresse e-mail"] },
   { key: "telephone", label: "Téléphone", aliases: ["tel", "phone", "portable", "mobile", "tel formateur", "numero telephone", "numero de telephone", "n de telephone"] },
-  { key: "statut_bpf", label: "Statut BPF", aliases: ["statut", "statut bpf", "type formateur", "type de formateur", "interne externe", "interne/externe"] },
+  { key: "statut_bpf", label: "Statut BPF", aliases: ["statut", "statut bpf", "statut bpf par defaut", "type formateur", "type de formateur", "interne externe", "interne/externe", "categorie bpf"] },
   { key: "tarif_journalier", label: "Tarif journalier", aliases: ["tarif", "tarif jour", "prix jour", "cout journalier", "tjm", "cout jour ht", "cout jour", "tarif journalier ht"] },
   { key: "taux_tva", label: "Taux TVA", aliases: ["tva", "tva formateur"] },
   { key: "nda", label: "NDA", aliases: ["numero declaration activite", "numero declaration d activite", "n declaration activite", "n declaration d activite", "numero da", "n da", "declaration activite"] },
