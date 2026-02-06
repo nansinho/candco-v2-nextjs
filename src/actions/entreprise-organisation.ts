@@ -99,74 +99,98 @@ export async function createAgence(entrepriseId: string, input: z.infer<typeof A
   const parsed = AgenceSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.flatten().fieldErrors };
 
-  const supabase = await createClient();
+  try {
+    const supabase = await createClient();
 
-  const d = parsed.data;
-  const { data, error } = await supabase
-    .from("entreprise_agences")
-    .insert({
-      entreprise_id: entrepriseId,
-      nom: d.nom,
-      siret: d.siret || null,
-      adresse_rue: d.adresse_rue || null,
-      adresse_complement: d.adresse_complement || null,
-      adresse_cp: d.adresse_cp || null,
-      adresse_ville: d.adresse_ville || null,
-      telephone: d.telephone || null,
-      email: d.email || null,
-      est_siege: d.est_siege,
-    })
-    .select()
-    .single();
+    const d = parsed.data;
+    const { data, error } = await supabase
+      .from("entreprise_agences")
+      .insert({
+        entreprise_id: entrepriseId,
+        nom: d.nom,
+        siret: d.siret || null,
+        adresse_rue: d.adresse_rue || null,
+        adresse_complement: d.adresse_complement || null,
+        adresse_cp: d.adresse_cp || null,
+        adresse_ville: d.adresse_ville || null,
+        telephone: d.telephone || null,
+        email: d.email || null,
+        est_siege: d.est_siege,
+      })
+      .select()
+      .single();
 
-  if (error) return { error: { _form: [error.message] } };
+    if (error) {
+      console.error("[createAgence] Supabase error:", error.message, error.details, error.hint);
+      return { error: { _form: [error.message] } };
+    }
 
-  revalidatePath(`/entreprises/${entrepriseId}`);
-  return { data };
+    revalidatePath(`/entreprises/${entrepriseId}`);
+    return { data };
+  } catch (err) {
+    console.error("[createAgence] Unexpected error:", err);
+    return { error: { _form: [err instanceof Error ? err.message : "Erreur serveur inattendue"] } };
+  }
 }
 
 export async function updateAgence(agenceId: string, entrepriseId: string, input: z.infer<typeof AgenceSchema>) {
   const parsed = AgenceSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.flatten().fieldErrors };
 
-  const supabase = await createClient();
+  try {
+    const supabase = await createClient();
 
-  const d = parsed.data;
-  const { data, error } = await supabase
-    .from("entreprise_agences")
-    .update({
-      nom: d.nom,
-      siret: d.siret || null,
-      adresse_rue: d.adresse_rue || null,
-      adresse_complement: d.adresse_complement || null,
-      adresse_cp: d.adresse_cp || null,
-      adresse_ville: d.adresse_ville || null,
-      telephone: d.telephone || null,
-      email: d.email || null,
-      est_siege: d.est_siege,
-    })
-    .eq("id", agenceId)
-    .select()
-    .single();
+    const d = parsed.data;
+    const { data, error } = await supabase
+      .from("entreprise_agences")
+      .update({
+        nom: d.nom,
+        siret: d.siret || null,
+        adresse_rue: d.adresse_rue || null,
+        adresse_complement: d.adresse_complement || null,
+        adresse_cp: d.adresse_cp || null,
+        adresse_ville: d.adresse_ville || null,
+        telephone: d.telephone || null,
+        email: d.email || null,
+        est_siege: d.est_siege,
+      })
+      .eq("id", agenceId)
+      .select()
+      .single();
 
-  if (error) return { error: { _form: [error.message] } };
+    if (error) {
+      console.error("[updateAgence] Supabase error:", error.message, error.details, error.hint);
+      return { error: { _form: [error.message] } };
+    }
 
-  revalidatePath(`/entreprises/${entrepriseId}`);
-  return { data };
+    revalidatePath(`/entreprises/${entrepriseId}`);
+    return { data };
+  } catch (err) {
+    console.error("[updateAgence] Unexpected error:", err);
+    return { error: { _form: [err instanceof Error ? err.message : "Erreur serveur inattendue"] } };
+  }
 }
 
 export async function deleteAgence(agenceId: string, entrepriseId: string) {
-  const supabase = await createClient();
+  try {
+    const supabase = await createClient();
 
-  const { error } = await supabase
-    .from("entreprise_agences")
-    .delete()
-    .eq("id", agenceId);
+    const { error } = await supabase
+      .from("entreprise_agences")
+      .delete()
+      .eq("id", agenceId);
 
-  if (error) return { error: error.message };
+    if (error) {
+      console.error("[deleteAgence] Supabase error:", error.message, error.details, error.hint);
+      return { error: error.message };
+    }
 
-  revalidatePath(`/entreprises/${entrepriseId}`);
-  return { success: true };
+    revalidatePath(`/entreprises/${entrepriseId}`);
+    return { success: true };
+  } catch (err) {
+    console.error("[deleteAgence] Unexpected error:", err);
+    return { error: err instanceof Error ? err.message : "Erreur serveur inattendue" };
+  }
 }
 
 // ─── Pôles ───────────────────────────────────────────────
@@ -194,62 +218,86 @@ export async function createPole(entrepriseId: string, input: z.infer<typeof Pol
   const parsed = PoleSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.flatten().fieldErrors };
 
-  const supabase = await createClient();
+  try {
+    const supabase = await createClient();
 
-  const d = parsed.data;
-  const { data, error } = await supabase
-    .from("entreprise_poles")
-    .insert({
-      entreprise_id: entrepriseId,
-      nom: d.nom,
-      agence_id: d.agence_id || null,
-      description: d.description || null,
-    })
-    .select()
-    .single();
+    const d = parsed.data;
+    const { data, error } = await supabase
+      .from("entreprise_poles")
+      .insert({
+        entreprise_id: entrepriseId,
+        nom: d.nom,
+        agence_id: d.agence_id || null,
+        description: d.description || null,
+      })
+      .select()
+      .single();
 
-  if (error) return { error: { _form: [error.message] } };
+    if (error) {
+      console.error("[createPole] Supabase error:", error.message, error.details, error.hint);
+      return { error: { _form: [error.message] } };
+    }
 
-  revalidatePath(`/entreprises/${entrepriseId}`);
-  return { data };
+    revalidatePath(`/entreprises/${entrepriseId}`);
+    return { data };
+  } catch (err) {
+    console.error("[createPole] Unexpected error:", err);
+    return { error: { _form: [err instanceof Error ? err.message : "Erreur serveur inattendue"] } };
+  }
 }
 
 export async function updatePole(poleId: string, entrepriseId: string, input: z.infer<typeof PoleSchema>) {
   const parsed = PoleSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.flatten().fieldErrors };
 
-  const supabase = await createClient();
+  try {
+    const supabase = await createClient();
 
-  const d = parsed.data;
-  const { data, error } = await supabase
-    .from("entreprise_poles")
-    .update({
-      nom: d.nom,
-      agence_id: d.agence_id || null,
-      description: d.description || null,
-    })
-    .eq("id", poleId)
-    .select()
-    .single();
+    const d = parsed.data;
+    const { data, error } = await supabase
+      .from("entreprise_poles")
+      .update({
+        nom: d.nom,
+        agence_id: d.agence_id || null,
+        description: d.description || null,
+      })
+      .eq("id", poleId)
+      .select()
+      .single();
 
-  if (error) return { error: { _form: [error.message] } };
+    if (error) {
+      console.error("[updatePole] Supabase error:", error.message, error.details, error.hint);
+      return { error: { _form: [error.message] } };
+    }
 
-  revalidatePath(`/entreprises/${entrepriseId}`);
-  return { data };
+    revalidatePath(`/entreprises/${entrepriseId}`);
+    return { data };
+  } catch (err) {
+    console.error("[updatePole] Unexpected error:", err);
+    return { error: { _form: [err instanceof Error ? err.message : "Erreur serveur inattendue"] } };
+  }
 }
 
 export async function deletePole(poleId: string, entrepriseId: string) {
-  const supabase = await createClient();
+  try {
+    const supabase = await createClient();
 
-  const { error } = await supabase
-    .from("entreprise_poles")
-    .delete()
-    .eq("id", poleId);
+    const { error } = await supabase
+      .from("entreprise_poles")
+      .delete()
+      .eq("id", poleId);
 
-  if (error) return { error: error.message };
+    if (error) {
+      console.error("[deletePole] Supabase error:", error.message, error.details, error.hint);
+      return { error: error.message };
+    }
 
-  revalidatePath(`/entreprises/${entrepriseId}`);
-  return { success: true };
+    revalidatePath(`/entreprises/${entrepriseId}`);
+    return { success: true };
+  } catch (err) {
+    console.error("[deletePole] Unexpected error:", err);
+    return { error: err instanceof Error ? err.message : "Erreur serveur inattendue" };
+  }
 }
 
 // ─── Membres ─────────────────────────────────────────────
@@ -298,26 +346,34 @@ export async function createMembre(entrepriseId: string, input: z.infer<typeof M
     return { error: { _form: ["Vous devez sélectionner un apprenant ou un contact client."] } };
   }
 
-  const supabase = await createClient();
+  try {
+    const supabase = await createClient();
 
-  const { data, error } = await supabase
-    .from("entreprise_membres")
-    .insert({
-      entreprise_id: entrepriseId,
-      agence_id: d.agence_id || null,
-      pole_id: d.pole_id || null,
-      apprenant_id: d.apprenant_id || null,
-      contact_client_id: d.contact_client_id || null,
-      role: d.role,
-      fonction: d.fonction || null,
-    })
-    .select()
-    .single();
+    const { data, error } = await supabase
+      .from("entreprise_membres")
+      .insert({
+        entreprise_id: entrepriseId,
+        agence_id: d.agence_id || null,
+        pole_id: d.pole_id || null,
+        apprenant_id: d.apprenant_id || null,
+        contact_client_id: d.contact_client_id || null,
+        role: d.role,
+        fonction: d.fonction || null,
+      })
+      .select()
+      .single();
 
-  if (error) return { error: { _form: [error.message] } };
+    if (error) {
+      console.error("[createMembre] Supabase error:", error.message, error.details, error.hint);
+      return { error: { _form: [error.message] } };
+    }
 
-  revalidatePath(`/entreprises/${entrepriseId}`);
-  return { data };
+    revalidatePath(`/entreprises/${entrepriseId}`);
+    return { data };
+  } catch (err) {
+    console.error("[createMembre] Unexpected error:", err);
+    return { error: { _form: [err instanceof Error ? err.message : "Erreur serveur inattendue"] } };
+  }
 }
 
 export async function updateMembre(membreId: string, entrepriseId: string, input: z.infer<typeof MembreSchema>) {
@@ -326,38 +382,54 @@ export async function updateMembre(membreId: string, entrepriseId: string, input
 
   const d = parsed.data;
 
-  const supabase = await createClient();
+  try {
+    const supabase = await createClient();
 
-  const { data, error } = await supabase
-    .from("entreprise_membres")
-    .update({
-      agence_id: d.agence_id || null,
-      pole_id: d.pole_id || null,
-      role: d.role,
-      fonction: d.fonction || null,
-    })
-    .eq("id", membreId)
-    .select()
-    .single();
+    const { data, error } = await supabase
+      .from("entreprise_membres")
+      .update({
+        agence_id: d.agence_id || null,
+        pole_id: d.pole_id || null,
+        role: d.role,
+        fonction: d.fonction || null,
+      })
+      .eq("id", membreId)
+      .select()
+      .single();
 
-  if (error) return { error: { _form: [error.message] } };
+    if (error) {
+      console.error("[updateMembre] Supabase error:", error.message, error.details, error.hint);
+      return { error: { _form: [error.message] } };
+    }
 
-  revalidatePath(`/entreprises/${entrepriseId}`);
-  return { data };
+    revalidatePath(`/entreprises/${entrepriseId}`);
+    return { data };
+  } catch (err) {
+    console.error("[updateMembre] Unexpected error:", err);
+    return { error: { _form: [err instanceof Error ? err.message : "Erreur serveur inattendue"] } };
+  }
 }
 
 export async function deleteMembre(membreId: string, entrepriseId: string) {
-  const supabase = await createClient();
+  try {
+    const supabase = await createClient();
 
-  const { error } = await supabase
-    .from("entreprise_membres")
-    .delete()
-    .eq("id", membreId);
+    const { error } = await supabase
+      .from("entreprise_membres")
+      .delete()
+      .eq("id", membreId);
 
-  if (error) return { error: error.message };
+    if (error) {
+      console.error("[deleteMembre] Supabase error:", error.message, error.details, error.hint);
+      return { error: error.message };
+    }
 
-  revalidatePath(`/entreprises/${entrepriseId}`);
-  return { success: true };
+    revalidatePath(`/entreprises/${entrepriseId}`);
+    return { success: true };
+  } catch (err) {
+    console.error("[deleteMembre] Unexpected error:", err);
+    return { error: err instanceof Error ? err.message : "Erreur serveur inattendue" };
+  }
 }
 
 // ─── Search helpers for linking membres ──────────────────
