@@ -440,7 +440,7 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
                 id="bpf_categorie_id"
                 name="bpf_categorie_id"
                 defaultValue={entreprise.bpf_categorie_id ?? ""}
-                className="flex h-9 w-full rounded-md border border-border/60 bg-transparent px-3 py-1 text-[13px] text-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="flex h-9 w-full rounded-md border border-border/60 bg-muted px-3 py-1 text-[13px] text-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               >
                 <option value="">-- Aucune --</option>
                 {bpfCategories.map((cat) => (

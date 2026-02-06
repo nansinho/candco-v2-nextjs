@@ -202,7 +202,7 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
                 <select
                   value={form.civilite ?? ""}
                   onChange={(e) => updateField("civilite", e.target.value)}
-                  className="h-9 w-full max-w-xs rounded-md border border-border/60 bg-transparent px-3 py-1 text-[13px] text-foreground"
+                  className="h-9 w-full max-w-xs rounded-md border border-border/60 bg-muted px-3 py-1 text-[13px] text-foreground"
                 >
                   <option value="">-- Aucune --</option>
                   <option value="Monsieur">Monsieur</option>

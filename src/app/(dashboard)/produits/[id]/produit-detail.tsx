@@ -341,7 +341,7 @@ export function ProduitDetail({
                       name="description"
                       rows={4}
                       defaultValue={produit.description ?? ""}
-                      className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-[13px] text-foreground resize-y"
+                      className="w-full rounded-md border border-input bg-muted px-3 py-2 text-[13px] text-foreground resize-y"
                     />
                   </div>
                 </fieldset>
@@ -361,7 +361,7 @@ export function ProduitDetail({
                         id="type_action"
                         name="type_action"
                         defaultValue={produit.type_action ?? ""}
-                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-[13px] text-foreground"
+                        className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
                       >
                         <option value="">--</option>
                         <option value="action_formation">Action de formation</option>
@@ -379,7 +379,7 @@ export function ProduitDetail({
                         id="modalite"
                         name="modalite"
                         defaultValue={produit.modalite ?? ""}
-                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-[13px] text-foreground"
+                        className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
                       >
                         <option value="">--</option>
                         <option value="presentiel">Présentiel</option>
@@ -397,7 +397,7 @@ export function ProduitDetail({
                         id="formule"
                         name="formule"
                         defaultValue={produit.formule ?? ""}
-                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-[13px] text-foreground"
+                        className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
                       >
                         <option value="">--</option>
                         <option value="inter">Inter</option>
@@ -454,7 +454,7 @@ export function ProduitDetail({
                         id="bpf_specialite_id"
                         name="bpf_specialite_id"
                         defaultValue={produit.bpf_specialite_id ?? ""}
-                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-[13px] text-foreground"
+                        className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
                       >
                         <option value="">-- Aucune --</option>
                         {bpfSpecialites.map((s) => (
@@ -473,7 +473,7 @@ export function ProduitDetail({
                         id="bpf_categorie"
                         name="bpf_categorie"
                         defaultValue={produit.bpf_categorie ?? ""}
-                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-[13px] text-foreground"
+                        className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
                       >
                         <option value="">--</option>
                         <option value="A">A — Actions de formation</option>
@@ -490,7 +490,7 @@ export function ProduitDetail({
                         id="bpf_niveau"
                         name="bpf_niveau"
                         defaultValue={produit.bpf_niveau ?? ""}
-                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-[13px] text-foreground"
+                        className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
                       >
                         <option value="">--</option>
                         <option value="I">Niveau I</option>
@@ -663,7 +663,7 @@ function TarifsTab({ produitId, tarifs }: { produitId: string; tarifs: Tarif[] }
             </div>
             <div className="space-y-1">
               <Label className="text-[11px]">Unité</Label>
-              <select name="unite" className="h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-xs text-foreground">
+              <select name="unite" className="h-8 w-full rounded-md border border-input bg-muted px-2 py-1 text-xs text-foreground">
                 <option value="">--</option>
                 <option value="stagiaire">/ stagiaire</option>
                 <option value="groupe">/ groupe</option>
@@ -837,7 +837,7 @@ function ProgrammeTab({
               name="contenu"
               rows={3}
               placeholder="Décrivez le contenu de ce module..."
-              className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-xs text-foreground resize-y"
+              className="w-full rounded-md border border-input bg-muted px-3 py-2 text-xs text-foreground resize-y"
             />
           </div>
         </form>

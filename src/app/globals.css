@@ -82,7 +82,7 @@ body {
 /* Native select & option styling for dark theme */
 select {
   color-scheme: dark;
-  background-color: var(--color-card);
+  background-color: var(--color-muted);
   color: var(--color-foreground);
 }
 

@@ -338,7 +338,7 @@ function CreateProduitForm({ onSuccess, onCancel }: CreateFormProps) {
           <select
             id="type_action"
             name="type_action"
-            className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-[13px] text-foreground"
+            className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
           >
             <option value="">--</option>
             <option value="action_formation">Action de formation</option>
@@ -355,7 +355,7 @@ function CreateProduitForm({ onSuccess, onCancel }: CreateFormProps) {
           <select
             id="modalite"
             name="modalite"
-            className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-[13px] text-foreground"
+            className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
           >
             <option value="">--</option>
             <option value="presentiel">Présentiel</option>
@@ -372,7 +372,7 @@ function CreateProduitForm({ onSuccess, onCancel }: CreateFormProps) {
           <select
             id="formule"
             name="formule"
-            className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-[13px] text-foreground"
+            className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
           >
             <option value="">--</option>
             <option value="inter">Inter</option>
