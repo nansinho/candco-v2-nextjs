@@ -65,7 +65,7 @@ export async function getApprenants(page: number = 1, search: string = "", showA
 
   let query = supabase
     .from("apprenants")
-    .select("*", { count: "exact" })
+    .select("*, bpf_categories_apprenant(code, libelle), apprenant_entreprises(entreprise_id, entreprises(nom))", { count: "exact" })
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
 

@@ -65,6 +65,12 @@ const columns: Column<Formateur>[] = [
       item.email || <span className="text-muted-foreground/40">--</span>,
   },
   {
+    key: "telephone",
+    label: "Téléphone",
+    render: (item) =>
+      item.telephone || <span className="text-muted-foreground/40">--</span>,
+  },
+  {
     key: "statut_bpf",
     label: "Statut BPF",
     className: "w-32",

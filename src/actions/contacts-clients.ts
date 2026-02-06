@@ -43,7 +43,7 @@ export async function getContactsClients(page: number = 1, search: string = "", 
 
   let query = supabase
     .from("contacts_clients")
-    .select("*", { count: "exact" })
+    .select("*, contact_entreprises(entreprise_id, entreprises(nom))", { count: "exact" })
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
 
