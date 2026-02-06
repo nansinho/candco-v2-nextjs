@@ -224,6 +224,17 @@ export async function deleteEntreprises(ids: string[]) {
   return { success: true };
 }
 
+// ─── Import Helpers ─────────────────────────────────────
+
+/**
+ * Extrait le code BPF depuis une chaîne SmartOF.
+ * "C.1 - des entreprises pour la formation de leurs salariés" → "C.1"
+ */
+function extractBpfCode(provenance: string): string {
+  const parts = provenance.split(" - ");
+  return parts[0].trim();
+}
+
 // ─── Import Entreprises ─────────────────────────────────
 
 export async function importEntreprises(
@@ -242,6 +253,8 @@ export async function importEntreprises(
     facturation_cp?: string;
     facturation_ville?: string;
     numero_compte_comptable?: string;
+    bpf_provenance?: string;
+    created_at?: string;
   }[]
 ): Promise<{ success: number; errors: string[] }> {
   const authResult = await getOrganisationId();
@@ -253,6 +266,15 @@ export async function importEntreprises(
   let successCount = 0;
   const importErrors: string[] = [];
 
+  // Pré-charger les catégories BPF entreprise → Map<code, id>
+  const { data: bpfCategories } = await supabase
+    .from("bpf_categories_entreprise")
+    .select("id, code");
+  const bpfMap = new Map<string, string>();
+  for (const cat of bpfCategories ?? []) {
+    bpfMap.set(cat.code.toLowerCase(), cat.id);
+  }
+
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     if (!row.nom?.trim()) {
@@ -260,12 +282,19 @@ export async function importEntreprises(
       continue;
     }
 
+    // Résoudre BPF
+    let bpfCategorieId: string | null = null;
+    if (row.bpf_provenance?.trim()) {
+      const code = extractBpfCode(row.bpf_provenance);
+      bpfCategorieId = bpfMap.get(code.toLowerCase()) ?? null;
+    }
+
     const { data: numero } = await supabase.rpc("next_numero", {
       p_organisation_id: organisationId,
       p_entite: "ENT",
     });
 
-    const { error } = await supabase.from("entreprises").insert({
+    const insertData: Record<string, unknown> = {
       organisation_id: organisationId,
       numero_affichage: numero,
       nom: row.nom.trim(),
@@ -282,7 +311,14 @@ export async function importEntreprises(
       facturation_cp: row.facturation_cp?.trim() || null,
       facturation_ville: row.facturation_ville?.trim() || null,
       numero_compte_comptable: row.numero_compte_comptable?.trim() || "411000",
-    });
+      bpf_categorie_id: bpfCategorieId,
+    };
+
+    if (row.created_at?.trim()) {
+      insertData.created_at = row.created_at.trim();
+    }
+
+    const { error } = await supabase.from("entreprises").insert(insertData);
 
     if (error) {
       importErrors.push(`Ligne ${i + 1} (${row.nom}): ${error.message}`);
