@@ -212,6 +212,72 @@ export async function unarchiveApprenant(id: string) {
   return { success: true };
 }
 
+export async function deleteApprenants(ids: string[]) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("apprenants")
+    .delete()
+    .in("id", ids);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/apprenants");
+  return { success: true };
+}
+
+export async function importApprenants(
+  rows: { prenom: string; nom: string; email?: string; telephone?: string; civilite?: string; date_naissance?: string; fonction?: string; adresse_rue?: string; adresse_cp?: string; adresse_ville?: string }[]
+): Promise<{ success: number; errors: string[] }> {
+  const authResult = await getOrganisationId();
+  if ("error" in authResult) {
+    return { success: 0, errors: [String(authResult.error)] };
+  }
+
+  const { organisationId, supabase } = authResult;
+  let successCount = 0;
+  const importErrors: string[] = [];
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row.prenom?.trim() || !row.nom?.trim()) {
+      importErrors.push(`Ligne ${i + 1}: Prénom et nom requis`);
+      continue;
+    }
+
+    const { data: numero } = await supabase.rpc("next_numero", {
+      p_organisation_id: organisationId,
+      p_entite: "APP",
+    });
+
+    const { error } = await supabase.from("apprenants").insert({
+      organisation_id: organisationId,
+      numero_affichage: numero,
+      prenom: row.prenom.trim(),
+      nom: row.nom.trim(),
+      email: row.email?.trim() || null,
+      telephone: row.telephone?.trim() || null,
+      civilite: row.civilite?.trim() || null,
+      date_naissance: row.date_naissance?.trim() || null,
+      fonction: row.fonction?.trim() || null,
+      adresse_rue: row.adresse_rue?.trim() || null,
+      adresse_cp: row.adresse_cp?.trim() || null,
+      adresse_ville: row.adresse_ville?.trim() || null,
+    });
+
+    if (error) {
+      importErrors.push(`Ligne ${i + 1} (${row.prenom} ${row.nom}): ${error.message}`);
+    } else {
+      successCount++;
+    }
+  }
+
+  revalidatePath("/apprenants");
+  return { success: successCount, errors: importErrors };
+}
+
 export async function getBpfCategoriesApprenant() {
   const supabase = await createClient();
 

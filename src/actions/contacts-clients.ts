@@ -179,6 +179,22 @@ export async function updateContactClient(id: string, input: UpdateContactClient
   return { data };
 }
 
+export async function deleteContactsClients(ids: string[]) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("contacts_clients")
+    .delete()
+    .in("id", ids);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/contacts-clients");
+  return { success: true };
+}
+
 export async function archiveContactClient(id: string) {
   const supabase = await createClient();
 

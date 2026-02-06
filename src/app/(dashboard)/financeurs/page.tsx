@@ -17,7 +17,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toast";
-import { getFinanceurs, createFinanceur, archiveFinanceur, unarchiveFinanceur } from "@/actions/financeurs";
+import { getFinanceurs, createFinanceur, archiveFinanceur, unarchiveFinanceur, deleteFinanceurs } from "@/actions/financeurs";
 import { formatDate } from "@/lib/utils";
 
 interface Financeur {
@@ -239,6 +239,15 @@ export default function FinanceursPage() {
           await Promise.all(ids.map((id) => unarchiveFinanceur(id)));
           setShowArchived(false);
           toast({ title: "Restauré", description: `${ids.length} élément(s) restauré(s).`, variant: "success" });
+        }}
+        onDelete={async (ids) => {
+          const result = await deleteFinanceurs(ids);
+          if (result.error) {
+            toast({ title: "Erreur", description: result.error, variant: "destructive" });
+            return;
+          }
+          await fetchData();
+          toast({ title: "Supprimé", description: `${ids.length} élément(s) supprimé(s) définitivement.`, variant: "success" });
         }}
       />
 

@@ -1,9 +1,17 @@
 "use client";
 
 import * as React from "react";
-import { Search, Plus, Archive, ArchiveRestore, Download, ChevronLeft, ChevronRight, Inbox, Trash2 } from "lucide-react";
+import { Search, Plus, Archive, ArchiveRestore, Download, Upload, ChevronLeft, ChevronRight, Inbox, Trash2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { ITEMS_PER_PAGE } from "@/lib/constants";
 import { useToast } from "@/components/ui/toast";
@@ -27,6 +35,7 @@ interface DataTableProps<T> {
   onSearchChange?: (value: string) => void;
   onAdd?: () => void;
   addLabel?: string;
+  onImport?: () => void;
   onRowClick?: (item: T) => void;
   getRowId: (item: T) => string;
   isLoading?: boolean;
@@ -50,6 +59,7 @@ export function DataTable<T>({
   onSearchChange,
   onAdd,
   addLabel = "Ajouter",
+  onImport,
   onRowClick,
   getRowId,
   isLoading,
@@ -63,6 +73,8 @@ export function DataTable<T>({
 }: DataTableProps<T>) {
   const { toast } = useToast();
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false);
+  const [isDeleting, setIsDeleting] = React.useState(false);
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
   const handleExportCSV = () => {
@@ -124,10 +136,17 @@ export function DataTable<T>({
     }
   };
 
-  const handleDelete = async () => {
+  const handleDeleteClick = () => {
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
     if (onDelete) {
+      setIsDeleting(true);
       await onDelete(Array.from(selectedIds));
       setSelectedIds(new Set());
+      setIsDeleting(false);
+      setDeleteConfirmOpen(false);
     }
   };
 
@@ -175,7 +194,7 @@ export function DataTable<T>({
                   variant="outline"
                   size="sm"
                   className="h-8 text-xs text-destructive hover:text-destructive"
-                  onClick={handleDelete}
+                  onClick={handleDeleteClick}
                 >
                   <Trash2 className="mr-1.5 h-3 w-3" />
                   Supprimer
@@ -195,6 +214,17 @@ export function DataTable<T>({
             >
               <Archive className="mr-1.5 h-3 w-3" />
               <span className="hidden sm:inline">Archives</span>
+            </Button>
+          )}
+          {onImport && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs border-border/60"
+              onClick={onImport}
+            >
+              <Upload className="mr-1.5 h-3 w-3" />
+              <span className="hidden sm:inline">Importer</span>
             </Button>
           )}
           <Button
@@ -351,6 +381,42 @@ export function DataTable<T>({
           </div>
         </div>
       )}
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Suppression définitive
+            </DialogTitle>
+            <DialogDescription>
+              Vous allez supprimer définitivement {selectedIds.size} élément(s).
+              Cette action est irréversible et supprimera également toutes les données associées.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setDeleteConfirmOpen(false)}
+              disabled={isDeleting}
+              className="h-8 text-xs border-border/60"
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleDeleteConfirm}
+              disabled={isDeleting}
+              className="h-8 text-xs"
+            >
+              {isDeleting ? "Suppression..." : "Supprimer définitivement"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

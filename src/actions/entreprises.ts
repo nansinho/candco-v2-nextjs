@@ -208,6 +208,22 @@ export async function unarchiveEntreprise(id: string) {
   return { success: true };
 }
 
+export async function deleteEntreprises(ids: string[]) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("entreprises")
+    .delete()
+    .in("id", ids);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/entreprises");
+  return { success: true };
+}
+
 // ─── Apprenants linked to Entreprise ─────────────────────
 
 export interface ApprenantLink {

@@ -158,6 +158,22 @@ export async function updateFinanceur(id: string, input: FinanceurInput) {
   return { data };
 }
 
+export async function deleteFinanceurs(ids: string[]) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("financeurs")
+    .delete()
+    .in("id", ids);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/financeurs");
+  return { success: true };
+}
+
 export async function archiveFinanceur(id: string) {
   const supabase = await createClient();
 
