@@ -1,11 +1,11 @@
 @import "tailwindcss";
 
-@theme {
+@theme inline {
   /* Font */
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
-  /* Default (Dark) Theme — Cursor Style */
+  /* Dark Theme — Cursor Style */
   --color-background: #0A0A0A;
   --color-foreground: #FAFAFA;
 
@@ -45,62 +45,11 @@
   --color-sidebar-accent-foreground: #FAFAFA;
   --color-sidebar-muted: #A0A0A0;
 
-  --color-header: #0A0A0A;
-  --color-header-foreground: #FAFAFA;
-
   /* Radius */
   --radius-sm: 0.375rem;
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
   --radius-xl: 1rem;
-}
-
-/* ═══════════════════════════════════════════════
-   LIGHT THEME — Bleu Électrique / Blanc / Orange
-   ═══════════════════════════════════════════════ */
-html.light {
-  --color-background: #F4F6F8;
-  --color-foreground: #0F172A;
-
-  --color-card: #FFFFFF;
-  --color-card-foreground: #0F172A;
-
-  --color-popover: #FFFFFF;
-  --color-popover-foreground: #0F172A;
-
-  --color-primary: #1F628E;
-  --color-primary-foreground: #FFFFFF;
-
-  --color-secondary: #EDF2F7;
-  --color-secondary-foreground: #0F172A;
-
-  --color-muted: #EDF2F7;
-  --color-muted-foreground: #64748B;
-
-  --color-accent: #E8F1F8;
-  --color-accent-foreground: #1F628E;
-
-  --color-destructive: #DC2626;
-  --color-destructive-foreground: #FFFFFF;
-
-  --color-success: #16A34A;
-  --color-warning: #CA8A04;
-  --color-info: #1F628E;
-
-  --color-border: #DDE4EB;
-  --color-input: #DDE4EB;
-  --color-ring: #F97316;
-
-  /* Sidebar & Header — Bleu #1F628E */
-  --color-sidebar: #1F628E;
-  --color-sidebar-foreground: #FFFFFF;
-  --color-sidebar-border: #1A5578;
-  --color-sidebar-accent: #276F9E;
-  --color-sidebar-accent-foreground: #FFFFFF;
-  --color-sidebar-muted: rgba(255, 255, 255, 0.55);
-
-  --color-header: #1F628E;
-  --color-header-foreground: #FFFFFF;
 }
 
 body {
@@ -121,64 +70,35 @@ body {
   background: transparent;
 }
 
-html.dark ::-webkit-scrollbar-thumb {
+::-webkit-scrollbar-thumb {
   background: #2A2A2A;
   border-radius: 3px;
 }
 
-html.dark ::-webkit-scrollbar-thumb:hover {
+::-webkit-scrollbar-thumb:hover {
   background: #3A3A3A;
 }
 
-html.light ::-webkit-scrollbar-thumb {
-  background: #CBD5E1;
-  border-radius: 3px;
-}
-
-html.light ::-webkit-scrollbar-thumb:hover {
-  background: #94A3B8;
-}
-
 /* Native select & option styling */
-html.dark select {
+select {
   color-scheme: dark;
   background-color: var(--color-muted);
   color: var(--color-foreground);
 }
 
-html.dark select option {
+select option {
   background-color: #1A1A1A;
   color: #FAFAFA;
   padding: 8px 12px;
 }
 
-html.dark select option:checked {
+select option:checked {
   background-color: #2A2A2A;
 }
 
-html.light select {
-  color-scheme: light;
-  background-color: var(--color-card);
-  color: var(--color-foreground);
-}
-
-html.light select option {
-  background-color: #FFFFFF;
-  color: #0F172A;
-  padding: 8px 12px;
-}
-
-html.light select option:checked {
-  background-color: #EFF6FF;
-}
-
 /* Date input styling */
-html.dark input[type="date"] {
+input[type="date"] {
   color-scheme: dark;
-}
-
-html.light input[type="date"] {
-  color-scheme: light;
 }
 
 /* Focus ring */
