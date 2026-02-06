@@ -553,39 +553,45 @@ function AgenceDialog({
     setIsSubmitting(true);
     setErrors({});
 
-    const fd = new FormData(e.currentTarget);
-    const input = {
-      nom,
-      siret,
-      adresse_rue: adresseRue,
-      adresse_complement: (fd.get("adresse_complement") as string) ?? "",
-      adresse_cp: adresseCp,
-      adresse_ville: adresseVille,
-      telephone: (fd.get("telephone") as string) ?? "",
-      email: (fd.get("email") as string) ?? "",
-      est_siege: fd.get("est_siege") === "on",
-    };
+    try {
+      const fd = new FormData(e.currentTarget);
+      const input = {
+        nom,
+        siret,
+        adresse_rue: adresseRue,
+        adresse_complement: (fd.get("adresse_complement") as string) ?? "",
+        adresse_cp: adresseCp,
+        adresse_ville: adresseVille,
+        telephone: (fd.get("telephone") as string) ?? "",
+        email: (fd.get("email") as string) ?? "",
+        est_siege: fd.get("est_siege") === "on",
+      };
 
-    const result = isEdit
-      ? await updateAgence(agence.id, entrepriseId, input)
-      : await createAgence(entrepriseId, input);
+      const result = isEdit
+        ? await updateAgence(agence.id, entrepriseId, input)
+        : await createAgence(entrepriseId, input);
 
-    if (result.error) {
-      if (typeof result.error === "object" && "_form" in result.error) {
-        setErrors({ _form: result.error._form as string[] });
-      } else {
-        setErrors(result.error as Record<string, string[]>);
+      if (result.error) {
+        if (typeof result.error === "object" && "_form" in result.error) {
+          setErrors({ _form: result.error._form as string[] });
+        } else {
+          setErrors(result.error as Record<string, string[]>);
+        }
+        setIsSubmitting(false);
+        return;
       }
-      setIsSubmitting(false);
-      return;
-    }
 
-    toast({
-      title: isEdit ? "Agence modifiée" : "Agence créée",
-      variant: "success",
-    });
-    setIsSubmitting(false);
-    onSuccess();
+      toast({
+        title: isEdit ? "Agence modifiée" : "Agence créée",
+        variant: "success",
+      });
+      setIsSubmitting(false);
+      onSuccess();
+    } catch (err) {
+      console.error("Erreur lors de la sauvegarde de l'agence:", err);
+      setErrors({ _form: [err instanceof Error ? err.message : "Une erreur inattendue est survenue."] });
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -770,33 +776,39 @@ function PoleDialog({
     setIsSubmitting(true);
     setErrors({});
 
-    const fd = new FormData(e.currentTarget);
-    const input = {
-      nom: fd.get("nom") as string,
-      agence_id: fd.get("agence_id") as string,
-      description: fd.get("description") as string,
-    };
+    try {
+      const fd = new FormData(e.currentTarget);
+      const input = {
+        nom: fd.get("nom") as string,
+        agence_id: fd.get("agence_id") as string,
+        description: fd.get("description") as string,
+      };
 
-    const result = isEdit
-      ? await updatePole(pole.id, entrepriseId, input)
-      : await createPole(entrepriseId, input);
+      const result = isEdit
+        ? await updatePole(pole.id, entrepriseId, input)
+        : await createPole(entrepriseId, input);
 
-    if (result.error) {
-      if (typeof result.error === "object" && "_form" in result.error) {
-        setErrors({ _form: result.error._form as string[] });
-      } else {
-        setErrors(result.error as Record<string, string[]>);
+      if (result.error) {
+        if (typeof result.error === "object" && "_form" in result.error) {
+          setErrors({ _form: result.error._form as string[] });
+        } else {
+          setErrors(result.error as Record<string, string[]>);
+        }
+        setIsSubmitting(false);
+        return;
       }
-      setIsSubmitting(false);
-      return;
-    }
 
-    toast({
-      title: isEdit ? "Pôle modifié" : "Pôle créé",
-      variant: "success",
-    });
-    setIsSubmitting(false);
-    onSuccess();
+      toast({
+        title: isEdit ? "Pôle modifié" : "Pôle créé",
+        variant: "success",
+      });
+      setIsSubmitting(false);
+      onSuccess();
+    } catch (err) {
+      console.error("Erreur lors de la sauvegarde du pôle:", err);
+      setErrors({ _form: [err instanceof Error ? err.message : "Une erreur inattendue est survenue."] });
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -979,35 +991,41 @@ function MembreDialog({
       return;
     }
 
-    const input = {
-      agence_id: agenceId || "",
-      pole_id: poleId || "",
-      apprenant_id: personType === "apprenant" ? (selectedPerson?.id ?? "") : "",
-      contact_client_id: personType === "contact" ? (selectedPerson?.id ?? "") : "",
-      role: role as "directeur" | "responsable_formation" | "manager" | "employe",
-      fonction,
-    };
+    try {
+      const input = {
+        agence_id: agenceId || "",
+        pole_id: poleId || "",
+        apprenant_id: personType === "apprenant" ? (selectedPerson?.id ?? "") : "",
+        contact_client_id: personType === "contact" ? (selectedPerson?.id ?? "") : "",
+        role: role as "directeur" | "responsable_formation" | "manager" | "employe",
+        fonction,
+      };
 
-    const result = isEdit
-      ? await updateMembre(membre.id, entrepriseId, input)
-      : await createMembre(entrepriseId, input);
+      const result = isEdit
+        ? await updateMembre(membre.id, entrepriseId, input)
+        : await createMembre(entrepriseId, input);
 
-    if (result.error) {
-      if (typeof result.error === "object" && "_form" in result.error) {
-        setErrors({ _form: result.error._form as string[] });
-      } else {
-        setErrors(result.error as Record<string, string[]>);
+      if (result.error) {
+        if (typeof result.error === "object" && "_form" in result.error) {
+          setErrors({ _form: result.error._form as string[] });
+        } else {
+          setErrors(result.error as Record<string, string[]>);
+        }
+        setIsSubmitting(false);
+        return;
       }
-      setIsSubmitting(false);
-      return;
-    }
 
-    toast({
-      title: isEdit ? "Membre modifié" : "Membre ajouté",
-      variant: "success",
-    });
-    setIsSubmitting(false);
-    onSuccess();
+      toast({
+        title: isEdit ? "Membre modifié" : "Membre ajouté",
+        variant: "success",
+      });
+      setIsSubmitting(false);
+      onSuccess();
+    } catch (err) {
+      console.error("Erreur lors de la sauvegarde du membre:", err);
+      setErrors({ _form: [err instanceof Error ? err.message : "Une erreur inattendue est survenue."] });
+      setIsSubmitting(false);
+    }
   }
 
   return (
