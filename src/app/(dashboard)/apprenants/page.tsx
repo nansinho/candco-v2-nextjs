@@ -17,8 +17,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DatePicker } from "@/components/ui/date-picker";
 import { useToast } from "@/components/ui/toast";
-import { getApprenants, createApprenant, archiveApprenant, unarchiveApprenant, type CreateApprenantInput } from "@/actions/apprenants";
+import { getApprenants, createApprenant, archiveApprenant, unarchiveApprenant, deleteApprenants, importApprenants, type CreateApprenantInput } from "@/actions/apprenants";
+import { CsvImport } from "@/components/shared/csv-import";
 import { formatDate } from "@/lib/utils";
+
+const APPRENANT_IMPORT_COLUMNS = [
+  { key: "prenom", label: "Prénom", required: true },
+  { key: "nom", label: "Nom", required: true },
+  { key: "email", label: "Email" },
+  { key: "telephone", label: "Téléphone" },
+  { key: "civilite", label: "Civilité" },
+  { key: "date_naissance", label: "Date de naissance" },
+  { key: "fonction", label: "Fonction" },
+  { key: "adresse_rue", label: "Adresse" },
+  { key: "adresse_cp", label: "Code postal" },
+  { key: "adresse_ville", label: "Ville" },
+];
 
 interface Apprenant {
   id: string;
@@ -119,6 +133,7 @@ export default function ApprenantsPage() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [showArchived, setShowArchived] = React.useState(false);
   const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [importOpen, setImportOpen] = React.useState(false);
 
   // Debounce search
   React.useEffect(() => {
@@ -165,6 +180,7 @@ export default function ApprenantsPage() {
         onSearchChange={setSearch}
         onAdd={() => setDialogOpen(true)}
         addLabel="Ajouter un apprenant"
+        onImport={() => setImportOpen(true)}
         onRowClick={(item) => router.push(`/apprenants/${item.id}`)}
         getRowId={(item) => item.id}
         isLoading={isLoading}
@@ -180,6 +196,15 @@ export default function ApprenantsPage() {
           await Promise.all(ids.map((id) => unarchiveApprenant(id)));
           setShowArchived(false);
           toast({ title: "Restauré", description: `${ids.length} élément(s) restauré(s).`, variant: "success" });
+        }}
+        onDelete={async (ids) => {
+          const result = await deleteApprenants(ids);
+          if (result.error) {
+            toast({ title: "Erreur", description: result.error, variant: "destructive" });
+            return;
+          }
+          await fetchData();
+          toast({ title: "Supprimé", description: `${ids.length} élément(s) supprimé(s) définitivement.`, variant: "success" });
         }}
       />
 
@@ -197,6 +222,20 @@ export default function ApprenantsPage() {
           />
         </DialogContent>
       </Dialog>
+
+      <CsvImport
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        title="Importer des apprenants"
+        description="Importez une liste d'apprenants depuis un fichier CSV."
+        columns={APPRENANT_IMPORT_COLUMNS}
+        templateFilename="apprenants"
+        onImport={async (rows) => {
+          const result = await importApprenants(rows as Parameters<typeof importApprenants>[0]);
+          if (result.success > 0) fetchData();
+          return result;
+        }}
+      />
     </>
   );
 }

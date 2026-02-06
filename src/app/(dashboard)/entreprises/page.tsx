@@ -16,7 +16,9 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toast";
-import { getEntreprises, createEntreprise, archiveEntreprise, unarchiveEntreprise } from "@/actions/entreprises";
+import { getEntreprises, createEntreprise, archiveEntreprise, unarchiveEntreprise, deleteEntreprises } from "@/actions/entreprises";
+import { SiretSearch } from "@/components/shared/siret-search";
+import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
 
 interface Entreprise {
   id: string;
@@ -151,6 +153,15 @@ export default function EntreprisesPage() {
           setShowArchived(false);
           toast({ title: "Restauré", description: `${ids.length} élément(s) restauré(s).`, variant: "success" });
         }}
+        onDelete={async (ids) => {
+          const result = await deleteEntreprises(ids);
+          if (result.error) {
+            toast({ title: "Erreur", description: result.error, variant: "destructive" });
+            return;
+          }
+          await fetchData();
+          toast({ title: "Supprimé", description: `${ids.length} élément(s) supprimé(s) définitivement.`, variant: "success" });
+        }}
       />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -181,24 +192,26 @@ interface CreateFormProps {
 function CreateEntrepriseForm({ onSuccess, onCancel }: CreateFormProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string[]>>({});
+  const [formData, setFormData] = React.useState({
+    nom: "",
+    siret: "",
+    email: "",
+    telephone: "",
+    adresse_rue: "",
+    adresse_cp: "",
+    adresse_ville: "",
+  });
+
+  const updateField = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setIsSubmitting(true);
     setErrors({});
 
-    const formData = new FormData(e.currentTarget);
-    const input = {
-      nom: formData.get("nom") as string,
-      siret: formData.get("siret") as string,
-      email: formData.get("email") as string,
-      telephone: formData.get("telephone") as string,
-      adresse_rue: formData.get("adresse_rue") as string,
-      adresse_cp: formData.get("adresse_cp") as string,
-      adresse_ville: formData.get("adresse_ville") as string,
-    };
-
-    const result = await createEntreprise(input);
+    const result = await createEntreprise(formData);
 
     if (result.error) {
       if (typeof result.error === "object" && "_form" in result.error) {
@@ -222,14 +235,33 @@ function CreateEntrepriseForm({ onSuccess, onCancel }: CreateFormProps) {
         </div>
       )}
 
+      {/* SIRET Search */}
+      <div className="space-y-2">
+        <Label className="text-[13px]">Recherche INSEE (SIRET / Nom)</Label>
+        <SiretSearch
+          onSelect={(r) => {
+            setFormData((prev) => ({
+              ...prev,
+              nom: r.nom || prev.nom,
+              siret: r.siret || prev.siret,
+              adresse_rue: r.adresse_rue || prev.adresse_rue,
+              adresse_cp: r.adresse_cp || prev.adresse_cp,
+              adresse_ville: r.adresse_ville || prev.adresse_ville,
+            }));
+          }}
+        />
+      </div>
+
       <div className="space-y-2">
         <Label htmlFor="nom" className="text-[13px]">
-          Nom de l'entreprise <span className="text-destructive">*</span>
+          Nom de l&apos;entreprise <span className="text-destructive">*</span>
         </Label>
         <Input
           id="nom"
           name="nom"
           required
+          value={formData.nom}
+          onChange={(e) => updateField("nom", e.target.value)}
           placeholder="Ex: Acme Corp"
           className="h-9 text-[13px] border-border/60"
         />
@@ -246,6 +278,8 @@ function CreateEntrepriseForm({ onSuccess, onCancel }: CreateFormProps) {
           <Input
             id="siret"
             name="siret"
+            value={formData.siret}
+            onChange={(e) => updateField("siret", e.target.value)}
             placeholder="123 456 789 00012"
             className="h-9 text-[13px] border-border/60"
           />
@@ -257,6 +291,8 @@ function CreateEntrepriseForm({ onSuccess, onCancel }: CreateFormProps) {
           <Input
             id="telephone"
             name="telephone"
+            value={formData.telephone}
+            onChange={(e) => updateField("telephone", e.target.value)}
             placeholder="01 23 45 67 89"
             className="h-9 text-[13px] border-border/60"
           />
@@ -271,6 +307,8 @@ function CreateEntrepriseForm({ onSuccess, onCancel }: CreateFormProps) {
           id="email"
           name="email"
           type="email"
+          value={formData.email}
+          onChange={(e) => updateField("email", e.target.value)}
           placeholder="contact@entreprise.fr"
           className="h-9 text-[13px] border-border/60"
         />
@@ -280,14 +318,19 @@ function CreateEntrepriseForm({ onSuccess, onCancel }: CreateFormProps) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="adresse_rue" className="text-[13px]">
-          Adresse
-        </Label>
-        <Input
-          id="adresse_rue"
-          name="adresse_rue"
-          placeholder="Rue"
-          className="h-9 text-[13px] border-border/60"
+        <Label className="text-[13px]">Adresse</Label>
+        <AddressAutocomplete
+          value={formData.adresse_rue}
+          onChange={(v) => updateField("adresse_rue", v)}
+          onSelect={(r) => {
+            setFormData((prev) => ({
+              ...prev,
+              adresse_rue: r.rue,
+              adresse_cp: r.cp,
+              adresse_ville: r.ville,
+            }));
+          }}
+          placeholder="Saisissez une adresse..."
         />
       </div>
 
@@ -299,6 +342,8 @@ function CreateEntrepriseForm({ onSuccess, onCancel }: CreateFormProps) {
           <Input
             id="adresse_cp"
             name="adresse_cp"
+            value={formData.adresse_cp}
+            onChange={(e) => updateField("adresse_cp", e.target.value)}
             placeholder="75001"
             className="h-9 text-[13px] border-border/60"
           />
@@ -310,6 +355,8 @@ function CreateEntrepriseForm({ onSuccess, onCancel }: CreateFormProps) {
           <Input
             id="adresse_ville"
             name="adresse_ville"
+            value={formData.adresse_ville}
+            onChange={(e) => updateField("adresse_ville", e.target.value)}
             placeholder="Paris"
             className="h-9 text-[13px] border-border/60"
           />

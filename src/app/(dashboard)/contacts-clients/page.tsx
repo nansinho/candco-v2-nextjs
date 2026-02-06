@@ -21,6 +21,7 @@ import {
   createContactClient,
   archiveContactClient,
   unarchiveContactClient,
+  deleteContactsClients,
   type CreateContactClientInput,
 } from "@/actions/contacts-clients";
 
@@ -176,6 +177,15 @@ export default function ContactsClientsPage() {
           await Promise.all(ids.map((id) => unarchiveContactClient(id)));
           setShowArchived(false);
           toast({ title: "Restauré", description: `${ids.length} élément(s) restauré(s).`, variant: "success" });
+        }}
+        onDelete={async (ids) => {
+          const result = await deleteContactsClients(ids);
+          if (result.error) {
+            toast({ title: "Erreur", description: result.error, variant: "destructive" });
+            return;
+          }
+          await fetchData();
+          toast({ title: "Supprimé", description: `${ids.length} élément(s) supprimé(s) définitivement.`, variant: "success" });
         }}
       />
 

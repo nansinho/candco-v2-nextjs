@@ -171,6 +171,76 @@ export async function updateFormateur(id: string, input: Partial<FormateurInput>
   return { data };
 }
 
+export async function importFormateurs(
+  rows: { prenom: string; nom: string; email?: string; telephone?: string; civilite?: string; statut_bpf?: string; tarif_journalier?: string; nda?: string; siret?: string; adresse_rue?: string; adresse_cp?: string; adresse_ville?: string }[]
+): Promise<{ success: number; errors: string[] }> {
+  const authResult = await getOrganisationId();
+  if ("error" in authResult) {
+    return { success: 0, errors: [String(authResult.error)] };
+  }
+
+  const { organisationId, supabase } = authResult;
+  let success = 0;
+  const errors: string[] = [];
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row.prenom?.trim() || !row.nom?.trim()) {
+      errors.push(`Ligne ${i + 1}: Prénom et nom requis`);
+      continue;
+    }
+
+    const { data: numero } = await supabase.rpc("next_numero", {
+      p_organisation_id: organisationId,
+      p_entite: "FOR",
+    });
+
+    const tarif = row.tarif_journalier ? parseFloat(row.tarif_journalier) : null;
+
+    const { error } = await supabase.from("formateurs").insert({
+      organisation_id: organisationId,
+      numero_affichage: numero,
+      prenom: row.prenom.trim(),
+      nom: row.nom.trim(),
+      email: row.email?.trim() || null,
+      telephone: row.telephone?.trim() || null,
+      civilite: row.civilite?.trim() || null,
+      statut_bpf: row.statut_bpf?.trim() === "interne" ? "interne" : "externe",
+      tarif_journalier: tarif && !isNaN(tarif) ? tarif : null,
+      nda: row.nda?.trim() || null,
+      siret: row.siret?.trim() || null,
+      adresse_rue: row.adresse_rue?.trim() || null,
+      adresse_cp: row.adresse_cp?.trim() || null,
+      adresse_ville: row.adresse_ville?.trim() || null,
+    });
+
+    if (error) {
+      errors.push(`Ligne ${i + 1} (${row.prenom} ${row.nom}): ${error.message}`);
+    } else {
+      success++;
+    }
+  }
+
+  revalidatePath("/formateurs");
+  return { success, errors };
+}
+
+export async function deleteFormateurs(ids: string[]) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("formateurs")
+    .delete()
+    .in("id", ids);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/formateurs");
+  return { success: true };
+}
+
 export async function archiveFormateur(id: string) {
   const supabase = await createClient();
 

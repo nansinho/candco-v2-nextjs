@@ -17,7 +17,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toast";
-import { getProduits, createProduit, archiveProduit, unarchiveProduit, type CreateProduitInput } from "@/actions/produits";
+import { getProduits, createProduit, archiveProduit, unarchiveProduit, deleteProduits, type CreateProduitInput } from "@/actions/produits";
 
 interface Produit {
   id: string;
@@ -243,6 +243,15 @@ export default function ProduitsPage() {
           await Promise.all(ids.map((id) => unarchiveProduit(id)));
           setShowArchived(false);
           toast({ title: "Restauré", description: `${ids.length} élément(s) restauré(s).`, variant: "success" });
+        }}
+        onDelete={async (ids) => {
+          const result = await deleteProduits(ids);
+          if (result.error) {
+            toast({ title: "Erreur", description: result.error, variant: "destructive" });
+            return;
+          }
+          await fetchData();
+          toast({ title: "Supprimé", description: `${ids.length} élément(s) supprimé(s) définitivement.`, variant: "success" });
         }}
       />
 

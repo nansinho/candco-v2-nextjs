@@ -17,8 +17,24 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toast";
-import { getFormateurs, createFormateur, archiveFormateur, unarchiveFormateur, type FormateurInput } from "@/actions/formateurs";
+import { getFormateurs, createFormateur, archiveFormateur, unarchiveFormateur, deleteFormateurs, importFormateurs, type FormateurInput } from "@/actions/formateurs";
+import { CsvImport } from "@/components/shared/csv-import";
 import { formatCurrency, formatDate } from "@/lib/utils";
+
+const FORMATEUR_IMPORT_COLUMNS = [
+  { key: "prenom", label: "Prénom", required: true },
+  { key: "nom", label: "Nom", required: true },
+  { key: "email", label: "Email" },
+  { key: "telephone", label: "Téléphone" },
+  { key: "civilite", label: "Civilité" },
+  { key: "statut_bpf", label: "Statut BPF" },
+  { key: "tarif_journalier", label: "Tarif journalier" },
+  { key: "nda", label: "NDA" },
+  { key: "siret", label: "SIRET" },
+  { key: "adresse_rue", label: "Adresse" },
+  { key: "adresse_cp", label: "Code postal" },
+  { key: "adresse_ville", label: "Ville" },
+];
 
 interface Formateur {
   id: string;
@@ -120,6 +136,7 @@ export default function FormateursPage() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [showArchived, setShowArchived] = React.useState(false);
   const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [importOpen, setImportOpen] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [formErrors, setFormErrors] = React.useState<Record<string, string[]>>({});
 
@@ -206,6 +223,7 @@ export default function FormateursPage() {
           setDialogOpen(true);
         }}
         addLabel="Ajouter un formateur"
+        onImport={() => setImportOpen(true)}
         onRowClick={(item) => router.push(`/formateurs/${item.id}`)}
         getRowId={(item) => item.id}
         isLoading={isLoading}
@@ -221,6 +239,15 @@ export default function FormateursPage() {
           await Promise.all(ids.map((id) => unarchiveFormateur(id)));
           setShowArchived(false);
           toast({ title: "Restauré", description: `${ids.length} élément(s) restauré(s).`, variant: "success" });
+        }}
+        onDelete={async (ids) => {
+          const result = await deleteFormateurs(ids);
+          if (result.error) {
+            toast({ title: "Erreur", description: result.error, variant: "destructive" });
+            return;
+          }
+          await fetchData();
+          toast({ title: "Supprimé", description: `${ids.length} élément(s) supprimé(s) définitivement.`, variant: "success" });
         }}
       />
 
@@ -407,6 +434,20 @@ export default function FormateursPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <CsvImport
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        title="Importer des formateurs"
+        description="Importez une liste de formateurs depuis un fichier CSV."
+        columns={FORMATEUR_IMPORT_COLUMNS}
+        templateFilename="formateurs"
+        onImport={async (rows) => {
+          const result = await importFormateurs(rows as Parameters<typeof importFormateurs>[0]);
+          if (result.success > 0) fetchData();
+          return result;
+        }}
+      />
     </>
   );
 }

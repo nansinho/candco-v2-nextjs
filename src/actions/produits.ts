@@ -231,6 +231,22 @@ export async function updateProduit(id: string, input: UpdateProduitInput) {
   return { data };
 }
 
+export async function deleteProduits(ids: string[]) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("produits_formation")
+    .delete()
+    .in("id", ids);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/produits");
+  return { success: true };
+}
+
 export async function archiveProduit(id: string) {
   const supabase = await createClient();
 

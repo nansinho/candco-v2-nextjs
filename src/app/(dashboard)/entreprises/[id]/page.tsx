@@ -35,6 +35,7 @@ import {
   type ApprenantLink,
 } from "@/actions/entreprises";
 import { TachesActivitesTab } from "@/components/shared/taches-activites";
+import { OrganisationTab } from "@/components/entreprise/organisation-tab";
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -219,6 +220,9 @@ export default function EntrepriseDetailPage() {
           <TabsTrigger value="apprenants" className="text-xs">
             Apprenants
           </TabsTrigger>
+          <TabsTrigger value="organisation" className="text-xs">
+            Organisation
+          </TabsTrigger>
           <TabsTrigger value="taches" className="text-xs">
             Tâches et activités
           </TabsTrigger>
@@ -241,6 +245,10 @@ export default function EntrepriseDetailPage() {
 
         <TabsContent value="apprenants" className="mt-6">
           <ApprenantsTab entrepriseId={entreprise.id} />
+        </TabsContent>
+
+        <TabsContent value="organisation" className="mt-6">
+          <OrganisationTab entrepriseId={entreprise.id} />
         </TabsContent>
 
         <TabsContent value="taches" className="mt-6">
