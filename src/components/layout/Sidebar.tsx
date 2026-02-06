@@ -26,9 +26,12 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
+  Sun,
+  Moon,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/components/theme-provider";
 import { NAV_SECTIONS } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
 import { useSidebar } from "./sidebar-context";
@@ -59,6 +62,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { collapsed, setCollapsed, mobileOpen, setMobileOpen } = useSidebar();
+  const { theme, toggleTheme } = useTheme();
 
   async function handleLogout() {
     const supabase = createClient();
@@ -149,6 +153,22 @@ export function Sidebar() {
 
       {/* Bottom */}
       <div className="border-t border-sidebar-border p-2 space-y-0.5">
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className={cn(
+            "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13px] text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all cursor-pointer",
+            collapsed && "justify-center"
+          )}
+          title={theme === "dark" ? "Mode clair" : "Mode sombre"}
+        >
+          {theme === "dark" ? (
+            <Sun className="h-4 w-4 shrink-0" />
+          ) : (
+            <Moon className="h-4 w-4 shrink-0" />
+          )}
+          {!collapsed && <span>{theme === "dark" ? "Mode clair" : "Mode sombre"}</span>}
+        </button>
         <button
           type="button"
           onClick={handleLogout}
