@@ -221,7 +221,7 @@ function CreateEntrepriseForm({ onSuccess, onCancel }: CreateFormProps) {
           name="nom"
           required
           placeholder="Ex: Acme Corp"
-          className="h-9 text-[13px] bg-background border-border/60"
+          className="h-9 text-[13px] border-border/60"
         />
         {errors.nom && (
           <p className="text-xs text-destructive">{errors.nom[0]}</p>
@@ -237,7 +237,7 @@ function CreateEntrepriseForm({ onSuccess, onCancel }: CreateFormProps) {
             id="siret"
             name="siret"
             placeholder="123 456 789 00012"
-            className="h-9 text-[13px] bg-background border-border/60"
+            className="h-9 text-[13px] border-border/60"
           />
         </div>
         <div className="space-y-2">
@@ -248,7 +248,7 @@ function CreateEntrepriseForm({ onSuccess, onCancel }: CreateFormProps) {
             id="telephone"
             name="telephone"
             placeholder="01 23 45 67 89"
-            className="h-9 text-[13px] bg-background border-border/60"
+            className="h-9 text-[13px] border-border/60"
           />
         </div>
       </div>
@@ -262,7 +262,7 @@ function CreateEntrepriseForm({ onSuccess, onCancel }: CreateFormProps) {
           name="email"
           type="email"
           placeholder="contact@entreprise.fr"
-          className="h-9 text-[13px] bg-background border-border/60"
+          className="h-9 text-[13px] border-border/60"
         />
         {errors.email && (
           <p className="text-xs text-destructive">{errors.email[0]}</p>
@@ -277,7 +277,7 @@ function CreateEntrepriseForm({ onSuccess, onCancel }: CreateFormProps) {
           id="adresse_rue"
           name="adresse_rue"
           placeholder="Rue"
-          className="h-9 text-[13px] bg-background border-border/60"
+          className="h-9 text-[13px] border-border/60"
         />
       </div>
 
@@ -290,7 +290,7 @@ function CreateEntrepriseForm({ onSuccess, onCancel }: CreateFormProps) {
             id="adresse_cp"
             name="adresse_cp"
             placeholder="75001"
-            className="h-9 text-[13px] bg-background border-border/60"
+            className="h-9 text-[13px] border-border/60"
           />
         </div>
         <div className="space-y-2">
@@ -301,7 +301,7 @@ function CreateEntrepriseForm({ onSuccess, onCancel }: CreateFormProps) {
             id="adresse_ville"
             name="adresse_ville"
             placeholder="Paris"
-            className="h-9 text-[13px] bg-background border-border/60"
+            className="h-9 text-[13px] border-border/60"
           />
         </div>
       </div>

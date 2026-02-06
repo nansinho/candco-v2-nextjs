@@ -233,7 +233,7 @@ export default function FormateursPage() {
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, civilite: e.target.value }))
                 }
-                className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-[13px] text-foreground"
+                className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-[13px] text-foreground"
               >
                 <option value="">-- Sélectionner --</option>
                 <option value="Monsieur">Monsieur</option>
@@ -254,7 +254,7 @@ export default function FormateursPage() {
                     setFormData((prev) => ({ ...prev, prenom: e.target.value }))
                   }
                   placeholder="Jean"
-                  className="h-9 text-[13px] bg-background border-border/60"
+                  className="h-9 text-[13px] border-border/60"
                 />
                 {formErrors.prenom && (
                   <p className="text-xs text-destructive">{formErrors.prenom[0]}</p>
@@ -271,7 +271,7 @@ export default function FormateursPage() {
                     setFormData((prev) => ({ ...prev, nom: e.target.value }))
                   }
                   placeholder="Dupont"
-                  className="h-9 text-[13px] bg-background border-border/60"
+                  className="h-9 text-[13px] border-border/60"
                 />
                 {formErrors.nom && (
                   <p className="text-xs text-destructive">{formErrors.nom[0]}</p>
@@ -293,7 +293,7 @@ export default function FormateursPage() {
                     setFormData((prev) => ({ ...prev, email: e.target.value }))
                   }
                   placeholder="jean@exemple.fr"
-                  className="h-9 text-[13px] bg-background border-border/60"
+                  className="h-9 text-[13px] border-border/60"
                 />
                 {formErrors.email && (
                   <p className="text-xs text-destructive">{formErrors.email[0]}</p>
@@ -310,7 +310,7 @@ export default function FormateursPage() {
                     setFormData((prev) => ({ ...prev, telephone: e.target.value }))
                   }
                   placeholder="06 12 34 56 78"
-                  className="h-9 text-[13px] bg-background border-border/60"
+                  className="h-9 text-[13px] border-border/60"
                 />
               </div>
             </div>
@@ -330,7 +330,7 @@ export default function FormateursPage() {
                       statut_bpf: e.target.value as "interne" | "externe",
                     }))
                   }
-                  className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-[13px] text-foreground"
+                  className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-[13px] text-foreground"
                 >
                   <option value="externe">Externe (sous-traitant)</option>
                   <option value="interne">Interne (salarié)</option>
@@ -355,7 +355,7 @@ export default function FormateursPage() {
                     }))
                   }
                   placeholder="300.00"
-                  className="h-9 text-[13px] bg-background border-border/60"
+                  className="h-9 text-[13px] border-border/60"
                 />
               </div>
             </div>

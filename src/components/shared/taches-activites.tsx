@@ -247,7 +247,7 @@ export function TachesActivitesTab({ entiteType, entiteId }: TachesActivitesTabP
                 value={tacheTitre}
                 onChange={(e) => setTacheTitre(e.target.value)}
                 placeholder="Ex: Relancer le contact"
-                className="h-8 text-[13px] bg-background border-border/60"
+                className="h-8 text-[13px] border-border/60"
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -256,7 +256,7 @@ export function TachesActivitesTab({ entiteType, entiteId }: TachesActivitesTabP
                 <select
                   value={tachePriorite}
                   onChange={(e) => setTachePriorite(e.target.value)}
-                  className="h-8 w-full rounded-md border border-border/60 bg-background px-3 text-[13px] text-foreground"
+                  className="h-8 w-full rounded-md border border-border/60 bg-transparent px-3 text-[13px] text-foreground"
                 >
                   <option value="basse">Basse</option>
                   <option value="normale">Normale</option>
@@ -270,7 +270,7 @@ export function TachesActivitesTab({ entiteType, entiteId }: TachesActivitesTabP
                   type="date"
                   value={tacheEcheance}
                   onChange={(e) => setTacheEcheance(e.target.value)}
-                  className="h-8 text-[13px] bg-background border-border/60"
+                  className="h-8 text-[13px] border-border/60"
                 />
               </div>
             </div>
@@ -360,7 +360,7 @@ export function TachesActivitesTab({ entiteType, entiteId }: TachesActivitesTabP
             value={noteContent}
             onChange={(e) => setNoteContent(e.target.value)}
             placeholder="Ajouter une note..."
-            className="h-8 text-[13px] bg-background border-border/60"
+            className="h-8 text-[13px] border-border/60"
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();

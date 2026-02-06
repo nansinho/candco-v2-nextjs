@@ -242,7 +242,7 @@ function CreateContactForm({
           id="civilite"
           value={form.civilite ?? ""}
           onChange={(e) => updateField("civilite", e.target.value)}
-          className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-[13px] text-foreground"
+          className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-[13px] text-foreground"
         >
           <option value="">-- Sélectionner --</option>
           <option value="Monsieur">Monsieur</option>
@@ -261,7 +261,7 @@ function CreateContactForm({
             value={form.prenom}
             onChange={(e) => updateField("prenom", e.target.value)}
             placeholder="Jean"
-            className="h-9 text-[13px] bg-background border-border/60"
+            className="h-9 text-[13px] border-border/60"
           />
           {errors.prenom && (
             <p className="text-xs text-destructive">{errors.prenom[0]}</p>
@@ -276,7 +276,7 @@ function CreateContactForm({
             value={form.nom}
             onChange={(e) => updateField("nom", e.target.value)}
             placeholder="Dupont"
-            className="h-9 text-[13px] bg-background border-border/60"
+            className="h-9 text-[13px] border-border/60"
           />
           {errors.nom && (
             <p className="text-xs text-destructive">{errors.nom[0]}</p>
@@ -295,7 +295,7 @@ function CreateContactForm({
           value={form.email ?? ""}
           onChange={(e) => updateField("email", e.target.value)}
           placeholder="jean.dupont@entreprise.fr"
-          className="h-9 text-[13px] bg-background border-border/60"
+          className="h-9 text-[13px] border-border/60"
         />
         {errors.email && (
           <p className="text-xs text-destructive">{errors.email[0]}</p>
@@ -313,7 +313,7 @@ function CreateContactForm({
             value={form.telephone ?? ""}
             onChange={(e) => updateField("telephone", e.target.value)}
             placeholder="06 12 34 56 78"
-            className="h-9 text-[13px] bg-background border-border/60"
+            className="h-9 text-[13px] border-border/60"
           />
         </div>
         <div className="space-y-2">
@@ -325,7 +325,7 @@ function CreateContactForm({
             value={form.fonction ?? ""}
             onChange={(e) => updateField("fonction", e.target.value)}
             placeholder="Responsable formation"
-            className="h-9 text-[13px] bg-background border-border/60"
+            className="h-9 text-[13px] border-border/60"
           />
         </div>
       </div>
