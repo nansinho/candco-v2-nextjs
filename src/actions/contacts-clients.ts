@@ -189,3 +189,19 @@ export async function archiveContactClient(id: string) {
   revalidatePath("/contacts-clients");
   return { success: true };
 }
+
+export async function unarchiveContactClient(id: string) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("contacts_clients")
+    .update({ archived_at: null })
+    .eq("id", id);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/contacts-clients");
+  return { success: true };
+}

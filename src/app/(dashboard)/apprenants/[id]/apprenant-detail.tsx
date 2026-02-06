@@ -3,13 +3,27 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Building2, Mail, Save, Loader2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Building2,
+  Mail,
+  Save,
+  Loader2,
+  Archive,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast";
-import { updateApprenant, type UpdateApprenantInput } from "@/actions/apprenants";
+import {
+  updateApprenant,
+  archiveApprenant,
+  type UpdateApprenantInput,
+} from "@/actions/apprenants";
+import { TachesActivitesTab } from "@/components/shared/taches-activites";
+import { formatDate } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -31,8 +45,10 @@ interface Apprenant {
   adresse_complement: string | null;
   adresse_cp: string | null;
   adresse_ville: string | null;
+  bpf_categorie_id: string | null;
   numero_compte_comptable: string | null;
   created_at: string;
+  updated_at: string | null;
 }
 
 interface Entreprise {
@@ -41,6 +57,13 @@ interface Entreprise {
   siret: string | null;
   email: string | null;
   adresse_ville: string | null;
+}
+
+interface BpfCategorie {
+  id: string;
+  code: string;
+  libelle: string;
+  ordre: number;
 }
 
 interface FormErrors {
@@ -57,6 +80,7 @@ interface FormErrors {
   adresse_complement?: string[];
   adresse_cp?: string[];
   adresse_ville?: string[];
+  bpf_categorie_id?: string[];
   numero_compte_comptable?: string[];
   _form?: string[];
 }
@@ -68,13 +92,16 @@ interface FormErrors {
 export function ApprenantDetail({
   apprenant,
   entreprises,
+  bpfCategories,
 }: {
   apprenant: Apprenant;
   entreprises: Entreprise[];
+  bpfCategories: BpfCategorie[];
 }) {
   const router = useRouter();
   const { toast } = useToast();
   const [isPending, setIsPending] = React.useState(false);
+  const [isArchiving, setIsArchiving] = React.useState(false);
   const [errors, setErrors] = React.useState<FormErrors>({});
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -98,6 +125,7 @@ export function ApprenantDetail({
       adresse_complement: (fd.get("adresse_complement") as string) || undefined,
       adresse_cp: (fd.get("adresse_cp") as string) || undefined,
       adresse_ville: (fd.get("adresse_ville") as string) || undefined,
+      bpf_categorie_id: (fd.get("bpf_categorie_id") as string) || undefined,
       numero_compte_comptable:
         (fd.get("numero_compte_comptable") as string) || undefined,
     };
@@ -111,47 +139,81 @@ export function ApprenantDetail({
     }
 
     setIsPending(false);
-    toast({ title: "Apprenant mis \u00e0 jour", variant: "success" });
+    toast({
+      title: "Apprenant mis \u00e0 jour",
+      description: "Les informations ont \u00e9t\u00e9 enregistr\u00e9es.",
+      variant: "success",
+    });
     router.refresh();
+  };
+
+  const handleArchive = async () => {
+    if (!confirm("Archiver cet apprenant ?")) return;
+    setIsArchiving(true);
+    await archiveApprenant(apprenant.id);
+    toast({
+      title: "Apprenant archiv\u00e9",
+      description: "L\u2019apprenant a \u00e9t\u00e9 archiv\u00e9 avec succ\u00e8s.",
+      variant: "success",
+    });
+    router.push("/apprenants");
   };
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link
-            href="/apprenants"
-            className="flex h-8 w-8 items-center justify-center rounded-md border border-border/60 bg-card text-muted-foreground transition-colors hover:text-foreground"
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => router.push("/apprenants")}
           >
             <ArrowLeft className="h-4 w-4" />
-          </Link>
-
-          <div className="flex items-center gap-3">
-            <span className="font-mono text-xs text-muted-foreground">
-              {apprenant.numero_affichage}
-            </span>
-            <h1 className="text-xl font-semibold tracking-tight">
-              {apprenant.prenom} {apprenant.nom}
-            </h1>
+          </Button>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-semibold tracking-tight">
+                {apprenant.prenom} {apprenant.nom}
+              </h1>
+              <Badge variant="outline" className="text-[11px] font-mono">
+                {apprenant.numero_affichage}
+              </Badge>
+            </div>
+            {apprenant.email && (
+              <p className="mt-0.5 text-xs text-muted-foreground flex items-center gap-1">
+                <Mail className="h-3 w-3" />
+                {apprenant.email}
+              </p>
+            )}
           </div>
         </div>
-
-        {apprenant.email && (
-          <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
-            <Mail className="h-3.5 w-3.5" />
-            <span>{apprenant.email}</span>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs border-border/60 text-muted-foreground hover:text-destructive hover:border-destructive/50"
+            onClick={handleArchive}
+            disabled={isArchiving}
+          >
+            {isArchiving ? (
+              <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+            ) : (
+              <Archive className="mr-1.5 h-3 w-3" />
+            )}
+            Archiver
+          </Button>
+        </div>
       </div>
 
       {/* Tabs */}
       <Tabs defaultValue="infos">
-        <TabsList className="bg-muted/30 border border-border/60">
-          <TabsTrigger value="infos" className="text-[13px]">
+        <TabsList className="bg-muted/50">
+          <TabsTrigger value="infos" className="text-xs">
             Informations g\u00e9n\u00e9rales
           </TabsTrigger>
-          <TabsTrigger value="entreprises" className="text-[13px]">
+          <TabsTrigger value="entreprises" className="text-xs">
             Entreprises
             {entreprises.length > 0 && (
               <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[11px] font-medium text-primary">
@@ -159,10 +221,13 @@ export function ApprenantDetail({
               </span>
             )}
           </TabsTrigger>
+          <TabsTrigger value="taches" className="text-xs">
+            T\u00e2ches et activit\u00e9s
+          </TabsTrigger>
         </TabsList>
 
         {/* Tab 1 -- Informations */}
-        <TabsContent value="infos">
+        <TabsContent value="infos" className="mt-6">
           <form onSubmit={handleSubmit}>
             <div className="rounded-lg border border-border/60 bg-card">
               {/* Error banner */}
@@ -453,38 +518,76 @@ export function ApprenantDetail({
                   </div>
                 </fieldset>
 
-                {/* Comptabilit\u00e9 */}
+                {/* BPF & Comptabilit\u00e9 */}
                 <fieldset className="space-y-4">
                   <legend className="text-sm font-semibold text-muted-foreground/80 uppercase tracking-wider">
-                    Comptabilit\u00e9
+                    BPF &amp; Comptabilit\u00e9
                   </legend>
 
-                  <div className="max-w-xs space-y-2">
-                    <Label
-                      htmlFor="numero_compte_comptable"
-                      className="text-[13px]"
-                    >
-                      N\u00b0 compte comptable
-                    </Label>
-                    <Input
-                      id="numero_compte_comptable"
-                      name="numero_compte_comptable"
-                      defaultValue={
-                        apprenant.numero_compte_comptable ?? ""
-                      }
-                      className="h-9 text-[13px] bg-background border-border/60"
-                    />
-                    {errors.numero_compte_comptable && (
-                      <p className="text-xs text-destructive">
-                        {errors.numero_compte_comptable[0]}
-                      </p>
-                    )}
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Statut BPF */}
+                    <div className="space-y-2">
+                      <Label htmlFor="bpf_categorie_id" className="text-[13px]">
+                        Statut BPF
+                      </Label>
+                      <select
+                        id="bpf_categorie_id"
+                        name="bpf_categorie_id"
+                        defaultValue={apprenant.bpf_categorie_id ?? ""}
+                        className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-[13px] text-foreground"
+                      >
+                        <option value="">-- Aucun --</option>
+                        {bpfCategories.map((cat) => (
+                          <option key={cat.id} value={cat.id}>
+                            {cat.code} — {cat.libelle}
+                          </option>
+                        ))}
+                      </select>
+                      {errors.bpf_categorie_id && (
+                        <p className="text-xs text-destructive">
+                          {errors.bpf_categorie_id[0]}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* N\u00b0 compte comptable */}
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="numero_compte_comptable"
+                        className="text-[13px]"
+                      >
+                        N\u00b0 compte comptable
+                      </Label>
+                      <Input
+                        id="numero_compte_comptable"
+                        name="numero_compte_comptable"
+                        defaultValue={
+                          apprenant.numero_compte_comptable ?? ""
+                        }
+                        className="h-9 text-[13px] bg-background border-border/60"
+                      />
+                      {errors.numero_compte_comptable && (
+                        <p className="text-xs text-destructive">
+                          {errors.numero_compte_comptable[0]}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </fieldset>
               </div>
 
               {/* Footer / Save */}
-              <div className="flex items-center justify-end border-t border-border/60 px-6 py-4">
+              <div className="flex items-center justify-between border-t border-border/60 px-6 py-4">
+                <div className="flex items-center gap-4">
+                  <p className="text-[11px] text-muted-foreground/50">
+                    Cr\u00e9\u00e9 le {formatDate(apprenant.created_at)}
+                  </p>
+                  {apprenant.updated_at && (
+                    <p className="text-[11px] text-muted-foreground/50">
+                      Modifi\u00e9 le {formatDate(apprenant.updated_at)}
+                    </p>
+                  )}
+                </div>
                 <Button
                   type="submit"
                   size="sm"
@@ -509,7 +612,7 @@ export function ApprenantDetail({
         </TabsContent>
 
         {/* Tab 2 -- Entreprises */}
-        <TabsContent value="entreprises">
+        <TabsContent value="entreprises" className="mt-6">
           <div className="rounded-lg border border-border/60 bg-card">
             {entreprises.length === 0 ? (
               <div className="flex flex-col items-center gap-3 py-16">
@@ -554,13 +657,13 @@ export function ApprenantDetail({
                         {ent.nom}
                       </td>
                       <td className="px-4 py-2.5 text-[13px] text-muted-foreground">
-                        {ent.siret ?? "--"}
+                        {ent.siret ?? <span className="text-muted-foreground/40">--</span>}
                       </td>
                       <td className="px-4 py-2.5 text-[13px] text-muted-foreground">
-                        {ent.email ?? "--"}
+                        {ent.email ?? <span className="text-muted-foreground/40">--</span>}
                       </td>
                       <td className="px-4 py-2.5 text-[13px] text-muted-foreground">
-                        {ent.adresse_ville ?? "--"}
+                        {ent.adresse_ville ?? <span className="text-muted-foreground/40">--</span>}
                       </td>
                     </tr>
                   ))}
@@ -568,6 +671,11 @@ export function ApprenantDetail({
               </table>
             )}
           </div>
+        </TabsContent>
+
+        {/* Tab 3 -- T\u00e2ches et activit\u00e9s */}
+        <TabsContent value="taches" className="mt-6">
+          <TachesActivitesTab entiteType="apprenant" entiteId={apprenant.id} />
         </TabsContent>
       </Tabs>
     </div>

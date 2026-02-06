@@ -186,3 +186,115 @@ export async function archiveEntreprise(id: string) {
   revalidatePath("/entreprises");
   return { success: true };
 }
+
+export async function unarchiveEntreprise(id: string) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("entreprises")
+    .update({ archived_at: null })
+    .eq("id", id);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/entreprises");
+  return { success: true };
+}
+
+// ─── Apprenants linked to Entreprise ─────────────────────
+
+export interface ApprenantLink {
+  id: string;
+  numero_affichage: string;
+  prenom: string;
+  nom: string;
+  email: string | null;
+  telephone: string | null;
+}
+
+export async function getEntrepriseApprenants(entrepriseId: string) {
+  const supabase = await createClient();
+
+  const { data: links, error } = await supabase
+    .from("apprenant_entreprises")
+    .select("apprenant_id, apprenants(id, numero_affichage, prenom, nom, email, telephone)")
+    .eq("entreprise_id", entrepriseId);
+
+  if (error) {
+    return { data: [], error: error.message };
+  }
+
+  interface ApprenantJoin {
+    apprenants: ApprenantLink | null;
+  }
+
+  const apprenants: ApprenantLink[] = ((links ?? []) as unknown as ApprenantJoin[])
+    .map((link) => link.apprenants)
+    .filter((a): a is ApprenantLink => a !== null);
+
+  return { data: apprenants };
+}
+
+export async function linkApprenantToEntreprise(entrepriseId: string, apprenantId: string) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("apprenant_entreprises")
+    .insert({ entreprise_id: entrepriseId, apprenant_id: apprenantId });
+
+  if (error) {
+    if (error.code === "23505") {
+      return { error: "Cet apprenant est déjà rattaché à cette entreprise." };
+    }
+    return { error: error.message };
+  }
+
+  revalidatePath(`/entreprises/${entrepriseId}`);
+  return { success: true };
+}
+
+export async function unlinkApprenantFromEntreprise(entrepriseId: string, apprenantId: string) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("apprenant_entreprises")
+    .delete()
+    .eq("entreprise_id", entrepriseId)
+    .eq("apprenant_id", apprenantId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath(`/entreprises/${entrepriseId}`);
+  return { success: true };
+}
+
+export async function searchApprenantsForLinking(search: string, excludeIds: string[]) {
+  const supabase = await createClient();
+
+  let query = supabase
+    .from("apprenants")
+    .select("id, numero_affichage, prenom, nom, email")
+    .is("archived_at", null)
+    .order("nom", { ascending: true })
+    .limit(10);
+
+  if (search) {
+    query = query.or(`nom.ilike.%${search}%,prenom.ilike.%${search}%,email.ilike.%${search}%`);
+  }
+
+  if (excludeIds.length > 0) {
+    query = query.not("id", "in", `(${excludeIds.join(",")})`);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    return { data: [], error: error.message };
+  }
+
+  return { data: data ?? [] };
+}

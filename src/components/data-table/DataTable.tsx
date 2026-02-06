@@ -29,6 +29,7 @@ interface DataTableProps<T> {
   onRowClick?: (item: T) => void;
   getRowId: (item: T) => string;
   isLoading?: boolean;
+  exportFilename?: string;
 }
 
 export function DataTable<T>({
@@ -45,9 +46,37 @@ export function DataTable<T>({
   onRowClick,
   getRowId,
   isLoading,
+  exportFilename = "export",
 }: DataTableProps<T>) {
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
+
+  const handleExportCSV = () => {
+    if (data.length === 0) return;
+
+    const headers = columns.map((col) => col.label);
+    const rows = data.map((item) =>
+      columns.map((col) => {
+        const raw = (item as Record<string, unknown>)[col.key];
+        const value = raw === null || raw === undefined ? "" : String(raw);
+        // Escape quotes and wrap in quotes if contains comma, quote, or newline
+        if (value.includes(",") || value.includes('"') || value.includes("\n")) {
+          return `"${value.replace(/"/g, '""')}"`;
+        }
+        return value;
+      })
+    );
+
+    const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const BOM = "\uFEFF"; // UTF-8 BOM for Excel compatibility
+    const blob = new Blob([BOM + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${exportFilename}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
@@ -86,7 +115,13 @@ export function DataTable<T>({
               </Button>
             </>
           )}
-          <Button variant="outline" size="sm" className="h-8 text-xs border-border/60">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs border-border/60"
+            onClick={handleExportCSV}
+            disabled={data.length === 0}
+          >
             <Download className="mr-1.5 h-3 w-3" />
             Exporter
           </Button>

@@ -168,3 +168,19 @@ export async function archiveFinanceur(id: string) {
   revalidatePath("/financeurs");
   return { success: true };
 }
+
+export async function unarchiveFinanceur(id: string) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("financeurs")
+    .update({ archived_at: null })
+    .eq("id", id);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/financeurs");
+  return { success: true };
+}

@@ -8,11 +8,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Save, Archive, Loader2, Building2, Mail, Phone } from "lucide-react";
+import { useToast } from "@/components/ui/toast";
 import {
   updateContactClient,
   archiveContactClient,
   type UpdateContactClientInput,
 } from "@/actions/contacts-clients";
+import { TachesActivitesTab } from "@/components/shared/taches-activites";
+import { formatDate } from "@/lib/utils";
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -43,21 +46,13 @@ interface ContactClientDetailProps {
   entreprises: EntrepriseLink[];
 }
 
-// ─── Civilite options ────────────────────────────────────
-
-const CIVILITE_OPTIONS = [
-  { value: "", label: "-- Aucune --" },
-  { value: "Monsieur", label: "Monsieur" },
-  { value: "Madame", label: "Madame" },
-];
-
 // ─── Component ───────────────────────────────────────────
 
 export function ContactClientDetail({ contact, entreprises }: ContactClientDetailProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [isSaving, setIsSaving] = React.useState(false);
   const [isArchiving, setIsArchiving] = React.useState(false);
-  const [saveSuccess, setSaveSuccess] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string[] | undefined>>({});
 
   const [form, setForm] = React.useState<UpdateContactClientInput>({
@@ -71,13 +66,11 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
 
   const updateField = (field: keyof UpdateContactClientInput, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
-    setSaveSuccess(false);
   };
 
   const handleSave = async () => {
     setIsSaving(true);
     setErrors({});
-    setSaveSuccess(false);
 
     const result = await updateContactClient(contact.id, form);
 
@@ -92,14 +85,22 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
     }
 
     setIsSaving(false);
-    setSaveSuccess(true);
-    setTimeout(() => setSaveSuccess(false), 2000);
+    toast({
+      title: "Contact mis \u00e0 jour",
+      description: "Les informations ont \u00e9t\u00e9 enregistr\u00e9es.",
+      variant: "success",
+    });
   };
 
   const handleArchive = async () => {
     if (!confirm("Archiver ce contact client ?")) return;
     setIsArchiving(true);
     await archiveContactClient(contact.id);
+    toast({
+      title: "Contact archiv\u00e9",
+      description: "Le contact a \u00e9t\u00e9 archiv\u00e9 avec succ\u00e8s.",
+      variant: "success",
+    });
     router.push("/contacts-clients");
   };
 
@@ -121,7 +122,7 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
               <h1 className="text-xl font-semibold tracking-tight">
                 {contact.prenom} {contact.nom}
               </h1>
-              <Badge variant="outline" className="text-[11px]">
+              <Badge variant="outline" className="text-[11px] font-mono">
                 {contact.numero_affichage}
               </Badge>
             </div>
@@ -134,7 +135,7 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
           <Button
             variant="outline"
             size="sm"
-            className="h-8 text-xs border-border/60"
+            className="h-8 text-xs border-border/60 text-muted-foreground hover:text-destructive hover:border-destructive/50"
             onClick={handleArchive}
             disabled={isArchiving}
           >
@@ -152,28 +153,41 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
             disabled={isSaving}
           >
             {isSaving ? (
-              <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+              <>
+                <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+                Enregistrement...
+              </>
             ) : (
-              <Save className="mr-1.5 h-3 w-3" />
+              <>
+                <Save className="mr-1.5 h-3 w-3" />
+                Enregistrer
+              </>
             )}
-            {saveSuccess ? "Enregistre !" : "Enregistrer"}
           </Button>
         </div>
       </div>
 
       {/* Tabs */}
       <Tabs defaultValue="informations">
-        <TabsList>
+        <TabsList className="bg-muted/50">
           <TabsTrigger value="informations" className="text-xs">
             Informations
           </TabsTrigger>
           <TabsTrigger value="entreprises" className="text-xs">
-            Entreprises ({entreprises.length})
+            Entreprises
+            {entreprises.length > 0 && (
+              <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[11px] font-medium text-primary">
+                {entreprises.length}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="taches" className="text-xs">
+            T\u00e2ches et activit\u00e9s
           </TabsTrigger>
         </TabsList>
 
         {/* Tab 1: Informations */}
-        <TabsContent value="informations">
+        <TabsContent value="informations" className="mt-6">
           <div className="rounded-lg border border-border/60 bg-card p-6">
             {errors._form && (
               <div className="mb-4 rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">
@@ -182,71 +196,67 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
             )}
 
             <div className="grid gap-5">
-              {/* Civilite */}
-              <div className="grid gap-1.5">
-                <Label className="text-xs text-muted-foreground">Civilite</Label>
+              {/* Civilit\u00e9 */}
+              <div className="space-y-2">
+                <Label className="text-[13px]">Civilit\u00e9</Label>
                 <select
                   value={form.civilite ?? ""}
                   onChange={(e) => updateField("civilite", e.target.value)}
-                  className="flex h-9 w-full max-w-xs rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  className="h-9 w-full max-w-xs rounded-md border border-border/60 bg-background px-3 py-1 text-[13px] text-foreground"
                 >
-                  {CIVILITE_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
+                  <option value="">-- Aucune --</option>
+                  <option value="Monsieur">Monsieur</option>
+                  <option value="Madame">Madame</option>
                 </select>
               </div>
 
-              {/* Prenom / Nom */}
+              {/* Pr\u00e9nom / Nom */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-1.5">
-                  <Label className="text-xs text-muted-foreground">
-                    Prenom <span className="text-destructive">*</span>
+                <div className="space-y-2">
+                  <Label className="text-[13px]">
+                    Pr\u00e9nom <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     value={form.prenom ?? ""}
                     onChange={(e) => updateField("prenom", e.target.value)}
-                    className="bg-transparent text-[13px]"
+                    className="h-9 text-[13px] bg-background border-border/60"
                   />
                   {errors.prenom && (
-                    <p className="text-[11px] text-destructive">{errors.prenom[0]}</p>
+                    <p className="text-xs text-destructive">{errors.prenom[0]}</p>
                   )}
                 </div>
-                <div className="grid gap-1.5">
-                  <Label className="text-xs text-muted-foreground">
+                <div className="space-y-2">
+                  <Label className="text-[13px]">
                     Nom <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     value={form.nom ?? ""}
                     onChange={(e) => updateField("nom", e.target.value)}
-                    className="bg-transparent text-[13px]"
+                    className="h-9 text-[13px] bg-background border-border/60"
                   />
                   {errors.nom && (
-                    <p className="text-[11px] text-destructive">{errors.nom[0]}</p>
+                    <p className="text-xs text-destructive">{errors.nom[0]}</p>
                   )}
                 </div>
               </div>
 
               {/* Email */}
-              <div className="grid gap-1.5">
-                <Label className="text-xs text-muted-foreground">Email</Label>
+              <div className="space-y-2">
+                <Label className="text-[13px]">Email</Label>
                 <div className="flex items-center gap-2">
                   <Input
                     type="email"
                     value={form.email ?? ""}
                     onChange={(e) => updateField("email", e.target.value)}
-                    className="bg-transparent text-[13px]"
+                    className="h-9 text-[13px] bg-background border-border/60"
                   />
                   {form.email && (
                     <Button
                       variant="outline"
                       size="icon"
-                      className="h-9 w-9 shrink-0"
+                      className="h-9 w-9 shrink-0 border-border/60"
                       onClick={() => {
-                        if (form.email) {
-                          window.location.href = `mailto:${form.email}`;
-                        }
+                        if (form.email) window.location.href = `mailto:${form.email}`;
                       }}
                       title="Envoyer un email"
                     >
@@ -255,28 +265,26 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
                   )}
                 </div>
                 {errors.email && (
-                  <p className="text-[11px] text-destructive">{errors.email[0]}</p>
+                  <p className="text-xs text-destructive">{errors.email[0]}</p>
                 )}
               </div>
 
-              {/* Telephone */}
-              <div className="grid gap-1.5">
-                <Label className="text-xs text-muted-foreground">Telephone</Label>
+              {/* T\u00e9l\u00e9phone */}
+              <div className="space-y-2">
+                <Label className="text-[13px]">T\u00e9l\u00e9phone</Label>
                 <div className="flex items-center gap-2">
                   <Input
                     value={form.telephone ?? ""}
                     onChange={(e) => updateField("telephone", e.target.value)}
-                    className="bg-transparent text-[13px]"
+                    className="h-9 text-[13px] bg-background border-border/60"
                   />
                   {form.telephone && (
                     <Button
                       variant="outline"
                       size="icon"
-                      className="h-9 w-9 shrink-0"
+                      className="h-9 w-9 shrink-0 border-border/60"
                       onClick={() => {
-                        if (form.telephone) {
-                          window.location.href = `tel:${form.telephone}`;
-                        }
+                        if (form.telephone) window.location.href = `tel:${form.telephone}`;
                       }}
                       title="Appeler"
                     >
@@ -287,13 +295,13 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
               </div>
 
               {/* Fonction */}
-              <div className="grid gap-1.5">
-                <Label className="text-xs text-muted-foreground">Fonction</Label>
+              <div className="space-y-2">
+                <Label className="text-[13px]">Fonction</Label>
                 <Input
                   value={form.fonction ?? ""}
                   onChange={(e) => updateField("fonction", e.target.value)}
                   placeholder="Ex: Responsable formation, DRH, Directeur..."
-                  className="bg-transparent text-[13px]"
+                  className="h-9 text-[13px] bg-background border-border/60"
                 />
               </div>
             </div>
@@ -301,21 +309,11 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
             {/* Meta info */}
             <div className="mt-6 flex items-center gap-4 border-t border-border/40 pt-4">
               <p className="text-[11px] text-muted-foreground/50">
-                Cree le{" "}
-                {new Date(contact.created_at).toLocaleDateString("fr-FR", {
-                  day: "2-digit",
-                  month: "long",
-                  year: "numeric",
-                })}
+                Cr\u00e9\u00e9 le {formatDate(contact.created_at)}
               </p>
               {contact.updated_at && (
                 <p className="text-[11px] text-muted-foreground/50">
-                  Modifie le{" "}
-                  {new Date(contact.updated_at).toLocaleDateString("fr-FR", {
-                    day: "2-digit",
-                    month: "long",
-                    year: "numeric",
-                  })}
+                  Modifi\u00e9 le {formatDate(contact.updated_at)}
                 </p>
               )}
             </div>
@@ -323,7 +321,7 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
         </TabsContent>
 
         {/* Tab 2: Entreprises */}
-        <TabsContent value="entreprises">
+        <TabsContent value="entreprises" className="mt-6">
           <div className="rounded-lg border border-border/60 bg-card">
             {entreprises.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16">
@@ -331,10 +329,10 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
                   <Building2 className="h-6 w-6 text-muted-foreground/30" />
                 </div>
                 <p className="mt-3 text-sm font-medium text-muted-foreground/60">
-                  Aucune entreprise associee
+                  Aucune entreprise associ\u00e9e
                 </p>
                 <p className="mt-0.5 text-xs text-muted-foreground/40">
-                  Ce contact n&apos;est rattache a aucune entreprise pour le moment.
+                  Ce contact n&apos;est rattach\u00e9 \u00e0 aucune entreprise pour le moment.
                 </p>
               </div>
             ) : (
@@ -365,16 +363,18 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
                       className="border-b border-border/40 transition-colors hover:bg-muted/20 cursor-pointer"
                       onClick={() => router.push(`/entreprises/${ent.id}`)}
                     >
-                      <td className="px-4 py-2.5 text-[13px]">{ent.numero_affichage}</td>
+                      <td className="px-4 py-2.5">
+                        <span className="font-mono text-xs text-muted-foreground">{ent.numero_affichage}</span>
+                      </td>
                       <td className="px-4 py-2.5 text-[13px] font-medium">{ent.nom}</td>
                       <td className="px-4 py-2.5 text-[13px] text-muted-foreground">
-                        {ent.siret ?? "—"}
+                        {ent.siret ?? <span className="text-muted-foreground/40">--</span>}
                       </td>
                       <td className="px-4 py-2.5 text-[13px] text-muted-foreground">
-                        {ent.email ?? "—"}
+                        {ent.email ?? <span className="text-muted-foreground/40">--</span>}
                       </td>
                       <td className="px-4 py-2.5 text-[13px] text-muted-foreground">
-                        {ent.adresse_ville ?? "—"}
+                        {ent.adresse_ville ?? <span className="text-muted-foreground/40">--</span>}
                       </td>
                     </tr>
                   ))}
@@ -382,6 +382,11 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
               </table>
             )}
           </div>
+        </TabsContent>
+
+        {/* Tab 3: T\u00e2ches et activit\u00e9s */}
+        <TabsContent value="taches" className="mt-6">
+          <TachesActivitesTab entiteType="contact_client" entiteId={contact.id} />
         </TabsContent>
       </Tabs>
     </div>

@@ -125,6 +125,7 @@ export default function EntreprisesPage() {
         onRowClick={(item) => router.push(`/entreprises/${item.id}`)}
         getRowId={(item) => item.id}
         isLoading={isLoading}
+        exportFilename="entreprises"
       />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

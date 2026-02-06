@@ -2,13 +2,14 @@
 
 import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Archive, Save, UserCheck } from "lucide-react";
+import { ArrowLeft, Archive, Save, UserCheck, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useToast } from "@/components/ui/toast";
 import {
   getFormateur,
   updateFormateur,
@@ -16,6 +17,7 @@ import {
   type FormateurInput,
 } from "@/actions/formateurs";
 import { formatCurrency } from "@/lib/utils";
+import { TachesActivitesTab } from "@/components/shared/taches-activites";
 
 interface FormateurData {
   id: string;
@@ -41,12 +43,13 @@ interface FormateurData {
 export default function FormateurDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { toast } = useToast();
   const id = params.id as string;
 
   const [formateur, setFormateur] = React.useState<FormateurData | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isSaving, setIsSaving] = React.useState(false);
-  const [saveSuccess, setSaveSuccess] = React.useState(false);
+  const [isArchiving, setIsArchiving] = React.useState(false);
   const [formErrors, setFormErrors] = React.useState<Record<string, string[]>>({});
 
   // Editable form state
@@ -86,7 +89,6 @@ export default function FormateurDetailPage() {
   const handleSave = async () => {
     setIsSaving(true);
     setFormErrors({});
-    setSaveSuccess(false);
     const result = await updateFormateur(id, form);
     setIsSaving(false);
 
@@ -96,16 +98,25 @@ export default function FormateurDetailPage() {
     }
 
     if (result.data) {
-      const f = result.data as FormateurData;
-      setFormateur(f);
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 2000);
+      setFormateur(result.data as FormateurData);
     }
+
+    toast({
+      title: "Formateur mis \u00e0 jour",
+      description: "Les informations ont \u00e9t\u00e9 enregistr\u00e9es.",
+      variant: "success",
+    });
   };
 
   const handleArchive = async () => {
     if (!confirm("Voulez-vous vraiment archiver ce formateur ?")) return;
+    setIsArchiving(true);
     await archiveFormateur(id);
+    toast({
+      title: "Formateur archiv\u00e9",
+      description: "Le formateur a \u00e9t\u00e9 archiv\u00e9 avec succ\u00e8s.",
+      variant: "success",
+    });
     router.push("/formateurs");
   };
 
@@ -122,7 +133,15 @@ export default function FormateurDetailPage() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="h-8 w-64 animate-pulse rounded bg-muted/50" />
+        <div className="flex items-start gap-4">
+          <div className="h-8 w-8 rounded bg-muted animate-pulse" />
+          <div className="space-y-2">
+            <div className="h-6 w-48 rounded bg-muted animate-pulse" />
+            <div className="h-4 w-32 rounded bg-muted animate-pulse" />
+          </div>
+        </div>
+        <Separator className="bg-border/60" />
+        <div className="h-9 w-72 rounded bg-muted animate-pulse" />
         <div className="h-[400px] animate-pulse rounded-lg bg-muted/30" />
       </div>
     );
@@ -131,9 +150,15 @@ export default function FormateurDetailPage() {
   if (!formateur) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
-        <p className="text-sm text-muted-foreground">Formateur introuvable</p>
-        <Button variant="outline" className="mt-4" onClick={() => router.push("/formateurs")}>
-          Retour a la liste
+        <p className="text-sm text-muted-foreground">Formateur introuvable.</p>
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-4 h-8 text-xs"
+          onClick={() => router.push("/formateurs")}
+        >
+          <ArrowLeft className="mr-1.5 h-3 w-3" />
+          Retour aux formateurs
         </Button>
       </div>
     );
@@ -142,38 +167,42 @@ export default function FormateurDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="flex items-start justify-between">
+        <div className="flex items-start gap-4">
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8"
+            className="mt-0.5 h-8 w-8"
             onClick={() => router.push("/formateurs")}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
-              <UserCheck className="h-4 w-4 text-primary" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg font-semibold tracking-tight">
-                  {formateur.prenom} {formateur.nom}
-                </h1>
-                <Badge
-                  className={
-                    formateur.statut_bpf === "interne"
-                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                      : "bg-blue-500/10 text-blue-400 border-blue-500/20"
-                  }
-                >
-                  {formateur.statut_bpf === "interne" ? "Interne" : "Externe"}
-                </Badge>
+          <div className="space-y-1">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10">
+                <UserCheck className="h-4.5 w-4.5 text-emerald-400" />
               </div>
-              <p className="text-xs text-muted-foreground">
-                {formateur.numero_affichage}
-              </p>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-xl font-semibold tracking-tight">
+                    {formateur.prenom} {formateur.nom}
+                  </h1>
+                  <Badge
+                    className={
+                      formateur.statut_bpf === "interne"
+                        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                        : "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                    }
+                  >
+                    {formateur.statut_bpf === "interne" ? "Interne" : "Externe"}
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="font-mono text-xs text-muted-foreground">
+                    {formateur.numero_affichage}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -181,10 +210,15 @@ export default function FormateurDetailPage() {
           <Button
             variant="outline"
             size="sm"
-            className="h-8 text-xs border-border/60"
+            className="h-8 text-xs border-border/60 text-muted-foreground hover:text-destructive hover:border-destructive/50"
             onClick={handleArchive}
+            disabled={isArchiving}
           >
-            <Archive className="mr-1.5 h-3 w-3" />
+            {isArchiving ? (
+              <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+            ) : (
+              <Archive className="mr-1.5 h-3 w-3" />
+            )}
             Archiver
           </Button>
           <Button
@@ -193,8 +227,17 @@ export default function FormateurDetailPage() {
             onClick={handleSave}
             disabled={isSaving}
           >
-            <Save className="mr-1.5 h-3 w-3" />
-            {isSaving ? "Enregistrement..." : saveSuccess ? "Enregistre !" : "Enregistrer"}
+            {isSaving ? (
+              <>
+                <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+                Enregistrement...
+              </>
+            ) : (
+              <>
+                <Save className="mr-1.5 h-3 w-3" />
+                Enregistrer
+              </>
+            )}
           </Button>
         </div>
       </div>
@@ -205,55 +248,60 @@ export default function FormateurDetailPage() {
         </div>
       )}
 
+      <Separator className="bg-border/60" />
+
       {/* Tabs */}
       <Tabs defaultValue="informations">
-        <TabsList className="bg-muted/30 border border-border/60">
-          <TabsTrigger value="informations" className="text-[13px]">
+        <TabsList className="bg-muted/50">
+          <TabsTrigger value="informations" className="text-xs">
             Informations
           </TabsTrigger>
-          <TabsTrigger value="couts" className="text-[13px]">
-            Couts
+          <TabsTrigger value="couts" className="text-xs">
+            Co\u00fbts
+          </TabsTrigger>
+          <TabsTrigger value="taches" className="text-xs">
+            T\u00e2ches et activit\u00e9s
           </TabsTrigger>
         </TabsList>
 
         {/* Tab 1 - Informations */}
-        <TabsContent value="informations">
-          <div className="rounded-lg border border-border/60 bg-card p-6 space-y-6">
-            {/* Identity Section */}
-            <div>
-              <h3 className="text-sm font-medium mb-4">Identite</h3>
+        <TabsContent value="informations" className="mt-6">
+          <div className="space-y-6">
+            {/* Identit\u00e9 */}
+            <section className="rounded-lg border border-border/60 bg-card p-5">
+              <h3 className="mb-4 text-sm font-semibold">Identit\u00e9</h3>
               <div className="grid grid-cols-3 gap-4">
-                <div className="grid gap-1.5">
-                  <Label className="text-[13px] text-muted-foreground">Civilite</Label>
+                <div className="space-y-2">
+                  <Label className="text-[13px]">Civilit\u00e9</Label>
                   <select
                     value={form.civilite ?? ""}
                     onChange={(e) =>
                       setForm((prev) => ({ ...prev, civilite: e.target.value }))
                     }
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-[13px] shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    className="h-9 w-full rounded-md border border-border/60 bg-background px-3 py-1 text-[13px] text-foreground"
                   >
                     <option value="">--</option>
                     <option value="Monsieur">Monsieur</option>
                     <option value="Madame">Madame</option>
                   </select>
                 </div>
-                <div className="grid gap-1.5">
-                  <Label className="text-[13px] text-muted-foreground">
-                    Prenom <span className="text-destructive">*</span>
+                <div className="space-y-2">
+                  <Label className="text-[13px]">
+                    Pr\u00e9nom <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     value={form.prenom ?? ""}
                     onChange={(e) =>
                       setForm((prev) => ({ ...prev, prenom: e.target.value }))
                     }
-                    className="h-9 text-[13px] bg-card border-border/60"
+                    className="h-9 text-[13px] bg-background border-border/60"
                   />
                   {formErrors.prenom && (
                     <p className="text-xs text-destructive">{formErrors.prenom[0]}</p>
                   )}
                 </div>
-                <div className="grid gap-1.5">
-                  <Label className="text-[13px] text-muted-foreground">
+                <div className="space-y-2">
+                  <Label className="text-[13px]">
                     Nom <span className="text-destructive">*</span>
                   </Label>
                   <Input
@@ -261,23 +309,21 @@ export default function FormateurDetailPage() {
                     onChange={(e) =>
                       setForm((prev) => ({ ...prev, nom: e.target.value }))
                     }
-                    className="h-9 text-[13px] bg-card border-border/60"
+                    className="h-9 text-[13px] bg-background border-border/60"
                   />
                   {formErrors.nom && (
                     <p className="text-xs text-destructive">{formErrors.nom[0]}</p>
                   )}
                 </div>
               </div>
-            </div>
+            </section>
 
-            <Separator className="bg-border/40" />
-
-            {/* Contact Section */}
-            <div>
-              <h3 className="text-sm font-medium mb-4">Contact</h3>
+            {/* Contact */}
+            <section className="rounded-lg border border-border/60 bg-card p-5">
+              <h3 className="mb-4 text-sm font-semibold">Contact</h3>
               <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-1.5">
-                  <Label className="text-[13px] text-muted-foreground">Email</Label>
+                <div className="space-y-2">
+                  <Label className="text-[13px]">Email</Label>
                   <Input
                     type="email"
                     value={form.email ?? ""}
@@ -285,97 +331,85 @@ export default function FormateurDetailPage() {
                       setForm((prev) => ({ ...prev, email: e.target.value }))
                     }
                     placeholder="jean@exemple.fr"
-                    className="h-9 text-[13px] bg-card border-border/60"
+                    className="h-9 text-[13px] bg-background border-border/60"
                   />
                   {formErrors.email && (
                     <p className="text-xs text-destructive">{formErrors.email[0]}</p>
                   )}
                 </div>
-                <div className="grid gap-1.5">
-                  <Label className="text-[13px] text-muted-foreground">Telephone</Label>
+                <div className="space-y-2">
+                  <Label className="text-[13px]">T\u00e9l\u00e9phone</Label>
                   <Input
                     value={form.telephone ?? ""}
                     onChange={(e) =>
                       setForm((prev) => ({ ...prev, telephone: e.target.value }))
                     }
                     placeholder="06 12 34 56 78"
-                    className="h-9 text-[13px] bg-card border-border/60"
+                    className="h-9 text-[13px] bg-background border-border/60"
                   />
                 </div>
               </div>
-            </div>
+            </section>
 
-            <Separator className="bg-border/40" />
-
-            {/* Address Section */}
-            <div>
-              <h3 className="text-sm font-medium mb-4">Adresse</h3>
-              <div className="grid gap-4">
-                <div className="grid gap-1.5">
-                  <Label className="text-[13px] text-muted-foreground">Rue</Label>
+            {/* Adresse */}
+            <section className="rounded-lg border border-border/60 bg-card p-5">
+              <h3 className="mb-4 text-sm font-semibold">Adresse</h3>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-[13px]">Rue</Label>
                   <Input
                     value={form.adresse_rue ?? ""}
                     onChange={(e) =>
                       setForm((prev) => ({ ...prev, adresse_rue: e.target.value }))
                     }
                     placeholder="12 rue de la Formation"
-                    className="h-9 text-[13px] bg-card border-border/60"
+                    className="h-9 text-[13px] bg-background border-border/60"
                   />
                 </div>
-                <div className="grid gap-1.5">
-                  <Label className="text-[13px] text-muted-foreground">Complement</Label>
+                <div className="space-y-2">
+                  <Label className="text-[13px]">Compl\u00e9ment</Label>
                   <Input
                     value={form.adresse_complement ?? ""}
                     onChange={(e) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        adresse_complement: e.target.value,
-                      }))
+                      setForm((prev) => ({ ...prev, adresse_complement: e.target.value }))
                     }
-                    placeholder="Batiment A, 2e etage"
-                    className="h-9 text-[13px] bg-card border-border/60"
+                    placeholder="B\u00e2timent A, 2e \u00e9tage"
+                    className="h-9 text-[13px] bg-background border-border/60"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-1.5">
-                    <Label className="text-[13px] text-muted-foreground">
-                      Code postal
-                    </Label>
+                  <div className="space-y-2">
+                    <Label className="text-[13px]">Code postal</Label>
                     <Input
                       value={form.adresse_cp ?? ""}
                       onChange={(e) =>
                         setForm((prev) => ({ ...prev, adresse_cp: e.target.value }))
                       }
                       placeholder="75001"
-                      className="h-9 text-[13px] bg-card border-border/60"
+                      className="h-9 text-[13px] bg-background border-border/60"
                     />
                   </div>
-                  <div className="grid gap-1.5">
-                    <Label className="text-[13px] text-muted-foreground">Ville</Label>
+                  <div className="space-y-2">
+                    <Label className="text-[13px]">Ville</Label>
                     <Input
                       value={form.adresse_ville ?? ""}
                       onChange={(e) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          adresse_ville: e.target.value,
-                        }))
+                        setForm((prev) => ({ ...prev, adresse_ville: e.target.value }))
                       }
                       placeholder="Paris"
-                      className="h-9 text-[13px] bg-card border-border/60"
+                      className="h-9 text-[13px] bg-background border-border/60"
                     />
                   </div>
                 </div>
               </div>
-            </div>
+            </section>
 
-            <Separator className="bg-border/40" />
-
-            {/* Professional Section */}
-            <div>
-              <h3 className="text-sm font-medium mb-4">Informations professionnelles</h3>
+            {/* Informations professionnelles */}
+            <section className="rounded-lg border border-border/60 bg-card p-5">
+              <h3 className="mb-4 text-sm font-semibold">Informations professionnelles</h3>
               <div className="grid grid-cols-3 gap-4">
-                <div className="grid gap-1.5">
-                  <Label className="text-[13px] text-muted-foreground">Statut BPF</Label>
+                <div className="space-y-2">
+                  <Label className="text-[13px]">Statut BPF</Label>
                   <select
                     value={form.statut_bpf ?? "externe"}
                     onChange={(e) =>
@@ -384,51 +418,47 @@ export default function FormateurDetailPage() {
                         statut_bpf: e.target.value as "interne" | "externe",
                       }))
                     }
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-[13px] shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    className="h-9 w-full rounded-md border border-border/60 bg-background px-3 py-1 text-[13px] text-foreground"
                   >
                     <option value="externe">Externe (sous-traitant)</option>
-                    <option value="interne">Interne (salarie)</option>
+                    <option value="interne">Interne (salari\u00e9)</option>
                   </select>
                 </div>
-                <div className="grid gap-1.5">
-                  <Label className="text-[13px] text-muted-foreground">
-                    NDA (sous-traitant)
-                  </Label>
+                <div className="space-y-2">
+                  <Label className="text-[13px]">NDA (sous-traitant)</Label>
                   <Input
                     value={form.nda ?? ""}
                     onChange={(e) =>
                       setForm((prev) => ({ ...prev, nda: e.target.value }))
                     }
                     placeholder="11755555555"
-                    className="h-9 text-[13px] bg-card border-border/60"
+                    className="h-9 text-[13px] bg-background border-border/60"
                   />
                 </div>
-                <div className="grid gap-1.5">
-                  <Label className="text-[13px] text-muted-foreground">SIRET</Label>
+                <div className="space-y-2">
+                  <Label className="text-[13px]">SIRET</Label>
                   <Input
                     value={form.siret ?? ""}
                     onChange={(e) =>
                       setForm((prev) => ({ ...prev, siret: e.target.value }))
                     }
                     placeholder="123 456 789 00012"
-                    className="h-9 text-[13px] bg-card border-border/60"
+                    className="h-9 text-[13px] bg-background border-border/60"
                   />
                 </div>
               </div>
-            </div>
+            </section>
           </div>
         </TabsContent>
 
-        {/* Tab 2 - Couts */}
-        <TabsContent value="couts">
-          <div className="rounded-lg border border-border/60 bg-card p-6 space-y-6">
-            <div>
-              <h3 className="text-sm font-medium mb-4">Tarification</h3>
+        {/* Tab 2 - Co\u00fbts */}
+        <TabsContent value="couts" className="mt-6">
+          <div className="space-y-6">
+            <section className="rounded-lg border border-border/60 bg-card p-5">
+              <h3 className="mb-4 text-sm font-semibold">Tarification</h3>
               <div className="grid grid-cols-3 gap-4">
-                <div className="grid gap-1.5">
-                  <Label className="text-[13px] text-muted-foreground">
-                    Tarif journalier HT
-                  </Label>
+                <div className="space-y-2">
+                  <Label className="text-[13px]">Tarif journalier HT</Label>
                   <div className="relative">
                     <Input
                       type="number"
@@ -444,15 +474,15 @@ export default function FormateurDetailPage() {
                         }))
                       }
                       placeholder="300.00"
-                      className="h-9 text-[13px] bg-card border-border/60 pr-8"
+                      className="h-9 text-[13px] bg-background border-border/60 pr-12"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                       EUR
                     </span>
                   </div>
                 </div>
-                <div className="grid gap-1.5">
-                  <Label className="text-[13px] text-muted-foreground">Taux TVA</Label>
+                <div className="space-y-2">
+                  <Label className="text-[13px]">Taux TVA</Label>
                   <div className="relative">
                     <Input
                       type="number"
@@ -469,17 +499,15 @@ export default function FormateurDetailPage() {
                         }))
                       }
                       placeholder="0.00"
-                      className="h-9 text-[13px] bg-card border-border/60 pr-8"
+                      className="h-9 text-[13px] bg-background border-border/60 pr-8"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                       %
                     </span>
                   </div>
                 </div>
-                <div className="grid gap-1.5">
-                  <Label className="text-[13px] text-muted-foreground">
-                    Heures par jour
-                  </Label>
+                <div className="space-y-2">
+                  <Label className="text-[13px]">Heures par jour</Label>
                   <div className="relative">
                     <Input
                       type="number"
@@ -496,7 +524,7 @@ export default function FormateurDetailPage() {
                         }))
                       }
                       placeholder="7"
-                      className="h-9 text-[13px] bg-card border-border/60 pr-8"
+                      className="h-9 text-[13px] bg-background border-border/60 pr-8"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                       h
@@ -504,13 +532,11 @@ export default function FormateurDetailPage() {
                   </div>
                 </div>
               </div>
-            </div>
+            </section>
 
-            <Separator className="bg-border/40" />
-
-            {/* Calculated Summary */}
-            <div>
-              <h3 className="text-sm font-medium mb-4">Recapitulatif</h3>
+            {/* R\u00e9capitulatif */}
+            <section className="rounded-lg border border-border/60 bg-card p-5">
+              <h3 className="mb-4 text-sm font-semibold">R\u00e9capitulatif</h3>
               <div className="grid grid-cols-3 gap-4">
                 <div className="rounded-lg border border-border/40 bg-muted/20 p-4">
                   <p className="text-[11px] uppercase tracking-wider text-muted-foreground/60 mb-1">
@@ -550,8 +576,13 @@ export default function FormateurDetailPage() {
                   </p>
                 </div>
               </div>
-            </div>
+            </section>
           </div>
+        </TabsContent>
+
+        {/* Tab 3 - T\u00e2ches et activit\u00e9s */}
+        <TabsContent value="taches" className="mt-6">
+          <TachesActivitesTab entiteType="formateur" entiteId={formateur.id} />
         </TabsContent>
       </Tabs>
     </div>

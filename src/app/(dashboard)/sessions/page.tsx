@@ -91,6 +91,7 @@ export default function SessionsPage() {
       addLabel="Nouvelle session"
       onRowClick={(item) => router.push(`/sessions/${item.id}`)}
       getRowId={(item) => item.id}
+      exportFilename="sessions"
     />
   );
 }

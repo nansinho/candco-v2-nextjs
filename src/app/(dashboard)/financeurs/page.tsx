@@ -220,6 +220,7 @@ export default function FinanceursPage() {
         onRowClick={(item) => router.push(`/financeurs/${item.id}`)}
         getRowId={(item) => item.id}
         isLoading={isLoading}
+        exportFilename="financeurs"
       />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
