@@ -177,9 +177,24 @@ export async function updateFormateur(id: string, input: Partial<FormateurInput>
   return { data };
 }
 
+/**
+ * Split "Nom Prénom" (format SmartOF) en { nom, prenom }.
+ * Convention SmartOF : le nom est en premier, le prénom est le dernier mot.
+ */
+function splitNomComplet(nomComplet: string): { nom: string; prenom: string } {
+  const parts = nomComplet.trim().split(/\s+/);
+  if (parts.length <= 1) {
+    return { nom: parts[0] || "", prenom: "" };
+  }
+  const prenom = parts[parts.length - 1];
+  const nom = parts.slice(0, -1).join(" ");
+  return { nom, prenom };
+}
+
 export async function importFormateurs(
   rows: {
-    prenom: string; nom: string; email?: string; telephone?: string;
+    prenom?: string; nom?: string; nom_complet?: string;
+    email?: string; telephone?: string;
     civilite?: string; statut_bpf?: string; tarif_journalier?: string;
     taux_tva?: string; nda?: string; siret?: string;
     adresse_rue?: string; adresse_complement?: string; adresse_cp?: string; adresse_ville?: string;
@@ -197,7 +212,18 @@ export async function importFormateurs(
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
-    if (!row.prenom?.trim() || !row.nom?.trim()) {
+
+    // Résoudre nom/prénom (split si nom_complet fourni)
+    let prenom = row.prenom?.trim() || "";
+    let nom = row.nom?.trim() || "";
+
+    if (row.nom_complet?.trim() && (!prenom || !nom)) {
+      const split = splitNomComplet(row.nom_complet);
+      if (!prenom) prenom = split.prenom;
+      if (!nom) nom = split.nom;
+    }
+
+    if (!prenom || !nom) {
       errors.push(`Ligne ${i + 1}: Prénom et nom requis`);
       continue;
     }
@@ -213,8 +239,8 @@ export async function importFormateurs(
     const { data: formateur, error } = await supabase.from("formateurs").insert({
       organisation_id: organisationId,
       numero_affichage: numero,
-      prenom: row.prenom.trim(),
-      nom: row.nom.trim(),
+      prenom,
+      nom,
       email: row.email?.trim() || null,
       telephone: row.telephone?.trim() || null,
       civilite: row.civilite?.trim() || null,
@@ -230,7 +256,7 @@ export async function importFormateurs(
     }).select("id").single();
 
     if (error) {
-      errors.push(`Ligne ${i + 1} (${row.prenom} ${row.nom}): ${error.message}`);
+      errors.push(`Ligne ${i + 1} (${prenom} ${nom}): ${error.message}`);
     } else {
       success++;
 
