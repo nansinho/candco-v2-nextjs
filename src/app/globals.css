@@ -5,7 +5,7 @@
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
-  /* Colors — Cursor Style Dark Theme */
+  /* Default (Dark) Theme — Cursor Style */
   --color-background: #0A0A0A;
   --color-foreground: #FAFAFA;
 
@@ -52,6 +52,50 @@
   --radius-xl: 1rem;
 }
 
+/* ═══════════════════════════════════════════════
+   LIGHT THEME — Bleu Électrique / Blanc / Orange
+   ═══════════════════════════════════════════════ */
+html.light {
+  --color-background: #F8FAFC;
+  --color-foreground: #0F172A;
+
+  --color-card: #FFFFFF;
+  --color-card-foreground: #0F172A;
+
+  --color-popover: #FFFFFF;
+  --color-popover-foreground: #0F172A;
+
+  --color-primary: #2563EB;
+  --color-primary-foreground: #FFFFFF;
+
+  --color-secondary: #F1F5F9;
+  --color-secondary-foreground: #0F172A;
+
+  --color-muted: #F1F5F9;
+  --color-muted-foreground: #64748B;
+
+  --color-accent: #EFF6FF;
+  --color-accent-foreground: #1E40AF;
+
+  --color-destructive: #DC2626;
+  --color-destructive-foreground: #FFFFFF;
+
+  --color-success: #16A34A;
+  --color-warning: #CA8A04;
+  --color-info: #2563EB;
+
+  --color-border: #E2E8F0;
+  --color-input: #E2E8F0;
+  --color-ring: #F97316;
+
+  --color-sidebar: #FFFFFF;
+  --color-sidebar-foreground: #0F172A;
+  --color-sidebar-border: #E2E8F0;
+  --color-sidebar-accent: #EFF6FF;
+  --color-sidebar-accent-foreground: #0F172A;
+  --color-sidebar-muted: #64748B;
+}
+
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);
@@ -70,35 +114,64 @@ body {
   background: transparent;
 }
 
-::-webkit-scrollbar-thumb {
+html.dark ::-webkit-scrollbar-thumb {
   background: #2A2A2A;
   border-radius: 3px;
 }
 
-::-webkit-scrollbar-thumb:hover {
+html.dark ::-webkit-scrollbar-thumb:hover {
   background: #3A3A3A;
 }
 
-/* Native select & option styling for dark theme */
-select {
+html.light ::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 3px;
+}
+
+html.light ::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+/* Native select & option styling */
+html.dark select {
   color-scheme: dark;
   background-color: var(--color-muted);
   color: var(--color-foreground);
 }
 
-select option {
+html.dark select option {
   background-color: #1A1A1A;
   color: #FAFAFA;
   padding: 8px 12px;
 }
 
-select option:checked {
+html.dark select option:checked {
   background-color: #2A2A2A;
 }
 
-/* Date input styling for dark theme */
-input[type="date"] {
+html.light select {
+  color-scheme: light;
+  background-color: var(--color-card);
+  color: var(--color-foreground);
+}
+
+html.light select option {
+  background-color: #FFFFFF;
+  color: #0F172A;
+  padding: 8px 12px;
+}
+
+html.light select option:checked {
+  background-color: #EFF6FF;
+}
+
+/* Date input styling */
+html.dark input[type="date"] {
   color-scheme: dark;
+}
+
+html.light input[type="date"] {
+  color-scheme: light;
 }
 
 /* Focus ring */
