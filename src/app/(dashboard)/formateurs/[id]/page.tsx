@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Archive, Save, UserCheck, Loader2 } from "lucide-react";
+import { ArrowLeft, Archive, Save, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -167,43 +167,39 @@ export default function FormateurDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div className="flex items-start gap-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
           <Button
             variant="ghost"
             size="icon"
-            className="mt-0.5 h-8 w-8"
+            className="h-8 w-8"
             onClick={() => router.push("/formateurs")}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div className="space-y-1">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10">
-                <UserCheck className="h-4.5 w-4.5 text-emerald-400" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-xl font-semibold tracking-tight">
-                    {formateur.prenom} {formateur.nom}
-                  </h1>
-                  <Badge
-                    className={
-                      formateur.statut_bpf === "interne"
-                        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                        : "bg-blue-500/10 text-blue-400 border-blue-500/20"
-                    }
-                  >
-                    {formateur.statut_bpf === "interne" ? "Interne" : "Externe"}
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="font-mono text-xs text-muted-foreground">
-                    {formateur.numero_affichage}
-                  </span>
-                </div>
-              </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-semibold tracking-tight">
+                {formateur.prenom} {formateur.nom}
+              </h1>
+              <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[11px] font-mono">
+                {formateur.numero_affichage}
+              </Badge>
+              <Badge
+                className={
+                  formateur.statut_bpf === "interne"
+                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[11px]"
+                    : "bg-blue-500/10 text-blue-400 border-blue-500/20 text-[11px]"
+                }
+              >
+                {formateur.statut_bpf === "interne" ? "Interne" : "Externe"}
+              </Badge>
             </div>
+            {formateur.email && (
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {formateur.email}
+              </p>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">

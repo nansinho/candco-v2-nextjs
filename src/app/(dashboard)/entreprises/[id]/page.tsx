@@ -3,7 +3,6 @@
 import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
-  Building2,
   ArrowLeft,
   Archive,
   Loader2,
@@ -144,37 +143,30 @@ export default function EntrepriseDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div className="flex items-start gap-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
           <Button
             variant="ghost"
             size="icon"
-            className="mt-0.5 h-8 w-8"
+            className="h-8 w-8"
             onClick={() => router.push("/entreprises")}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div className="space-y-1">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
-                <Building2 className="h-4.5 w-4.5 text-primary" />
-              </div>
-              <div>
-                <h1 className="text-xl font-semibold tracking-tight">
-                  {entreprise.nom}
-                </h1>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <Badge className="bg-primary/10 text-primary border-primary/20 text-[11px] font-mono">
-                    {entreprise.numero_affichage}
-                  </Badge>
-                  {entreprise.siret && (
-                    <span className="text-xs text-muted-foreground">
-                      SIRET: {entreprise.siret}
-                    </span>
-                  )}
-                </div>
-              </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-semibold tracking-tight">
+                {entreprise.nom}
+              </h1>
+              <Badge className="bg-primary/10 text-primary border-primary/20 text-[11px] font-mono">
+                {entreprise.numero_affichage}
+              </Badge>
             </div>
+            {entreprise.siret && (
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                SIRET: {entreprise.siret}
+              </p>
+            )}
           </div>
         </div>
 

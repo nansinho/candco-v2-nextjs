@@ -194,7 +194,7 @@ export function ProduitDetail({
                   Publié
                 </Badge>
               ) : (
-                <Badge variant="outline" className="text-[11px] text-muted-foreground/60 font-normal">
+                <Badge className="bg-muted/50 text-muted-foreground/60 border-border/40 text-[11px] font-normal">
                   Brouillon
                 </Badge>
               )}
