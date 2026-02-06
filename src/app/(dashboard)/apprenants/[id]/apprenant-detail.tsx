@@ -178,7 +178,7 @@ export function ApprenantDetail({
               <h1 className="text-xl font-semibold tracking-tight">
                 {apprenant.prenom} {apprenant.nom}
               </h1>
-              <Badge variant="outline" className="text-[11px] font-mono">
+              <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-[11px] font-mono">
                 {apprenant.numero_affichage}
               </Badge>
             </div>

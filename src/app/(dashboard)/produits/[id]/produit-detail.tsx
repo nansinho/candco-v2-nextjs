@@ -185,7 +185,7 @@ export function ProduitDetail({
               <h1 className="text-xl font-semibold tracking-tight">
                 {produit.intitule}
               </h1>
-              <Badge variant="outline" className="text-[11px] font-mono">
+              <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[11px] font-mono">
                 {produit.numero_affichage}
               </Badge>
               {produit.publie ? (

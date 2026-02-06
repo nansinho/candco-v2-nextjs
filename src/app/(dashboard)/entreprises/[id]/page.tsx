@@ -164,7 +164,7 @@ export default function EntrepriseDetailPage() {
                   {entreprise.nom}
                 </h1>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <Badge variant="outline" className="text-[11px] font-mono">
+                  <Badge className="bg-primary/10 text-primary border-primary/20 text-[11px] font-mono">
                     {entreprise.numero_affichage}
                   </Badge>
                   {entreprise.siret && (
