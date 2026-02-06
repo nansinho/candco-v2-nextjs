@@ -18,20 +18,24 @@ import { Label } from "@/components/ui/label";
 import { DatePicker } from "@/components/ui/date-picker";
 import { useToast } from "@/components/ui/toast";
 import { getApprenants, createApprenant, archiveApprenant, unarchiveApprenant, deleteApprenants, importApprenants, type CreateApprenantInput } from "@/actions/apprenants";
-import { CsvImport } from "@/components/shared/csv-import";
+import { CsvImport, type ImportColumn } from "@/components/shared/csv-import";
 import { formatDate } from "@/lib/utils";
 
-const APPRENANT_IMPORT_COLUMNS = [
-  { key: "prenom", label: "Prénom", required: true },
-  { key: "nom", label: "Nom", required: true },
-  { key: "email", label: "Email" },
-  { key: "telephone", label: "Téléphone" },
-  { key: "civilite", label: "Civilité" },
-  { key: "date_naissance", label: "Date de naissance" },
-  { key: "fonction", label: "Fonction" },
-  { key: "adresse_rue", label: "Adresse" },
-  { key: "adresse_cp", label: "Code postal" },
-  { key: "adresse_ville", label: "Ville" },
+const APPRENANT_IMPORT_COLUMNS: ImportColumn[] = [
+  { key: "civilite", label: "Civilité", aliases: ["civilite", "titre", "civ", "gender"] },
+  { key: "prenom", label: "Prénom", required: true, aliases: ["first name", "firstname", "prenom apprenant"] },
+  { key: "nom", label: "Nom", required: true, aliases: ["last name", "lastname", "nom apprenant", "nom de famille"] },
+  { key: "nom_naissance", label: "Nom de naissance", aliases: ["maiden name", "nom jeune fille"] },
+  { key: "email", label: "Email", aliases: ["mail", "e-mail", "courriel", "email apprenant", "adresse email"] },
+  { key: "telephone", label: "Téléphone", aliases: ["tel", "phone", "portable", "mobile", "tel apprenant", "numero telephone"] },
+  { key: "date_naissance", label: "Date de naissance", aliases: ["birthday", "date naissance", "ne le", "ne(e) le"] },
+  { key: "fonction", label: "Fonction", aliases: ["poste", "job", "metier", "emploi", "fonction apprenant"] },
+  { key: "lieu_activite", label: "Lieu d'activité", aliases: ["lieu activite", "site", "etablissement"] },
+  { key: "adresse_rue", label: "Adresse", aliases: ["rue", "adresse postale", "adresse rue", "address", "n et rue"] },
+  { key: "adresse_complement", label: "Complément adresse", aliases: ["complement", "adresse complement", "complement adresse", "bat", "batiment"] },
+  { key: "adresse_cp", label: "Code postal", aliases: ["cp", "zip", "code postal", "postal code"] },
+  { key: "adresse_ville", label: "Ville", aliases: ["city", "commune", "localite"] },
+  { key: "numero_compte_comptable", label: "N° compte comptable", aliases: ["compte comptable", "compte client"] },
 ];
 
 interface Apprenant {

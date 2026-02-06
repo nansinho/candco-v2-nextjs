@@ -229,7 +229,13 @@ export async function deleteApprenants(ids: string[]) {
 }
 
 export async function importApprenants(
-  rows: { prenom: string; nom: string; email?: string; telephone?: string; civilite?: string; date_naissance?: string; fonction?: string; adresse_rue?: string; adresse_cp?: string; adresse_ville?: string }[]
+  rows: {
+    prenom: string; nom: string; email?: string; telephone?: string;
+    civilite?: string; nom_naissance?: string; date_naissance?: string;
+    fonction?: string; lieu_activite?: string;
+    adresse_rue?: string; adresse_complement?: string; adresse_cp?: string; adresse_ville?: string;
+    numero_compte_comptable?: string;
+  }[]
 ): Promise<{ success: number; errors: string[] }> {
   const authResult = await getOrganisationId();
   if ("error" in authResult) {
@@ -257,14 +263,18 @@ export async function importApprenants(
       numero_affichage: numero,
       prenom: row.prenom.trim(),
       nom: row.nom.trim(),
+      nom_naissance: row.nom_naissance?.trim() || null,
       email: row.email?.trim() || null,
       telephone: row.telephone?.trim() || null,
       civilite: row.civilite?.trim() || null,
       date_naissance: row.date_naissance?.trim() || null,
       fonction: row.fonction?.trim() || null,
+      lieu_activite: row.lieu_activite?.trim() || null,
       adresse_rue: row.adresse_rue?.trim() || null,
+      adresse_complement: row.adresse_complement?.trim() || null,
       adresse_cp: row.adresse_cp?.trim() || null,
       adresse_ville: row.adresse_ville?.trim() || null,
+      numero_compte_comptable: row.numero_compte_comptable?.trim() || null,
     });
 
     if (error) {

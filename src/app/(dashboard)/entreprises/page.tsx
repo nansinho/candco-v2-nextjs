@@ -16,9 +16,26 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toast";
-import { getEntreprises, createEntreprise, archiveEntreprise, unarchiveEntreprise, deleteEntreprises } from "@/actions/entreprises";
+import { getEntreprises, createEntreprise, archiveEntreprise, unarchiveEntreprise, deleteEntreprises, importEntreprises } from "@/actions/entreprises";
 import { SiretSearch } from "@/components/shared/siret-search";
 import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
+import { CsvImport, type ImportColumn } from "@/components/shared/csv-import";
+
+const ENTREPRISE_IMPORT_COLUMNS: ImportColumn[] = [
+  { key: "nom", label: "Nom", required: true, aliases: ["raison sociale", "nom entreprise", "societe", "société", "company", "company name", "denomination"] },
+  { key: "siret", label: "SIRET", aliases: ["n siret", "siret entreprise", "numero siret", "siren"] },
+  { key: "email", label: "Email", aliases: ["mail", "e-mail", "courriel", "email entreprise", "adresse email"] },
+  { key: "telephone", label: "Téléphone", aliases: ["tel", "phone", "telephone entreprise", "numero telephone"] },
+  { key: "adresse_rue", label: "Adresse", aliases: ["rue", "adresse postale", "adresse rue", "address", "n et rue", "adresse"] },
+  { key: "adresse_complement", label: "Complément adresse", aliases: ["complement", "adresse complement", "bat", "batiment"] },
+  { key: "adresse_cp", label: "Code postal", aliases: ["cp", "zip", "code postal", "postal code"] },
+  { key: "adresse_ville", label: "Ville", aliases: ["city", "commune", "localite"] },
+  { key: "facturation_raison_sociale", label: "Facturation - Raison sociale", aliases: ["raison sociale facturation", "facturation societe"] },
+  { key: "facturation_rue", label: "Facturation - Adresse", aliases: ["adresse facturation", "facturation adresse", "facturation rue"] },
+  { key: "facturation_cp", label: "Facturation - CP", aliases: ["cp facturation", "code postal facturation", "facturation code postal"] },
+  { key: "facturation_ville", label: "Facturation - Ville", aliases: ["ville facturation", "facturation ville"] },
+  { key: "numero_compte_comptable", label: "N° compte comptable", aliases: ["compte comptable", "compte client", "numero compte"] },
+];
 
 interface Entreprise {
   id: string;
@@ -91,6 +108,7 @@ export default function EntreprisesPage() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [showArchived, setShowArchived] = React.useState(false);
   const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [importOpen, setImportOpen] = React.useState(false);
 
   // Debounce search
   React.useEffect(() => {
@@ -162,6 +180,7 @@ export default function EntreprisesPage() {
           await fetchData();
           toast({ title: "Supprimé", description: `${ids.length} élément(s) supprimé(s) définitivement.`, variant: "success" });
         }}
+        onImport={() => setImportOpen(true)}
       />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -178,6 +197,20 @@ export default function EntreprisesPage() {
           />
         </DialogContent>
       </Dialog>
+
+      <CsvImport
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        title="Importer des entreprises"
+        description="Importez depuis un fichier CSV ou Excel (export SmartOF)."
+        columns={ENTREPRISE_IMPORT_COLUMNS}
+        templateFilename="entreprises"
+        onImport={async (rows) => {
+          const result = await importEntreprises(rows as Parameters<typeof importEntreprises>[0]);
+          if (result.success > 0) fetchData();
+          return result;
+        }}
+      />
     </>
   );
 }
