@@ -172,7 +172,13 @@ export async function updateFormateur(id: string, input: Partial<FormateurInput>
 }
 
 export async function importFormateurs(
-  rows: { prenom: string; nom: string; email?: string; telephone?: string; civilite?: string; statut_bpf?: string; tarif_journalier?: string; nda?: string; siret?: string; adresse_rue?: string; adresse_cp?: string; adresse_ville?: string }[]
+  rows: {
+    prenom: string; nom: string; email?: string; telephone?: string;
+    civilite?: string; statut_bpf?: string; tarif_journalier?: string;
+    taux_tva?: string; nda?: string; siret?: string;
+    adresse_rue?: string; adresse_complement?: string; adresse_cp?: string; adresse_ville?: string;
+    competences?: string;
+  }[]
 ): Promise<{ success: number; errors: string[] }> {
   const authResult = await getOrganisationId();
   if ("error" in authResult) {
@@ -195,9 +201,10 @@ export async function importFormateurs(
       p_entite: "FOR",
     });
 
-    const tarif = row.tarif_journalier ? parseFloat(row.tarif_journalier) : null;
+    const tarif = row.tarif_journalier ? parseFloat(row.tarif_journalier.replace(",", ".")) : null;
+    const tva = row.taux_tva ? parseFloat(row.taux_tva.replace(",", ".").replace("%", "")) : null;
 
-    const { error } = await supabase.from("formateurs").insert({
+    const { data: formateur, error } = await supabase.from("formateurs").insert({
       organisation_id: organisationId,
       numero_affichage: numero,
       prenom: row.prenom.trim(),
@@ -205,19 +212,36 @@ export async function importFormateurs(
       email: row.email?.trim() || null,
       telephone: row.telephone?.trim() || null,
       civilite: row.civilite?.trim() || null,
-      statut_bpf: row.statut_bpf?.trim() === "interne" ? "interne" : "externe",
+      statut_bpf: row.statut_bpf?.trim().toLowerCase() === "interne" ? "interne" : "externe",
       tarif_journalier: tarif && !isNaN(tarif) ? tarif : null,
+      taux_tva: tva && !isNaN(tva) ? tva : 0,
       nda: row.nda?.trim() || null,
       siret: row.siret?.trim() || null,
       adresse_rue: row.adresse_rue?.trim() || null,
+      adresse_complement: row.adresse_complement?.trim() || null,
       adresse_cp: row.adresse_cp?.trim() || null,
       adresse_ville: row.adresse_ville?.trim() || null,
-    });
+    }).select("id").single();
 
     if (error) {
       errors.push(`Ligne ${i + 1} (${row.prenom} ${row.nom}): ${error.message}`);
     } else {
       success++;
+
+      // Insérer les compétences si présentes (séparées par virgule ou point-virgule)
+      if (row.competences?.trim() && formateur) {
+        const competences = row.competences
+          .split(/[,;]/)
+          .map((c) => c.trim())
+          .filter(Boolean);
+
+        for (const comp of competences) {
+          await supabase.from("formateur_competences").insert({
+            formateur_id: formateur.id,
+            competence: comp,
+          });
+        }
+      }
     }
   }
 

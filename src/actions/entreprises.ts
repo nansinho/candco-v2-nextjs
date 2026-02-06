@@ -224,6 +224,77 @@ export async function deleteEntreprises(ids: string[]) {
   return { success: true };
 }
 
+// ─── Import Entreprises ─────────────────────────────────
+
+export async function importEntreprises(
+  rows: {
+    nom: string;
+    siret?: string;
+    email?: string;
+    telephone?: string;
+    adresse_rue?: string;
+    adresse_complement?: string;
+    adresse_cp?: string;
+    adresse_ville?: string;
+    facturation_raison_sociale?: string;
+    facturation_rue?: string;
+    facturation_complement?: string;
+    facturation_cp?: string;
+    facturation_ville?: string;
+    numero_compte_comptable?: string;
+  }[]
+): Promise<{ success: number; errors: string[] }> {
+  const authResult = await getOrganisationId();
+  if ("error" in authResult) {
+    return { success: 0, errors: [String(authResult.error)] };
+  }
+
+  const { organisationId, supabase } = authResult;
+  let successCount = 0;
+  const importErrors: string[] = [];
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row.nom?.trim()) {
+      importErrors.push(`Ligne ${i + 1}: Le nom est requis`);
+      continue;
+    }
+
+    const { data: numero } = await supabase.rpc("next_numero", {
+      p_organisation_id: organisationId,
+      p_entite: "ENT",
+    });
+
+    const { error } = await supabase.from("entreprises").insert({
+      organisation_id: organisationId,
+      numero_affichage: numero,
+      nom: row.nom.trim(),
+      siret: row.siret?.trim() || null,
+      email: row.email?.trim() || null,
+      telephone: row.telephone?.trim() || null,
+      adresse_rue: row.adresse_rue?.trim() || null,
+      adresse_complement: row.adresse_complement?.trim() || null,
+      adresse_cp: row.adresse_cp?.trim() || null,
+      adresse_ville: row.adresse_ville?.trim() || null,
+      facturation_raison_sociale: row.facturation_raison_sociale?.trim() || null,
+      facturation_rue: row.facturation_rue?.trim() || null,
+      facturation_complement: row.facturation_complement?.trim() || null,
+      facturation_cp: row.facturation_cp?.trim() || null,
+      facturation_ville: row.facturation_ville?.trim() || null,
+      numero_compte_comptable: row.numero_compte_comptable?.trim() || "411000",
+    });
+
+    if (error) {
+      importErrors.push(`Ligne ${i + 1} (${row.nom}): ${error.message}`);
+    } else {
+      successCount++;
+    }
+  }
+
+  revalidatePath("/entreprises");
+  return { success: successCount, errors: importErrors };
+}
+
 // ─── Apprenants linked to Entreprise ─────────────────────
 
 export interface ApprenantLink {

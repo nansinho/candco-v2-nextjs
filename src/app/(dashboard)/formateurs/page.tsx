@@ -18,22 +18,25 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toast";
 import { getFormateurs, createFormateur, archiveFormateur, unarchiveFormateur, deleteFormateurs, importFormateurs, type FormateurInput } from "@/actions/formateurs";
-import { CsvImport } from "@/components/shared/csv-import";
+import { CsvImport, type ImportColumn } from "@/components/shared/csv-import";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
-const FORMATEUR_IMPORT_COLUMNS = [
-  { key: "prenom", label: "Prénom", required: true },
-  { key: "nom", label: "Nom", required: true },
-  { key: "email", label: "Email" },
-  { key: "telephone", label: "Téléphone" },
-  { key: "civilite", label: "Civilité" },
-  { key: "statut_bpf", label: "Statut BPF" },
-  { key: "tarif_journalier", label: "Tarif journalier" },
-  { key: "nda", label: "NDA" },
-  { key: "siret", label: "SIRET" },
-  { key: "adresse_rue", label: "Adresse" },
-  { key: "adresse_cp", label: "Code postal" },
-  { key: "adresse_ville", label: "Ville" },
+const FORMATEUR_IMPORT_COLUMNS: ImportColumn[] = [
+  { key: "civilite", label: "Civilité", aliases: ["civ", "titre", "gender"] },
+  { key: "prenom", label: "Prénom", required: true, aliases: ["first name", "firstname", "prenom formateur"] },
+  { key: "nom", label: "Nom", required: true, aliases: ["last name", "lastname", "nom formateur", "nom de famille"] },
+  { key: "email", label: "Email", aliases: ["mail", "e-mail", "courriel", "email formateur", "adresse email"] },
+  { key: "telephone", label: "Téléphone", aliases: ["tel", "phone", "portable", "mobile", "tel formateur", "numero telephone"] },
+  { key: "statut_bpf", label: "Statut BPF", aliases: ["statut", "type formateur", "interne externe", "interne/externe"] },
+  { key: "tarif_journalier", label: "Tarif journalier", aliases: ["tarif", "tarif jour", "prix jour", "cout journalier", "tjm", "cout jour ht"] },
+  { key: "taux_tva", label: "Taux TVA", aliases: ["tva", "tva formateur"] },
+  { key: "nda", label: "NDA", aliases: ["numero declaration activite", "n declaration", "numero da", "declaration activite"] },
+  { key: "siret", label: "SIRET", aliases: ["siret formateur", "n siret"] },
+  { key: "adresse_rue", label: "Adresse", aliases: ["rue", "adresse postale", "adresse rue", "address", "n et rue"] },
+  { key: "adresse_complement", label: "Complément adresse", aliases: ["complement", "adresse complement", "bat", "batiment"] },
+  { key: "adresse_cp", label: "Code postal", aliases: ["cp", "zip", "code postal"] },
+  { key: "adresse_ville", label: "Ville", aliases: ["city", "commune", "localite"] },
+  { key: "competences", label: "Compétences", aliases: ["skills", "specialites", "domaines", "domaines competences"] },
 ];
 
 interface Formateur {
