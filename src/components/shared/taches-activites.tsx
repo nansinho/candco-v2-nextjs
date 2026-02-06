@@ -155,7 +155,7 @@ export function TachesActivitesTab({ entiteType, entiteId }: TachesActivitesTabP
     if (result.error) {
       toast({
         title: "Erreur",
-        description: "Impossible de cr\u00e9er la t\u00e2che.",
+        description: "Impossible de créer la tâche.",
         variant: "destructive",
       });
       return;
@@ -166,7 +166,7 @@ export function TachesActivitesTab({ entiteType, entiteId }: TachesActivitesTabP
     setTacheEcheance("");
     setShowTacheForm(false);
     fetchTaches();
-    toast({ title: "T\u00e2che cr\u00e9\u00e9e", variant: "success" });
+    toast({ title: "Tâche créée", variant: "success" });
   };
 
   const handleToggleTache = async (tache: Tache) => {
@@ -178,7 +178,7 @@ export function TachesActivitesTab({ entiteType, entiteId }: TachesActivitesTabP
   const handleDeleteTache = async (id: string) => {
     await deleteTache(id);
     fetchTaches();
-    toast({ title: "T\u00e2che supprim\u00e9e", variant: "success" });
+    toast({ title: "Tâche supprimée", variant: "success" });
   };
 
   // ── Activite handlers ──
@@ -205,7 +205,7 @@ export function TachesActivitesTab({ entiteType, entiteId }: TachesActivitesTabP
 
     setNoteContent("");
     fetchActivites();
-    toast({ title: "Note ajout\u00e9e", variant: "success" });
+    toast({ title: "Note ajoutée", variant: "success" });
   };
 
   // ── Pending taches (not completed) ──
@@ -218,7 +218,7 @@ export function TachesActivitesTab({ entiteType, entiteId }: TachesActivitesTabP
       <section className="rounded-lg border border-border/60 bg-card p-5">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold">
-            T\u00e2ches
+            Tâches
             {pendingTaches.length > 0 && (
               <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary/10 px-1.5 text-[11px] font-medium text-primary">
                 {pendingTaches.length}
@@ -232,7 +232,7 @@ export function TachesActivitesTab({ entiteType, entiteId }: TachesActivitesTabP
             onClick={() => setShowTacheForm(!showTacheForm)}
           >
             <Plus className="mr-1 h-3 w-3" />
-            Ajouter une t\u00e2che
+            Ajouter une tâche
           </Button>
         </div>
 
@@ -252,7 +252,7 @@ export function TachesActivitesTab({ entiteType, entiteId }: TachesActivitesTabP
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label className="text-[13px]">Priorit\u00e9</Label>
+                <Label className="text-[13px]">Priorité</Label>
                 <select
                   value={tachePriorite}
                   onChange={(e) => setTachePriorite(e.target.value)}
@@ -265,7 +265,7 @@ export function TachesActivitesTab({ entiteType, entiteId }: TachesActivitesTabP
                 </select>
               </div>
               <div className="space-y-2">
-                <Label className="text-[13px]">\u00c9ch\u00e9ance</Label>
+                <Label className="text-[13px]">Échéance</Label>
                 <Input
                   type="date"
                   value={tacheEcheance}
@@ -294,7 +294,7 @@ export function TachesActivitesTab({ entiteType, entiteId }: TachesActivitesTabP
                 ) : (
                   <Plus className="mr-1 h-3 w-3" />
                 )}
-                Cr\u00e9er
+                Créer
               </Button>
             </div>
           </div>
@@ -311,7 +311,7 @@ export function TachesActivitesTab({ entiteType, entiteId }: TachesActivitesTabP
           <div className="flex flex-col items-center py-8">
             <CheckCircle2 className="h-8 w-8 text-muted-foreground/20" />
             <p className="mt-2 text-sm text-muted-foreground/50">
-              Aucune t\u00e2che pour le moment
+              Aucune tâche pour le moment
             </p>
           </div>
         ) : (
@@ -331,7 +331,7 @@ export function TachesActivitesTab({ entiteType, entiteId }: TachesActivitesTabP
               <>
                 <div className="pt-2 pb-1">
                   <p className="text-[11px] font-medium text-muted-foreground/40 uppercase tracking-wider">
-                    Termin\u00e9es ({completedTaches.length})
+                    Terminées ({completedTaches.length})
                   </p>
                 </div>
                 {completedTaches.map((tache) => (
@@ -351,7 +351,7 @@ export function TachesActivitesTab({ entiteType, entiteId }: TachesActivitesTabP
       {/* ─── Activites / Journal Section ─── */}
       <section className="rounded-lg border border-border/60 bg-card p-5">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold">Historique d&apos;activit\u00e9s</h3>
+          <h3 className="text-sm font-semibold">Historique d&apos;activités</h3>
         </div>
 
         {/* Add note */}
@@ -395,7 +395,7 @@ export function TachesActivitesTab({ entiteType, entiteId }: TachesActivitesTabP
           <div className="flex flex-col items-center py-8">
             <MessageSquarePlus className="h-8 w-8 text-muted-foreground/20" />
             <p className="mt-2 text-sm text-muted-foreground/50">
-              Aucune activit\u00e9 enregistr\u00e9e
+              Aucune activité enregistrée
             </p>
           </div>
         ) : (
@@ -438,7 +438,7 @@ function TacheRow({
       <button
         onClick={onToggle}
         className="shrink-0 transition-opacity hover:opacity-70"
-        title={isCompleted ? "Marquer comme non termin\u00e9e" : "Marquer comme termin\u00e9e"}
+        title={isCompleted ? "Marquer comme non terminée" : "Marquer comme terminée"}
       >
         {statutIcon(tache.statut)}
       </button>
@@ -495,7 +495,7 @@ function ActiviteRow({
 }) {
   const auteur = activite.utilisateurs
     ? `${activite.utilisateurs.prenom} ${activite.utilisateurs.nom}`
-    : "Syst\u00e8me";
+    : "Système";
 
   return (
     <div className="relative flex gap-3 pb-4">

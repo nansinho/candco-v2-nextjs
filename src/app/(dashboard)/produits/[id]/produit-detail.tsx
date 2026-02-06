@@ -155,7 +155,7 @@ export function ProduitDetail({
     }
 
     setIsPending(false);
-    toast({ title: "Produit mis \u00e0 jour", variant: "success" });
+    toast({ title: "Produit mis à jour", variant: "success" });
     router.refresh();
   };
 
@@ -163,7 +163,7 @@ export function ProduitDetail({
     if (!confirm("Archiver ce produit de formation ?")) return;
     setIsArchiving(true);
     await archiveProduit(produit.id);
-    toast({ title: "Produit archiv\u00e9", variant: "success" });
+    toast({ title: "Produit archivé", variant: "success" });
     router.push("/produits");
   };
 
@@ -191,7 +191,7 @@ export function ProduitDetail({
               {produit.publie ? (
                 <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[11px]">
                   <Globe className="mr-1 h-3 w-3" />
-                  Publi\u00e9
+                  Publié
                 </Badge>
               ) : (
                 <Badge variant="outline" className="text-[11px] text-muted-foreground/60 font-normal">
@@ -267,7 +267,7 @@ export function ProduitDetail({
             )}
           </TabsTrigger>
           <TabsTrigger value="taches" className="text-xs">
-            T\u00e2ches
+            Tâches
           </TabsTrigger>
         </TabsList>
 
@@ -279,13 +279,13 @@ export function ProduitDetail({
                 {/* General */}
                 <fieldset className="space-y-4">
                   <legend className="text-sm font-semibold text-muted-foreground/80 uppercase tracking-wider">
-                    Informations g\u00e9n\u00e9rales
+                    Informations générales
                   </legend>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="intitule" className="text-[13px]">
-                        Intitul\u00e9 <span className="text-destructive">*</span>
+                        Intitulé <span className="text-destructive">*</span>
                       </Label>
                       <Input
                         id="intitule"
@@ -321,7 +321,7 @@ export function ProduitDetail({
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="domaine" className="text-[13px]">
-                        Domaine / P\u00f4le
+                        Domaine / Pôle
                       </Label>
                       <Input
                         id="domaine"
@@ -365,7 +365,7 @@ export function ProduitDetail({
                       >
                         <option value="">--</option>
                         <option value="action_formation">Action de formation</option>
-                        <option value="bilan_competences">Bilan de comp\u00e9tences</option>
+                        <option value="bilan_competences">Bilan de compétences</option>
                         <option value="vae">VAE</option>
                         <option value="apprentissage">Apprentissage</option>
                       </select>
@@ -373,7 +373,7 @@ export function ProduitDetail({
 
                     <div className="space-y-2">
                       <Label htmlFor="modalite" className="text-[13px]">
-                        Modalit\u00e9
+                        Modalité
                       </Label>
                       <select
                         id="modalite"
@@ -382,7 +382,7 @@ export function ProduitDetail({
                         className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-[13px] text-foreground"
                       >
                         <option value="">--</option>
-                        <option value="presentiel">Pr\u00e9sentiel</option>
+                        <option value="presentiel">Présentiel</option>
                         <option value="distanciel">Distanciel</option>
                         <option value="mixte">Mixte</option>
                         <option value="afest">AFEST</option>
@@ -410,7 +410,7 @@ export function ProduitDetail({
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="duree_heures" className="text-[13px]">
-                        Dur\u00e9e (heures)
+                        Durée (heures)
                       </Label>
                       <Input
                         id="duree_heures"
@@ -424,7 +424,7 @@ export function ProduitDetail({
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="duree_jours" className="text-[13px]">
-                        Dur\u00e9e (jours)
+                        Durée (jours)
                       </Label>
                       <Input
                         id="duree_jours"
@@ -442,13 +442,13 @@ export function ProduitDetail({
                 {/* BPF */}
                 <fieldset className="space-y-4">
                   <legend className="text-sm font-semibold text-muted-foreground/80 uppercase tracking-wider">
-                    BPF (Bilan P\u00e9dagogique et Financier)
+                    BPF (Bilan Pédagogique et Financier)
                   </legend>
 
                   <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="bpf_specialite_id" className="text-[13px]">
-                        Sp\u00e9cialit\u00e9
+                        Spécialité
                       </Label>
                       <select
                         id="bpf_specialite_id"
@@ -467,7 +467,7 @@ export function ProduitDetail({
 
                     <div className="space-y-2">
                       <Label htmlFor="bpf_categorie" className="text-[13px]">
-                        Cat\u00e9gorie
+                        Catégorie
                       </Label>
                       <select
                         id="bpf_categorie"
@@ -477,7 +477,7 @@ export function ProduitDetail({
                       >
                         <option value="">--</option>
                         <option value="A">A — Actions de formation</option>
-                        <option value="B">B — Bilans de comp\u00e9tences</option>
+                        <option value="B">B — Bilans de compétences</option>
                         <option value="C">C — VAE</option>
                       </select>
                     </div>
@@ -542,11 +542,11 @@ export function ProduitDetail({
               <div className="flex items-center justify-between border-t border-border/60 px-6 py-4">
                 <div className="flex items-center gap-4">
                   <p className="text-[11px] text-muted-foreground/50">
-                    Cr\u00e9\u00e9 le {formatDate(produit.created_at)}
+                    Créé le {formatDate(produit.created_at)}
                   </p>
                   {produit.updated_at && (
                     <p className="text-[11px] text-muted-foreground/50">
-                      Modifi\u00e9 le {formatDate(produit.updated_at)}
+                      Modifié le {formatDate(produit.updated_at)}
                     </p>
                   )}
                 </div>
@@ -583,7 +583,7 @@ export function ProduitDetail({
           <ObjectifsTab produitId={produit.id} objectifs={initialObjectifs} />
         </TabsContent>
 
-        {/* ═══ Tab: T\u00e2ches ═══ */}
+        {/* ═══ Tab: Tâches ═══ */}
         <TabsContent value="taches" className="mt-6">
           <TachesActivitesTab entiteType="produit" entiteId={produit.id} />
         </TabsContent>
@@ -622,14 +622,14 @@ function TarifsTab({ produitId, tarifs }: { produitId: string; tarifs: Tarif[] }
     }
 
     setIsAdding(false);
-    toast({ title: "Tarif ajout\u00e9", variant: "success" });
+    toast({ title: "Tarif ajouté", variant: "success" });
     router.refresh();
   };
 
   const handleDelete = async (tarifId: string) => {
     if (!confirm("Supprimer ce tarif ?")) return;
     await deleteTarif(tarifId, produitId);
-    toast({ title: "Tarif supprim\u00e9", variant: "success" });
+    toast({ title: "Tarif supprimé", variant: "success" });
     router.refresh();
   };
 
@@ -637,7 +637,7 @@ function TarifsTab({ produitId, tarifs }: { produitId: string; tarifs: Tarif[] }
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          D\u00e9finissez les diff\u00e9rents tarifs pour ce produit de formation.
+          Définissez les différents tarifs pour ce produit de formation.
         </p>
         <Button size="sm" className="h-8 text-xs" onClick={() => setIsAdding(true)}>
           <Plus className="mr-1.5 h-3 w-3" />
@@ -662,7 +662,7 @@ function TarifsTab({ produitId, tarifs }: { produitId: string; tarifs: Tarif[] }
               <Input name="taux_tva" type="number" step="0.01" min="0" max="100" defaultValue="0" className="h-8 text-xs bg-background border-border/60" />
             </div>
             <div className="space-y-1">
-              <Label className="text-[11px]">Unit\u00e9</Label>
+              <Label className="text-[11px]">Unité</Label>
               <select name="unite" className="h-8 w-full rounded-md border border-input bg-background px-2 py-1 text-xs text-foreground">
                 <option value="">--</option>
                 <option value="stagiaire">/ stagiaire</option>
@@ -690,9 +690,9 @@ function TarifsTab({ produitId, tarifs }: { produitId: string; tarifs: Tarif[] }
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50">
             <Euro className="h-6 w-6 text-muted-foreground/30" />
           </div>
-          <p className="text-sm text-muted-foreground/60">Aucun tarif d\u00e9fini</p>
+          <p className="text-sm text-muted-foreground/60">Aucun tarif défini</p>
           <p className="text-xs text-muted-foreground/40">
-            Les OF exon\u00e9r\u00e9s de TVA (art. 261-4-4a CGI) utilisent un taux \u00e0 0%.
+            Les OF exonérés de TVA (art. 261-4-4a CGI) utilisent un taux à 0%.
           </p>
         </div>
       ) : (
@@ -704,7 +704,7 @@ function TarifsTab({ produitId, tarifs }: { produitId: string; tarifs: Tarif[] }
                 <th className="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Prix HT</th>
                 <th className="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">TVA</th>
                 <th className="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Prix TTC</th>
-                <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Unit\u00e9</th>
+                <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Unité</th>
                 <th className="px-4 py-2.5 w-16" />
               </tr>
             </thead>
@@ -717,7 +717,7 @@ function TarifsTab({ produitId, tarifs }: { produitId: string; tarifs: Tarif[] }
                       {t.nom || <span className="text-muted-foreground/40">Sans nom</span>}
                       {t.is_default && (
                         <Badge className="ml-2 text-[10px]" variant="outline">
-                          D\u00e9faut
+                          Défaut
                         </Badge>
                       )}
                     </td>
@@ -788,14 +788,14 @@ function ProgrammeTab({
     }
 
     setIsAdding(false);
-    toast({ title: "Module ajout\u00e9", variant: "success" });
+    toast({ title: "Module ajouté", variant: "success" });
     router.refresh();
   };
 
   const handleDelete = async (moduleId: string) => {
     if (!confirm("Supprimer ce module ?")) return;
     await deleteProgrammeModule(moduleId, produitId);
-    toast({ title: "Module supprim\u00e9", variant: "success" });
+    toast({ title: "Module supprimé", variant: "success" });
     router.refresh();
   };
 
@@ -819,7 +819,7 @@ function ProgrammeTab({
               <Input name="titre" required placeholder="Module 1 : Introduction" className="h-8 text-xs bg-background border-border/60" />
             </div>
             <div className="space-y-1">
-              <Label className="text-[11px]">Dur\u00e9e</Label>
+              <Label className="text-[11px]">Durée</Label>
               <Input name="duree" placeholder="2h" className="h-8 text-xs bg-background border-border/60" />
             </div>
             <div className="flex items-end gap-2">
@@ -836,7 +836,7 @@ function ProgrammeTab({
             <textarea
               name="contenu"
               rows={3}
-              placeholder="D\u00e9crivez le contenu de ce module..."
+              placeholder="Décrivez le contenu de ce module..."
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs text-foreground resize-y"
             />
           </div>
@@ -916,20 +916,20 @@ function ObjectifsTab({
     }
 
     setNewObjectif("");
-    toast({ title: "Objectif ajout\u00e9", variant: "success" });
+    toast({ title: "Objectif ajouté", variant: "success" });
     router.refresh();
   };
 
   const handleDelete = async (objectifId: string) => {
     await deleteObjectif(objectifId, produitId);
-    toast({ title: "Objectif supprim\u00e9", variant: "success" });
+    toast({ title: "Objectif supprimé", variant: "success" });
     router.refresh();
   };
 
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Listez les objectifs p\u00e9dagogiques de cette formation.
+        Listez les objectifs pédagogiques de cette formation.
       </p>
 
       {/* Add */}
@@ -937,7 +937,7 @@ function ObjectifsTab({
         <Input
           value={newObjectif}
           onChange={(e) => setNewObjectif(e.target.value)}
-          placeholder="\u00catre capable de..."
+          placeholder="Être capable de..."
           className="h-9 text-[13px] bg-background border-border/60 flex-1"
           onKeyDown={(e) => {
             if (e.key === "Enter") {
@@ -954,7 +954,7 @@ function ObjectifsTab({
       {/* List */}
       {objectifs.length === 0 ? (
         <div className="flex flex-col items-center gap-3 rounded-lg border border-border/60 bg-card py-12">
-          <p className="text-sm text-muted-foreground/60">Aucun objectif d\u00e9fini</p>
+          <p className="text-sm text-muted-foreground/60">Aucun objectif défini</p>
         </div>
       ) : (
         <div className="rounded-lg border border-border/60 bg-card divide-y divide-border/40">

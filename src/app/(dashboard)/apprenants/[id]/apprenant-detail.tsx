@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast";
 import {
@@ -140,8 +141,8 @@ export function ApprenantDetail({
 
     setIsPending(false);
     toast({
-      title: "Apprenant mis \u00e0 jour",
-      description: "Les informations ont \u00e9t\u00e9 enregistr\u00e9es.",
+      title: "Apprenant mis à jour",
+      description: "Les informations ont été enregistrées.",
       variant: "success",
     });
     router.refresh();
@@ -152,8 +153,8 @@ export function ApprenantDetail({
     setIsArchiving(true);
     await archiveApprenant(apprenant.id);
     toast({
-      title: "Apprenant archiv\u00e9",
-      description: "L\u2019apprenant a \u00e9t\u00e9 archiv\u00e9 avec succ\u00e8s.",
+      title: "Apprenant archivé",
+      description: "L'apprenant a été archivé avec succès.",
       variant: "success",
     });
     router.push("/apprenants");
@@ -209,9 +210,9 @@ export function ApprenantDetail({
 
       {/* Tabs */}
       <Tabs defaultValue="infos">
-        <TabsList className="bg-muted/50">
+        <TabsList className="bg-muted/30 border border-border/60">
           <TabsTrigger value="infos" className="text-xs">
-            Informations g\u00e9n\u00e9rales
+            Informations générales
           </TabsTrigger>
           <TabsTrigger value="entreprises" className="text-xs">
             Entreprises
@@ -222,7 +223,7 @@ export function ApprenantDetail({
             )}
           </TabsTrigger>
           <TabsTrigger value="taches" className="text-xs">
-            T\u00e2ches et activit\u00e9s
+            Tâches et activités
           </TabsTrigger>
         </TabsList>
 
@@ -243,14 +244,14 @@ export function ApprenantDetail({
                 {/* Identity */}
                 <fieldset className="space-y-4">
                   <legend className="text-sm font-semibold text-muted-foreground/80 uppercase tracking-wider">
-                    Identit\u00e9
+                    Identité
                   </legend>
 
-                  <div className="grid grid-cols-4 gap-4">
-                    {/* Civilit\u00e9 */}
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    {/* Civilité */}
                     <div className="space-y-2">
                       <Label htmlFor="civilite" className="text-[13px]">
-                        Civilit\u00e9
+                        Civilité
                       </Label>
                       <select
                         id="civilite"
@@ -269,10 +270,10 @@ export function ApprenantDetail({
                       )}
                     </div>
 
-                    {/* Pr\u00e9nom */}
+                    {/* Prénom */}
                     <div className="space-y-2">
                       <Label htmlFor="prenom" className="text-[13px]">
-                        Pr\u00e9nom <span className="text-destructive">*</span>
+                        Prénom <span className="text-destructive">*</span>
                       </Label>
                       <Input
                         id="prenom"
@@ -331,7 +332,7 @@ export function ApprenantDetail({
                     Contact
                   </legend>
 
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {/* Email */}
                     <div className="space-y-2">
                       <Label htmlFor="email" className="text-[13px]">
@@ -351,10 +352,10 @@ export function ApprenantDetail({
                       )}
                     </div>
 
-                    {/* T\u00e9l\u00e9phone */}
+                    {/* Téléphone */}
                     <div className="space-y-2">
                       <Label htmlFor="telephone" className="text-[13px]">
-                        T\u00e9l\u00e9phone
+                        Téléphone
                       </Label>
                       <Input
                         id="telephone"
@@ -374,12 +375,10 @@ export function ApprenantDetail({
                       <Label htmlFor="date_naissance" className="text-[13px]">
                         Date de naissance
                       </Label>
-                      <Input
+                      <DatePicker
                         id="date_naissance"
                         name="date_naissance"
-                        type="date"
                         defaultValue={apprenant.date_naissance ?? ""}
-                        className="h-9 text-[13px] bg-background border-border/60"
                       />
                       {errors.date_naissance && (
                         <p className="text-xs text-destructive">
@@ -390,13 +389,13 @@ export function ApprenantDetail({
                   </div>
                 </fieldset>
 
-                {/* Activit\u00e9 */}
+                {/* Activité */}
                 <fieldset className="space-y-4">
                   <legend className="text-sm font-semibold text-muted-foreground/80 uppercase tracking-wider">
-                    Activit\u00e9
+                    Activité
                   </legend>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="fonction" className="text-[13px]">
                         Fonction
@@ -416,7 +415,7 @@ export function ApprenantDetail({
 
                     <div className="space-y-2">
                       <Label htmlFor="lieu_activite" className="text-[13px]">
-                        Lieu d&apos;activit\u00e9
+                        Lieu d&apos;activité
                       </Label>
                       <Input
                         id="lieu_activite"
@@ -462,7 +461,7 @@ export function ApprenantDetail({
                         htmlFor="adresse_complement"
                         className="text-[13px]"
                       >
-                        Compl\u00e9ment d&apos;adresse
+                        Complément d&apos;adresse
                       </Label>
                       <Input
                         id="adresse_complement"
@@ -477,7 +476,7 @@ export function ApprenantDetail({
                       )}
                     </div>
 
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                       <div className="space-y-2">
                         <Label htmlFor="adresse_cp" className="text-[13px]">
                           Code postal
@@ -518,13 +517,13 @@ export function ApprenantDetail({
                   </div>
                 </fieldset>
 
-                {/* BPF & Comptabilit\u00e9 */}
+                {/* BPF & Comptabilité */}
                 <fieldset className="space-y-4">
                   <legend className="text-sm font-semibold text-muted-foreground/80 uppercase tracking-wider">
-                    BPF &amp; Comptabilit\u00e9
+                    BPF &amp; Comptabilité
                   </legend>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     {/* Statut BPF */}
                     <div className="space-y-2">
                       <Label htmlFor="bpf_categorie_id" className="text-[13px]">
@@ -550,13 +549,13 @@ export function ApprenantDetail({
                       )}
                     </div>
 
-                    {/* N\u00b0 compte comptable */}
+                    {/* N° compte comptable */}
                     <div className="space-y-2">
                       <Label
                         htmlFor="numero_compte_comptable"
                         className="text-[13px]"
                       >
-                        N\u00b0 compte comptable
+                        N° compte comptable
                       </Label>
                       <Input
                         id="numero_compte_comptable"
@@ -580,11 +579,11 @@ export function ApprenantDetail({
               <div className="flex items-center justify-between border-t border-border/60 px-6 py-4">
                 <div className="flex items-center gap-4">
                   <p className="text-[11px] text-muted-foreground/50">
-                    Cr\u00e9\u00e9 le {formatDate(apprenant.created_at)}
+                    Créé le {formatDate(apprenant.created_at)}
                   </p>
                   {apprenant.updated_at && (
                     <p className="text-[11px] text-muted-foreground/50">
-                      Modifi\u00e9 le {formatDate(apprenant.updated_at)}
+                      Modifié le {formatDate(apprenant.updated_at)}
                     </p>
                   )}
                 </div>
@@ -621,10 +620,10 @@ export function ApprenantDetail({
                 </div>
                 <div className="text-center">
                   <p className="text-sm font-medium text-muted-foreground/60">
-                    Aucune entreprise associ\u00e9e
+                    Aucune entreprise associée
                   </p>
                   <p className="mt-0.5 text-xs text-muted-foreground/40">
-                    Cet apprenant n&apos;est rattach\u00e9 \u00e0 aucune entreprise.
+                    Cet apprenant n&apos;est rattaché à aucune entreprise.
                   </p>
                 </div>
               </div>
@@ -673,7 +672,7 @@ export function ApprenantDetail({
           </div>
         </TabsContent>
 
-        {/* Tab 3 -- T\u00e2ches et activit\u00e9s */}
+        {/* Tab 3 -- Tâches et activités */}
         <TabsContent value="taches" className="mt-6">
           <TachesActivitesTab entiteType="apprenant" entiteId={apprenant.id} />
         </TabsContent>

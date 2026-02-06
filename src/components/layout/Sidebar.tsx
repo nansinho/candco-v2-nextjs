@@ -26,10 +26,12 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NAV_SECTIONS } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
+import { useSidebar } from "./sidebar-context";
 
 const iconMap: Record<string, React.ElementType> = {
   GraduationCap,
@@ -56,7 +58,7 @@ const iconMap: Record<string, React.ElementType> = {
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const [collapsed, setCollapsed] = React.useState(false);
+  const { collapsed, setCollapsed, mobileOpen, setMobileOpen } = useSidebar();
 
   async function handleLogout() {
     const supabase = createClient();
@@ -65,13 +67,13 @@ export function Sidebar() {
     router.refresh();
   }
 
-  return (
-    <aside
-      className={cn(
-        "fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300",
-        collapsed ? "w-16" : "w-[240px]"
-      )}
-    >
+  // Close mobile sidebar on navigation
+  React.useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname, setMobileOpen]);
+
+  const sidebarContent = (
+    <>
       {/* Logo */}
       <div className="flex h-14 items-center border-b border-sidebar-border px-3">
         {!collapsed ? (
@@ -88,6 +90,15 @@ export function Sidebar() {
             </div>
           </Link>
         )}
+
+        {/* Close button on mobile */}
+        <button
+          type="button"
+          onClick={() => setMobileOpen(false)}
+          className="ml-auto flex h-8 w-8 items-center justify-center rounded-md text-sidebar-foreground/40 hover:text-sidebar-foreground transition-colors lg:hidden cursor-pointer"
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
 
       {/* Navigation */}
@@ -152,11 +163,43 @@ export function Sidebar() {
         <button
           type="button"
           onClick={() => setCollapsed(!collapsed)}
-          className="flex w-full items-center justify-center rounded-lg p-1.5 text-sidebar-foreground/20 hover:bg-sidebar-accent hover:text-sidebar-foreground/50 transition-all cursor-pointer"
+          className="hidden w-full items-center justify-center rounded-lg p-1.5 text-sidebar-foreground/20 hover:bg-sidebar-accent hover:text-sidebar-foreground/50 transition-all cursor-pointer lg:flex"
         >
           {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
         </button>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Mobile overlay */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 lg:hidden"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+      {/* Desktop sidebar */}
+      <aside
+        className={cn(
+          "fixed left-0 top-0 z-40 hidden h-screen flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300 lg:flex",
+          collapsed ? "w-16" : "w-[240px]"
+        )}
+      >
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile sidebar */}
+      <aside
+        className={cn(
+          "fixed left-0 top-0 z-50 flex h-screen w-[280px] flex-col border-r border-sidebar-border bg-sidebar transition-transform duration-300 lg:hidden",
+          mobileOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+      >
+        {sidebarContent}
+      </aside>
+    </>
   );
 }
