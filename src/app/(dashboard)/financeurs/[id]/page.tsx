@@ -13,6 +13,7 @@ import {
   archiveFinanceur,
   unarchiveFinanceur,
 } from "@/actions/financeurs";
+import { useConfirm } from "@/components/ui/alert-dialog";
 import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
 
 const FINANCEUR_TYPES = [
@@ -62,6 +63,7 @@ interface FinanceurData {
 export default function FinanceurDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { confirm, ConfirmDialog } = useConfirm();
   const id = params.id as string;
 
   const [financeur, setFinanceur] = React.useState<FinanceurData | null>(null);
@@ -147,7 +149,7 @@ export default function FinanceurDetailPage() {
   };
 
   const handleArchive = async () => {
-    if (!confirm("Êtes-vous sûr de vouloir archiver ce financeur ?")) return;
+    if (!(await confirm({ title: "Archiver ce financeur ?", description: "Le financeur sera masqué des listes mais pourra être restauré.", confirmLabel: "Archiver", variant: "destructive" }))) return;
     setArchiving(true);
     await archiveFinanceur(id);
     setArchiving(false);
@@ -440,6 +442,7 @@ export default function FinanceurDetailPage() {
           </div>
         </div>
       </div>
+      <ConfirmDialog />
     </div>
   );
 }

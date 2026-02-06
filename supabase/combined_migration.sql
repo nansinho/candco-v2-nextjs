@@ -875,5 +875,29 @@ CREATE POLICY "session_evaluations_delete" ON session_evaluations FOR DELETE
   USING (session_id IN (SELECT id FROM sessions));
 
 -- ═══════════════════════════════════════════
--- DONE — All 4 migrations applied
+-- MIGRATION 00005 — Fonctions prédéfinies
+-- ═══════════════════════════════════════════
+
+CREATE TABLE fonctions_predefinies (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  organisation_id uuid NOT NULL REFERENCES organisations(id) ON DELETE CASCADE,
+  nom text NOT NULL,
+  ordre int DEFAULT 0,
+  created_at timestamptz DEFAULT now() NOT NULL,
+  UNIQUE (organisation_id, nom)
+);
+
+CREATE INDEX idx_fonctions_predefinies_org ON fonctions_predefinies(organisation_id);
+
+ALTER TABLE fonctions_predefinies ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Access own org fonctions" ON fonctions_predefinies
+  FOR ALL USING (
+    organisation_id = (
+      SELECT organisation_id FROM utilisateurs WHERE id = auth.uid()
+    )
+  );
+
+-- ═══════════════════════════════════════════
+-- DONE — All 5 migrations applied
 -- ═══════════════════════════════════════════

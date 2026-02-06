@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/ui/alert-dialog";
 import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
 import {
   updateApprenant,
@@ -104,6 +105,7 @@ export function ApprenantDetail({
 }) {
   const router = useRouter();
   const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [isPending, setIsPending] = React.useState(false);
   const [isArchiving, setIsArchiving] = React.useState(false);
   const [errors, setErrors] = React.useState<FormErrors>({});
@@ -157,7 +159,7 @@ export function ApprenantDetail({
   };
 
   const handleArchive = async () => {
-    if (!confirm("Archiver cet apprenant ?")) return;
+    if (!(await confirm({ title: "Archiver cet apprenant ?", description: "L'apprenant sera masqué des listes mais pourra être restauré.", confirmLabel: "Archiver", variant: "destructive" }))) return;
     setIsArchiving(true);
     await archiveApprenant(apprenant.id);
     toast({
@@ -714,6 +716,7 @@ export function ApprenantDetail({
           <TachesActivitesTab entiteType="apprenant" entiteId={apprenant.id} />
         </TabsContent>
       </Tabs>
+      <ConfirmDialog />
     </div>
   );
 }

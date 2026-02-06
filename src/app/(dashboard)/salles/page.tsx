@@ -14,6 +14,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/ui/alert-dialog";
 import {
   getSalles,
   createSalle,
@@ -33,6 +34,7 @@ interface Salle {
 
 export default function SallesPage() {
   const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [search, setSearch] = React.useState("");
   const [debouncedSearch, setDebouncedSearch] = React.useState("");
   const [page, setPage] = React.useState(1);
@@ -63,7 +65,7 @@ export default function SallesPage() {
   }, [fetchData]);
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Supprimer cette salle ?")) return;
+    if (!(await confirm({ title: "Supprimer cette salle ?", description: "Cette action est irréversible.", confirmLabel: "Supprimer", variant: "destructive" }))) return;
     const result = await deleteSalles([id]);
     if (result.error) {
       toast({ title: "Erreur", description: result.error, variant: "destructive" });
@@ -223,6 +225,7 @@ export default function SallesPage() {
           />
         </DialogContent>
       </Dialog>
+      <ConfirmDialog />
     </div>
   );
 }

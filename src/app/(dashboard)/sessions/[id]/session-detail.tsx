@@ -23,6 +23,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/ui/alert-dialog";
 import { TachesActivitesTab } from "@/components/shared/taches-activites";
 import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
 import { formatDate, formatCurrency } from "@/lib/utils";
@@ -205,6 +206,7 @@ export function SessionDetail({
 }) {
   const router = useRouter();
   const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [isPending, setIsPending] = React.useState(false);
   const [isArchiving, setIsArchiving] = React.useState(false);
 
@@ -245,7 +247,7 @@ export function SessionDetail({
   };
 
   const handleArchive = async () => {
-    if (!confirm("Archiver cette session ?")) return;
+    if (!(await confirm({ title: "Archiver cette session ?", description: "La session sera masquée des listes mais pourra être restaurée.", confirmLabel: "Archiver", variant: "destructive" }))) return;
     setIsArchiving(true);
     await archiveSession(session.id);
     toast({ title: "Session archivée", variant: "success" });
@@ -880,6 +882,7 @@ export function SessionDetail({
           <TachesActivitesTab entiteType="session" entiteId={session.id} />
         </TabsContent>
       </Tabs>
+      <ConfirmDialog />
     </div>
   );
 }

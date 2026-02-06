@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/ui/alert-dialog";
 import {
   getFormateur,
   updateFormateur,
@@ -46,6 +47,7 @@ export default function FormateurDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
   const id = params.id as string;
 
   const [formateur, setFormateur] = React.useState<FormateurData | null>(null);
@@ -111,7 +113,7 @@ export default function FormateurDetailPage() {
   };
 
   const handleArchive = async () => {
-    if (!confirm("Voulez-vous vraiment archiver ce formateur ?")) return;
+    if (!(await confirm({ title: "Archiver ce formateur ?", description: "Le formateur sera masqué des listes mais pourra être restauré.", confirmLabel: "Archiver", variant: "destructive" }))) return;
     setIsArchiving(true);
     await archiveFormateur(id);
     toast({
@@ -598,6 +600,7 @@ export default function FormateurDetailPage() {
           <TachesActivitesTab entiteType="formateur" entiteId={formateur.id} />
         </TabsContent>
       </Tabs>
+      <ConfirmDialog />
     </div>
   );
 }

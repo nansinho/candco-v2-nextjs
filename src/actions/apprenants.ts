@@ -345,14 +345,15 @@ export async function importApprenants(
       continue;
     }
 
-    // 1b. Contrôle de doublons par email
-    const email = row.email?.trim().toLowerCase();
+    // 1b. Contrôle de doublons par email — on importe quand même sans l'email
+    let email = row.email?.trim().toLowerCase() || null;
     if (email) {
       if (existingEmails.has(email) || batchEmails.has(email)) {
-        importErrors.push(`Ligne ${i + 1} (${prenom} ${nom}): Email "${row.email?.trim()}" déjà existant — ignoré`);
-        continue;
+        importErrors.push(`Ligne ${i + 1} (${prenom} ${nom}): Email "${row.email?.trim()}" en doublon — importé sans email`);
+        email = null; // Import without the duplicate email
+      } else {
+        batchEmails.add(email);
       }
-      batchEmails.add(email);
     }
 
     // 2. Résoudre BPF
@@ -410,7 +411,7 @@ export async function importApprenants(
       prenom,
       nom,
       nom_naissance: row.nom_naissance?.trim() || null,
-      email: row.email?.trim() || null,
+      email: email || null,
       telephone: row.telephone?.trim() || null,
       civilite: row.civilite?.trim() || null,
       date_naissance: row.date_naissance?.trim() || null,
