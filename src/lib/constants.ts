@@ -5,7 +5,6 @@ export const NAV_SECTIONS = [
     items: [
       { label: "Apprenants", href: "/apprenants", icon: "GraduationCap" },
       { label: "Entreprises", href: "/entreprises", icon: "Building2" },
-      { label: "Contacts clients", href: "/contacts-clients", icon: "Users" },
       { label: "Formateurs", href: "/formateurs", icon: "UserCheck" },
       { label: "Financeurs", href: "/financeurs", icon: "Landmark" },
     ],
