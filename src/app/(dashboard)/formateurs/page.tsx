@@ -202,6 +202,7 @@ export default function FormateursPage() {
         onRowClick={(item) => router.push(`/formateurs/${item.id}`)}
         getRowId={(item) => item.id}
         isLoading={isLoading}
+        exportFilename="formateurs"
       />
 
       {/* Create Formateur Dialog */}

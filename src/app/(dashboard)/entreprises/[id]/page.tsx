@@ -9,6 +9,11 @@ import {
   Loader2,
   Save,
   Copy,
+  GraduationCap,
+  Plus,
+  Search,
+  X,
+  Unlink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,7 +27,13 @@ import {
   updateEntreprise,
   archiveEntreprise,
   getBpfCategoriesEntreprise,
+  getEntrepriseApprenants,
+  linkApprenantToEntreprise,
+  unlinkApprenantFromEntreprise,
+  searchApprenantsForLinking,
+  type ApprenantLink,
 } from "@/actions/entreprises";
+import { TachesActivitesTab } from "@/components/shared/taches-activites";
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -102,8 +113,8 @@ export default function EntrepriseDetailPage() {
       return;
     }
     toast({
-      title: "Entreprise archivée",
-      description: "L'entreprise a été archivée avec succès.",
+      title: "Entreprise archiv\u00e9e",
+      description: "L'entreprise a \u00e9t\u00e9 archiv\u00e9e avec succ\u00e8s.",
       variant: "success",
     });
     router.push("/entreprises");
@@ -189,10 +200,16 @@ export default function EntrepriseDetailPage() {
       <Tabs defaultValue="general">
         <TabsList className="bg-muted/50">
           <TabsTrigger value="general" className="text-xs">
-            Informations générales
+            Informations g\u00e9n\u00e9rales
           </TabsTrigger>
           <TabsTrigger value="facturation" className="text-xs">
             Facturation
+          </TabsTrigger>
+          <TabsTrigger value="apprenants" className="text-xs">
+            Apprenants
+          </TabsTrigger>
+          <TabsTrigger value="taches" className="text-xs">
+            T\u00e2ches et activit\u00e9s
           </TabsTrigger>
         </TabsList>
 
@@ -209,6 +226,14 @@ export default function EntrepriseDetailPage() {
             entreprise={entreprise}
             onUpdate={setEntreprise}
           />
+        </TabsContent>
+
+        <TabsContent value="apprenants" className="mt-6">
+          <ApprenantsTab entrepriseId={entreprise.id} />
+        </TabsContent>
+
+        <TabsContent value="taches" className="mt-6">
+          <TachesActivitesTab entiteType="entreprise" entiteId={entreprise.id} />
         </TabsContent>
       </Tabs>
     </div>
@@ -269,8 +294,8 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
     }
 
     toast({
-      title: "Modifications enregistrées",
-      description: "Les informations de l'entreprise ont été mises à jour.",
+      title: "Modifications enregistr\u00e9es",
+      description: "Les informations de l'entreprise ont \u00e9t\u00e9 mises \u00e0 jour.",
       variant: "success",
     });
     setIsSaving(false);
@@ -291,7 +316,7 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="nom" className="text-[13px]">
-                Nom de l'entreprise <span className="text-destructive">*</span>
+                Nom de l&apos;entreprise <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="nom"
@@ -341,7 +366,7 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
             </div>
             <div className="space-y-2">
               <Label htmlFor="telephone" className="text-[13px]">
-                Téléphone
+                T\u00e9l\u00e9phone
               </Label>
               <Input
                 id="telephone"
@@ -366,19 +391,19 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
                 id="adresse_rue"
                 name="adresse_rue"
                 defaultValue={entreprise.adresse_rue ?? ""}
-                placeholder="Numéro et nom de rue"
+                placeholder="Num\u00e9ro et nom de rue"
                 className="h-9 text-[13px] bg-background border-border/60"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="adresse_complement" className="text-[13px]">
-                Complément d'adresse
+                Compl\u00e9ment d&apos;adresse
               </Label>
               <Input
                 id="adresse_complement"
                 name="adresse_complement"
                 defaultValue={entreprise.adresse_complement ?? ""}
-                placeholder="Bâtiment, étage, etc."
+                placeholder="B\u00e2timent, \u00e9tage, etc."
                 className="h-9 text-[13px] bg-background border-border/60"
               />
             </div>
@@ -413,7 +438,7 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
 
         {/* BPF & Comptabilité */}
         <section className="rounded-lg border border-border/60 bg-card p-5">
-          <h3 className="mb-4 text-sm font-semibold">BPF & Comptabilité</h3>
+          <h3 className="mb-4 text-sm font-semibold">BPF & Comptabilit\u00e9</h3>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="bpf_categorie_id" className="text-[13px]">
@@ -423,7 +448,7 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
                 id="bpf_categorie_id"
                 name="bpf_categorie_id"
                 defaultValue={entreprise.bpf_categorie_id ?? ""}
-                className="flex h-9 w-full rounded-md border border-border/60 bg-background px-3 py-1 text-[13px] shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="flex h-9 w-full rounded-md border border-border/60 bg-background px-3 py-1 text-[13px] text-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               >
                 <option value="">-- Aucune --</option>
                 {bpfCategories.map((cat) => (
@@ -435,7 +460,7 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
             </div>
             <div className="space-y-2">
               <Label htmlFor="numero_compte_comptable" className="text-[13px]">
-                N° compte comptable
+                N\u00b0 compte comptable
               </Label>
               <Input
                 id="numero_compte_comptable"
@@ -499,8 +524,8 @@ function FacturationTab({ entreprise, onUpdate }: FacturationTabProps) {
     if (villeInput) villeInput.value = entreprise.adresse_ville ?? "";
 
     toast({
-      title: "Adresse copiée",
-      description: "Les informations de l'entreprise ont été copiées.",
+      title: "Adresse copi\u00e9e",
+      description: "Les informations de l'entreprise ont \u00e9t\u00e9 copi\u00e9es.",
     });
   }
 
@@ -540,8 +565,8 @@ function FacturationTab({ entreprise, onUpdate }: FacturationTabProps) {
     }
 
     toast({
-      title: "Modifications enregistrées",
-      description: "Les informations de facturation ont été mises à jour.",
+      title: "Modifications enregistr\u00e9es",
+      description: "Les informations de facturation ont \u00e9t\u00e9 mises \u00e0 jour.",
       variant: "success",
     });
     setIsSaving(false);
@@ -567,7 +592,7 @@ function FacturationTab({ entreprise, onUpdate }: FacturationTabProps) {
               onClick={handleCopyFromEntreprise}
             >
               <Copy className="mr-1.5 h-3 w-3" />
-              Remplir avec les informations de l'entreprise
+              Remplir avec les informations de l&apos;entreprise
             </Button>
           </div>
 
@@ -592,19 +617,19 @@ function FacturationTab({ entreprise, onUpdate }: FacturationTabProps) {
                 id="facturation_rue"
                 name="facturation_rue"
                 defaultValue={entreprise.facturation_rue ?? ""}
-                placeholder="Numéro et nom de rue"
+                placeholder="Num\u00e9ro et nom de rue"
                 className="h-9 text-[13px] bg-background border-border/60"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="facturation_complement" className="text-[13px]">
-                Complément d'adresse
+                Compl\u00e9ment d&apos;adresse
               </Label>
               <Input
                 id="facturation_complement"
                 name="facturation_complement"
                 defaultValue={entreprise.facturation_complement ?? ""}
-                placeholder="Bâtiment, étage, etc."
+                placeholder="B\u00e2timent, \u00e9tage, etc."
                 className="h-9 text-[13px] bg-background border-border/60"
               />
             </div>
@@ -655,6 +680,246 @@ function FacturationTab({ entreprise, onUpdate }: FacturationTabProps) {
         </div>
       </div>
     </form>
+  );
+}
+
+// ─── Apprenants Tab ──────────────────────────────────────
+
+function ApprenantsTab({ entrepriseId }: { entrepriseId: string }) {
+  const router = useRouter();
+  const { toast } = useToast();
+  const [apprenants, setApprenants] = React.useState<ApprenantLink[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [showSearch, setShowSearch] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const [searchResults, setSearchResults] = React.useState<ApprenantLink[]>([]);
+  const [isSearching, setIsSearching] = React.useState(false);
+
+  const fetchApprenants = React.useCallback(async () => {
+    setIsLoading(true);
+    const result = await getEntrepriseApprenants(entrepriseId);
+    setApprenants(result.data);
+    setIsLoading(false);
+  }, [entrepriseId]);
+
+  React.useEffect(() => {
+    fetchApprenants();
+  }, [fetchApprenants]);
+
+  // Search for apprenants to link
+  React.useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
+      const excludeIds = apprenants.map((a) => a.id);
+      const result = await searchApprenantsForLinking(searchQuery, excludeIds);
+      setSearchResults(result.data as ApprenantLink[]);
+      setIsSearching(false);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery, apprenants]);
+
+  const handleLink = async (apprenantId: string) => {
+    const result = await linkApprenantToEntreprise(entrepriseId, apprenantId);
+    if (result.error) {
+      toast({
+        title: "Erreur",
+        description: typeof result.error === "string" ? result.error : "Une erreur est survenue",
+        variant: "destructive",
+      });
+      return;
+    }
+    setSearchQuery("");
+    setSearchResults([]);
+    setShowSearch(false);
+    fetchApprenants();
+    toast({ title: "Apprenant rattach\u00e9", variant: "success" });
+  };
+
+  const handleUnlink = async (apprenantId: string) => {
+    if (!confirm("Retirer cet apprenant de l'entreprise ?")) return;
+    const result = await unlinkApprenantFromEntreprise(entrepriseId, apprenantId);
+    if (result.error) {
+      toast({
+        title: "Erreur",
+        description: typeof result.error === "string" ? result.error : "Une erreur est survenue",
+        variant: "destructive",
+      });
+      return;
+    }
+    fetchApprenants();
+    toast({ title: "Apprenant retir\u00e9", variant: "success" });
+  };
+
+  return (
+    <section className="rounded-lg border border-border/60 bg-card">
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 py-4 border-b border-border/60">
+        <h3 className="text-sm font-semibold">
+          Apprenants rattach\u00e9s
+          {apprenants.length > 0 && (
+            <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary/10 px-1.5 text-[11px] font-medium text-primary">
+              {apprenants.length}
+            </span>
+          )}
+        </h3>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 text-[11px] border-border/60"
+          onClick={() => setShowSearch(!showSearch)}
+        >
+          {showSearch ? (
+            <>
+              <X className="mr-1 h-3 w-3" />
+              Fermer
+            </>
+          ) : (
+            <>
+              <Plus className="mr-1 h-3 w-3" />
+              Ajouter un apprenant
+            </>
+          )}
+        </Button>
+      </div>
+
+      {/* Search for linking */}
+      {showSearch && (
+        <div className="px-5 py-3 border-b border-border/40 bg-muted/10">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/50" />
+            <Input
+              placeholder="Rechercher un apprenant par nom ou email..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-8 pl-9 text-xs bg-background border-border/60"
+              autoFocus
+            />
+          </div>
+          {isSearching && (
+            <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Recherche...
+            </div>
+          )}
+          {searchResults.length > 0 && (
+            <div className="mt-2 space-y-1">
+              {searchResults.map((a) => (
+                <div
+                  key={a.id}
+                  className="flex items-center justify-between rounded-md px-3 py-2 hover:bg-muted/30 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <GraduationCap className="h-3.5 w-3.5 text-blue-400" />
+                    <span className="text-[13px] font-medium">
+                      {a.prenom} {a.nom}
+                    </span>
+                    {a.email && (
+                      <span className="text-[11px] text-muted-foreground/50">
+                        {a.email}
+                      </span>
+                    )}
+                  </div>
+                  <Button
+                    size="sm"
+                    className="h-6 text-[10px] px-2"
+                    onClick={() => handleLink(a.id)}
+                  >
+                    <Plus className="mr-0.5 h-3 w-3" />
+                    Rattacher
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+          {searchQuery.trim() && !isSearching && searchResults.length === 0 && (
+            <p className="mt-2 text-xs text-muted-foreground/50">
+              Aucun apprenant trouv\u00e9 pour &laquo; {searchQuery} &raquo;
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* List */}
+      {isLoading ? (
+        <div className="p-5 space-y-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-10 animate-pulse rounded bg-muted/30" />
+          ))}
+        </div>
+      ) : apprenants.length === 0 ? (
+        <div className="flex flex-col items-center gap-3 py-16">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50">
+            <GraduationCap className="h-6 w-6 text-muted-foreground/30" />
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-medium text-muted-foreground/60">
+              Aucun apprenant rattach\u00e9
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground/40">
+              Utilisez le bouton ci-dessus pour rattacher des apprenants.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-border/60 bg-muted/30">
+              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                ID
+              </th>
+              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                Nom
+              </th>
+              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                Email
+              </th>
+              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                T\u00e9l\u00e9phone
+              </th>
+              <th className="w-10" />
+            </tr>
+          </thead>
+          <tbody>
+            {apprenants.map((a) => (
+              <tr
+                key={a.id}
+                className="border-b border-border/40 transition-colors hover:bg-muted/20 cursor-pointer group"
+                onClick={() => router.push(`/apprenants/${a.id}`)}
+              >
+                <td className="px-4 py-2.5">
+                  <span className="font-mono text-xs text-muted-foreground">{a.numero_affichage}</span>
+                </td>
+                <td className="px-4 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <GraduationCap className="h-3.5 w-3.5 text-blue-400" />
+                    <span className="text-[13px] font-medium">{a.prenom} {a.nom}</span>
+                  </div>
+                </td>
+                <td className="px-4 py-2.5 text-[13px] text-muted-foreground">
+                  {a.email ?? <span className="text-muted-foreground/40">--</span>}
+                </td>
+                <td className="px-4 py-2.5 text-[13px] text-muted-foreground">
+                  {a.telephone ?? <span className="text-muted-foreground/40">--</span>}
+                </td>
+                <td className="px-4 py-2.5" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    onClick={() => handleUnlink(a.id)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground/40 hover:text-destructive"
+                    title="Retirer de l'entreprise"
+                  >
+                    <Unlink className="h-3.5 w-3.5" />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </section>
   );
 }
 

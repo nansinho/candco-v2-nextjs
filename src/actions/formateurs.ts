@@ -181,3 +181,19 @@ export async function archiveFormateur(id: string) {
   revalidatePath("/formateurs");
   return { success: true };
 }
+
+export async function unarchiveFormateur(id: string) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("formateurs")
+    .update({ archived_at: null })
+    .eq("id", id);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/formateurs");
+  return { success: true };
+}

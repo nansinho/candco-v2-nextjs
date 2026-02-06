@@ -135,6 +135,7 @@ export default function ApprenantsPage() {
         onRowClick={(item) => router.push(`/apprenants/${item.id}`)}
         getRowId={(item) => item.id}
         isLoading={isLoading}
+        exportFilename="apprenants"
       />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

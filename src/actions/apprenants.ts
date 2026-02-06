@@ -141,6 +141,7 @@ const UpdateApprenantSchema = z.object({
   adresse_complement: z.string().optional(),
   adresse_cp: z.string().optional(),
   adresse_ville: z.string().optional(),
+  bpf_categorie_id: z.string().uuid().optional().or(z.literal("")),
   numero_compte_comptable: z.string().optional(),
 });
 
@@ -159,6 +160,7 @@ export async function updateApprenant(id: string, input: UpdateApprenantInput) {
     .update({
       ...parsed.data,
       email: parsed.data.email || null,
+      bpf_categorie_id: parsed.data.bpf_categorie_id || null,
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)
@@ -188,4 +190,35 @@ export async function archiveApprenant(id: string) {
 
   revalidatePath("/apprenants");
   return { success: true };
+}
+
+export async function unarchiveApprenant(id: string) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("apprenants")
+    .update({ archived_at: null })
+    .eq("id", id);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/apprenants");
+  return { success: true };
+}
+
+export async function getBpfCategoriesApprenant() {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("bpf_categories_apprenant")
+    .select("*")
+    .order("ordre", { ascending: true });
+
+  if (error) {
+    return { data: [], error: error.message };
+  }
+
+  return { data: data ?? [] };
 }

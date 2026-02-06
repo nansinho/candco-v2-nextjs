@@ -153,6 +153,7 @@ export default function ContactsClientsPage() {
         onRowClick={(item) => router.push(`/contacts-clients/${item.id}`)}
         getRowId={(item) => item.id}
         isLoading={isLoading}
+        exportFilename="contacts-clients"
       />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
