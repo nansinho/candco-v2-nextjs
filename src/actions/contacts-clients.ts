@@ -303,6 +303,17 @@ export async function importContactsClients(
     entrepriseCache.set(ent.nom.toLowerCase().trim(), ent.id);
   }
 
+  // Contrôle de doublons — pré-charger les emails existants
+  const { data: existingContacts } = await supabase
+    .from("contacts_clients")
+    .select("email")
+    .eq("organisation_id", organisationId)
+    .not("email", "is", null);
+  const existingEmails = new Set<string>(
+    (existingContacts ?? []).map((c) => c.email!.toLowerCase())
+  );
+  const batchEmails = new Set<string>();
+
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
 
@@ -319,6 +330,16 @@ export async function importContactsClients(
     if (!prenom || !nom) {
       importErrors.push(`Ligne ${i + 1}: Prénom et nom requis`);
       continue;
+    }
+
+    // Contrôle doublon email
+    const email = row.email?.trim().toLowerCase();
+    if (email) {
+      if (existingEmails.has(email) || batchEmails.has(email)) {
+        importErrors.push(`Ligne ${i + 1} (${prenom} ${nom}): Email "${row.email?.trim()}" déjà existant — ignoré`);
+        continue;
+      }
+      batchEmails.add(email);
     }
 
     // Résoudre entreprise (lookup ou création)

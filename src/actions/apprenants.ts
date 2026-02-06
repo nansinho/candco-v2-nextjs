@@ -301,6 +301,17 @@ export async function importApprenants(
     entrepriseCache.set(ent.nom.toLowerCase().trim(), ent.id);
   }
 
+  // 3. Contrôle de doublons — pré-charger les emails existants
+  const { data: existingApprenants } = await supabase
+    .from("apprenants")
+    .select("email")
+    .eq("organisation_id", organisationId)
+    .not("email", "is", null);
+  const existingEmails = new Set<string>(
+    (existingApprenants ?? []).map((a) => a.email!.toLowerCase())
+  );
+  const batchEmails = new Set<string>();
+
   // ─── Traitement de chaque ligne ────────────────────────
 
   for (let i = 0; i < rows.length; i++) {
@@ -319,6 +330,16 @@ export async function importApprenants(
     if (!prenom || !nom) {
       importErrors.push(`Ligne ${i + 1}: Prénom et nom requis`);
       continue;
+    }
+
+    // 1b. Contrôle de doublons par email
+    const email = row.email?.trim().toLowerCase();
+    if (email) {
+      if (existingEmails.has(email) || batchEmails.has(email)) {
+        importErrors.push(`Ligne ${i + 1} (${prenom} ${nom}): Email "${row.email?.trim()}" déjà existant — ignoré`);
+        continue;
+      }
+      batchEmails.add(email);
     }
 
     // 2. Résoudre BPF

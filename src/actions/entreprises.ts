@@ -281,11 +281,32 @@ export async function importEntreprises(
     bpfMap.set(cat.code.toLowerCase(), cat.id);
   }
 
+  // Contrôle de doublons — pré-charger SIRET existants
+  const { data: existingEnts } = await supabase
+    .from("entreprises")
+    .select("siret")
+    .eq("organisation_id", organisationId)
+    .not("siret", "is", null);
+  const existingSirets = new Set<string>(
+    (existingEnts ?? []).map((e) => e.siret!.replace(/\s/g, "").toLowerCase())
+  );
+  const batchSirets = new Set<string>();
+
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     if (!row.nom?.trim()) {
       importErrors.push(`Ligne ${i + 1}: Le nom est requis`);
       continue;
+    }
+
+    // Contrôle doublon SIRET
+    const siret = row.siret?.trim().replace(/\s/g, "").toLowerCase();
+    if (siret) {
+      if (existingSirets.has(siret) || batchSirets.has(siret)) {
+        importErrors.push(`Ligne ${i + 1} (${row.nom.trim()}): SIRET "${row.siret?.trim()}" déjà existant — ignoré`);
+        continue;
+      }
+      batchSirets.add(siret);
     }
 
     // Résoudre BPF
