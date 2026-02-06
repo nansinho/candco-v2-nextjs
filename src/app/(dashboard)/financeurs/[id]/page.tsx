@@ -13,6 +13,7 @@ import {
   archiveFinanceur,
   unarchiveFinanceur,
 } from "@/actions/financeurs";
+import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
 
 const FINANCEUR_TYPES = [
   "OPCO",
@@ -349,12 +350,12 @@ export default function FinanceurDetailPage() {
                 <Label htmlFor="adresse_rue" className="text-[13px]">
                   Rue
                 </Label>
-                <Input
+                <AddressAutocomplete
                   id="adresse_rue"
                   value={formAdresseRue}
-                  onChange={(e) => setFormAdresseRue(e.target.value)}
-                  placeholder="Numéro et nom de rue"
-                  className="h-9 text-[13px] border-border/60"
+                  onChange={(val) => setFormAdresseRue(val)}
+                  onSelect={(r) => { setFormAdresseRue(r.rue); setFormAdresseCp(r.cp); setFormAdresseVille(r.ville); }}
+                  placeholder="Rechercher une adresse..."
                 />
               </div>
               <div className="space-y-2">

@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast";
+import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
 import {
   getEntreprise,
   updateEntreprise,
@@ -272,6 +273,11 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
   const [isSaving, setIsSaving] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string[]>>({});
 
+  // Controlled state for address (autocomplete fills CP/Ville)
+  const [adresseRue, setAdresseRue] = React.useState(entreprise.adresse_rue ?? "");
+  const [adresseCp, setAdresseCp] = React.useState(entreprise.adresse_cp ?? "");
+  const [adresseVille, setAdresseVille] = React.useState(entreprise.adresse_ville ?? "");
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setIsSaving(true);
@@ -406,12 +412,13 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
               <Label htmlFor="adresse_rue" className="text-[13px]">
                 Rue
               </Label>
-              <Input
+              <AddressAutocomplete
                 id="adresse_rue"
                 name="adresse_rue"
-                defaultValue={entreprise.adresse_rue ?? ""}
-                placeholder="Numéro et nom de rue"
-                className="h-9 text-[13px] border-border/60"
+                value={adresseRue}
+                onChange={(val) => setAdresseRue(val)}
+                onSelect={(r) => { setAdresseRue(r.rue); setAdresseCp(r.cp); setAdresseVille(r.ville); }}
+                placeholder="Rechercher une adresse..."
               />
             </div>
             <div className="space-y-2">
@@ -434,7 +441,8 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
                 <Input
                   id="adresse_cp"
                   name="adresse_cp"
-                  defaultValue={entreprise.adresse_cp ?? ""}
+                  value={adresseCp}
+                  onChange={(e) => setAdresseCp(e.target.value)}
                   placeholder="75001"
                   className="h-9 text-[13px] border-border/60"
                 />
@@ -446,7 +454,8 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
                 <Input
                   id="adresse_ville"
                   name="adresse_ville"
-                  defaultValue={entreprise.adresse_ville ?? ""}
+                  value={adresseVille}
+                  onChange={(e) => setAdresseVille(e.target.value)}
                   placeholder="Paris"
                   className="h-9 text-[13px] border-border/60"
                 />
@@ -526,21 +535,25 @@ function FacturationTab({ entreprise, onUpdate }: FacturationTabProps) {
   const [errors, setErrors] = React.useState<Record<string, string[]>>({});
   const formRef = React.useRef<HTMLFormElement>(null);
 
+  // Controlled state for billing address (autocomplete fills CP/Ville)
+  const [factRue, setFactRue] = React.useState(entreprise.facturation_rue ?? "");
+  const [factCp, setFactCp] = React.useState(entreprise.facturation_cp ?? "");
+  const [factVille, setFactVille] = React.useState(entreprise.facturation_ville ?? "");
+
   function handleCopyFromEntreprise() {
     if (!formRef.current) return;
     const form = formRef.current;
 
     const raisonSocialeInput = form.elements.namedItem("facturation_raison_sociale") as HTMLInputElement;
-    const rueInput = form.elements.namedItem("facturation_rue") as HTMLInputElement;
     const complementInput = form.elements.namedItem("facturation_complement") as HTMLInputElement;
-    const cpInput = form.elements.namedItem("facturation_cp") as HTMLInputElement;
-    const villeInput = form.elements.namedItem("facturation_ville") as HTMLInputElement;
 
     if (raisonSocialeInput) raisonSocialeInput.value = entreprise.nom;
-    if (rueInput) rueInput.value = entreprise.adresse_rue ?? "";
     if (complementInput) complementInput.value = entreprise.adresse_complement ?? "";
-    if (cpInput) cpInput.value = entreprise.adresse_cp ?? "";
-    if (villeInput) villeInput.value = entreprise.adresse_ville ?? "";
+
+    // Update controlled state for autocomplete-managed fields
+    setFactRue(entreprise.adresse_rue ?? "");
+    setFactCp(entreprise.adresse_cp ?? "");
+    setFactVille(entreprise.adresse_ville ?? "");
 
     toast({
       title: "Adresse copiée",
@@ -632,12 +645,13 @@ function FacturationTab({ entreprise, onUpdate }: FacturationTabProps) {
               <Label htmlFor="facturation_rue" className="text-[13px]">
                 Rue
               </Label>
-              <Input
+              <AddressAutocomplete
                 id="facturation_rue"
                 name="facturation_rue"
-                defaultValue={entreprise.facturation_rue ?? ""}
-                placeholder="Numéro et nom de rue"
-                className="h-9 text-[13px] border-border/60"
+                value={factRue}
+                onChange={(val) => setFactRue(val)}
+                onSelect={(r) => { setFactRue(r.rue); setFactCp(r.cp); setFactVille(r.ville); }}
+                placeholder="Rechercher une adresse..."
               />
             </div>
             <div className="space-y-2">
@@ -660,7 +674,8 @@ function FacturationTab({ entreprise, onUpdate }: FacturationTabProps) {
                 <Input
                   id="facturation_cp"
                   name="facturation_cp"
-                  defaultValue={entreprise.facturation_cp ?? ""}
+                  value={factCp}
+                  onChange={(e) => setFactCp(e.target.value)}
                   placeholder="75001"
                   className="h-9 text-[13px] border-border/60"
                 />
@@ -672,7 +687,8 @@ function FacturationTab({ entreprise, onUpdate }: FacturationTabProps) {
                 <Input
                   id="facturation_ville"
                   name="facturation_ville"
-                  defaultValue={entreprise.facturation_ville ?? ""}
+                  value={factVille}
+                  onChange={(e) => setFactVille(e.target.value)}
                   placeholder="Paris"
                   className="h-9 text-[13px] border-border/60"
                 />
