@@ -18,6 +18,7 @@ import {
   UserPlus,
   Mail,
   Phone,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -764,6 +765,7 @@ function FacturationTab({ entreprise, onUpdate }: FacturationTabProps) {
 // ─── Contacts Tab ───────────────────────────────────────
 
 function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
+  const router = useRouter();
   const { toast } = useToast();
   const { confirm: confirmAction, ConfirmDialog: ContactConfirmDialog } = useConfirm();
   const [contacts, setContacts] = React.useState<ContactLink[]>([]);
@@ -1027,7 +1029,11 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
             </thead>
             <tbody>
               {contacts.map((c) => (
-                <tr key={c.id} className="border-b border-border/40 transition-colors hover:bg-muted/20 group">
+                <tr
+                  key={c.id}
+                  className="border-b border-border/40 transition-colors hover:bg-muted/20 group cursor-pointer"
+                  onClick={() => router.push(`/contacts-clients/${c.id}`)}
+                >
                   <td className="px-4 py-2.5">
                     <span className="font-mono text-xs text-muted-foreground">{c.numero_affichage}</span>
                   </td>
@@ -1061,13 +1067,22 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
                     )}
                   </td>
                   <td className="px-4 py-2.5">
-                    <button
-                      onClick={() => handleUnlink(c.id)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground/40 hover:text-destructive"
-                      title="Retirer de l'entreprise"
-                    >
-                      <Unlink className="h-3.5 w-3.5" />
-                    </button>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); router.push(`/contacts-clients/${c.id}`); }}
+                        className="p-1 rounded hover:bg-muted/30 text-muted-foreground/40 hover:text-foreground"
+                        title="Modifier le contact"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleUnlink(c.id); }}
+                        className="p-1 rounded hover:bg-destructive/10 text-muted-foreground/40 hover:text-destructive"
+                        title="Retirer de l'entreprise"
+                      >
+                        <Unlink className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

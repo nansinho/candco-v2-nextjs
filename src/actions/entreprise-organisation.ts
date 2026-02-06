@@ -121,8 +121,13 @@ export async function createAgence(entrepriseId: string, input: z.infer<typeof A
       .single();
 
     if (error) {
-      console.error("[createAgence] Supabase error:", error.message, error.details, error.hint);
-      return { error: { _form: [error.message] } };
+      console.error("[createAgence] Supabase error:", JSON.stringify(error));
+      const msg = error.code === "PGRST116"
+        ? "Erreur de permission : vérifiez que la table entreprise_agences existe et que vous avez les droits d'accès."
+        : error.code === "42P01"
+        ? "La table entreprise_agences n'existe pas. Veuillez exécuter la migration 00003."
+        : error.message || "Erreur inconnue";
+      return { error: { _form: [msg] } };
     }
 
     revalidatePath(`/entreprises/${entrepriseId}`);

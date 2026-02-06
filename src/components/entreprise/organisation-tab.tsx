@@ -610,9 +610,15 @@ function AgenceDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {errors._form && (
-            <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {errors._form[0]}
+          {Object.keys(errors).length > 0 && (
+            <div className="rounded-md border border-destructive/40 bg-destructive/15 px-3 py-2 text-sm text-destructive">
+              {errors._form ? (
+                errors._form.map((e, i) => <p key={i}>{e}</p>)
+              ) : (
+                Object.entries(errors).map(([field, msgs]) => (
+                  <p key={field}><strong>{field}</strong> : {(msgs as string[]).join(", ")}</p>
+                ))
+              )}
             </div>
           )}
 
@@ -827,9 +833,15 @@ function PoleDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {errors._form && (
-            <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {errors._form[0]}
+          {Object.keys(errors).length > 0 && (
+            <div className="rounded-md border border-destructive/40 bg-destructive/15 px-3 py-2 text-sm text-destructive">
+              {errors._form ? (
+                errors._form.map((e, i) => <p key={i}>{e}</p>)
+              ) : (
+                Object.entries(errors).map(([field, msgs]) => (
+                  <p key={field}><strong>{field}</strong> : {(msgs as string[]).join(", ")}</p>
+                ))
+              )}
             </div>
           )}
 
@@ -1044,9 +1056,15 @@ function MembreDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {errors._form && (
-            <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {errors._form[0]}
+          {Object.keys(errors).length > 0 && (
+            <div className="rounded-md border border-destructive/40 bg-destructive/15 px-3 py-2 text-sm text-destructive">
+              {errors._form ? (
+                errors._form.map((e, i) => <p key={i}>{e}</p>)
+              ) : (
+                Object.entries(errors).map(([field, msgs]) => (
+                  <p key={field}><strong>{field}</strong> : {(msgs as string[]).join(", ")}</p>
+                ))
+              )}
             </div>
           )}
 
