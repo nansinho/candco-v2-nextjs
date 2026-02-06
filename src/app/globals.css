@@ -45,6 +45,9 @@
   --color-sidebar-accent-foreground: #FAFAFA;
   --color-sidebar-muted: #A0A0A0;
 
+  --color-header: #0A0A0A;
+  --color-header-foreground: #FAFAFA;
+
   /* Radius */
   --radius-sm: 0.375rem;
   --radius-md: 0.5rem;
@@ -56,7 +59,7 @@
    LIGHT THEME — Bleu Électrique / Blanc / Orange
    ═══════════════════════════════════════════════ */
 html.light {
-  --color-background: #F8FAFC;
+  --color-background: #F4F6F8;
   --color-foreground: #0F172A;
 
   --color-card: #FFFFFF;
@@ -65,35 +68,39 @@ html.light {
   --color-popover: #FFFFFF;
   --color-popover-foreground: #0F172A;
 
-  --color-primary: #2563EB;
+  --color-primary: #1F628E;
   --color-primary-foreground: #FFFFFF;
 
-  --color-secondary: #F1F5F9;
+  --color-secondary: #EDF2F7;
   --color-secondary-foreground: #0F172A;
 
-  --color-muted: #F1F5F9;
+  --color-muted: #EDF2F7;
   --color-muted-foreground: #64748B;
 
-  --color-accent: #EFF6FF;
-  --color-accent-foreground: #1E40AF;
+  --color-accent: #E8F1F8;
+  --color-accent-foreground: #1F628E;
 
   --color-destructive: #DC2626;
   --color-destructive-foreground: #FFFFFF;
 
   --color-success: #16A34A;
   --color-warning: #CA8A04;
-  --color-info: #2563EB;
+  --color-info: #1F628E;
 
-  --color-border: #E2E8F0;
-  --color-input: #E2E8F0;
+  --color-border: #DDE4EB;
+  --color-input: #DDE4EB;
   --color-ring: #F97316;
 
-  --color-sidebar: #FFFFFF;
-  --color-sidebar-foreground: #0F172A;
-  --color-sidebar-border: #E2E8F0;
-  --color-sidebar-accent: #EFF6FF;
-  --color-sidebar-accent-foreground: #0F172A;
-  --color-sidebar-muted: #64748B;
+  /* Sidebar & Header — Bleu #1F628E */
+  --color-sidebar: #1F628E;
+  --color-sidebar-foreground: #FFFFFF;
+  --color-sidebar-border: #1A5578;
+  --color-sidebar-accent: #276F9E;
+  --color-sidebar-accent-foreground: #FFFFFF;
+  --color-sidebar-muted: rgba(255, 255, 255, 0.55);
+
+  --color-header: #1F628E;
+  --color-header-foreground: #FFFFFF;
 }
 
 body {
