@@ -84,7 +84,7 @@ CREATE POLICY "sessions_delete" ON sessions FOR DELETE
 -- Trigger updated_at
 CREATE TRIGGER set_sessions_updated_at
   BEFORE UPDATE ON sessions
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 -- ═══════════════════════════════════════════
 -- SESSION_FORMATEURS (many-to-many)
