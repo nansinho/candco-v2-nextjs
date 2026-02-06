@@ -344,3 +344,18 @@ export async function importFinanceurs(
   revalidatePath("/financeurs");
   return { success: successCount, errors: importErrors };
 }
+
+// ─── Dropdown helper ────────────────────────────────────
+
+export async function getAllFinanceurs() {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("financeurs")
+    .select("id, nom, type")
+    .is("archived_at", null)
+    .order("nom", { ascending: true });
+
+  if (error) return { data: [] };
+  return { data: data ?? [] };
+}

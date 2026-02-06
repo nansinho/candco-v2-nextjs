@@ -427,3 +427,18 @@ export async function importContactsClients(
   revalidatePath("/entreprises");
   return { success: successCount, errors: importErrors };
 }
+
+// ─── Dropdown helper ────────────────────────────────────
+
+export async function getAllContactsClients() {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("contacts_clients")
+    .select("id, prenom, nom, email")
+    .is("archived_at", null)
+    .order("nom", { ascending: true });
+
+  if (error) return { data: [] };
+  return { data: data ?? [] };
+}

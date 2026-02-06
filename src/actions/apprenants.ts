@@ -455,6 +455,21 @@ export async function importApprenants(
   return { success: successCount, errors: importErrors };
 }
 
+// ─── Dropdown helper ────────────────────────────────────
+
+export async function getAllApprenants() {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("apprenants")
+    .select("id, prenom, nom, email, numero_affichage")
+    .is("archived_at", null)
+    .order("nom", { ascending: true });
+
+  if (error) return { data: [] };
+  return { data: data ?? [] };
+}
+
 export async function getBpfCategoriesApprenant() {
   const supabase = await createClient();
 

@@ -1,0 +1,1231 @@
+"use client";
+
+import * as React from "react";
+import { useRouter } from "next/navigation";
+import {
+  ArrowLeft,
+  Save,
+  Loader2,
+  Archive,
+  ArchiveRestore,
+  Users,
+  Building2,
+  CalendarDays,
+  Clock,
+  Plus,
+  Trash2,
+  UserPlus,
+  X,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useToast } from "@/components/ui/toast";
+import { TachesActivitesTab } from "@/components/shared/taches-activites";
+import { formatDate, formatCurrency } from "@/lib/utils";
+import {
+  updateSession,
+  archiveSession,
+  unarchiveSession,
+  addSessionFormateur,
+  removeSessionFormateur,
+  addCommanditaire,
+  updateCommanditaireWorkflow,
+  removeCommanditaire,
+  addInscription,
+  updateInscriptionStatut,
+  removeInscription,
+  addCreneau,
+  removeCreneau,
+  type UpdateSessionInput,
+  type CommanditaireInput,
+  type CreneauInput,
+} from "@/actions/sessions";
+
+// ─── Types ───────────────────────────────────────────────
+
+interface Session {
+  id: string;
+  numero_affichage: string;
+  nom: string;
+  statut: string;
+  date_debut: string | null;
+  date_fin: string | null;
+  places_min: number | null;
+  places_max: number | null;
+  lieu_salle_id: string | null;
+  lieu_adresse: string | null;
+  lieu_type: string | null;
+  emargement_auto: boolean;
+  produit_id: string | null;
+  created_at: string;
+  updated_at: string | null;
+  archived_at?: string | null;
+  produits_formation: { id: string; intitule: string; numero_affichage: string } | null;
+  salles: { id: string; nom: string; adresse: string | null; capacite: number | null } | null;
+}
+
+interface SessionFormateur {
+  id: string;
+  session_id: string;
+  formateur_id: string;
+  role: string;
+  formateurs: { id: string; prenom: string; nom: string; email: string | null; tarif_journalier: number | null } | null;
+}
+
+interface SessionCommanditaire {
+  id: string;
+  session_id: string;
+  budget: number;
+  statut_workflow: string;
+  notes: string | null;
+  entreprises: { id: string; nom: string; email: string | null } | null;
+  contacts_clients: { id: string; prenom: string; nom: string; email: string | null } | null;
+  financeurs: { id: string; nom: string; type: string | null } | null;
+}
+
+interface Inscription {
+  id: string;
+  statut: string;
+  apprenants: { id: string; prenom: string; nom: string; email: string | null; numero_affichage: string } | null;
+  session_commanditaires: { id: string; entreprises: { nom: string } | null } | null;
+}
+
+interface Creneau {
+  id: string;
+  date: string;
+  heure_debut: string;
+  heure_fin: string;
+  duree_minutes: number | null;
+  type: string;
+  emargement_ouvert: boolean;
+  formateurs: { id: string; prenom: string; nom: string } | null;
+  salles: { id: string; nom: string } | null;
+}
+
+interface Financials {
+  budget: number;
+  cout: number;
+  rentabilite: number;
+}
+
+interface SalleOption {
+  id: string;
+  nom: string;
+  adresse: string | null;
+  capacite: number | null;
+}
+
+interface FormateurOption {
+  id: string;
+  prenom: string;
+  nom: string;
+  email: string | null;
+  tarif_journalier: number | null;
+}
+
+interface EntrepriseOption {
+  id: string;
+  nom: string;
+  email: string | null;
+  siret: string | null;
+}
+
+interface ApprenantOption {
+  id: string;
+  prenom: string;
+  nom: string;
+  email: string | null;
+  numero_affichage: string;
+}
+
+interface ContactOption {
+  id: string;
+  prenom: string;
+  nom: string;
+  email: string | null;
+}
+
+interface FinanceurOption {
+  id: string;
+  nom: string;
+  type: string | null;
+}
+
+const STATUT_MAP: Record<string, { label: string; className: string }> = {
+  en_projet: { label: "En projet", className: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
+  validee: { label: "Validée", className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
+  en_cours: { label: "En cours", className: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+  terminee: { label: "Terminée", className: "bg-muted/50 text-muted-foreground/60 border-border/40" },
+  annulee: { label: "Annulée", className: "bg-destructive/10 text-destructive border-destructive/20" },
+};
+
+const WORKFLOW_STEPS = ["analyse", "convention", "signature", "facturation", "termine"];
+const WORKFLOW_LABELS: Record<string, string> = {
+  analyse: "Analyse",
+  convention: "Convention",
+  signature: "Signature",
+  facturation: "Facturation",
+  termine: "Terminé",
+};
+
+// ─── Main Component ──────────────────────────────────────
+
+export function SessionDetail({
+  session,
+  formateurs,
+  commanditaires,
+  inscriptions,
+  creneaux,
+  financials,
+  salles,
+  allFormateurs,
+  allEntreprises,
+  allApprenants,
+  allContacts,
+  allFinanceurs,
+}: {
+  session: Session;
+  formateurs: SessionFormateur[];
+  commanditaires: SessionCommanditaire[];
+  inscriptions: Inscription[];
+  creneaux: Creneau[];
+  financials: Financials;
+  salles: SalleOption[];
+  allFormateurs: FormateurOption[];
+  allEntreprises: EntrepriseOption[];
+  allApprenants: ApprenantOption[];
+  allContacts: ContactOption[];
+  allFinanceurs: FinanceurOption[];
+}) {
+  const router = useRouter();
+  const { toast } = useToast();
+  const [isPending, setIsPending] = React.useState(false);
+  const [isArchiving, setIsArchiving] = React.useState(false);
+
+  // Dialog states
+  const [showAddFormateur, setShowAddFormateur] = React.useState(false);
+  const [showAddCommanditaire, setShowAddCommanditaire] = React.useState(false);
+  const [showAddApprenant, setShowAddApprenant] = React.useState(false);
+  const [showAddCreneau, setShowAddCreneau] = React.useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsPending(true);
+
+    const fd = new FormData(e.currentTarget);
+    const input: UpdateSessionInput = {
+      nom: fd.get("nom") as string,
+      statut: (fd.get("statut") as UpdateSessionInput["statut"]) || "en_projet",
+      date_debut: (fd.get("date_debut") as string) || "",
+      date_fin: (fd.get("date_fin") as string) || "",
+      places_min: fd.get("places_min") ? Number(fd.get("places_min")) : undefined,
+      places_max: fd.get("places_max") ? Number(fd.get("places_max")) : undefined,
+      lieu_salle_id: (fd.get("lieu_salle_id") as string) || "",
+      lieu_adresse: (fd.get("lieu_adresse") as string) || "",
+      lieu_type: (fd.get("lieu_type") as UpdateSessionInput["lieu_type"]) || "",
+      emargement_auto: fd.get("emargement_auto") === "on",
+    };
+
+    const result = await updateSession(session.id, input);
+    setIsPending(false);
+
+    if (result.error) {
+      toast({ title: "Erreur", description: "Impossible de sauvegarder.", variant: "destructive" });
+      return;
+    }
+
+    toast({ title: "Session mise à jour", variant: "success" });
+    router.refresh();
+  };
+
+  const handleArchive = async () => {
+    if (!confirm("Archiver cette session ?")) return;
+    setIsArchiving(true);
+    await archiveSession(session.id);
+    toast({ title: "Session archivée", variant: "success" });
+    router.push("/sessions");
+  };
+
+  const handleUnarchive = async () => {
+    await unarchiveSession(session.id);
+    router.push("/sessions");
+  };
+
+  const isArchived = !!session.archived_at;
+  const statut = STATUT_MAP[session.statut] ?? { label: session.statut, className: "" };
+
+  // Filter out already-assigned formateurs
+  const availableFormateurs = allFormateurs.filter(
+    (f) => !formateurs.some((sf) => sf.formateur_id === f.id)
+  );
+
+  // Filter out already-inscribed apprenants
+  const availableApprenants = allApprenants.filter(
+    (a) => !inscriptions.some((insc) => insc.apprenants?.id === a.id)
+  );
+
+  return (
+    <div className="space-y-6">
+      {isArchived && (
+        <div className="flex items-center justify-between rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+          <p className="text-sm text-amber-400">Cette session est archivée.</p>
+          <Button size="sm" variant="outline" className="h-8 text-xs text-amber-400 border-amber-500/30 hover:bg-amber-500/10" onClick={handleUnarchive}>
+            <ArchiveRestore className="mr-1.5 h-3 w-3" />
+            Restaurer
+          </Button>
+        </div>
+      )}
+
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3 min-w-0">
+          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => router.push("/sessions")}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-xl font-semibold tracking-tight truncate">{session.nom}</h1>
+              <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[11px] font-mono shrink-0">
+                {session.numero_affichage}
+              </Badge>
+              <Badge className={`text-[11px] font-normal shrink-0 ${statut.className}`}>
+                {statut.label}
+              </Badge>
+            </div>
+            {session.produits_formation && (
+              <p className="mt-0.5 text-xs text-muted-foreground truncate">
+                Produit: {session.produits_formation.intitule}
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 shrink-0">
+          {/* Financial summary */}
+          <div className="hidden md:flex items-center gap-4 rounded-lg border border-border/60 bg-card px-4 py-2">
+            <div className="text-center">
+              <p className="text-[10px] text-muted-foreground/60 uppercase">Budget</p>
+              <p className="text-sm font-mono font-medium">{formatCurrency(financials.budget)}</p>
+            </div>
+            <div className="h-6 w-px bg-border/60" />
+            <div className="text-center">
+              <p className="text-[10px] text-muted-foreground/60 uppercase">Coût</p>
+              <p className="text-sm font-mono text-muted-foreground">{formatCurrency(financials.cout)}</p>
+            </div>
+            <div className="h-6 w-px bg-border/60" />
+            <div className="text-center">
+              <p className="text-[10px] text-muted-foreground/60 uppercase">Rentabilité</p>
+              <p className={`text-sm font-mono font-medium ${financials.rentabilite >= 0 ? "text-emerald-400" : "text-destructive"}`}>
+                {formatCurrency(financials.rentabilite)}
+              </p>
+            </div>
+          </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs border-border/60 text-muted-foreground hover:text-destructive hover:border-destructive/50"
+            onClick={handleArchive}
+            disabled={isArchiving}
+          >
+            {isArchiving ? <Loader2 className="mr-1.5 h-3 w-3 animate-spin" /> : <Archive className="mr-1.5 h-3 w-3" />}
+            Archiver
+          </Button>
+        </div>
+      </div>
+
+      {/* Mobile financial summary */}
+      <div className="grid grid-cols-3 gap-2 md:hidden">
+        <div className="rounded-lg border border-border/60 bg-card p-3 text-center">
+          <p className="text-[10px] text-muted-foreground/60 uppercase">Budget</p>
+          <p className="text-sm font-mono font-medium">{formatCurrency(financials.budget)}</p>
+        </div>
+        <div className="rounded-lg border border-border/60 bg-card p-3 text-center">
+          <p className="text-[10px] text-muted-foreground/60 uppercase">Coût</p>
+          <p className="text-sm font-mono text-muted-foreground">{formatCurrency(financials.cout)}</p>
+        </div>
+        <div className="rounded-lg border border-border/60 bg-card p-3 text-center">
+          <p className="text-[10px] text-muted-foreground/60 uppercase">Rentabilité</p>
+          <p className={`text-sm font-mono font-medium ${financials.rentabilite >= 0 ? "text-emerald-400" : "text-destructive"}`}>
+            {formatCurrency(financials.rentabilite)}
+          </p>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <Tabs defaultValue="general">
+        <TabsList className="bg-muted/50 w-full overflow-x-auto justify-start">
+          <TabsTrigger value="general" className="text-xs">Général</TabsTrigger>
+          <TabsTrigger value="commanditaires" className="text-xs">
+            Commanditaires
+            {commanditaires.length > 0 && (
+              <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[11px] font-medium text-primary">
+                {commanditaires.length}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="apprenants" className="text-xs">
+            Apprenants
+            {inscriptions.length > 0 && (
+              <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[11px] font-medium text-primary">
+                {inscriptions.length}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="creneaux" className="text-xs">
+            Créneaux
+            {creneaux.length > 0 && (
+              <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[11px] font-medium text-primary">
+                {creneaux.length}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="financier" className="text-xs">Financier</TabsTrigger>
+          <TabsTrigger value="taches" className="text-xs">Tâches</TabsTrigger>
+        </TabsList>
+
+        {/* ═══ General Tab ═══ */}
+        <TabsContent value="general" className="mt-6">
+          <form onSubmit={handleSubmit}>
+            <div className="rounded-lg border border-border/60 bg-card">
+              <div className="p-6 space-y-6">
+                <fieldset className="space-y-4">
+                  <legend className="text-sm font-semibold text-muted-foreground/80 uppercase tracking-wider">
+                    Informations générales
+                  </legend>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="nom" className="text-[13px]">Nom <span className="text-destructive">*</span></Label>
+                      <Input id="nom" name="nom" defaultValue={session.nom} className="h-9 text-[13px] border-border/60" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="statut" className="text-[13px]">Statut</Label>
+                      <select id="statut" name="statut" defaultValue={session.statut} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground">
+                        <option value="en_projet">En projet</option>
+                        <option value="validee">Validée</option>
+                        <option value="en_cours">En cours</option>
+                        <option value="terminee">Terminée</option>
+                        <option value="annulee">Annulée</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="date_debut" className="text-[13px]">Date début</Label>
+                      <Input id="date_debut" name="date_debut" type="date" defaultValue={session.date_debut ?? ""} className="h-9 text-[13px] border-border/60" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="date_fin" className="text-[13px]">Date fin</Label>
+                      <Input id="date_fin" name="date_fin" type="date" defaultValue={session.date_fin ?? ""} className="h-9 text-[13px] border-border/60" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="places_min" className="text-[13px]">Places min</Label>
+                      <Input id="places_min" name="places_min" type="number" min="0" defaultValue={session.places_min ?? ""} className="h-9 text-[13px] border-border/60" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="places_max" className="text-[13px]">Places max</Label>
+                      <Input id="places_max" name="places_max" type="number" min="0" defaultValue={session.places_max ?? ""} className="h-9 text-[13px] border-border/60" />
+                    </div>
+                  </div>
+                </fieldset>
+
+                <fieldset className="space-y-4">
+                  <legend className="text-sm font-semibold text-muted-foreground/80 uppercase tracking-wider">Lieu</legend>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="lieu_type" className="text-[13px]">Type</Label>
+                      <select id="lieu_type" name="lieu_type" defaultValue={session.lieu_type ?? ""} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground">
+                        <option value="">--</option>
+                        <option value="presentiel">Présentiel</option>
+                        <option value="distanciel">Distanciel</option>
+                        <option value="mixte">Mixte</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="lieu_salle_id" className="text-[13px]">Salle</Label>
+                      <select id="lieu_salle_id" name="lieu_salle_id" defaultValue={session.lieu_salle_id ?? ""} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground">
+                        <option value="">-- Aucune --</option>
+                        {salles.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.nom}{s.capacite ? ` (${s.capacite} pl.)` : ""}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lieu_adresse" className="text-[13px]">Adresse libre</Label>
+                    <Input id="lieu_adresse" name="lieu_adresse" defaultValue={session.lieu_adresse ?? ""} placeholder="Si pas de salle rattachée" className="h-9 text-[13px] border-border/60" />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <input type="checkbox" id="emargement_auto" name="emargement_auto" defaultChecked={session.emargement_auto} className="h-4 w-4 rounded border-border accent-primary" />
+                    <Label htmlFor="emargement_auto" className="text-[13px] cursor-pointer">Émargement automatique</Label>
+                  </div>
+                </fieldset>
+
+                {/* Formateurs section */}
+                <fieldset className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <legend className="text-sm font-semibold text-muted-foreground/80 uppercase tracking-wider">Formateur(s)</legend>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs border-border/60"
+                      onClick={() => setShowAddFormateur(true)}
+                      disabled={availableFormateurs.length === 0}
+                    >
+                      <Plus className="mr-1 h-3 w-3" />
+                      Ajouter
+                    </Button>
+                  </div>
+
+                  {/* Add formateur inline */}
+                  {showAddFormateur && (
+                    <AddFormateurInline
+                      sessionId={session.id}
+                      formateurs={availableFormateurs}
+                      onClose={() => setShowAddFormateur(false)}
+                      onSuccess={() => {
+                        setShowAddFormateur(false);
+                        router.refresh();
+                      }}
+                    />
+                  )}
+
+                  {formateurs.length === 0 && !showAddFormateur ? (
+                    <p className="text-xs text-muted-foreground/60">Aucun formateur assigné.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {formateurs.map((f) => (
+                        <div key={f.id} className="flex items-center justify-between rounded-md border border-border/40 bg-muted/20 px-3 py-2 group">
+                          <div className="flex items-center gap-2">
+                            <Users className="h-3.5 w-3.5 text-muted-foreground/50" />
+                            <span className="text-[13px]">{f.formateurs?.prenom} {f.formateurs?.nom}</span>
+                            <Badge variant="outline" className="text-[10px]">{f.role}</Badge>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
+                            onClick={async () => {
+                              await removeSessionFormateur(session.id, f.formateur_id);
+                              router.refresh();
+                            }}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </fieldset>
+              </div>
+
+              <div className="flex items-center justify-between border-t border-border/60 px-6 py-4">
+                <div className="flex items-center gap-4">
+                  <p className="text-[11px] text-muted-foreground/50">Créé le {formatDate(session.created_at)}</p>
+                  {session.updated_at && <p className="text-[11px] text-muted-foreground/50">Modifié le {formatDate(session.updated_at)}</p>}
+                </div>
+                <Button type="submit" size="sm" className="h-8 text-xs" disabled={isPending}>
+                  {isPending ? (
+                    <><Loader2 className="mr-1.5 h-3 w-3 animate-spin" />Enregistrement...</>
+                  ) : (
+                    <><Save className="mr-1.5 h-3.5 w-3.5" />Enregistrer</>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </form>
+        </TabsContent>
+
+        {/* ═══ Commanditaires Tab ═══ */}
+        <TabsContent value="commanditaires" className="mt-6">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">Entreprises et financeurs commanditaires de cette session.</p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs border-border/60"
+                onClick={() => setShowAddCommanditaire(true)}
+              >
+                <Plus className="mr-1 h-3 w-3" />
+                Ajouter
+              </Button>
+            </div>
+
+            {showAddCommanditaire && (
+              <AddCommanditaireForm
+                sessionId={session.id}
+                entreprises={allEntreprises}
+                contacts={allContacts}
+                financeurs={allFinanceurs}
+                onClose={() => setShowAddCommanditaire(false)}
+                onSuccess={() => {
+                  setShowAddCommanditaire(false);
+                  router.refresh();
+                }}
+              />
+            )}
+
+            {commanditaires.length === 0 && !showAddCommanditaire ? (
+              <div className="flex flex-col items-center gap-3 rounded-lg border border-border/60 bg-card py-16">
+                <Building2 className="h-8 w-8 text-muted-foreground/30" />
+                <p className="text-sm text-muted-foreground/60">Aucun commanditaire</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {commanditaires.map((c) => (
+                  <div key={c.id} className="rounded-lg border border-border/60 bg-card p-4 space-y-3 group">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <Building2 className="h-4 w-4 text-muted-foreground/50" />
+                          <span className="text-[13px] font-medium">{c.entreprises?.nom ?? "Commanditaire"}</span>
+                          {c.financeurs && (
+                            <Badge variant="outline" className="text-[10px]">{c.financeurs.nom}</Badge>
+                          )}
+                        </div>
+                        {c.contacts_clients && (
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            Contact: {c.contacts_clients.prenom} {c.contacts_clients.nom}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-sm font-medium">{formatCurrency(Number(c.budget))}</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
+                          onClick={async () => {
+                            await removeCommanditaire(c.id, session.id);
+                            router.refresh();
+                          }}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                    {/* Workflow */}
+                    <div className="flex items-center gap-1">
+                      {WORKFLOW_STEPS.map((step) => {
+                        const idx = WORKFLOW_STEPS.indexOf(step);
+                        const currentIdx = WORKFLOW_STEPS.indexOf(c.statut_workflow);
+                        const isActive = idx <= currentIdx;
+                        return (
+                          <button
+                            key={step}
+                            type="button"
+                            className={`flex-1 h-1.5 rounded-full transition-colors ${
+                              isActive ? "bg-primary" : "bg-muted/50"
+                            }`}
+                            onClick={async () => {
+                              await updateCommanditaireWorkflow(c.id, session.id, step);
+                              router.refresh();
+                            }}
+                            title={WORKFLOW_LABELS[step] ?? step}
+                          />
+                        );
+                      })}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground/60">{WORKFLOW_LABELS[c.statut_workflow] ?? c.statut_workflow}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        {/* ═══ Apprenants Tab ═══ */}
+        <TabsContent value="apprenants" className="mt-6">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                Apprenants inscrits à cette session ({inscriptions.length}{session.places_max ? `/${session.places_max}` : ""}).
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs border-border/60"
+                onClick={() => setShowAddApprenant(true)}
+                disabled={availableApprenants.length === 0}
+              >
+                <UserPlus className="mr-1 h-3 w-3" />
+                Inscrire
+              </Button>
+            </div>
+
+            {showAddApprenant && (
+              <AddApprenantInline
+                sessionId={session.id}
+                apprenants={availableApprenants}
+                commanditaires={commanditaires}
+                onClose={() => setShowAddApprenant(false)}
+                onSuccess={() => {
+                  setShowAddApprenant(false);
+                  router.refresh();
+                }}
+              />
+            )}
+
+            {inscriptions.length === 0 && !showAddApprenant ? (
+              <div className="flex flex-col items-center gap-3 rounded-lg border border-border/60 bg-card py-16">
+                <UserPlus className="h-8 w-8 text-muted-foreground/30" />
+                <p className="text-sm text-muted-foreground/60">Aucun apprenant inscrit</p>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-border/60 bg-card overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[600px]">
+                    <thead>
+                      <tr className="border-b border-border/60 bg-muted/30">
+                        <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Apprenant</th>
+                        <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Email</th>
+                        <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Commanditaire</th>
+                        <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Statut</th>
+                        <th className="px-4 py-2.5 w-12" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {inscriptions.map((insc) => (
+                        <tr key={insc.id} className="border-b border-border/40 hover:bg-muted/20 group">
+                          <td className="px-4 py-2.5 text-[13px] font-medium">
+                            {insc.apprenants?.prenom} {insc.apprenants?.nom}
+                            <span className="ml-2 text-[11px] font-mono text-muted-foreground/50">{insc.apprenants?.numero_affichage}</span>
+                          </td>
+                          <td className="px-4 py-2.5 text-[13px] text-muted-foreground">{insc.apprenants?.email || "--"}</td>
+                          <td className="px-4 py-2.5 text-[13px] text-muted-foreground">
+                            {insc.session_commanditaires?.entreprises?.nom || "--"}
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <select
+                              value={insc.statut}
+                              onChange={async (e) => {
+                                await updateInscriptionStatut(insc.id, session.id, e.target.value);
+                                router.refresh();
+                              }}
+                              className="h-7 rounded border border-input bg-muted px-2 text-[11px] text-foreground"
+                            >
+                              <option value="inscrit">Inscrit</option>
+                              <option value="confirme">Confirmé</option>
+                              <option value="annule">Annulé</option>
+                              <option value="liste_attente">Liste d&apos;attente</option>
+                            </select>
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
+                              onClick={async () => {
+                                await removeInscription(insc.id, session.id);
+                                router.refresh();
+                              }}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        {/* ═══ Créneaux Tab ═══ */}
+        <TabsContent value="creneaux" className="mt-6">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">Planning détaillé des créneaux horaires.</p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs border-border/60"
+                onClick={() => setShowAddCreneau(true)}
+              >
+                <Plus className="mr-1 h-3 w-3" />
+                Ajouter
+              </Button>
+            </div>
+
+            {showAddCreneau && (
+              <AddCreneauForm
+                sessionId={session.id}
+                formateurs={allFormateurs}
+                salles={salles}
+                onClose={() => setShowAddCreneau(false)}
+                onSuccess={() => {
+                  setShowAddCreneau(false);
+                  router.refresh();
+                }}
+              />
+            )}
+
+            {creneaux.length === 0 && !showAddCreneau ? (
+              <div className="flex flex-col items-center gap-3 rounded-lg border border-border/60 bg-card py-16">
+                <CalendarDays className="h-8 w-8 text-muted-foreground/30" />
+                <p className="text-sm text-muted-foreground/60">Aucun créneau planifié</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {creneaux.map((c) => (
+                  <div key={c.id} className="flex flex-wrap items-center gap-3 sm:gap-4 rounded-lg border border-border/60 bg-card px-4 py-3 group">
+                    <div className="flex items-center gap-2 min-w-[130px]">
+                      <CalendarDays className="h-3.5 w-3.5 text-muted-foreground/50" />
+                      <span className="text-[13px] font-medium">{formatDate(c.date)}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 min-w-[120px]">
+                      <Clock className="h-3 w-3 text-muted-foreground/50" />
+                      <span className="text-[13px] text-muted-foreground">
+                        {c.heure_debut.slice(0, 5)} — {c.heure_fin.slice(0, 5)}
+                      </span>
+                      {c.duree_minutes && (
+                        <span className="text-[11px] text-muted-foreground/50">
+                          ({Math.round(c.duree_minutes / 60 * 10) / 10}h)
+                        </span>
+                      )}
+                    </div>
+                    <Badge variant="outline" className="text-[10px] capitalize">{c.type}</Badge>
+                    {c.formateurs && (
+                      <span className="text-[13px] text-muted-foreground">
+                        {c.formateurs.prenom} {c.formateurs.nom}
+                      </span>
+                    )}
+                    {c.salles && (
+                      <span className="text-[11px] text-muted-foreground/60">{c.salles.nom}</span>
+                    )}
+                    <div className="flex-1" />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
+                      onClick={async () => {
+                        await removeCreneau(c.id, session.id);
+                        router.refresh();
+                      }}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        {/* ═══ Financier Tab ═══ */}
+        <TabsContent value="financier" className="mt-6">
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="rounded-lg border border-border/60 bg-card p-6 text-center">
+                <p className="text-xs text-muted-foreground/60 uppercase font-semibold tracking-wider">Total Budget</p>
+                <p className="mt-2 text-2xl font-mono font-semibold">{formatCurrency(financials.budget)}</p>
+                <p className="mt-1 text-[11px] text-muted-foreground">{commanditaires.length} commanditaire(s)</p>
+              </div>
+              <div className="rounded-lg border border-border/60 bg-card p-6 text-center">
+                <p className="text-xs text-muted-foreground/60 uppercase font-semibold tracking-wider">Coût de revient</p>
+                <p className="mt-2 text-2xl font-mono font-semibold text-muted-foreground">{formatCurrency(financials.cout)}</p>
+                <p className="mt-1 text-[11px] text-muted-foreground">{creneaux.length} créneau(x)</p>
+              </div>
+              <div className="rounded-lg border border-border/60 bg-card p-6 text-center">
+                <p className="text-xs text-muted-foreground/60 uppercase font-semibold tracking-wider">Rentabilité</p>
+                <p className={`mt-2 text-2xl font-mono font-semibold ${financials.rentabilite >= 0 ? "text-emerald-400" : "text-destructive"}`}>
+                  {formatCurrency(financials.rentabilite)}
+                </p>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  {financials.budget > 0 ? `${Math.round((financials.rentabilite / financials.budget) * 100)}% de marge` : "--"}
+                </p>
+              </div>
+            </div>
+
+            {/* Budget breakdown by commanditaire */}
+            {commanditaires.length > 0 && (
+              <div className="rounded-lg border border-border/60 bg-card">
+                <div className="px-4 py-3 border-b border-border/60">
+                  <h3 className="text-sm font-medium">Revenus par commanditaire</h3>
+                </div>
+                <div className="divide-y divide-border/40">
+                  {commanditaires.map((c) => (
+                    <div key={c.id} className="flex items-center justify-between px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-3.5 w-3.5 text-muted-foreground/50" />
+                        <span className="text-[13px]">{c.entreprises?.nom ?? "Commanditaire"}</span>
+                        <Badge variant="outline" className="text-[10px]">{WORKFLOW_LABELS[c.statut_workflow] ?? c.statut_workflow}</Badge>
+                      </div>
+                      <span className="font-mono text-[13px] font-medium">{formatCurrency(Number(c.budget))}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        {/* ═══ Tâches Tab ═══ */}
+        <TabsContent value="taches" className="mt-6">
+          <TachesActivitesTab entiteType="session" entiteId={session.id} />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+// ─── Sub-components for Add dialogs ─────────────────────
+
+function AddFormateurInline({
+  sessionId,
+  formateurs,
+  onClose,
+  onSuccess,
+}: {
+  sessionId: string;
+  formateurs: FormateurOption[];
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [formateurId, setFormateurId] = React.useState("");
+  const [role, setRole] = React.useState("principal");
+  const [loading, setLoading] = React.useState(false);
+  const { toast } = useToast();
+
+  const handleAdd = async () => {
+    if (!formateurId) return;
+    setLoading(true);
+    const res = await addSessionFormateur(sessionId, formateurId, role);
+    setLoading(false);
+    if (res.error) {
+      toast({ title: "Erreur", description: String(res.error), variant: "destructive" });
+      return;
+    }
+    toast({ title: "Formateur ajouté", variant: "success" });
+    onSuccess();
+  };
+
+  return (
+    <div className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-medium">Ajouter un formateur</p>
+        <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2">
+        <select
+          value={formateurId}
+          onChange={(e) => setFormateurId(e.target.value)}
+          className="h-8 rounded-md border border-input bg-muted px-2 text-[13px] text-foreground"
+        >
+          <option value="">-- Sélectionner --</option>
+          {formateurs.map((f) => (
+            <option key={f.id} value={f.id}>
+              {f.prenom} {f.nom}{f.tarif_journalier ? ` (${f.tarif_journalier}€/j)` : ""}
+            </option>
+          ))}
+        </select>
+        <select
+          value={role}
+          onChange={(e) => setRole(e.target.value)}
+          className="h-8 rounded-md border border-input bg-muted px-2 text-[13px] text-foreground"
+        >
+          <option value="principal">Principal</option>
+          <option value="intervenant">Intervenant</option>
+        </select>
+        <Button size="sm" className="h-8 text-xs" onClick={handleAdd} disabled={!formateurId || loading}>
+          {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="mr-1 h-3 w-3" />}
+          Ajouter
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function AddCommanditaireForm({
+  sessionId,
+  entreprises,
+  contacts,
+  financeurs,
+  onClose,
+  onSuccess,
+}: {
+  sessionId: string;
+  entreprises: EntrepriseOption[];
+  contacts: ContactOption[];
+  financeurs: FinanceurOption[];
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [loading, setLoading] = React.useState(false);
+  const { toast } = useToast();
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    const fd = new FormData(e.currentTarget);
+    const input: CommanditaireInput = {
+      entreprise_id: (fd.get("entreprise_id") as string) || "",
+      contact_client_id: (fd.get("contact_client_id") as string) || "",
+      financeur_id: (fd.get("financeur_id") as string) || "",
+      budget: Number(fd.get("budget")) || 0,
+      notes: (fd.get("notes") as string) || "",
+    };
+
+    const res = await addCommanditaire(sessionId, input);
+    setLoading(false);
+    if (res.error) {
+      toast({ title: "Erreur", description: "Impossible d'ajouter le commanditaire.", variant: "destructive" });
+      return;
+    }
+    toast({ title: "Commanditaire ajouté", variant: "success" });
+    onSuccess();
+  };
+
+  return (
+    <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium">Ajouter un commanditaire</p>
+        <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label className="text-[12px]">Entreprise</Label>
+            <select name="entreprise_id" className="h-8 w-full rounded-md border border-input bg-muted px-2 text-[13px] text-foreground">
+              <option value="">-- Sélectionner --</option>
+              {entreprises.map((e) => (
+                <option key={e.id} value={e.id}>{e.nom}</option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-[12px]">Contact client</Label>
+            <select name="contact_client_id" className="h-8 w-full rounded-md border border-input bg-muted px-2 text-[13px] text-foreground">
+              <option value="">-- Sélectionner --</option>
+              {contacts.map((c) => (
+                <option key={c.id} value={c.id}>{c.prenom} {c.nom}</option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-[12px]">Financeur</Label>
+            <select name="financeur_id" className="h-8 w-full rounded-md border border-input bg-muted px-2 text-[13px] text-foreground">
+              <option value="">-- Aucun --</option>
+              {financeurs.map((f) => (
+                <option key={f.id} value={f.id}>{f.nom}{f.type ? ` (${f.type})` : ""}</option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-[12px]">Budget (€)</Label>
+            <Input name="budget" type="number" step="0.01" min="0" defaultValue="0" className="h-8 text-[13px] border-border/60" />
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-[12px]">Notes</Label>
+          <Input name="notes" placeholder="Notes optionnelles..." className="h-8 text-[13px] border-border/60" />
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={onClose}>
+            Annuler
+          </Button>
+          <Button type="submit" size="sm" className="h-7 text-xs" disabled={loading}>
+            {loading ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Plus className="mr-1 h-3 w-3" />}
+            Ajouter
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function AddApprenantInline({
+  sessionId,
+  apprenants,
+  commanditaires,
+  onClose,
+  onSuccess,
+}: {
+  sessionId: string;
+  apprenants: ApprenantOption[];
+  commanditaires: SessionCommanditaire[];
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [apprenantId, setApprenantId] = React.useState("");
+  const [commanditaireId, setCommanditaireId] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+  const { toast } = useToast();
+
+  const handleAdd = async () => {
+    if (!apprenantId) return;
+    setLoading(true);
+    const res = await addInscription(sessionId, apprenantId, commanditaireId || undefined);
+    setLoading(false);
+    if (res.error) {
+      toast({ title: "Erreur", description: String(res.error), variant: "destructive" });
+      return;
+    }
+    toast({ title: "Apprenant inscrit", variant: "success" });
+    onSuccess();
+  };
+
+  return (
+    <div className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-medium">Inscrire un apprenant</p>
+        <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2">
+        <select
+          value={apprenantId}
+          onChange={(e) => setApprenantId(e.target.value)}
+          className="h-8 rounded-md border border-input bg-muted px-2 text-[13px] text-foreground"
+        >
+          <option value="">-- Sélectionner un apprenant --</option>
+          {apprenants.map((a) => (
+            <option key={a.id} value={a.id}>
+              {a.prenom} {a.nom} ({a.numero_affichage})
+            </option>
+          ))}
+        </select>
+        {commanditaires.length > 0 && (
+          <select
+            value={commanditaireId}
+            onChange={(e) => setCommanditaireId(e.target.value)}
+            className="h-8 rounded-md border border-input bg-muted px-2 text-[13px] text-foreground"
+          >
+            <option value="">-- Commanditaire (optionnel) --</option>
+            {commanditaires.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.entreprises?.nom ?? "Commanditaire"}
+              </option>
+            ))}
+          </select>
+        )}
+        <Button size="sm" className="h-8 text-xs" onClick={handleAdd} disabled={!apprenantId || loading}>
+          {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <UserPlus className="mr-1 h-3 w-3" />}
+          Inscrire
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function AddCreneauForm({
+  sessionId,
+  formateurs,
+  salles,
+  onClose,
+  onSuccess,
+}: {
+  sessionId: string;
+  formateurs: FormateurOption[];
+  salles: SalleOption[];
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [loading, setLoading] = React.useState(false);
+  const { toast } = useToast();
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    const fd = new FormData(e.currentTarget);
+    const input: CreneauInput = {
+      date: fd.get("date") as string,
+      heure_debut: fd.get("heure_debut") as string,
+      heure_fin: fd.get("heure_fin") as string,
+      formateur_id: (fd.get("formateur_id") as string) || "",
+      salle_id: (fd.get("salle_id") as string) || "",
+      type: (fd.get("type") as CreneauInput["type"]) || "presentiel",
+    };
+
+    const res = await addCreneau(sessionId, input);
+    setLoading(false);
+    if (res.error) {
+      toast({ title: "Erreur", description: "Impossible d'ajouter le créneau.", variant: "destructive" });
+      return;
+    }
+    toast({ title: "Créneau ajouté", variant: "success" });
+    onSuccess();
+  };
+
+  return (
+    <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium">Ajouter un créneau</p>
+        <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="space-y-1.5">
+            <Label className="text-[12px]">Date <span className="text-destructive">*</span></Label>
+            <Input name="date" type="date" required className="h-8 text-[13px] border-border/60" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-[12px]">Début <span className="text-destructive">*</span></Label>
+            <Input name="heure_debut" type="time" required defaultValue="09:00" className="h-8 text-[13px] border-border/60" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-[12px]">Fin <span className="text-destructive">*</span></Label>
+            <Input name="heure_fin" type="time" required defaultValue="17:00" className="h-8 text-[13px] border-border/60" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="space-y-1.5">
+            <Label className="text-[12px]">Type</Label>
+            <select name="type" defaultValue="presentiel" className="h-8 w-full rounded-md border border-input bg-muted px-2 text-[13px] text-foreground">
+              <option value="presentiel">Présentiel</option>
+              <option value="distanciel">Distanciel</option>
+              <option value="elearning">E-learning</option>
+              <option value="stage">Stage</option>
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-[12px]">Formateur</Label>
+            <select name="formateur_id" className="h-8 w-full rounded-md border border-input bg-muted px-2 text-[13px] text-foreground">
+              <option value="">-- Aucun --</option>
+              {formateurs.map((f) => (
+                <option key={f.id} value={f.id}>{f.prenom} {f.nom}</option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-[12px]">Salle</Label>
+            <select name="salle_id" className="h-8 w-full rounded-md border border-input bg-muted px-2 text-[13px] text-foreground">
+              <option value="">-- Aucune --</option>
+              {salles.map((s) => (
+                <option key={s.id} value={s.id}>{s.nom}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={onClose}>
+            Annuler
+          </Button>
+          <Button type="submit" size="sm" className="h-7 text-xs" disabled={loading}>
+            {loading ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Plus className="mr-1 h-3 w-3" />}
+            Ajouter
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}

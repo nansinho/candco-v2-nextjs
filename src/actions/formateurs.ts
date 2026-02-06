@@ -362,3 +362,18 @@ export async function unarchiveFormateur(id: string) {
   revalidatePath("/formateurs");
   return { success: true };
 }
+
+// ─── Dropdown helper ────────────────────────────────────
+
+export async function getAllFormateurs() {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("formateurs")
+    .select("id, prenom, nom, email, tarif_journalier")
+    .is("archived_at", null)
+    .order("nom", { ascending: true });
+
+  if (error) return { data: [] };
+  return { data: data ?? [] };
+}
