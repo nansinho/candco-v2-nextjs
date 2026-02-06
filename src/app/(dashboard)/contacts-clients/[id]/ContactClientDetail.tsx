@@ -122,7 +122,7 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
               <h1 className="text-xl font-semibold tracking-tight">
                 {contact.prenom} {contact.nom}
               </h1>
-              <Badge variant="outline" className="text-[11px] font-mono">
+              <Badge className="bg-purple-500/10 text-purple-400 border-purple-500/20 text-[11px] font-mono">
                 {contact.numero_affichage}
               </Badge>
             </div>

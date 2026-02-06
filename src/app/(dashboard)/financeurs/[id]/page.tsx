@@ -197,15 +197,20 @@ export default function FinanceurDetailPage() {
               <h1 className="text-xl font-semibold tracking-tight">
                 {financeur.nom}
               </h1>
+              <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20 text-[11px] font-mono">
+                {financeur.numero_affichage}
+              </Badge>
               {financeur.type && (
                 <Badge className={typeBadgeClass(financeur.type)}>
                   {financeur.type}
                 </Badge>
               )}
             </div>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              {financeur.numero_affichage}
-            </p>
+            {financeur.email && (
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {financeur.email}
+              </p>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">

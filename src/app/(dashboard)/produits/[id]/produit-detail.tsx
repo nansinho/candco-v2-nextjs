@@ -185,7 +185,7 @@ export function ProduitDetail({
               <h1 className="text-xl font-semibold tracking-tight">
                 {produit.intitule}
               </h1>
-              <Badge variant="outline" className="text-[11px] font-mono">
+              <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[11px] font-mono">
                 {produit.numero_affichage}
               </Badge>
               {produit.publie ? (
@@ -194,7 +194,7 @@ export function ProduitDetail({
                   Publié
                 </Badge>
               ) : (
-                <Badge variant="outline" className="text-[11px] text-muted-foreground/60 font-normal">
+                <Badge className="bg-muted/50 text-muted-foreground/60 border-border/40 text-[11px] font-normal">
                   Brouillon
                 </Badge>
               )}
