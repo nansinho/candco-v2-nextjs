@@ -131,7 +131,13 @@ export async function createProduit(input: CreateProduitInput) {
   return { data };
 }
 
-export async function getProduits(page: number = 1, search: string = "", showArchived: boolean = false) {
+export async function getProduits(
+  page: number = 1,
+  search: string = "",
+  showArchived: boolean = false,
+  sortBy: string = "created_at",
+  sortDir: "asc" | "desc" = "desc",
+) {
   const supabase = await createClient();
   const limit = 25;
   const offset = (page - 1) * limit;
@@ -139,7 +145,7 @@ export async function getProduits(page: number = 1, search: string = "", showArc
   let query = supabase
     .from("produits_formation")
     .select("*", { count: "exact" })
-    .order("created_at", { ascending: false })
+    .order(sortBy, { ascending: sortDir === "asc" })
     .range(offset, offset + limit - 1);
 
   if (showArchived) {

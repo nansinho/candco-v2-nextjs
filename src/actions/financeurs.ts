@@ -75,15 +75,21 @@ export async function createFinanceur(input: FinanceurInput) {
   return { data };
 }
 
-export async function getFinanceurs(page: number = 1, search: string = "", showArchived: boolean = false) {
+export async function getFinanceurs(
+  page: number = 1,
+  search: string = "",
+  showArchived: boolean = false,
+  sortBy: string = "created_at",
+  sortDir: "asc" | "desc" = "desc",
+) {
   const supabase = await createClient();
   const limit = 25;
   const offset = (page - 1) * limit;
 
   let query = supabase
     .from("financeurs")
-    .select("*", { count: "exact" })
-    .order("created_at", { ascending: false })
+    .select("*, bpf_categories_entreprise(code, libelle)", { count: "exact" })
+    .order(sortBy, { ascending: sortDir === "asc" })
     .range(offset, offset + limit - 1);
 
   if (showArchived) {

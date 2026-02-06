@@ -36,7 +36,13 @@ function cleanEmptyStrings<T extends Record<string, unknown>>(data: T): T {
 
 // ─── Actions ─────────────────────────────────────────────
 
-export async function getContactsClients(page: number = 1, search: string = "", showArchived: boolean = false) {
+export async function getContactsClients(
+  page: number = 1,
+  search: string = "",
+  showArchived: boolean = false,
+  sortBy: string = "created_at",
+  sortDir: "asc" | "desc" = "desc",
+) {
   const supabase = await createClient();
   const limit = 25;
   const offset = (page - 1) * limit;
@@ -44,7 +50,7 @@ export async function getContactsClients(page: number = 1, search: string = "", 
   let query = supabase
     .from("contacts_clients")
     .select("*, contact_entreprises(entreprise_id, entreprises(nom))", { count: "exact" })
-    .order("created_at", { ascending: false })
+    .order(sortBy, { ascending: sortDir === "asc" })
     .range(offset, offset + limit - 1);
 
   if (showArchived) {

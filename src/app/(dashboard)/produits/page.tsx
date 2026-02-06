@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toast";
 import { getProduits, createProduit, archiveProduit, unarchiveProduit, deleteProduits, type CreateProduitInput } from "@/actions/produits";
+import { formatDate } from "@/lib/utils";
 
 interface Produit {
   id: string;
@@ -58,7 +59,8 @@ const columns: Column<Produit>[] = [
   {
     key: "numero_affichage",
     label: "ID",
-    className: "w-28",
+    sortable: true,
+    minWidth: 100,
     render: (item) => (
       <span className="font-mono text-xs text-muted-foreground">
         {item.numero_affichage}
@@ -68,6 +70,8 @@ const columns: Column<Produit>[] = [
   {
     key: "intitule",
     label: "Intitulé",
+    sortable: true,
+    minWidth: 280,
     render: (item) => (
       <div className="flex items-center gap-2">
         <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10">
@@ -87,7 +91,7 @@ const columns: Column<Produit>[] = [
   {
     key: "type_action",
     label: "Type",
-    className: "w-28",
+    minWidth: 120,
     render: (item) =>
       item.type_action ? (
         <Badge variant="outline" className="text-[11px] font-normal">
@@ -100,7 +104,7 @@ const columns: Column<Produit>[] = [
   {
     key: "modalite",
     label: "Modalité",
-    className: "w-28",
+    minWidth: 120,
     render: (item) =>
       item.modalite ? (
         <span className="text-[13px] text-muted-foreground">
@@ -113,7 +117,7 @@ const columns: Column<Produit>[] = [
   {
     key: "formule",
     label: "Formule",
-    className: "w-24",
+    minWidth: 100,
     render: (item) =>
       item.formule ? (
         <span className="text-[13px] text-muted-foreground">
@@ -126,7 +130,7 @@ const columns: Column<Produit>[] = [
   {
     key: "duree_heures",
     label: "Durée",
-    className: "w-24",
+    minWidth: 100,
     render: (item) => {
       if (item.duree_heures) {
         return (
@@ -142,7 +146,7 @@ const columns: Column<Produit>[] = [
   {
     key: "publie",
     label: "Statut",
-    className: "w-24",
+    minWidth: 100,
     render: (item) =>
       item.publie ? (
         <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[11px]">
@@ -158,7 +162,7 @@ const columns: Column<Produit>[] = [
   {
     key: "completion_pct",
     label: "Complétion",
-    className: "w-28",
+    minWidth: 120,
     render: (item) => (
       <div className="flex items-center gap-2">
         <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted/50">
@@ -169,6 +173,16 @@ const columns: Column<Produit>[] = [
         </div>
         <span className="text-[11px] text-muted-foreground">{item.completion_pct}%</span>
       </div>
+    ),
+  },
+  {
+    key: "created_at",
+    label: "Créé le",
+    sortable: true,
+    minWidth: 100,
+    defaultVisible: false,
+    render: (item) => (
+      <span className="text-muted-foreground">{formatDate(item.created_at)}</span>
     ),
   },
 ];
@@ -184,6 +198,8 @@ export default function ProduitsPage() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [showArchived, setShowArchived] = React.useState(false);
   const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [sortBy, setSortBy] = React.useState("created_at");
+  const [sortDir, setSortDir] = React.useState<"asc" | "desc">("desc");
 
   React.useEffect(() => {
     const timer = setTimeout(() => {
@@ -195,11 +211,11 @@ export default function ProduitsPage() {
 
   const fetchData = React.useCallback(async () => {
     setIsLoading(true);
-    const result = await getProduits(page, debouncedSearch, showArchived);
+    const result = await getProduits(page, debouncedSearch, showArchived, sortBy, sortDir);
     setData(result.data as Produit[]);
     setTotalCount(result.count);
     setIsLoading(false);
-  }, [page, debouncedSearch, showArchived]);
+  }, [page, debouncedSearch, showArchived, sortBy, sortDir]);
 
   React.useEffect(() => {
     fetchData();
@@ -215,10 +231,17 @@ export default function ProduitsPage() {
     });
   };
 
+  const handleSortChange = (key: string, dir: "asc" | "desc") => {
+    setSortBy(key);
+    setSortDir(dir);
+    setPage(1);
+  };
+
   return (
     <>
       <DataTable
         title="Produits de formation"
+        tableId="produits"
         columns={columns}
         data={data}
         totalCount={totalCount}
@@ -232,6 +255,9 @@ export default function ProduitsPage() {
         getRowId={(item) => item.id}
         isLoading={isLoading}
         exportFilename="produits-formation"
+        sortBy={sortBy}
+        sortDir={sortDir}
+        onSortChange={handleSortChange}
         showArchived={showArchived}
         onToggleArchived={(show) => { setShowArchived(show); setPage(1); }}
         onArchive={async (ids) => {
