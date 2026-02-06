@@ -211,3 +211,102 @@ export async function unarchiveFinanceur(id: string) {
   revalidatePath("/financeurs");
   return { success: true };
 }
+
+// ─── Import ──────────────────────────────────────────────
+
+function extractBpfCode(statut: string): string {
+  const parts = statut.split(" - ");
+  return parts[0].trim();
+}
+
+export async function importFinanceurs(
+  rows: {
+    nom?: string; type?: string; siret?: string;
+    email?: string; telephone?: string;
+    adresse_rue?: string; adresse_complement?: string;
+    adresse_cp?: string; adresse_ville?: string;
+    numero_compte_comptable?: string;
+    bpf_categorie?: string;
+  }[]
+): Promise<{ success: number; errors: string[] }> {
+  const authResult = await getOrganisationId();
+  if ("error" in authResult) {
+    return { success: 0, errors: [String(authResult.error)] };
+  }
+
+  const { organisationId, supabase } = authResult;
+  let successCount = 0;
+  const importErrors: string[] = [];
+
+  // Pré-charger les catégories BPF entreprise → Map<code_lower, id>
+  const { data: bpfCategories } = await supabase
+    .from("bpf_categories_entreprise")
+    .select("id, code");
+  const bpfMap = new Map<string, string>();
+  for (const cat of bpfCategories ?? []) {
+    bpfMap.set(cat.code.toLowerCase(), cat.id);
+  }
+
+  // Normaliser le type financeur
+  const typeMap = new Map<string, string>();
+  for (const t of FINANCEUR_TYPES) {
+    typeMap.set(t.toLowerCase(), t);
+  }
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const nom = row.nom?.trim();
+
+    if (!nom) {
+      importErrors.push(`Ligne ${i + 1}: Nom requis`);
+      continue;
+    }
+
+    // Résoudre type
+    let resolvedType: string | null = null;
+    if (row.type?.trim()) {
+      resolvedType = typeMap.get(row.type.trim().toLowerCase()) ?? row.type.trim();
+    }
+
+    // Résoudre BPF
+    let bpfCategorieId: string | null = null;
+    if (row.bpf_categorie?.trim()) {
+      const code = extractBpfCode(row.bpf_categorie);
+      bpfCategorieId = bpfMap.get(code.toLowerCase()) ?? null;
+    }
+
+    // Générer numéro et insérer
+    const { data: numero } = await supabase.rpc("next_numero", {
+      p_organisation_id: organisationId,
+      p_entite: "FIN",
+    });
+
+    const { error } = await supabase
+      .from("financeurs")
+      .insert({
+        organisation_id: organisationId,
+        numero_affichage: numero,
+        nom,
+        type: resolvedType,
+        siret: row.siret?.trim() || null,
+        email: row.email?.trim() || null,
+        telephone: row.telephone?.trim() || null,
+        adresse_rue: row.adresse_rue?.trim() || null,
+        adresse_complement: row.adresse_complement?.trim() || null,
+        adresse_cp: row.adresse_cp?.trim() || null,
+        adresse_ville: row.adresse_ville?.trim() || null,
+        numero_compte_comptable: row.numero_compte_comptable?.trim() || null,
+        bpf_categorie_id: bpfCategorieId,
+      });
+
+    if (error) {
+      importErrors.push(`Ligne ${i + 1} (${nom}): ${error.message}`);
+      continue;
+    }
+
+    successCount++;
+  }
+
+  revalidatePath("/financeurs");
+  return { success: successCount, errors: importErrors };
+}

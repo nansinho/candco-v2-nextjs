@@ -17,8 +17,23 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toast";
-import { getFinanceurs, createFinanceur, archiveFinanceur, unarchiveFinanceur, deleteFinanceurs } from "@/actions/financeurs";
+import { getFinanceurs, createFinanceur, archiveFinanceur, unarchiveFinanceur, deleteFinanceurs, importFinanceurs } from "@/actions/financeurs";
+import { CsvImport, type ImportColumn } from "@/components/shared/csv-import";
 import { formatDate } from "@/lib/utils";
+
+const FINANCEUR_IMPORT_COLUMNS: ImportColumn[] = [
+  { key: "nom", label: "Nom", required: true, aliases: ["name", "denomination", "raison sociale", "nom financeur", "nom du financeur"] },
+  { key: "type", label: "Type", aliases: ["type financeur", "type de financeur", "categorie"] },
+  { key: "siret", label: "SIRET", aliases: ["siret financeur", "n siret", "siren"] },
+  { key: "email", label: "Email", aliases: ["mail", "e-mail", "courriel", "adresse email", "adresse e mail", "adresse e-mail"] },
+  { key: "telephone", label: "Téléphone", aliases: ["tel", "phone", "portable", "numero telephone"] },
+  { key: "adresse_rue", label: "Adresse", aliases: ["rue", "adresse postale", "address", "n et rue"] },
+  { key: "adresse_complement", label: "Complément adresse", aliases: ["complement", "complement adresse", "batiment"] },
+  { key: "adresse_cp", label: "Code postal", aliases: ["cp", "zip", "code postal"] },
+  { key: "adresse_ville", label: "Ville", aliases: ["city", "commune", "localite"] },
+  { key: "numero_compte_comptable", label: "N° compte comptable", aliases: ["compte comptable", "numero compte", "n compte"] },
+  { key: "bpf_categorie", label: "Catégorie BPF", aliases: ["bpf", "code bpf", "statut bpf", "provenance bpf"] },
+];
 
 interface Financeur {
   id: string;
@@ -155,6 +170,7 @@ export default function FinanceursPage() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [showArchived, setShowArchived] = React.useState(false);
   const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [importOpen, setImportOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [formError, setFormError] = React.useState<string | null>(null);
   const [sortBy, setSortBy] = React.useState("created_at");
@@ -252,6 +268,7 @@ export default function FinanceursPage() {
         onPageChange={setPage}
         searchValue={search}
         onSearchChange={setSearch}
+        onImport={() => setImportOpen(true)}
         onAdd={() => {
           resetForm();
           setDialogOpen(true);
@@ -404,6 +421,20 @@ export default function FinanceursPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <CsvImport
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        title="Importer des financeurs"
+        description="Importez vos financeurs depuis un fichier CSV, Excel ou JSON."
+        columns={FINANCEUR_IMPORT_COLUMNS}
+        onImport={async (rows) => {
+          const result = await importFinanceurs(rows as Parameters<typeof importFinanceurs>[0]);
+          await fetchData();
+          return result;
+        }}
+        templateFilename="modele-financeurs"
+      />
     </>
   );
 }

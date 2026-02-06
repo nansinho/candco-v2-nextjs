@@ -232,3 +232,164 @@ export async function unarchiveContactClient(id: string) {
   revalidatePath("/contacts-clients");
   return { success: true };
 }
+
+// ─── Import ──────────────────────────────────────────────
+
+function splitNomComplet(nomComplet: string): { nom: string; prenom: string } {
+  const parts = nomComplet.trim().split(/\s+/);
+  if (parts.length <= 1) {
+    return { nom: parts[0] || "", prenom: "" };
+  }
+  const prenom = parts[parts.length - 1];
+  const nom = parts.slice(0, -1).join(" ");
+  return { nom, prenom };
+}
+
+export async function getContactEntreprises(contactId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("contact_entreprises")
+    .select("entreprise_id, entreprises(id, numero_affichage, nom, siret, email, adresse_ville)")
+    .eq("contact_client_id", contactId);
+  return data ?? [];
+}
+
+export async function linkEntrepriseToContact(contactId: string, entrepriseId: string) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("contact_entreprises")
+    .insert({ contact_client_id: contactId, entreprise_id: entrepriseId });
+  if (error) return { error: error.message };
+  revalidatePath(`/contacts-clients/${contactId}`);
+  return { success: true };
+}
+
+export async function unlinkEntrepriseFromContact(contactId: string, entrepriseId: string) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("contact_entreprises")
+    .delete()
+    .eq("contact_client_id", contactId)
+    .eq("entreprise_id", entrepriseId);
+  if (error) return { error: error.message };
+  revalidatePath(`/contacts-clients/${contactId}`);
+  return { success: true };
+}
+
+export async function importContactsClients(
+  rows: {
+    prenom?: string; nom?: string; nom_complet?: string;
+    email?: string; telephone?: string;
+    civilite?: string; fonction?: string;
+    entreprise_nom?: string;
+  }[]
+): Promise<{ success: number; errors: string[] }> {
+  const authResult = await getOrganisationId();
+  if ("error" in authResult) {
+    return { success: 0, errors: [String(authResult.error)] };
+  }
+
+  const { organisationId, supabase } = authResult;
+  let successCount = 0;
+  const importErrors: string[] = [];
+
+  // Pré-charger les entreprises de l'organisation → Map<nom_lower, id>
+  const { data: existingEntreprises } = await supabase
+    .from("entreprises")
+    .select("id, nom")
+    .eq("organisation_id", organisationId);
+  const entrepriseCache = new Map<string, string>();
+  for (const ent of existingEntreprises ?? []) {
+    entrepriseCache.set(ent.nom.toLowerCase().trim(), ent.id);
+  }
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+
+    // Résoudre nom/prénom
+    let prenom = row.prenom?.trim() || "";
+    let nom = row.nom?.trim() || "";
+
+    if (row.nom_complet?.trim() && (!prenom || !nom)) {
+      const split = splitNomComplet(row.nom_complet);
+      if (!prenom) prenom = split.prenom;
+      if (!nom) nom = split.nom;
+    }
+
+    if (!prenom || !nom) {
+      importErrors.push(`Ligne ${i + 1}: Prénom et nom requis`);
+      continue;
+    }
+
+    // Résoudre entreprise (lookup ou création)
+    let entrepriseId: string | null = null;
+    if (row.entreprise_nom?.trim()) {
+      const entNom = row.entreprise_nom.trim();
+      const entKey = entNom.toLowerCase();
+
+      if (entrepriseCache.has(entKey)) {
+        entrepriseId = entrepriseCache.get(entKey)!;
+      } else {
+        const { data: numero } = await supabase.rpc("next_numero", {
+          p_organisation_id: organisationId,
+          p_entite: "ENT",
+        });
+        const { data: newEnt, error: entError } = await supabase
+          .from("entreprises")
+          .insert({
+            organisation_id: organisationId,
+            numero_affichage: numero,
+            nom: entNom,
+          })
+          .select("id")
+          .single();
+
+        if (entError) {
+          importErrors.push(`Ligne ${i + 1}: Erreur création entreprise "${entNom}": ${entError.message}`);
+        } else if (newEnt) {
+          entrepriseId = newEnt.id;
+          entrepriseCache.set(entKey, newEnt.id);
+        }
+      }
+    }
+
+    // Générer numéro et insérer
+    const { data: numero } = await supabase.rpc("next_numero", {
+      p_organisation_id: organisationId,
+      p_entite: "CTC",
+    });
+
+    const { data: newContact, error } = await supabase
+      .from("contacts_clients")
+      .insert({
+        organisation_id: organisationId,
+        numero_affichage: numero,
+        prenom,
+        nom,
+        email: row.email?.trim() || null,
+        telephone: row.telephone?.trim() || null,
+        civilite: row.civilite?.trim() || null,
+        fonction: row.fonction?.trim() || null,
+      })
+      .select("id")
+      .single();
+
+    if (error) {
+      importErrors.push(`Ligne ${i + 1} (${prenom} ${nom}): ${error.message}`);
+      continue;
+    }
+
+    // Rattacher à l'entreprise si trouvée/créée
+    if (entrepriseId && newContact) {
+      await supabase
+        .from("contact_entreprises")
+        .insert({ contact_client_id: newContact.id, entreprise_id: entrepriseId });
+    }
+
+    successCount++;
+  }
+
+  revalidatePath("/contacts-clients");
+  revalidatePath("/entreprises");
+  return { success: successCount, errors: importErrors };
+}
