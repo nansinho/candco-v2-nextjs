@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { sendEmail } from "@/lib/emails/send-email";
 import { invitationExtranetTemplate } from "@/lib/emails/templates";
+import { revalidatePath } from "next/cache";
 import { randomUUID } from "crypto";
 import { z } from "zod";
 
@@ -271,6 +272,7 @@ export async function inviteToExtranet(input: InviteInput) {
       });
     }
 
+    revalidatePath(`/${TABLE_MAP[entiteType]}/${entiteId}`);
     return { success: true, userId: authUserId, loginLink };
   } catch (err) {
     console.error("[extranet] inviteToExtranet unexpected error:", err);
@@ -318,6 +320,7 @@ export async function revokeExtranetAccess(extranetAccesId: string) {
       .update({ extranet_actif: false })
       .eq("id", acces.entite_id);
 
+    revalidatePath(`/${tableName}/${acces.entite_id}`);
     return { success: true };
   } catch (err) {
     console.error("[extranet] revokeExtranetAccess error:", err);

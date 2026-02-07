@@ -158,6 +158,11 @@ export async function updateFormateur(id: string, input: Partial<FormateurInput>
     return { error: parsed.error.flatten().fieldErrors };
   }
 
+  const orgResult = await getOrganisationId();
+  if ("error" in orgResult) {
+    return { error: { _form: [orgResult.error] } };
+  }
+  const { organisationId } = orgResult;
   const supabase = await createClient();
 
   // Build update payload, converting empty strings to null
@@ -187,6 +192,7 @@ export async function updateFormateur(id: string, input: Partial<FormateurInput>
     .from("formateurs")
     .update(updateData)
     .eq("id", id)
+    .eq("organisation_id", organisationId)
     .select()
     .single();
 
@@ -325,12 +331,15 @@ export async function importFormateurs(
 }
 
 export async function deleteFormateurs(ids: string[]) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, supabase } = result;
 
   const { error } = await supabase
     .from("formateurs")
     .delete()
-    .in("id", ids);
+    .in("id", ids)
+    .eq("organisation_id", organisationId);
 
   if (error) {
     return { error: error.message };
@@ -341,12 +350,15 @@ export async function deleteFormateurs(ids: string[]) {
 }
 
 export async function archiveFormateur(id: string) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, supabase } = result;
 
   const { error } = await supabase
     .from("formateurs")
     .update({ archived_at: new Date().toISOString() })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("organisation_id", organisationId);
 
   if (error) {
     return { error: error.message };
@@ -357,12 +369,15 @@ export async function archiveFormateur(id: string) {
 }
 
 export async function unarchiveFormateur(id: string) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, supabase } = result;
 
   const { error } = await supabase
     .from("formateurs")
     .update({ archived_at: null })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("organisation_id", organisationId);
 
   if (error) {
     return { error: error.message };
@@ -375,11 +390,14 @@ export async function unarchiveFormateur(id: string) {
 // ─── Dropdown helper ────────────────────────────────────
 
 export async function getAllFormateurs() {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { data: [] };
+  const { organisationId, supabase } = result;
 
   const { data, error } = await supabase
     .from("formateurs")
     .select("id, prenom, nom, email, tarif_journalier")
+    .eq("organisation_id", organisationId)
     .is("archived_at", null)
     .order("nom", { ascending: true });
 

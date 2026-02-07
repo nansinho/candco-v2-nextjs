@@ -182,7 +182,11 @@ export async function updateEntreprise(id: string, input: UpdateEntrepriseInput)
     return { error: parsed.error.flatten().fieldErrors };
   }
 
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) {
+    return { error: { _form: [result.error] } };
+  }
+  const { organisationId, supabase } = result;
 
   const cleanedData = cleanEmptyStrings(parsed.data);
 
@@ -193,6 +197,7 @@ export async function updateEntreprise(id: string, input: UpdateEntrepriseInput)
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)
+    .eq("organisation_id", organisationId)
     .select()
     .single();
 
@@ -206,12 +211,15 @@ export async function updateEntreprise(id: string, input: UpdateEntrepriseInput)
 }
 
 export async function archiveEntreprise(id: string) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, supabase } = result;
 
   const { error } = await supabase
     .from("entreprises")
     .update({ archived_at: new Date().toISOString() })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("organisation_id", organisationId);
 
   if (error) {
     return { error: error.message };
@@ -222,12 +230,15 @@ export async function archiveEntreprise(id: string) {
 }
 
 export async function unarchiveEntreprise(id: string) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, supabase } = result;
 
   const { error } = await supabase
     .from("entreprises")
     .update({ archived_at: null })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("organisation_id", organisationId);
 
   if (error) {
     return { error: error.message };
@@ -238,12 +249,15 @@ export async function unarchiveEntreprise(id: string) {
 }
 
 export async function deleteEntreprises(ids: string[]) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, supabase } = result;
 
   const { error } = await supabase
     .from("entreprises")
     .delete()
-    .in("id", ids);
+    .in("id", ids)
+    .eq("organisation_id", organisationId);
 
   if (error) {
     return { error: error.message };
@@ -453,11 +467,14 @@ export async function unlinkApprenantFromEntreprise(entrepriseId: string, appren
 // ─── Dropdown helper ────────────────────────────────────
 
 export async function getAllEntreprises() {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { data: [] };
+  const { organisationId, supabase } = result;
 
   const { data, error } = await supabase
     .from("entreprises")
     .select("id, nom, email, siret")
+    .eq("organisation_id", organisationId)
     .is("archived_at", null)
     .order("nom", { ascending: true });
 

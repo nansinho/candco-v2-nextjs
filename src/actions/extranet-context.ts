@@ -96,8 +96,13 @@ export interface ExtranetApprenantSession extends ExtranetSession {
 
 /**
  * Get formateur sessions for the extranet.
+ * Validates that the requesting user is the formateur.
  */
 export async function getFormateurSessions(formateurId: string): Promise<{ sessions: ExtranetSession[] }> {
+  const ctx = await getExtranetUserContext();
+  if (ctx.error || !ctx.data) return { sessions: [] };
+  if (ctx.data.entiteId !== formateurId) return { sessions: [] };
+
   const admin = createAdminClient();
 
   const { data: sessionFormateurs } = await admin
@@ -116,8 +121,13 @@ export async function getFormateurSessions(formateurId: string): Promise<{ sessi
 
 /**
  * Get apprenant sessions for the extranet.
+ * Validates that the requesting user is the apprenant.
  */
 export async function getApprenantSessions(apprenantId: string): Promise<{ sessions: ExtranetApprenantSession[] }> {
+  const ctx = await getExtranetUserContext();
+  if (ctx.error || !ctx.data) return { sessions: [] };
+  if (ctx.data.entiteId !== apprenantId) return { sessions: [] };
+
   const admin = createAdminClient();
 
   const { data: inscriptions } = await admin
@@ -137,8 +147,13 @@ export async function getApprenantSessions(apprenantId: string): Promise<{ sessi
 
 /**
  * Get formateur profile data for the extranet.
+ * Validates that the requesting user is the formateur.
  */
 export async function getFormateurProfile(formateurId: string) {
+  const ctx = await getExtranetUserContext();
+  if (ctx.error || !ctx.data) return { data: null };
+  if (ctx.data.entiteId !== formateurId) return { data: null };
+
   const admin = createAdminClient();
 
   const { data } = await admin
@@ -152,8 +167,13 @@ export async function getFormateurProfile(formateurId: string) {
 
 /**
  * Get apprenant profile data for the extranet.
+ * Validates that the requesting user is the apprenant.
  */
 export async function getApprenantProfile(apprenantId: string) {
+  const ctx = await getExtranetUserContext();
+  if (ctx.error || !ctx.data) return { data: null };
+  if (ctx.data.entiteId !== apprenantId) return { data: null };
+
   const admin = createAdminClient();
 
   const { data } = await admin
