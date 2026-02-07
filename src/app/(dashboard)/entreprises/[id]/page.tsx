@@ -28,6 +28,8 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/alert-dialog";
+import { useBreadcrumb } from "@/components/layout/breadcrumb-context";
+import { QuickActionsBar } from "@/components/shared/quick-actions-bar";
 import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
 import { SiretSearch } from "@/components/shared/siret-search";
 import {
@@ -94,6 +96,7 @@ export default function EntrepriseDetailPage() {
 
   const [entreprise, setEntreprise] = React.useState<EntrepriseData | null>(null);
   const [bpfCategories, setBpfCategories] = React.useState<BpfCategorie[]>([]);
+  useBreadcrumb(id, entreprise?.nom ?? undefined);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isArchiving, setIsArchiving] = React.useState(false);
 
@@ -223,6 +226,12 @@ export default function EntrepriseDetailPage() {
       </div>
 
       <Separator className="bg-border/60" />
+
+      {/* Quick Actions */}
+      <QuickActionsBar
+        email={entreprise.email}
+        telephone={entreprise.telephone}
+      />
 
       {/* Tabs */}
       <Tabs defaultValue="general">

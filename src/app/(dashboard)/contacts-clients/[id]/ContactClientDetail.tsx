@@ -19,6 +19,8 @@ import {
 import { TachesActivitesTab } from "@/components/shared/taches-activites";
 import { ExtranetAccessPanel } from "@/components/shared/extranet-access-panel";
 import { formatDate } from "@/lib/utils";
+import { useBreadcrumb } from "@/components/layout/breadcrumb-context";
+import { QuickActionsBar } from "@/components/shared/quick-actions-bar";
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -55,6 +57,7 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
   const router = useRouter();
   const { toast } = useToast();
   const { confirm, ConfirmDialog } = useConfirm();
+  useBreadcrumb(contact.id, `${contact.prenom} ${contact.nom}`);
   const [isSaving, setIsSaving] = React.useState(false);
   const [isArchiving, setIsArchiving] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string[] | undefined>>({});
@@ -187,6 +190,12 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
           </Button>
         </div>
       </div>
+
+      {/* Quick Actions */}
+      <QuickActionsBar
+        email={contact.email}
+        telephone={contact.telephone}
+      />
 
       {/* Content: Tabs + Side Panel */}
       <div className="flex gap-6">

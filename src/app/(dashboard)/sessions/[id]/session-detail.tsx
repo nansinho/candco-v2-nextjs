@@ -27,6 +27,7 @@ import { useConfirm } from "@/components/ui/alert-dialog";
 import { TachesActivitesTab } from "@/components/shared/taches-activites";
 import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
 import { formatDate, formatCurrency } from "@/lib/utils";
+import { useBreadcrumb } from "@/components/layout/breadcrumb-context";
 import {
   updateSession,
   archiveSession,
@@ -207,6 +208,7 @@ export function SessionDetail({
   const router = useRouter();
   const { toast } = useToast();
   const { confirm, ConfirmDialog } = useConfirm();
+  useBreadcrumb(session.id, session.nom);
   const [isPending, setIsPending] = React.useState(false);
   const [isArchiving, setIsArchiving] = React.useState(false);
 
