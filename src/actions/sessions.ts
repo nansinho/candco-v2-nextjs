@@ -5,6 +5,7 @@ import { getOrganisationId } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { QueryFilter } from "@/lib/utils";
+import { sendInscriptionEmail } from "@/actions/emails";
 
 // ─── Schemas ─────────────────────────────────────────────
 
@@ -407,6 +408,9 @@ export async function addInscription(
 
   if (error) return { error: error.message };
 
+  // Send confirmation email (fire-and-forget)
+  sendInscriptionEmail({ apprenantId, sessionId }).catch(() => {});
+
   revalidatePath(`/sessions/${sessionId}`);
   return { data };
 }
@@ -581,6 +585,11 @@ export async function bulkAddInscriptions(
     .insert(rows);
 
   if (error) return { error: error.message };
+
+  // Send confirmation emails (fire-and-forget)
+  for (const apprenantId of newIds) {
+    sendInscriptionEmail({ apprenantId, sessionId }).catch(() => {});
+  }
 
   revalidatePath(`/sessions/${sessionId}`);
   return { success: true, count: newIds.length, skipped: apprenantIds.length - newIds.length };

@@ -1,21 +1,19 @@
-import { Settings } from "lucide-react";
+import { getOrganisationSettings } from "@/actions/parametres";
+import { ParametresClient } from "./parametres-client";
 
-export default function ParametresPage() {
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight">Parametres</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Configurez votre organisme de formation, les templates, emails et facturation
-        </p>
-      </div>
-      <div className="flex flex-col items-center justify-center rounded-lg border border-border/60 bg-card py-20">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-          <Settings className="h-6 w-6 text-primary" />
+export default async function ParametresPage() {
+  const { data: settings, error } = await getOrganisationSettings();
+
+  if (error || !settings) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-xl font-semibold tracking-tight">Paramètres</h1>
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+          Erreur lors du chargement des paramètres : {error || "Données non trouvées"}
         </div>
-        <h2 className="mt-4 text-sm font-medium">Module en construction</h2>
-        <p className="mt-1 text-xs text-muted-foreground">Ce module sera bientot disponible</p>
       </div>
-    </div>
-  );
+    );
+  }
+
+  return <ParametresClient settings={settings} />;
 }
