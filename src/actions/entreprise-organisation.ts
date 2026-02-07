@@ -44,6 +44,7 @@ export interface Membre {
   contact_client_id: string | null;
   roles: string[];
   fonction: string | null;
+  rattache_siege: boolean;
   created_at: string;
   // Joined fields
   apprenant_nom?: string;
@@ -83,6 +84,7 @@ const MembreSchema = z.object({
   contact_client_id: z.string().uuid().optional().or(z.literal("")),
   roles: z.array(z.enum(VALID_ROLES)).default([]),
   fonction: z.string().optional().or(z.literal("")),
+  rattache_siege: z.boolean().default(false),
 });
 
 // ─── Agences ─────────────────────────────────────────────
@@ -365,6 +367,7 @@ export async function getMembres(entrepriseId: string) {
       contact_client_id: m.contact_client_id,
       roles: (m.roles as string[]) ?? [],
       fonction: m.fonction,
+      rattache_siege: (m.rattache_siege as boolean) ?? false,
       created_at: m.created_at,
       apprenant_prenom: (m.apprenants as { prenom: string; nom: string } | null)?.prenom ?? null,
       apprenant_nom: (m.apprenants as { prenom: string; nom: string } | null)?.nom ?? null,
@@ -404,6 +407,7 @@ export async function createMembre(entrepriseId: string, input: z.infer<typeof M
         contact_client_id: d.contact_client_id || null,
         roles: d.roles.length > 0 ? d.roles : ["employe"],
         fonction: d.fonction || null,
+        rattache_siege: d.rattache_siege,
       })
       .select()
       .single();
@@ -453,6 +457,7 @@ export async function updateMembre(membreId: string, entrepriseId: string, input
         pole_id: d.pole_id || null,
         roles: d.roles.length > 0 ? d.roles : ["employe"],
         fonction: d.fonction || null,
+        rattache_siege: d.rattache_siege,
       })
       .eq("id", membreId)
       .select()

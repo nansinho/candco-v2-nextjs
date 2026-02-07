@@ -470,6 +470,12 @@ export function OrganisationTab({ entrepriseId }: OrganisationTabProps) {
                       </td>
                       <td className="px-4 py-2.5 text-[11px] text-muted-foreground/60">
                         <div className="space-y-0.5">
+                          {m.rattache_siege && (
+                            <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20 text-[10px]">
+                              <Star className="mr-0.5 h-2.5 w-2.5" />
+                              Siège social
+                            </Badge>
+                          )}
                           {m.agences && m.agences.length > 0 && (
                             <div className="flex flex-wrap gap-1">
                               {m.agences.map((a) => (
@@ -486,7 +492,7 @@ export function OrganisationTab({ entrepriseId }: OrganisationTabProps) {
                               {m.pole_nom}
                             </span>
                           )}
-                          {(!m.agences || m.agences.length === 0) && !m.pole_nom && (
+                          {!m.rattache_siege && (!m.agences || m.agences.length === 0) && !m.pole_nom && (
                             <span className="text-muted-foreground/40">--</span>
                           )}
                         </div>
@@ -1030,7 +1036,7 @@ function MembreDialog({
   const [quickTelephone, setQuickTelephone] = React.useState("");
   const [isCreatingApprenant, setIsCreatingApprenant] = React.useState(false);
 
-  // Form state — multi-roles + multi-agences
+  // Form state — multi-roles + multi-agences + siege
   const [selectedRoles, setSelectedRoles] = React.useState<string[]>(
     membre?.roles && membre.roles.length > 0 ? membre.roles : []
   );
@@ -1039,6 +1045,9 @@ function MembreDialog({
     membre?.agences?.map((a) => a.id) ?? []
   );
   const [poleId, setPoleId] = React.useState(membre?.pole_id ?? "");
+  const [rattacheSiege, setRattacheSiege] = React.useState(membre?.rattache_siege ?? false);
+
+  const hasSiege = agences.some((a) => a.est_siege);
 
   const isLegacyContact = !!membre?.contact_client_id;
 
@@ -1068,12 +1077,14 @@ function MembreDialog({
         setFonction(membre.fonction ?? "");
         setSelectedAgenceIds(membre.agences?.map((a) => a.id) ?? []);
         setPoleId(membre.pole_id ?? "");
+        setRattacheSiege(membre.rattache_siege ?? false);
       } else {
         setSelectedPerson(null);
         setSelectedRoles([]);
         setFonction("");
         setSelectedAgenceIds([]);
         setPoleId("");
+        setRattacheSiege(false);
       }
       setSearchQuery("");
       setSearchResults([]);
@@ -1142,6 +1153,7 @@ function MembreDialog({
         contact_client_id: isLegacyContact ? (selectedPerson?.id ?? "") : "",
         roles: selectedRoles as ("direction" | "responsable_formation" | "manager" | "employe")[],
         fonction,
+        rattache_siege: rattacheSiege,
       };
 
       const result = isEdit
@@ -1361,6 +1373,31 @@ function MembreDialog({
               onChange={setFonction}
               placeholder="Sélectionner une fonction"
             />
+          </div>
+
+          {/* Rattaché au Siège social */}
+          <div className="flex items-center gap-3 rounded-md border border-border/40 px-3 py-2.5">
+            <input
+              type="checkbox"
+              id="rattache_siege"
+              checked={rattacheSiege}
+              onChange={(e) => setRattacheSiege(e.target.checked)}
+              disabled={!hasSiege}
+              className="h-4 w-4 rounded border-border/60 accent-amber-500"
+            />
+            <div className="flex-1">
+              <Label htmlFor="rattache_siege" className={`text-[13px] font-medium ${!hasSiege ? "text-muted-foreground/40" : ""}`}>
+                Rattaché au Siège social
+              </Label>
+              {!hasSiege && (
+                <p className="text-[11px] text-muted-foreground/40 mt-0.5">
+                  Aucun siège social défini. Configurez une agence comme siège social d&apos;abord.
+                </p>
+              )}
+            </div>
+            {rattacheSiege && hasSiege && (
+              <Star className="h-3.5 w-3.5 text-amber-400" />
+            )}
           </div>
 
           {/* Agences (multi-select) */}
