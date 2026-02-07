@@ -64,14 +64,14 @@ import {
 // ─── Role Labels ─────────────────────────────────────────
 
 const ROLE_LABELS: Record<string, string> = {
-  directeur: "Directeur",
+  direction: "Direction",
   responsable_formation: "Responsable formation",
   manager: "Manager",
   employe: "Employé",
 };
 
 const ROLE_COLORS: Record<string, string> = {
-  directeur: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+  direction: "bg-amber-500/10 text-amber-400 border-amber-500/20",
   responsable_formation: "bg-purple-500/10 text-purple-400 border-purple-500/20",
   manager: "bg-blue-500/10 text-blue-400 border-blue-500/20",
   employe: "bg-muted text-muted-foreground border-border/60",
@@ -381,7 +381,7 @@ export function OrganisationTab({ entrepriseId }: OrganisationTabProps) {
             <EmptyState
               icon={<Users className="h-6 w-6 text-muted-foreground/30" />}
               title="Aucun membre"
-              description="Ajoutez des personnes à l'organigramme (directeurs, responsables formation, employés)."
+              description="Ajoutez des personnes à l'organigramme (direction, responsables formation, employés)."
             />
           ) : (
             <table className="w-full">
@@ -975,7 +975,7 @@ function PoleDialog({
 // ─── Membre Dialog ───────────────────────────────────────
 
 const ALL_ROLES = [
-  { value: "directeur", label: "Directeur" },
+  { value: "direction", label: "Direction" },
   { value: "responsable_formation", label: "Responsable formation" },
   { value: "manager", label: "Manager" },
   { value: "employe", label: "Employé" },
@@ -1134,7 +1134,7 @@ function MembreDialog({
         pole_id: poleId || "",
         apprenant_id: !isLegacyContact ? (selectedPerson?.id ?? "") : "",
         contact_client_id: isLegacyContact ? (selectedPerson?.id ?? "") : "",
-        roles: selectedRoles as ("directeur" | "responsable_formation" | "manager" | "employe")[],
+        roles: selectedRoles as ("direction" | "responsable_formation" | "manager" | "employe")[],
         fonction,
       };
 
