@@ -1,10 +1,9 @@
-// AI Provider — global API keys (C&CO pays) + per-org credit system
+// AI Provider — Anthropic Claude (C&CO pays) + per-org credit system
 // Credits are tracked in organisations.settings.ai_credits
 
 // ─── Credit costs ────────────────────────────────────────
 export const AI_COSTS = {
   extract_programme: 1,
-  generate_image: 3,
 } as const;
 
 export type AIAction = keyof typeof AI_COSTS;
@@ -111,52 +110,6 @@ export async function callClaude(
   const textBlocks =
     content?.filter((b: { type: string }) => b.type === "text") ?? [];
   return { text: textBlocks.map((b: { text: string }) => b.text).join("") };
-}
-
-// ─── DALL-E API call (image) ─────────────────────────────
-
-export async function callDallE(
-  prompt: string,
-  model = "dall-e-3"
-): Promise<string> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error("OPENAI_API_KEY non configuree sur le serveur");
-  }
-
-  const response = await fetch("https://api.openai.com/v1/images/generations", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model,
-      prompt,
-      n: 1,
-      size: "1792x1024",
-      quality: "standard",
-      response_format: "b64_json",
-    }),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    const errorMessage =
-      (errorData as { error?: { message?: string } })?.error?.message ||
-      "Erreur lors de la generation de l'image";
-    throw new Error(errorMessage);
-  }
-
-  const data = await response.json();
-  const b64Image = (data as { data: { b64_json: string }[] }).data[0]
-    ?.b64_json;
-
-  if (!b64Image) {
-    throw new Error("Aucune image generee");
-  }
-
-  return b64Image;
 }
 
 // ─── Credit update helper (for use in API routes) ────────

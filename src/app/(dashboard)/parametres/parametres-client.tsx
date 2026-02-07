@@ -19,7 +19,6 @@ import {
   Bot,
   Zap,
   FileText,
-  ImagePlus,
 } from "lucide-react";
 import type { OrganisationSettings } from "@/actions/parametres";
 import {
@@ -537,17 +536,6 @@ function AITab({ settings }: { settings: OrganisationSettings }) {
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-3 rounded-lg border border-border/60 bg-muted/30 p-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
-                  <ImagePlus className="h-4 w-4 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium">Generation d&apos;image</p>
-                  <p className="text-[11px] text-muted-foreground">
-                    {AI_COSTS.generate_image} credits par image
-                  </p>
-                </div>
-              </div>
             </div>
           </div>
         ) : (
@@ -569,15 +557,6 @@ function AITab({ settings }: { settings: OrganisationSettings }) {
               <p className="text-sm font-medium">Import PDF intelligent</p>
               <p className="text-[12px] text-muted-foreground">
                 Importez un programme de formation au format PDF. L&apos;IA (Claude) extrait automatiquement les modules, objectifs et durees pour pre-remplir votre produit de formation.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <Zap className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-            <div>
-              <p className="text-sm font-medium">Generation d&apos;images</p>
-              <p className="text-[12px] text-muted-foreground">
-                Generez des images professionnelles pour vos formations avec l&apos;IA (DALL-E). Ideal pour illustrer votre catalogue en ligne.
               </p>
             </div>
           </div>

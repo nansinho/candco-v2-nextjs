@@ -128,37 +128,9 @@ export function ProduitDetail({
   useBreadcrumb(produit.id, produit.intitule);
   const [isPending, setIsPending] = React.useState(false);
   const [isArchiving, setIsArchiving] = React.useState(false);
-  const [isGeneratingImage, setIsGeneratingImage] = React.useState(false);
   const [currentImageUrl, setCurrentImageUrl] = React.useState(produit.image_url);
-
-  const handleGenerateImage = async () => {
-    setIsGeneratingImage(true);
-    try {
-      const response = await fetch("/api/ai/generate-image", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: produit.intitule + (produit.domaine ? ` - ${produit.domaine}` : ""),
-          produitId: produit.id,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        toast({ title: "Erreur", description: result.error, variant: "destructive" });
-        return;
-      }
-
-      setCurrentImageUrl(result.data.image_url);
-      toast({ title: "Image générée", description: "L'image a été générée et enregistrée.", variant: "success" });
-      router.refresh();
-    } catch {
-      toast({ title: "Erreur", description: "Impossible de générer l'image.", variant: "destructive" });
-    } finally {
-      setIsGeneratingImage(false);
-    }
-  };
+  const [isUploadingImage, setIsUploadingImage] = React.useState(false);
+  const imageInputRef = React.useRef<HTMLInputElement>(null);
 
   // ─── Config form submit ────────────────────────────────
 
@@ -620,19 +592,16 @@ export function ProduitDetail({
                             size="sm"
                             variant="outline"
                             className="h-7 text-[11px] bg-background/80 backdrop-blur-sm"
-                            onClick={handleGenerateImage}
-                            disabled={isGeneratingImage}
+                            onClick={() => imageInputRef.current?.click()}
+                            disabled={isUploadingImage}
                           >
-                            {isGeneratingImage ? (
+                            {isUploadingImage ? (
                               <>
                                 <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                                Génération...
+                                Upload...
                               </>
                             ) : (
-                              <>
-                                <Sparkles className="mr-1 h-3 w-3 text-primary" />
-                                Régénérer
-                              </>
+                              "Changer"
                             )}
                           </Button>
                         </div>
@@ -643,26 +612,57 @@ export function ProduitDetail({
                           type="button"
                           variant="outline"
                           className="h-9 text-xs border-border/60 w-full"
-                          onClick={handleGenerateImage}
-                          disabled={isGeneratingImage}
+                          onClick={() => imageInputRef.current?.click()}
+                          disabled={isUploadingImage}
                         >
-                          {isGeneratingImage ? (
+                          {isUploadingImage ? (
                             <>
                               <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
-                              Génération IA en cours...
+                              Upload en cours...
                             </>
                           ) : (
-                            <>
-                              <Sparkles className="mr-1.5 h-3 w-3 text-primary" />
-                              Générer une image avec l&apos;IA
-                            </>
+                            "Uploader une image"
                           )}
                         </Button>
                         <p className="mt-1.5 text-[11px] text-muted-foreground/50">
-                          Génère une illustration automatique basée sur l&apos;intitulé de la formation.
+                          PNG, JPG ou WebP. Max 2 Mo.
                         </p>
                       </div>
                     )}
+                    <input
+                      ref={imageInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        if (file.size > 2 * 1024 * 1024) {
+                          toast({ title: "Erreur", description: "L'image ne doit pas depasser 2 Mo.", variant: "destructive" });
+                          return;
+                        }
+                        setIsUploadingImage(true);
+                        try {
+                          const { createClient } = await import("@/lib/supabase/client");
+                          const supabase = createClient();
+                          const filename = `produits/${produit.id}/${Date.now()}.${file.name.split(".").pop()}`;
+                          const { error: uploadError } = await supabase.storage
+                            .from("images")
+                            .upload(filename, file, { contentType: file.type, upsert: true });
+                          if (uploadError) throw uploadError;
+                          const { data: urlData } = supabase.storage.from("images").getPublicUrl(filename);
+                          await updateProduit(produit.id, { image_url: urlData.publicUrl });
+                          setCurrentImageUrl(urlData.publicUrl);
+                          toast({ title: "Image mise a jour", variant: "success" });
+                          router.refresh();
+                        } catch {
+                          toast({ title: "Erreur", description: "Impossible d'uploader l'image.", variant: "destructive" });
+                        } finally {
+                          setIsUploadingImage(false);
+                          if (imageInputRef.current) imageInputRef.current.value = "";
+                        }
+                      }}
+                    />
                   </div>
                 </fieldset>
               </div>
