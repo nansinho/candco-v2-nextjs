@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getOrganisationId } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -38,7 +39,7 @@ export interface Membre {
   pole_id: string | null;
   apprenant_id: string | null;
   contact_client_id: string | null;
-  role: string;
+  roles: string[];
   fonction: string | null;
   created_at: string;
   // Joined fields
@@ -70,12 +71,14 @@ const PoleSchema = z.object({
   description: z.string().optional().or(z.literal("")),
 });
 
+const VALID_ROLES = ["directeur", "responsable_formation", "manager", "employe"] as const;
+
 const MembreSchema = z.object({
   agence_id: z.string().uuid().optional().or(z.literal("")),
   pole_id: z.string().uuid().optional().or(z.literal("")),
   apprenant_id: z.string().uuid().optional().or(z.literal("")),
   contact_client_id: z.string().uuid().optional().or(z.literal("")),
-  role: z.enum(["directeur", "responsable_formation", "manager", "employe"]).default("employe"),
+  roles: z.array(z.enum(VALID_ROLES)).default([]),
   fonction: z.string().optional().or(z.literal("")),
 });
 
@@ -314,7 +317,6 @@ export async function getMembres(entrepriseId: string) {
     .from("entreprise_membres")
     .select("*, apprenants(prenom, nom), contacts_clients(prenom, nom), entreprise_agences(nom), entreprise_poles(nom)")
     .eq("entreprise_id", entrepriseId)
-    .order("role", { ascending: true })
     .order("created_at", { ascending: false });
 
   if (error) return { data: [], error: error.message };
@@ -326,7 +328,7 @@ export async function getMembres(entrepriseId: string) {
     pole_id: m.pole_id,
     apprenant_id: m.apprenant_id,
     contact_client_id: m.contact_client_id,
-    role: m.role,
+    roles: (m.roles as string[]) ?? [],
     fonction: m.fonction,
     created_at: m.created_at,
     apprenant_prenom: (m.apprenants as { prenom: string; nom: string } | null)?.prenom ?? null,
@@ -348,7 +350,7 @@ export async function createMembre(entrepriseId: string, input: z.infer<typeof M
 
   // Must have at least one link
   if (!d.apprenant_id && !d.contact_client_id) {
-    return { error: { _form: ["Vous devez sélectionner un apprenant ou un contact client."] } };
+    return { error: { _form: ["Vous devez sélectionner un apprenant."] } };
   }
 
   try {
@@ -362,7 +364,7 @@ export async function createMembre(entrepriseId: string, input: z.infer<typeof M
         pole_id: d.pole_id || null,
         apprenant_id: d.apprenant_id || null,
         contact_client_id: d.contact_client_id || null,
-        role: d.role,
+        roles: d.roles.length > 0 ? d.roles : ["employe"],
         fonction: d.fonction || null,
       })
       .select()
@@ -395,7 +397,7 @@ export async function updateMembre(membreId: string, entrepriseId: string, input
       .update({
         agence_id: d.agence_id || null,
         pole_id: d.pole_id || null,
-        role: d.role,
+        roles: d.roles.length > 0 ? d.roles : ["employe"],
         fonction: d.fonction || null,
       })
       .eq("id", membreId)
@@ -435,6 +437,51 @@ export async function deleteMembre(membreId: string, entrepriseId: string) {
     console.error("[deleteMembre] Unexpected error:", err);
     return { error: err instanceof Error ? err.message : "Erreur serveur inattendue" };
   }
+}
+
+// ─── Quick create apprenant from member dialog ──────────
+
+const QuickApprenantSchema = z.object({
+  prenom: z.string().min(1, "Le prénom est requis"),
+  nom: z.string().min(1, "Le nom est requis"),
+  email: z.string().email("Email invalide").optional().or(z.literal("")),
+  telephone: z.string().optional().or(z.literal("")),
+});
+
+export async function quickCreateApprenant(input: z.infer<typeof QuickApprenantSchema>) {
+  const parsed = QuickApprenantSchema.safeParse(input);
+  if (!parsed.success) return { data: null, error: parsed.error.flatten().fieldErrors };
+
+  const result = await getOrganisationId();
+  if ("error" in result) return { data: null, error: { _form: [result.error] } };
+
+  const { organisationId, supabase } = result;
+
+  const { data: numero } = await supabase.rpc("next_numero", {
+    p_organisation_id: organisationId,
+    p_entite: "APP",
+  });
+
+  const { data, error } = await supabase
+    .from("apprenants")
+    .insert({
+      organisation_id: organisationId,
+      numero_affichage: numero,
+      prenom: parsed.data.prenom,
+      nom: parsed.data.nom,
+      email: parsed.data.email || null,
+      telephone: parsed.data.telephone || null,
+    })
+    .select("id, prenom, nom, email")
+    .single();
+
+  if (error) {
+    console.error("[quickCreateApprenant] Supabase error:", error.message);
+    return { data: null, error: { _form: [error.message] } };
+  }
+
+  revalidatePath("/apprenants");
+  return { data };
 }
 
 // ─── Search helpers for linking membres ──────────────────
