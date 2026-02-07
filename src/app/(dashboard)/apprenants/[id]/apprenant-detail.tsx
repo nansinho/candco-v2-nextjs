@@ -28,6 +28,7 @@ import {
   type UpdateApprenantInput,
 } from "@/actions/apprenants";
 import { TachesActivitesTab } from "@/components/shared/taches-activites";
+import { ExtranetAccessPanel } from "@/components/shared/extranet-access-panel";
 import { formatDate } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
@@ -243,7 +244,10 @@ export function ApprenantDetail({
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Content: Tabs + Side Panel */}
+      <div className="flex gap-6">
+        {/* Main content */}
+        <div className="flex-1 min-w-0">
       <Tabs defaultValue="infos">
         <TabsList className="bg-muted/30 border border-border/60">
           <TabsTrigger value="infos" className="text-xs">
@@ -716,6 +720,19 @@ export function ApprenantDetail({
           <TachesActivitesTab entiteType="apprenant" entiteId={apprenant.id} />
         </TabsContent>
       </Tabs>
+        </div>
+
+        {/* Side panel */}
+        <div className="hidden w-[280px] shrink-0 space-y-4 lg:block">
+          <ExtranetAccessPanel
+            entiteType="apprenant"
+            entiteId={apprenant.id}
+            email={apprenant.email}
+            prenom={apprenant.prenom}
+            nom={apprenant.nom}
+          />
+        </div>
+      </div>
       <ConfirmDialog />
     </div>
   );

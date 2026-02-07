@@ -86,6 +86,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Protect extranet routes — only extranet users with matching role
+  // Also auto-activate "invite" status on first access
   if (user && pathname.startsWith("/extranet/")) {
     try {
       const segment = pathname.split("/")[2];
@@ -97,24 +98,36 @@ export async function updateSession(request: NextRequest) {
       const expectedRole = roleMap[segment];
 
       if (expectedRole) {
+        // Check for active OR invited access
         const { data: acces } = await supabase
           .from("extranet_acces")
           .select("id, statut")
           .eq("user_id", user.id)
           .eq("role", expectedRole)
-          .eq("statut", "actif")
+          .in("statut", ["actif", "invite", "en_attente"])
           .limit(1)
           .single();
 
         if (!acces) {
           const url = request.nextUrl.clone();
-          url.pathname = "/apprenants";
+          url.pathname = "/login";
           return NextResponse.redirect(url);
+        }
+
+        // Auto-activate on first login if still "invite"
+        if (acces.statut === "invite" || acces.statut === "en_attente") {
+          await supabase
+            .from("extranet_acces")
+            .update({
+              statut: "actif",
+              active_le: new Date().toISOString(),
+            })
+            .eq("id", acces.id);
         }
       }
     } catch {
       const url = request.nextUrl.clone();
-      url.pathname = "/apprenants";
+      url.pathname = "/login";
       return NextResponse.redirect(url);
     }
   }
@@ -124,9 +137,9 @@ export async function updateSession(request: NextRequest) {
 
 /**
  * Determine redirect path based on user type:
- * 1. Check utilisateurs table → /apprenants
+ * 1. Check utilisateurs table → /apprenants (back-office)
  * 2. Check extranet_acces table → /extranet/{role}
- * 3. Fallback → /apprenants (safe default for authenticated users)
+ * 3. Fallback → /login
  */
 async function getRedirectPath(
   supabase: ReturnType<typeof createServerClient>,
@@ -144,12 +157,12 @@ async function getRedirectPath(
       return "/apprenants";
     }
 
-    // Check if extranet user (table may not exist if migration not applied)
+    // Check if extranet user — accept actif OR invite (will be auto-activated)
     const { data: acces } = await supabase
       .from("extranet_acces")
       .select("role, statut")
       .eq("user_id", userId)
-      .eq("statut", "actif")
+      .in("statut", ["actif", "invite", "en_attente"])
       .limit(1)
       .single();
 
@@ -159,13 +172,12 @@ async function getRedirectPath(
         apprenant: "/extranet/apprenant",
         contact_client: "/extranet/client",
       };
-      return routeMap[acces.role] || "/apprenants";
+      return routeMap[acces.role] || "/login";
     }
 
-    // Authenticated user not found in any table — safe fallback
-    return "/apprenants";
+    // Authenticated user not found in any table
+    return "/login";
   } catch {
-    // If queries fail (migration not applied), fallback safely
-    return "/apprenants";
+    return "/login";
   }
 }

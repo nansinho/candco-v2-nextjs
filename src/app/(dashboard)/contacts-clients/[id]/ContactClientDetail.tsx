@@ -17,6 +17,7 @@ import {
   type UpdateContactClientInput,
 } from "@/actions/contacts-clients";
 import { TachesActivitesTab } from "@/components/shared/taches-activites";
+import { ExtranetAccessPanel } from "@/components/shared/extranet-access-panel";
 import { formatDate } from "@/lib/utils";
 
 // ─── Types ───────────────────────────────────────────────
@@ -187,7 +188,10 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Content: Tabs + Side Panel */}
+      <div className="flex gap-6">
+        {/* Main content */}
+        <div className="flex-1 min-w-0">
       <Tabs defaultValue="informations">
         <TabsList className="bg-muted/50">
           <TabsTrigger value="informations" className="text-xs">
@@ -409,6 +413,19 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
           <TachesActivitesTab entiteType="contact_client" entiteId={contact.id} />
         </TabsContent>
       </Tabs>
+        </div>
+
+        {/* Side panel */}
+        <div className="hidden w-[280px] shrink-0 space-y-4 lg:block">
+          <ExtranetAccessPanel
+            entiteType="contact_client"
+            entiteId={contact.id}
+            email={form.email ?? null}
+            prenom={contact.prenom}
+            nom={contact.nom}
+          />
+        </div>
+      </div>
       <ConfirmDialog />
     </div>
   );

@@ -82,5 +82,38 @@ export const BPF_CATEGORIES_ENTREPRISE = [
   { code: "C.11", libelle: "Autres produits formation professionnelle" },
 ] as const;
 
+// ─── Extranet navigation ─────────────────────────────────
+
+export const EXTRANET_FORMATEUR_NAV = [
+  { label: "Tableau de bord", href: "/extranet/formateur", icon: "BarChart3" },
+  { label: "Mes sessions", href: "/extranet/formateur/sessions", icon: "Calendar" },
+  { label: "Planning", href: "/extranet/formateur/planning", icon: "CalendarDays" },
+  { label: "Disponibilites", href: "/extranet/formateur/disponibilites", icon: "Clock" },
+  { label: "Documents", href: "/extranet/formateur/documents", icon: "FileText" },
+  { label: "Facturation", href: "/extranet/formateur/facturation", icon: "Receipt" },
+  { label: "Messagerie", href: "/extranet/formateur/messagerie", icon: "MessageSquare" },
+  { label: "Mon profil", href: "/extranet/formateur/profil", icon: "UserCog" },
+] as const;
+
+export const EXTRANET_APPRENANT_NAV = [
+  { label: "Tableau de bord", href: "/extranet/apprenant", icon: "BarChart3" },
+  { label: "Mes sessions", href: "/extranet/apprenant/sessions", icon: "Calendar" },
+  { label: "Planning", href: "/extranet/apprenant/planning", icon: "CalendarDays" },
+  { label: "Emargement", href: "/extranet/apprenant/emargement", icon: "PenTool" },
+  { label: "Documents", href: "/extranet/apprenant/documents", icon: "FileText" },
+  { label: "Questionnaires", href: "/extranet/apprenant/questionnaires", icon: "ClipboardList" },
+  { label: "Messagerie", href: "/extranet/apprenant/messagerie", icon: "MessageSquare" },
+  { label: "Mon profil", href: "/extranet/apprenant/profil", icon: "UserCog" },
+] as const;
+
+export const EXTRANET_CLIENT_NAV = [
+  { label: "Tableau de bord", href: "/extranet/client", icon: "BarChart3" },
+  { label: "Sessions", href: "/extranet/client/sessions", icon: "Calendar" },
+  { label: "Devis", href: "/extranet/client/devis", icon: "FileText" },
+  { label: "Factures", href: "/extranet/client/factures", icon: "Receipt" },
+  { label: "Documents", href: "/extranet/client/documents", icon: "FileText" },
+  { label: "Messagerie", href: "/extranet/client/messagerie", icon: "MessageSquare" },
+] as const;
+
 // Pagination
 export const ITEMS_PER_PAGE = 25;

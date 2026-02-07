@@ -21,6 +21,7 @@ import {
 import { formatCurrency } from "@/lib/utils";
 import { TachesActivitesTab } from "@/components/shared/taches-activites";
 import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
+import { ExtranetAccessPanel } from "@/components/shared/extranet-access-panel";
 
 interface FormateurData {
   id: string;
@@ -267,7 +268,10 @@ export default function FormateurDetailPage() {
 
       <Separator className="bg-border/60" />
 
-      {/* Tabs */}
+      {/* Content: Tabs + Side Panel */}
+      <div className="flex gap-6">
+        {/* Main content */}
+        <div className="flex-1 min-w-0">
       <Tabs defaultValue="informations">
         <TabsList className="bg-muted/50">
           <TabsTrigger value="informations" className="text-xs">
@@ -600,6 +604,19 @@ export default function FormateurDetailPage() {
           <TachesActivitesTab entiteType="formateur" entiteId={formateur.id} />
         </TabsContent>
       </Tabs>
+        </div>
+
+        {/* Side panel */}
+        <div className="hidden w-[280px] shrink-0 space-y-4 lg:block">
+          <ExtranetAccessPanel
+            entiteType="formateur"
+            entiteId={formateur.id}
+            email={form.email ?? null}
+            prenom={formateur.prenom}
+            nom={formateur.nom}
+          />
+        </div>
+      </div>
       <ConfirmDialog />
     </div>
   );
