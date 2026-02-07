@@ -71,7 +71,7 @@ const PoleSchema = z.object({
   description: z.string().optional().or(z.literal("")),
 });
 
-const VALID_ROLES = ["directeur", "responsable_formation", "manager", "employe"] as const;
+const VALID_ROLES = ["direction", "responsable_formation", "manager", "employe"] as const;
 
 const MembreSchema = z.object({
   agence_id: z.string().uuid().optional().or(z.literal("")),
