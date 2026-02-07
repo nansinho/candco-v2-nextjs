@@ -746,15 +746,15 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
           {searchResults.length > 0 && (
             <div className="mt-2 space-y-1">
               {searchResults.map((c) => (
-                <div key={c.id} className="flex items-center justify-between rounded-md px-3 py-2 hover:bg-muted/30 transition-colors">
+                <button key={c.id} type="button" className="flex w-full items-center justify-between rounded-md px-3 py-2 hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => handleLinkContact(c.id)}>
                   <div className="flex items-center gap-2">
                     <Users className="h-3.5 w-3.5 text-purple-400" />
                     <span className="text-[13px] font-medium">{c.prenom} {c.nom}</span>
                     {c.fonction && <span className="text-[11px] text-muted-foreground/50">{c.fonction}</span>}
                     {c.email && <span className="text-[11px] text-muted-foreground/40">{c.email}</span>}
                   </div>
-                  <Button size="sm" className="h-6 text-[10px] px-2" onClick={() => handleLinkContact(c.id)}><Plus className="mr-0.5 h-3 w-3" />Rattacher</Button>
-                </div>
+                  <span className="text-[10px] text-primary font-medium flex items-center gap-0.5"><Plus className="h-3 w-3" />Rattacher</span>
+                </button>
               ))}
             </div>
           )}
@@ -775,15 +775,15 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
           {apprenantSearchResults.length > 0 && (
             <div className="mt-2 space-y-1">
               {apprenantSearchResults.map((a) => (
-                <div key={a.id} className="flex items-center justify-between rounded-md px-3 py-2 hover:bg-muted/30 transition-colors">
+                <button key={a.id} type="button" className="flex w-full items-center justify-between rounded-md px-3 py-2 hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => handleLinkApprenant(a.id)}>
                   <div className="flex items-center gap-2">
                     <GraduationCap className="h-3.5 w-3.5 text-blue-400" />
                     <span className="text-[13px] font-medium">{a.prenom} {a.nom}</span>
                     <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-[9px] px-1.5 py-0">Apprenant</Badge>
                     {a.email && <span className="text-[11px] text-muted-foreground/40">{a.email}</span>}
                   </div>
-                  <Button size="sm" className="h-6 text-[10px] px-2" onClick={() => handleLinkApprenant(a.id)}><Plus className="mr-0.5 h-3 w-3" />Rattacher</Button>
-                </div>
+                  <span className="text-[10px] text-primary font-medium flex items-center gap-0.5"><Plus className="h-3 w-3" />Rattacher</span>
+                </button>
               ))}
             </div>
           )}
@@ -940,14 +940,14 @@ function ApprenantsTab({ entrepriseId }: { entrepriseId: string }) {
           {searchResults.length > 0 && (
             <div className="mt-2 space-y-1">
               {searchResults.map((a) => (
-                <div key={a.id} className="flex items-center justify-between rounded-md px-3 py-2 hover:bg-muted/30 transition-colors">
+                <button key={a.id} type="button" className="flex w-full items-center justify-between rounded-md px-3 py-2 hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => handleLink(a.id)}>
                   <div className="flex items-center gap-2">
                     <GraduationCap className="h-3.5 w-3.5 text-blue-400" />
                     <span className="text-[13px] font-medium">{a.prenom} {a.nom}</span>
                     {a.email && <span className="text-[11px] text-muted-foreground/50">{a.email}</span>}
                   </div>
-                  <Button size="sm" className="h-6 text-[10px] px-2" onClick={() => handleLink(a.id)}><Plus className="mr-0.5 h-3 w-3" />Rattacher</Button>
-                </div>
+                  <span className="text-[10px] text-primary font-medium flex items-center gap-0.5"><Plus className="h-3 w-3" />Rattacher</span>
+                </button>
               ))}
             </div>
           )}
