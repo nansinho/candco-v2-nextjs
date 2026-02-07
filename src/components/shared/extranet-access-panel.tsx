@@ -20,6 +20,7 @@ import { useConfirm } from "@/components/ui/alert-dialog";
 import {
   inviteToExtranet,
   revokeExtranetAccess,
+  resendExtranetInvitation,
   getExtranetAccess,
 } from "@/actions/extranet";
 
@@ -134,10 +135,8 @@ export function ExtranetAccessPanel({
     }
 
     toast({
-      title: "Invitation creee",
-      description: result.loginLink
-        ? `Compte cree pour ${prenom} ${nom}. Copiez le lien de connexion ci-dessous.`
-        : `Compte cree pour ${prenom} ${nom}. L'acces extranet ${ROLE_LABELS[entiteType]} est actif.`,
+      title: "Invitation envoyee",
+      description: `Un email d'invitation a ete envoye a ${prenom} ${nom} (${email}).`,
       variant: "success",
     });
     loadAccess();
@@ -180,7 +179,7 @@ export function ExtranetAccessPanel({
     setIsInviting(true);
     setLoginLink(null);
 
-    const result = await inviteToExtranet({
+    const result = await resendExtranetInvitation({
       entiteType,
       entiteId,
       email,
@@ -204,9 +203,7 @@ export function ExtranetAccessPanel({
 
     toast({
       title: "Invitation renvoyee",
-      description: result.loginLink
-        ? `Nouveau lien genere pour ${prenom} ${nom}. Copiez-le ci-dessous.`
-        : `L'invitation a ete renvoyee a ${prenom} ${nom}.`,
+      description: `Un email d'invitation a ete envoye a ${prenom} ${nom}.`,
       variant: "success",
     });
     loadAccess();

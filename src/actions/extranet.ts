@@ -2,6 +2,8 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { sendEmail } from "@/lib/emails/send-email";
+import { invitationExtranetTemplate } from "@/lib/emails/templates";
 import { randomUUID } from "crypto";
 import { z } from "zod";
 
@@ -235,6 +237,42 @@ export async function inviteToExtranet(input: InviteInput) {
       loginLink = rawLink;
     }
 
+    // 5. Send invitation email via Resend
+    if (loginLink) {
+      const { data: org } = await admin
+        .from("organisations")
+        .select("nom, email_expediteur")
+        .eq("id", organisationId)
+        .single();
+
+      const orgName = (org as { nom?: string } | null)?.nom || "C&CO Formation";
+      const orgEmail = (org as { email_expediteur?: string } | null)?.email_expediteur;
+
+      const html = invitationExtranetTemplate({
+        prenom,
+        nom,
+        role,
+        orgName,
+        lien: loginLink,
+      });
+
+      const roleLabel = role === "formateur" ? "formateur" : role === "apprenant" ? "apprenant" : "contact client";
+
+      await sendEmail({
+        organisationId,
+        to: email,
+        toName: `${prenom} ${nom}`,
+        subject: `${orgName} — Accès à votre espace ${roleLabel}`,
+        html,
+        from: orgEmail ? `${orgName} <${orgEmail}>` : undefined,
+        entiteType,
+        entiteId,
+        template: "invitation_extranet",
+      }).catch((err) => {
+        console.error("[extranet] sendEmail error (non-blocking):", err);
+      });
+    }
+
     return { success: true, userId: authUserId, loginLink };
   } catch (err) {
     console.error("[extranet] inviteToExtranet unexpected error:", err);
@@ -285,6 +323,101 @@ export async function revokeExtranetAccess(extranetAccesId: string) {
     return { success: true };
   } catch (err) {
     console.error("[extranet] revokeExtranetAccess error:", err);
+    return { error: `Erreur inattendue : ${err instanceof Error ? err.message : String(err)}` };
+  }
+}
+
+/**
+ * Resend an extranet invitation email (generates new magic link + sends email).
+ */
+export async function resendExtranetInvitation(params: {
+  entiteType: string;
+  entiteId: string;
+  email: string;
+  prenom: string;
+  nom: string;
+}) {
+  try {
+    const authCheck = await requireAuth();
+    if ("error" in authCheck) return { error: authCheck.error };
+
+    const admin = createAdminClient();
+    const { entiteType, entiteId, email, prenom, nom } = params;
+
+    // Get organisation_id from the entity
+    const organisationId = await getOrganisationIdFromEntity(entiteType, entiteId);
+    if (!organisationId) return { error: "Entité introuvable" };
+
+    // Generate a new magic link
+    let loginLink: string | null = null;
+    const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
+      type: "magiclink",
+      email,
+    });
+
+    if (linkError) {
+      console.error("[extranet] resend generateLink error:", linkError.message);
+    } else if (linkData?.properties?.action_link) {
+      const publicSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+      let rawLink = linkData.properties.action_link;
+      try {
+        const parsed = new URL(rawLink);
+        const publicParsed = new URL(publicSupabaseUrl);
+        parsed.protocol = publicParsed.protocol;
+        parsed.host = publicParsed.host;
+        rawLink = parsed.toString();
+      } catch {
+        rawLink = rawLink.replace(/^https?:\/\/[^/]+/, publicSupabaseUrl.replace(/\/$/, ""));
+      }
+      loginLink = rawLink;
+    }
+
+    // Update invite_le timestamp
+    await admin
+      .from("extranet_acces")
+      .update({ invite_le: new Date().toISOString() })
+      .eq("entite_type", entiteType)
+      .eq("entite_id", entiteId);
+
+    // Send email
+    if (loginLink) {
+      const { data: org } = await admin
+        .from("organisations")
+        .select("nom, email_expediteur")
+        .eq("id", organisationId)
+        .single();
+
+      const orgName = (org as { nom?: string } | null)?.nom || "C&CO Formation";
+      const orgEmail = (org as { email_expediteur?: string } | null)?.email_expediteur;
+      const role = entiteType;
+      const roleLabel = role === "formateur" ? "formateur" : role === "apprenant" ? "apprenant" : "contact client";
+
+      const html = invitationExtranetTemplate({
+        prenom,
+        nom,
+        role,
+        orgName,
+        lien: loginLink,
+      });
+
+      await sendEmail({
+        organisationId,
+        to: email,
+        toName: `${prenom} ${nom}`,
+        subject: `${orgName} — Accès à votre espace ${roleLabel}`,
+        html,
+        from: orgEmail ? `${orgName} <${orgEmail}>` : undefined,
+        entiteType,
+        entiteId,
+        template: "invitation_extranet",
+      }).catch((err) => {
+        console.error("[extranet] resend sendEmail error:", err);
+      });
+    }
+
+    return { success: true, loginLink };
+  } catch (err) {
+    console.error("[extranet] resendExtranetInvitation error:", err);
     return { error: `Erreur inattendue : ${err instanceof Error ? err.message : String(err)}` };
   }
 }
