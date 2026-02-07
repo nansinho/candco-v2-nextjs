@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Send, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
+import { sendEmailLibre } from "@/actions/emails";
 
 interface EmailModalProps {
   open: boolean;
@@ -22,6 +23,9 @@ interface EmailModalProps {
   defaultSubject?: string;
   /** Context label shown in the dialog (e.g. entity name) */
   contextLabel?: string;
+  /** Optional entity for tracing */
+  entiteType?: string;
+  entiteId?: string;
 }
 
 export function EmailModal({
@@ -30,6 +34,8 @@ export function EmailModal({
   defaultTo = "",
   defaultSubject = "",
   contextLabel,
+  entiteType,
+  entiteId,
 }: EmailModalProps) {
   const { toast } = useToast();
   const [to, setTo] = React.useState(defaultTo);
@@ -46,27 +52,35 @@ export function EmailModal({
     }
   }, [open, defaultTo, defaultSubject]);
 
-  function handleSend() {
-    if (!to.trim()) return;
+  async function handleSend() {
+    if (!to.trim() || !body.trim()) return;
 
     setIsSending(true);
 
-    // Build mailto URL with subject and body
-    const params = new URLSearchParams();
-    if (subject) params.set("subject", subject);
-    if (body) params.set("body", body);
-
-    const mailtoUrl = `mailto:${encodeURIComponent(to)}${params.toString() ? `?${params.toString()}` : ""}`;
-    window.open(mailtoUrl, "_blank");
-
-    toast({
-      title: "Email préparé",
-      description: "Votre client email s'est ouvert avec le message pré-rempli.",
-      variant: "success",
+    const result = await sendEmailLibre({
+      to: to.trim(),
+      subject: subject.trim() || "(sans objet)",
+      body,
+      entiteType,
+      entiteId,
     });
 
     setIsSending(false);
-    onOpenChange(false);
+
+    if (result.success) {
+      toast({
+        title: "Email envoyé",
+        description: `Message envoyé à ${to}`,
+        variant: "success",
+      });
+      onOpenChange(false);
+    } else {
+      toast({
+        title: "Erreur d'envoi",
+        description: result.error || "Impossible d'envoyer l'email",
+        variant: "destructive",
+      });
+    }
   }
 
   return (
@@ -76,8 +90,8 @@ export function EmailModal({
           <DialogTitle>Envoyer un email</DialogTitle>
           <DialogDescription>
             {contextLabel
-              ? `Envoyez un email rapide à ${contextLabel}.`
-              : "Composez et envoyez un email rapide."}
+              ? `Envoyez un email à ${contextLabel}.`
+              : "Composez et envoyez un email."}
           </DialogDescription>
         </DialogHeader>
 
@@ -111,7 +125,7 @@ export function EmailModal({
 
           <div className="space-y-2">
             <Label htmlFor="email_body" className="text-[13px]">
-              Message
+              Message <span className="text-destructive">*</span>
             </Label>
             <textarea
               id="email_body"
@@ -136,14 +150,14 @@ export function EmailModal({
           </Button>
           <Button
             size="sm"
-            disabled={isSending || !to.trim()}
+            disabled={isSending || !to.trim() || !body.trim()}
             className="h-8 text-xs"
             onClick={handleSend}
           >
             {isSending ? (
               <>
                 <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
-                Envoi...
+                Envoi en cours...
               </>
             ) : (
               <>
