@@ -204,10 +204,24 @@ export async function inviteToExtranet(input: InviteInput) {
       return { error: `Erreur mise à jour fiche : ${entityError.message}` };
     }
 
-    // 4. TODO: Send invitation email via Resend
-    // For now, the user account is created and ready
+    // 4. Generate a login link for the invited user
+    // When Resend is set up, this link will be sent by email automatically.
+    // For now, we return it so the admin can copy/share it manually.
+    let loginLink: string | null = null;
 
-    return { success: true, userId: authUserId };
+    const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
+      type: "magiclink",
+      email,
+    });
+
+    if (linkError) {
+      console.error("[extranet] generateLink error:", linkError.message);
+      // Not a blocking error — the account is created, just no link
+    } else if (linkData?.properties?.action_link) {
+      loginLink = linkData.properties.action_link;
+    }
+
+    return { success: true, userId: authUserId, loginLink };
   } catch (err) {
     console.error("[extranet] inviteToExtranet unexpected error:", err);
     return { error: `Erreur inattendue : ${err instanceof Error ? err.message : String(err)}` };

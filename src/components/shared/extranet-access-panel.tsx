@@ -6,11 +6,12 @@ import {
   UserPlus,
   UserX,
   Loader2,
-  Mail,
   Check,
   Clock,
   XCircle,
   RefreshCw,
+  Copy,
+  Link,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -74,6 +75,7 @@ export function ExtranetAccessPanel({
   const [isLoading, setIsLoading] = React.useState(true);
   const [isInviting, setIsInviting] = React.useState(false);
   const [isRevoking, setIsRevoking] = React.useState(false);
+  const [loginLink, setLoginLink] = React.useState<string | null>(null);
   const [acces, setAcces] = React.useState<{
     id: string;
     user_id: string;
@@ -108,6 +110,7 @@ export function ExtranetAccessPanel({
     }
 
     setIsInviting(true);
+    setLoginLink(null);
     const result = await inviteToExtranet({
       entiteType,
       entiteId,
@@ -126,9 +129,15 @@ export function ExtranetAccessPanel({
       return;
     }
 
+    if (result.loginLink) {
+      setLoginLink(result.loginLink);
+    }
+
     toast({
-      title: "Invitation envoyee",
-      description: `Un compte a ete cree pour ${prenom} ${nom}. L'acces extranet ${ROLE_LABELS[entiteType]} est actif.`,
+      title: "Invitation creee",
+      description: result.loginLink
+        ? `Compte cree pour ${prenom} ${nom}. Copiez le lien de connexion ci-dessous.`
+        : `Compte cree pour ${prenom} ${nom}. L'acces extranet ${ROLE_LABELS[entiteType]} est actif.`,
       variant: "success",
     });
     loadAccess();
@@ -157,6 +166,7 @@ export function ExtranetAccessPanel({
       return;
     }
 
+    setLoginLink(null);
     toast({
       title: "Acces revoque",
       description: `L'acces extranet de ${prenom} ${nom} a ete desactive.`,
@@ -168,11 +178,7 @@ export function ExtranetAccessPanel({
   const handleReinvite = async () => {
     if (!email) return;
     setIsInviting(true);
-
-    // For re-invite of a desactivated access, we revoke and create fresh
-    if (acces && acces.statut === "desactive") {
-      // The inviteToExtranet function handles the re-activation case
-    }
+    setLoginLink(null);
 
     const result = await inviteToExtranet({
       entiteType,
@@ -192,12 +198,37 @@ export function ExtranetAccessPanel({
       return;
     }
 
+    if (result.loginLink) {
+      setLoginLink(result.loginLink);
+    }
+
     toast({
       title: "Invitation renvoyee",
-      description: `L'invitation a ete renvoyee a ${prenom} ${nom}.`,
+      description: result.loginLink
+        ? `Nouveau lien genere pour ${prenom} ${nom}. Copiez-le ci-dessous.`
+        : `L'invitation a ete renvoyee a ${prenom} ${nom}.`,
       variant: "success",
     });
     loadAccess();
+  };
+
+  const handleCopyLink = async () => {
+    if (!loginLink) return;
+    try {
+      await navigator.clipboard.writeText(loginLink);
+      toast({
+        title: "Lien copie",
+        description: "Le lien de connexion a ete copie dans le presse-papier.",
+        variant: "success",
+      });
+    } catch {
+      // Fallback: select the text
+      toast({
+        title: "Erreur",
+        description: "Impossible de copier. Selectionnez le lien manuellement.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (isLoading) {
@@ -220,6 +251,38 @@ export function ExtranetAccessPanel({
         <Globe className="h-4 w-4 text-primary" />
         <h3 className="text-sm font-semibold">Acces extranet</h3>
       </div>
+
+      {/* Login link display (shown after invite) */}
+      {loginLink && (
+        <div className="mb-4 rounded-md bg-emerald-500/5 border border-emerald-500/20 p-3 space-y-2">
+          <div className="flex items-center gap-1.5">
+            <Link className="h-3.5 w-3.5 text-emerald-400" />
+            <span className="text-xs font-medium text-emerald-400">
+              Lien de connexion
+            </span>
+          </div>
+          <p className="text-[10px] text-muted-foreground">
+            Partagez ce lien avec la personne pour qu&apos;elle puisse se connecter :
+          </p>
+          <div className="flex gap-1.5">
+            <input
+              type="text"
+              readOnly
+              value={loginLink}
+              className="flex-1 rounded bg-background/50 border border-border/40 px-2 py-1 text-[10px] font-mono text-foreground truncate"
+              onClick={(e) => (e.target as HTMLInputElement).select()}
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 px-2 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+              onClick={handleCopyLink}
+            >
+              <Copy className="h-3 w-3" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {!acces || acces.statut === "desactive" ? (
         /* No access or deactivated */
