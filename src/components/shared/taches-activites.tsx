@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   getTaches,
   createTache,
@@ -266,11 +267,10 @@ export function TachesActivitesTab({ entiteType, entiteId }: TachesActivitesTabP
               </div>
               <div className="space-y-2">
                 <Label className="text-[13px]">Échéance</Label>
-                <Input
-                  type="date"
+                <DatePicker
                   value={tacheEcheance}
-                  onChange={(e) => setTacheEcheance(e.target.value)}
-                  className="h-8 text-[13px] border-border/60"
+                  onChange={(val) => setTacheEcheance(val)}
+                  className="h-8"
                 />
               </div>
             </div>

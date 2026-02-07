@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 
 interface PopoverContextValue {
@@ -73,17 +74,66 @@ const PopoverContent = React.forwardRef<
     align?: "start" | "center" | "end";
     sideOffset?: number;
   }
->(({ className, align = "start", children, ...props }, ref) => {
-  const { open, onOpenChange } = React.useContext(PopoverContext);
+>(({ className, align = "start", sideOffset = 4, children, ...props }, ref) => {
+  const { open, onOpenChange, triggerRef } = React.useContext(PopoverContext);
   const contentRef = React.useRef<HTMLDivElement>(null);
+  const [pos, setPos] = React.useState({ top: 0, left: 0 });
+  const [mounted, setMounted] = React.useState(false);
 
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Position the popover relative to the trigger
+  React.useEffect(() => {
+    if (!open || !triggerRef.current) return;
+
+    function updatePos() {
+      const trigger = triggerRef.current;
+      if (!trigger) return;
+
+      const rect = trigger.getBoundingClientRect();
+      const viewportH = window.innerHeight;
+      const calH = 360;
+      const spaceBelow = viewportH - rect.bottom;
+      const openUp = spaceBelow < calH && rect.top > calH;
+
+      const top = openUp
+        ? rect.top + window.scrollY - calH - sideOffset
+        : rect.bottom + window.scrollY + sideOffset;
+
+      let left: number;
+      if (align === "end") {
+        left = rect.right + window.scrollX;
+      } else if (align === "center") {
+        left = rect.left + window.scrollX + rect.width / 2;
+      } else {
+        left = rect.left + window.scrollX;
+      }
+
+      setPos({ top, left });
+    }
+
+    updatePos();
+
+    window.addEventListener("scroll", updatePos, true);
+    window.addEventListener("resize", updatePos);
+    return () => {
+      window.removeEventListener("scroll", updatePos, true);
+      window.removeEventListener("resize", updatePos);
+    };
+  }, [open, triggerRef, align, sideOffset]);
+
+  // Close on outside click / Escape
   React.useEffect(() => {
     if (!open) return;
 
     function handleClickOutside(event: MouseEvent) {
       if (
         contentRef.current &&
-        !contentRef.current.contains(event.target as Node)
+        !contentRef.current.contains(event.target as Node) &&
+        triggerRef.current &&
+        !triggerRef.current.contains(event.target as Node)
       ) {
         onOpenChange(false);
       }
@@ -101,11 +151,11 @@ const PopoverContent = React.forwardRef<
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleEscape);
     };
-  }, [open, onOpenChange]);
+  }, [open, onOpenChange, triggerRef]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
+  const content = (
     <div
       ref={(node) => {
         (contentRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
@@ -113,17 +163,22 @@ const PopoverContent = React.forwardRef<
         else if (ref) ref.current = node;
       }}
       className={cn(
-        "absolute top-full z-50 mt-1 rounded-lg border border-border bg-popover p-0 text-popover-foreground shadow-xl outline-none",
-        align === "start" && "left-0",
-        align === "center" && "left-1/2 -translate-x-1/2",
-        align === "end" && "right-0",
+        "z-[100] rounded-lg border border-border bg-popover p-0 text-popover-foreground shadow-xl outline-none",
         className
       )}
+      style={{
+        position: "absolute",
+        top: `${pos.top}px`,
+        left: `${pos.left}px`,
+        transform: align === "center" ? "translateX(-50%)" : undefined,
+      }}
       {...props}
     >
       {children}
     </div>
   );
+
+  return createPortal(content, document.body);
 });
 PopoverContent.displayName = "PopoverContent";
 
