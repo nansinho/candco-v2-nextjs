@@ -195,6 +195,7 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
       <QuickActionsBar
         email={contact.email}
         telephone={contact.telephone}
+        emailContextLabel={`${contact.prenom} ${contact.nom}`}
       />
 
       {/* Content: Tabs + Side Panel */}

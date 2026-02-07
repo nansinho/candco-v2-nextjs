@@ -267,6 +267,7 @@ export default function FinanceurDetailPage() {
       <QuickActionsBar
         email={financeur.email}
         telephone={financeur.telephone}
+        emailContextLabel={financeur.nom}
       />
 
       {/* Informations générales */}

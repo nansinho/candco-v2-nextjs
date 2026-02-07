@@ -231,6 +231,7 @@ export default function EntrepriseDetailPage() {
       <QuickActionsBar
         email={entreprise.email}
         telephone={entreprise.telephone}
+        emailContextLabel={entreprise.nom}
       />
 
       {/* Tabs */}

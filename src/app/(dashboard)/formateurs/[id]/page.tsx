@@ -275,6 +275,7 @@ export default function FormateurDetailPage() {
       <QuickActionsBar
         email={form.email ?? null}
         telephone={form.telephone ?? null}
+        emailContextLabel={formateur ? `${formateur.prenom} ${formateur.nom}` : undefined}
       />
 
       {/* Content: Tabs + Side Panel */}

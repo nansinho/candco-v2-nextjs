@@ -17,6 +17,8 @@ import {
   ChevronDown,
   ChevronRight,
   X,
+  CalendarPlus,
+  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,6 +56,10 @@ import {
   type Pole,
   type Membre,
 } from "@/actions/entreprise-organisation";
+import {
+  searchSessionsForInscription,
+  bulkAddInscriptions,
+} from "@/actions/sessions";
 
 // ─── Role Labels ─────────────────────────────────────────
 
@@ -92,6 +98,10 @@ export function OrganisationTab({ entrepriseId }: OrganisationTabProps) {
   const [editingAgence, setEditingAgence] = React.useState<Agence | null>(null);
   const [editingPole, setEditingPole] = React.useState<(Pole & { agence_nom?: string }) | null>(null);
   const [editingMembre, setEditingMembre] = React.useState<Membre | null>(null);
+
+  // Selection for bulk inscription
+  const [selectedMembreIds, setSelectedMembreIds] = React.useState<Set<string>>(new Set());
+  const [inscriptionDialog, setInscriptionDialog] = React.useState(false);
 
   // Sections collapsed
   const [agencesOpen, setAgencesOpen] = React.useState(true);
@@ -339,19 +349,31 @@ export function OrganisationTab({ entrepriseId }: OrganisationTabProps) {
               )}
             </h3>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 text-[11px] border-border/60"
-            onClick={(e) => {
-              e.stopPropagation();
-              setEditingMembre(null);
-              setMembreDialog(true);
-            }}
-          >
-            <Plus className="mr-1 h-3 w-3" />
-            Ajouter
-          </Button>
+          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+            {selectedMembreIds.size > 0 && (
+              <Button
+                variant="default"
+                size="sm"
+                className="h-7 text-[11px]"
+                onClick={() => setInscriptionDialog(true)}
+              >
+                <CalendarPlus className="mr-1 h-3 w-3" />
+                Inscrire en session ({selectedMembreIds.size})
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-[11px] border-border/60"
+              onClick={() => {
+                setEditingMembre(null);
+                setMembreDialog(true);
+              }}
+            >
+              <Plus className="mr-1 h-3 w-3" />
+              Ajouter
+            </Button>
+          </div>
         </div>
 
         {membresOpen && (
@@ -365,6 +387,21 @@ export function OrganisationTab({ entrepriseId }: OrganisationTabProps) {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border/60 bg-muted/30">
+                  <th className="w-10 px-3 py-2.5">
+                    <input
+                      type="checkbox"
+                      className="h-3.5 w-3.5 rounded border-border/60"
+                      checked={selectedMembreIds.size > 0 && membres.filter((m) => m.apprenant_id).every((m) => selectedMembreIds.has(m.id))}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedMembreIds(new Set(membres.filter((m) => m.apprenant_id).map((m) => m.id)));
+                        } else {
+                          setSelectedMembreIds(new Set());
+                        }
+                      }}
+                      title="Sélectionner tous les apprenants"
+                    />
+                  </th>
                   <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
                     Personne
                   </th>
@@ -388,7 +425,24 @@ export function OrganisationTab({ entrepriseId }: OrganisationTabProps) {
                   const type = m.apprenant_id ? "apprenant" : "contact";
 
                   return (
-                    <tr key={m.id} className="border-b border-border/40 transition-colors hover:bg-muted/10 group">
+                    <tr key={m.id} className={`border-b border-border/40 transition-colors hover:bg-muted/10 group ${selectedMembreIds.has(m.id) ? "bg-primary/5" : ""}`}>
+                      <td className="px-3 py-2.5">
+                        {type === "apprenant" ? (
+                          <input
+                            type="checkbox"
+                            className="h-3.5 w-3.5 rounded border-border/60"
+                            checked={selectedMembreIds.has(m.id)}
+                            onChange={(e) => {
+                              const next = new Set(selectedMembreIds);
+                              if (e.target.checked) next.add(m.id);
+                              else next.delete(m.id);
+                              setSelectedMembreIds(next);
+                            }}
+                          />
+                        ) : (
+                          <span className="block h-3.5 w-3.5" title="Seuls les apprenants peuvent être inscrits" />
+                        )}
+                      </td>
                       <td className="px-4 py-2.5">
                         <div className="flex items-center gap-2">
                           {type === "apprenant" ? (
@@ -491,6 +545,17 @@ export function OrganisationTab({ entrepriseId }: OrganisationTabProps) {
         agences={agences}
         poles={poles}
         onSuccess={() => { setMembreDialog(false); fetchAll(); }}
+      />
+
+      <InscriptionGroupeeDialog
+        open={inscriptionDialog}
+        onOpenChange={setInscriptionDialog}
+        entrepriseId={entrepriseId}
+        selectedMembres={membres.filter((m) => selectedMembreIds.has(m.id) && m.apprenant_id)}
+        onSuccess={() => {
+          setInscriptionDialog(false);
+          setSelectedMembreIds(new Set());
+        }}
       />
 
       <ConfirmDialog />
@@ -1240,6 +1305,258 @@ function MembreDialog({
             </Button>
           </DialogFooter>
         </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Inscription Groupée Dialog ─────────────────────────
+
+interface SessionOption {
+  id: string;
+  nom: string;
+  numero_affichage: string;
+  statut: string;
+  date_debut: string | null;
+  date_fin: string | null;
+  places_max: number | null;
+  inscrits: number;
+}
+
+const STATUT_COLORS: Record<string, string> = {
+  en_projet: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+  validee: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+  en_cours: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+};
+
+const STATUT_LABELS: Record<string, string> = {
+  en_projet: "En projet",
+  validee: "Validée",
+  en_cours: "En cours",
+};
+
+function InscriptionGroupeeDialog({
+  open,
+  onOpenChange,
+  entrepriseId,
+  selectedMembres,
+  onSuccess,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  entrepriseId: string;
+  selectedMembres: Membre[];
+  onSuccess: () => void;
+}) {
+  const { toast } = useToast();
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const [sessions, setSessions] = React.useState<SessionOption[]>([]);
+  const [isSearching, setIsSearching] = React.useState(false);
+  const [selectedSession, setSelectedSession] = React.useState<SessionOption | null>(null);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  // Get only apprenant members
+  const apprenantMembres = selectedMembres.filter((m) => m.apprenant_id);
+
+  // Load sessions on open
+  React.useEffect(() => {
+    if (open) {
+      setSearchQuery("");
+      setSelectedSession(null);
+      setIsSubmitting(false);
+      // Load initial sessions
+      (async () => {
+        setIsSearching(true);
+        const result = await searchSessionsForInscription("");
+        setSessions(result.data);
+        setIsSearching(false);
+      })();
+    }
+  }, [open]);
+
+  // Search sessions with debounce
+  React.useEffect(() => {
+    if (!open) return;
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
+      const result = await searchSessionsForInscription(searchQuery);
+      setSessions(result.data);
+      setIsSearching(false);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery, open]);
+
+  async function handleSubmit() {
+    if (!selectedSession || apprenantMembres.length === 0) return;
+
+    setIsSubmitting(true);
+    const apprenantIds = apprenantMembres
+      .map((m) => m.apprenant_id)
+      .filter((id): id is string => !!id);
+
+    const result = await bulkAddInscriptions(selectedSession.id, apprenantIds);
+
+    setIsSubmitting(false);
+
+    if ("error" in result && result.error) {
+      toast({
+        title: "Erreur",
+        description: typeof result.error === "string" ? result.error : "Erreur lors de l'inscription",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const r = result as { success: boolean; count: number; skipped: number };
+    const msg = r.skipped > 0
+      ? `${r.count} apprenant(s) inscrit(s). ${r.skipped} déjà inscrit(s).`
+      : `${r.count} apprenant(s) inscrit(s) avec succès.`;
+
+    toast({ title: "Inscription groupée", description: msg, variant: "success" });
+    onSuccess();
+  }
+
+  function formatDate(d: string | null) {
+    if (!d) return "";
+    return new Date(d).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Inscrire en session</DialogTitle>
+          <DialogDescription>
+            Inscrivez {apprenantMembres.length} apprenant(s) à une session de formation.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          {/* Selected apprenants summary */}
+          <div className="rounded-md border border-border/40 bg-muted/20 p-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60 mb-2">
+              Apprenants sélectionnés
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {apprenantMembres.map((m) => (
+                <Badge key={m.id} variant="outline" className="text-[11px] border-border/40">
+                  <GraduationCap className="mr-1 h-2.5 w-2.5 text-blue-400" />
+                  {(m.apprenant_prenom ?? "")} {(m.apprenant_nom ?? "")}
+                </Badge>
+              ))}
+            </div>
+          </div>
+
+          {/* Session search */}
+          <div className="space-y-2">
+            <Label className="text-[13px]">Session de formation</Label>
+
+            {selectedSession ? (
+              <div className="flex items-center justify-between rounded-md border border-primary/30 bg-primary/5 px-3 py-2.5">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[13px] font-medium">{selectedSession.nom}</span>
+                    <Badge className={`text-[10px] ${STATUT_COLORS[selectedSession.statut] ?? ""}`}>
+                      {STATUT_LABELS[selectedSession.statut] ?? selectedSession.statut}
+                    </Badge>
+                  </div>
+                  <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground/60">
+                    <span className="font-mono">{selectedSession.numero_affichage}</span>
+                    {selectedSession.date_debut && (
+                      <span>
+                        {formatDate(selectedSession.date_debut)}
+                        {selectedSession.date_fin && ` → ${formatDate(selectedSession.date_fin)}`}
+                      </span>
+                    )}
+                    <span>
+                      {selectedSession.inscrits} inscrit(s)
+                      {selectedSession.places_max ? ` / ${selectedSession.places_max} places` : ""}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedSession(null)}
+                  className="text-muted-foreground/50 hover:text-foreground"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/50" />
+                  <Input
+                    placeholder="Rechercher une session..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="h-8 pl-9 text-xs border-border/60"
+                    autoFocus
+                  />
+                </div>
+                {isSearching && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Recherche...
+                  </div>
+                )}
+                {!isSearching && sessions.length === 0 && (
+                  <p className="text-xs text-muted-foreground/50 py-3 text-center">
+                    Aucune session trouvée
+                  </p>
+                )}
+                {sessions.length > 0 && (
+                  <div className="max-h-52 overflow-y-auto rounded-md border border-border/40">
+                    {sessions.map((s) => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        className="flex w-full items-start gap-2 px-3 py-2.5 text-left hover:bg-muted/30 transition-colors border-b border-border/30 last:border-0"
+                        onClick={() => setSelectedSession(s)}
+                      >
+                        <CalendarPlus className="mt-0.5 h-3.5 w-3.5 text-primary/60 shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[13px] font-medium truncate">{s.nom}</span>
+                            <Badge className={`text-[10px] shrink-0 ${STATUT_COLORS[s.statut] ?? ""}`}>
+                              {STATUT_LABELS[s.statut] ?? s.statut}
+                            </Badge>
+                          </div>
+                          <div className="mt-0.5 flex items-center gap-2 text-[10px] text-muted-foreground/50">
+                            <span className="font-mono">{s.numero_affichage}</span>
+                            {s.date_debut && <span>{formatDate(s.date_debut)}</span>}
+                            <span>
+                              {s.inscrits} inscrit(s)
+                              {s.places_max ? ` / ${s.places_max}` : ""}
+                            </span>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+
+        <DialogFooter className="pt-2">
+          <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)} className="h-8 text-xs border-border/60">
+            Annuler
+          </Button>
+          <Button
+            size="sm"
+            disabled={isSubmitting || !selectedSession || apprenantMembres.length === 0}
+            className="h-8 text-xs"
+            onClick={handleSubmit}
+          >
+            {isSubmitting ? (
+              <><Loader2 className="mr-1.5 h-3 w-3 animate-spin" />Inscription...</>
+            ) : (
+              <><Check className="mr-1.5 h-3 w-3" />Inscrire {apprenantMembres.length} apprenant(s)</>
+            )}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

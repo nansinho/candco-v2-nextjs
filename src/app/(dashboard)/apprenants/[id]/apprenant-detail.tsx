@@ -251,6 +251,7 @@ export function ApprenantDetail({
       <QuickActionsBar
         email={apprenant.email}
         telephone={apprenant.telephone}
+        emailContextLabel={`${apprenant.prenom} ${apprenant.nom}`}
       />
 
       {/* Content: Tabs + Side Panel */}
