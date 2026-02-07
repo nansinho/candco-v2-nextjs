@@ -79,6 +79,28 @@ const MembreSchema = z.object({
   fonction: z.string().optional().or(z.literal("")),
 });
 
+// ─── Error Helper ────────────────────────────────────────
+
+function buildSupabaseErrorMsg(error: { code?: string; message?: string; details?: string; hint?: string }): string {
+  const parts: string[] = [];
+
+  if (error.code === "42501") {
+    parts.push("Permission refusée par la politique de sécurité (RLS). Vérifiez que la migration 00006 a été exécutée.");
+  } else if (error.code === "42P01") {
+    parts.push("Table introuvable. Veuillez exécuter la migration 00003.");
+  } else if (error.code === "PGRST116") {
+    parts.push("Erreur de lecture après insertion (RLS). Veuillez exécuter la migration 00006.");
+  } else if (error.message) {
+    parts.push(error.message);
+  }
+
+  if (error.details) parts.push(error.details);
+  if (error.hint) parts.push(error.hint);
+  if (error.code && parts.length > 0) parts.push(`(code: ${error.code})`);
+
+  return parts.length > 0 ? parts.join(" — ") : `Erreur inconnue (code: ${error.code ?? "N/A"})`;
+}
+
 // ─── Agences ─────────────────────────────────────────────
 
 export async function getAgences(entrepriseId: string) {
@@ -103,7 +125,9 @@ export async function createAgence(entrepriseId: string, input: z.infer<typeof A
     const supabase = await createClient();
 
     const d = parsed.data;
-    const { data, error } = await supabase
+    // Don't use .select().single() — RLS USING policy can block the read-back
+    // causing PGRST116 even when the INSERT succeeded
+    const { error } = await supabase
       .from("entreprise_agences")
       .insert({
         entreprise_id: entrepriseId,
@@ -116,22 +140,15 @@ export async function createAgence(entrepriseId: string, input: z.infer<typeof A
         telephone: d.telephone || null,
         email: d.email || null,
         est_siege: d.est_siege,
-      })
-      .select()
-      .single();
+      });
 
     if (error) {
       console.error("[createAgence] Supabase error:", JSON.stringify(error));
-      const msg = error.code === "PGRST116"
-        ? "Erreur de permission : vérifiez que la table entreprise_agences existe et que vous avez les droits d'accès."
-        : error.code === "42P01"
-        ? "La table entreprise_agences n'existe pas. Veuillez exécuter la migration 00003."
-        : error.message || "Erreur inconnue";
-      return { error: { _form: [msg] } };
+      return { error: { _form: [buildSupabaseErrorMsg(error)] } };
     }
 
     revalidatePath(`/entreprises/${entrepriseId}`);
-    return { data };
+    return { data: { success: true } };
   } catch (err) {
     console.error("[createAgence] Unexpected error:", err);
     return { error: { _form: [err instanceof Error ? err.message : "Erreur serveur inattendue"] } };
@@ -146,7 +163,7 @@ export async function updateAgence(agenceId: string, entrepriseId: string, input
     const supabase = await createClient();
 
     const d = parsed.data;
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("entreprise_agences")
       .update({
         nom: d.nom,
@@ -159,17 +176,15 @@ export async function updateAgence(agenceId: string, entrepriseId: string, input
         email: d.email || null,
         est_siege: d.est_siege,
       })
-      .eq("id", agenceId)
-      .select()
-      .single();
+      .eq("id", agenceId);
 
     if (error) {
-      console.error("[updateAgence] Supabase error:", error.message, error.details, error.hint);
-      return { error: { _form: [error.message] } };
+      console.error("[updateAgence] Supabase error:", JSON.stringify(error));
+      return { error: { _form: [buildSupabaseErrorMsg(error)] } };
     }
 
     revalidatePath(`/entreprises/${entrepriseId}`);
-    return { data };
+    return { data: { success: true } };
   } catch (err) {
     console.error("[updateAgence] Unexpected error:", err);
     return { error: { _form: [err instanceof Error ? err.message : "Erreur serveur inattendue"] } };
@@ -186,8 +201,8 @@ export async function deleteAgence(agenceId: string, entrepriseId: string) {
       .eq("id", agenceId);
 
     if (error) {
-      console.error("[deleteAgence] Supabase error:", error.message, error.details, error.hint);
-      return { error: error.message };
+      console.error("[deleteAgence] Supabase error:", JSON.stringify(error));
+      return { error: buildSupabaseErrorMsg(error) };
     }
 
     revalidatePath(`/entreprises/${entrepriseId}`);
@@ -227,24 +242,22 @@ export async function createPole(entrepriseId: string, input: z.infer<typeof Pol
     const supabase = await createClient();
 
     const d = parsed.data;
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("entreprise_poles")
       .insert({
         entreprise_id: entrepriseId,
         nom: d.nom,
         agence_id: d.agence_id || null,
         description: d.description || null,
-      })
-      .select()
-      .single();
+      });
 
     if (error) {
-      console.error("[createPole] Supabase error:", error.message, error.details, error.hint);
-      return { error: { _form: [error.message] } };
+      console.error("[createPole] Supabase error:", JSON.stringify(error));
+      return { error: { _form: [buildSupabaseErrorMsg(error)] } };
     }
 
     revalidatePath(`/entreprises/${entrepriseId}`);
-    return { data };
+    return { data: { success: true } };
   } catch (err) {
     console.error("[createPole] Unexpected error:", err);
     return { error: { _form: [err instanceof Error ? err.message : "Erreur serveur inattendue"] } };
@@ -259,24 +272,22 @@ export async function updatePole(poleId: string, entrepriseId: string, input: z.
     const supabase = await createClient();
 
     const d = parsed.data;
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("entreprise_poles")
       .update({
         nom: d.nom,
         agence_id: d.agence_id || null,
         description: d.description || null,
       })
-      .eq("id", poleId)
-      .select()
-      .single();
+      .eq("id", poleId);
 
     if (error) {
-      console.error("[updatePole] Supabase error:", error.message, error.details, error.hint);
-      return { error: { _form: [error.message] } };
+      console.error("[updatePole] Supabase error:", JSON.stringify(error));
+      return { error: { _form: [buildSupabaseErrorMsg(error)] } };
     }
 
     revalidatePath(`/entreprises/${entrepriseId}`);
-    return { data };
+    return { data: { success: true } };
   } catch (err) {
     console.error("[updatePole] Unexpected error:", err);
     return { error: { _form: [err instanceof Error ? err.message : "Erreur serveur inattendue"] } };
@@ -293,8 +304,8 @@ export async function deletePole(poleId: string, entrepriseId: string) {
       .eq("id", poleId);
 
     if (error) {
-      console.error("[deletePole] Supabase error:", error.message, error.details, error.hint);
-      return { error: error.message };
+      console.error("[deletePole] Supabase error:", JSON.stringify(error));
+      return { error: buildSupabaseErrorMsg(error) };
     }
 
     revalidatePath(`/entreprises/${entrepriseId}`);
@@ -354,7 +365,7 @@ export async function createMembre(entrepriseId: string, input: z.infer<typeof M
   try {
     const supabase = await createClient();
 
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("entreprise_membres")
       .insert({
         entreprise_id: entrepriseId,
@@ -364,17 +375,15 @@ export async function createMembre(entrepriseId: string, input: z.infer<typeof M
         contact_client_id: d.contact_client_id || null,
         role: d.role,
         fonction: d.fonction || null,
-      })
-      .select()
-      .single();
+      });
 
     if (error) {
-      console.error("[createMembre] Supabase error:", error.message, error.details, error.hint);
-      return { error: { _form: [error.message] } };
+      console.error("[createMembre] Supabase error:", JSON.stringify(error));
+      return { error: { _form: [buildSupabaseErrorMsg(error)] } };
     }
 
     revalidatePath(`/entreprises/${entrepriseId}`);
-    return { data };
+    return { data: { success: true } };
   } catch (err) {
     console.error("[createMembre] Unexpected error:", err);
     return { error: { _form: [err instanceof Error ? err.message : "Erreur serveur inattendue"] } };
@@ -390,7 +399,7 @@ export async function updateMembre(membreId: string, entrepriseId: string, input
   try {
     const supabase = await createClient();
 
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("entreprise_membres")
       .update({
         agence_id: d.agence_id || null,
@@ -398,17 +407,15 @@ export async function updateMembre(membreId: string, entrepriseId: string, input
         role: d.role,
         fonction: d.fonction || null,
       })
-      .eq("id", membreId)
-      .select()
-      .single();
+      .eq("id", membreId);
 
     if (error) {
-      console.error("[updateMembre] Supabase error:", error.message, error.details, error.hint);
-      return { error: { _form: [error.message] } };
+      console.error("[updateMembre] Supabase error:", JSON.stringify(error));
+      return { error: { _form: [buildSupabaseErrorMsg(error)] } };
     }
 
     revalidatePath(`/entreprises/${entrepriseId}`);
-    return { data };
+    return { data: { success: true } };
   } catch (err) {
     console.error("[updateMembre] Unexpected error:", err);
     return { error: { _form: [err instanceof Error ? err.message : "Erreur serveur inattendue"] } };
@@ -425,8 +432,8 @@ export async function deleteMembre(membreId: string, entrepriseId: string) {
       .eq("id", membreId);
 
     if (error) {
-      console.error("[deleteMembre] Supabase error:", error.message, error.details, error.hint);
-      return { error: error.message };
+      console.error("[deleteMembre] Supabase error:", JSON.stringify(error));
+      return { error: buildSupabaseErrorMsg(error) };
     }
 
     revalidatePath(`/entreprises/${entrepriseId}`);
@@ -435,6 +442,46 @@ export async function deleteMembre(membreId: string, entrepriseId: string) {
     console.error("[deleteMembre] Unexpected error:", err);
     return { error: err instanceof Error ? err.message : "Erreur serveur inattendue" };
   }
+}
+
+// ─── SIRET check (non-blocking warning) ─────────────────
+
+export async function checkSiretUsage(siret: string, excludeAgenceId?: string): Promise<{ usedBy: string[] }> {
+  if (!siret || siret.trim().length < 9) return { usedBy: [] };
+
+  const supabase = await createClient();
+  const cleanSiret = siret.replace(/\s/g, "");
+  const usedBy: string[] = [];
+
+  // Check in entreprises table
+  const { data: entreprises } = await supabase
+    .from("entreprises")
+    .select("nom")
+    .eq("siret", cleanSiret)
+    .is("archived_at", null)
+    .limit(3);
+
+  if (entreprises?.length) {
+    usedBy.push(...entreprises.map((e: { nom: string }) => `Entreprise: ${e.nom}`));
+  }
+
+  // Check in other agences
+  let agenceQuery = supabase
+    .from("entreprise_agences")
+    .select("nom")
+    .eq("siret", cleanSiret)
+    .limit(3);
+
+  if (excludeAgenceId) {
+    agenceQuery = agenceQuery.neq("id", excludeAgenceId);
+  }
+
+  const { data: agences } = await agenceQuery;
+  if (agences?.length) {
+    usedBy.push(...agences.map((a: { nom: string }) => `Agence: ${a.nom}`));
+  }
+
+  return { usedBy };
 }
 
 // ─── Search helpers for linking membres ──────────────────

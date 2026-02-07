@@ -17,6 +17,7 @@ import {
   ChevronDown,
   ChevronRight,
   X,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,6 +51,7 @@ import {
   deleteMembre,
   searchApprenantsForMembre,
   searchContactsForMembre,
+  checkSiretUsage,
   type Agence,
   type Pole,
   type Membre,
@@ -532,6 +534,7 @@ function AgenceDialog({
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string[]>>({});
+  const [siretWarning, setSiretWarning] = React.useState<string[]>([]);
   const isEdit = !!agence;
 
   // Controlled state for fields that SiretSearch/AddressAutocomplete need to update
@@ -550,8 +553,23 @@ function AgenceDialog({
       setAdresseCp(agence?.adresse_cp ?? "");
       setAdresseVille(agence?.adresse_ville ?? "");
       setErrors({});
+      setSiretWarning([]);
     }
   }, [open, agence]);
+
+  // Non-blocking SIRET usage check
+  React.useEffect(() => {
+    const cleanSiret = siret.replace(/\s/g, "");
+    if (cleanSiret.length < 9) {
+      setSiretWarning([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      const result = await checkSiretUsage(cleanSiret, agence?.id);
+      setSiretWarning(result.usedBy);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [siret, agence?.id]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -674,6 +692,19 @@ function AgenceDialog({
               />
             </div>
           </div>
+
+          {siretWarning.length > 0 && (
+            <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[12px] text-amber-400">
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
+              <div>
+                <p className="font-medium">Ce SIRET est déjà utilisé par :</p>
+                <ul className="mt-0.5 list-disc pl-4">
+                  {siretWarning.map((w, i) => <li key={i}>{w}</li>)}
+                </ul>
+                <p className="mt-1 text-amber-400/70">Vous pouvez tout de même créer l&apos;agence.</p>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="agence_email" className="text-[13px]">Email</Label>
