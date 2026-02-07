@@ -470,11 +470,15 @@ export function OrganisationTab({ entrepriseId }: OrganisationTabProps) {
                       </td>
                       <td className="px-4 py-2.5 text-[11px] text-muted-foreground/60">
                         <div className="space-y-0.5">
-                          {m.agence_nom && (
-                            <span className="flex items-center gap-0.5">
-                              <Building className="h-2.5 w-2.5" />
-                              {m.agence_nom}
-                            </span>
+                          {m.agences && m.agences.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                              {m.agences.map((a) => (
+                                <span key={a.id} className="inline-flex items-center gap-0.5 rounded bg-muted/30 px-1.5 py-0.5 text-[10px]">
+                                  <Building className="h-2.5 w-2.5" />
+                                  {a.nom}
+                                </span>
+                              ))}
+                            </div>
                           )}
                           {m.pole_nom && (
                             <span className="flex items-center gap-0.5">
@@ -482,7 +486,7 @@ export function OrganisationTab({ entrepriseId }: OrganisationTabProps) {
                               {m.pole_nom}
                             </span>
                           )}
-                          {!m.agence_nom && !m.pole_nom && (
+                          {(!m.agences || m.agences.length === 0) && !m.pole_nom && (
                             <span className="text-muted-foreground/40">--</span>
                           )}
                         </div>
@@ -1026,12 +1030,14 @@ function MembreDialog({
   const [quickTelephone, setQuickTelephone] = React.useState("");
   const [isCreatingApprenant, setIsCreatingApprenant] = React.useState(false);
 
-  // Form state — multi-roles
+  // Form state — multi-roles + multi-agences
   const [selectedRoles, setSelectedRoles] = React.useState<string[]>(
     membre?.roles && membre.roles.length > 0 ? membre.roles : []
   );
   const [fonction, setFonction] = React.useState(membre?.fonction ?? "");
-  const [agenceId, setAgenceId] = React.useState(membre?.agence_id ?? "");
+  const [selectedAgenceIds, setSelectedAgenceIds] = React.useState<string[]>(
+    membre?.agences?.map((a) => a.id) ?? []
+  );
   const [poleId, setPoleId] = React.useState(membre?.pole_id ?? "");
 
   const isLegacyContact = !!membre?.contact_client_id;
@@ -1060,13 +1066,13 @@ function MembreDialog({
         });
         setSelectedRoles(membre.roles && membre.roles.length > 0 ? [...membre.roles] : []);
         setFonction(membre.fonction ?? "");
-        setAgenceId(membre.agence_id ?? "");
+        setSelectedAgenceIds(membre.agences?.map((a) => a.id) ?? []);
         setPoleId(membre.pole_id ?? "");
       } else {
         setSelectedPerson(null);
         setSelectedRoles([]);
         setFonction("");
-        setAgenceId("");
+        setSelectedAgenceIds([]);
         setPoleId("");
       }
       setSearchQuery("");
@@ -1130,7 +1136,7 @@ function MembreDialog({
 
     try {
       const input = {
-        agence_id: agenceId || "",
+        agence_ids: selectedAgenceIds,
         pole_id: poleId || "",
         apprenant_id: !isLegacyContact ? (selectedPerson?.id ?? "") : "",
         contact_client_id: isLegacyContact ? (selectedPerson?.id ?? "") : "",
@@ -1357,36 +1363,55 @@ function MembreDialog({
             />
           </div>
 
-          {/* Agence & Pôle */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* Agences (multi-select) */}
+          {agences.length > 0 && (
             <div className="space-y-2">
-              <Label htmlFor="membre_agence" className="text-[13px]">Agence</Label>
-              <select
-                id="membre_agence"
-                value={agenceId}
-                onChange={(e) => setAgenceId(e.target.value)}
-                className="flex h-9 w-full rounded-md border border-border/60 bg-muted px-3 py-1 text-[13px] text-foreground shadow-sm"
-              >
-                <option value="">-- Aucune --</option>
-                {agences.map((a) => (
-                  <option key={a.id} value={a.id}>{a.nom}</option>
-                ))}
-              </select>
+              <Label className="text-[13px]">Agences</Label>
+              <div className="flex flex-wrap gap-2">
+                {agences.map((a) => {
+                  const isActive = selectedAgenceIds.includes(a.id);
+                  return (
+                    <button
+                      key={a.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedAgenceIds((prev) =>
+                          prev.includes(a.id) ? prev.filter((id) => id !== a.id) : [...prev, a.id]
+                        );
+                      }}
+                      className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[12px] font-medium transition-colors ${
+                        isActive
+                          ? "bg-primary/10 text-primary border-primary/30"
+                          : "border-border/40 text-muted-foreground/60 hover:text-foreground hover:border-border"
+                      }`}
+                    >
+                      {isActive && <Check className="h-3 w-3" />}
+                      <Building className="h-3 w-3" />
+                      {a.nom}
+                    </button>
+                  );
+                })}
+              </div>
+              {selectedAgenceIds.length === 0 && (
+                <p className="text-[11px] text-muted-foreground/40">Aucune agence sélectionnée</p>
+              )}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="membre_pole" className="text-[13px]">Pôle</Label>
-              <select
-                id="membre_pole"
-                value={poleId}
-                onChange={(e) => setPoleId(e.target.value)}
-                className="flex h-9 w-full rounded-md border border-border/60 bg-muted px-3 py-1 text-[13px] text-foreground shadow-sm"
-              >
-                <option value="">-- Aucun --</option>
-                {poles.map((p) => (
-                  <option key={p.id} value={p.id}>{p.nom}</option>
-                ))}
-              </select>
-            </div>
+          )}
+
+          {/* Pôle */}
+          <div className="space-y-2">
+            <Label htmlFor="membre_pole" className="text-[13px]">Pôle</Label>
+            <select
+              id="membre_pole"
+              value={poleId}
+              onChange={(e) => setPoleId(e.target.value)}
+              className="flex h-9 w-full rounded-md border border-border/60 bg-muted px-3 py-1 text-[13px] text-foreground shadow-sm"
+            >
+              <option value="">-- Aucun --</option>
+              {poles.map((p) => (
+                <option key={p.id} value={p.id}>{p.nom}</option>
+              ))}
+            </select>
           </div>
 
           <DialogFooter className="pt-2">
