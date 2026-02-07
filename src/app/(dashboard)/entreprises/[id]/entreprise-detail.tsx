@@ -40,11 +40,12 @@ import {
   linkApprenantToEntreprise,
   unlinkApprenantFromEntreprise,
   searchApprenantsForLinking,
-  getEntrepriseContacts,
   linkContactToEntreprise,
   unlinkContactFromEntreprise,
+  getEntrepriseUnifiedContacts,
   type ApprenantLink,
-  type ContactLink,
+  type UnifiedContact,
+  type UnifiedContactType,
 } from "@/actions/entreprises";
 import { createContactClient, type CreateContactClientInput } from "@/actions/contacts-clients";
 import { TachesActivitesTab } from "@/components/shared/taches-activites";
@@ -557,36 +558,84 @@ function FacturationTab({ entreprise, onUpdate }: { entreprise: EntrepriseData; 
   );
 }
 
-// ─── Contacts Tab ───────────────────────────────────────
+// ─── Contacts Tab (Unified: Contacts + Membres) ────────
+
+const TYPE_LABELS: Record<UnifiedContactType, string> = {
+  contact: "Contact",
+  membre: "Membre",
+  contact_membre: "Contact + Membre",
+};
+const TYPE_COLORS: Record<UnifiedContactType, string> = {
+  contact: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+  membre: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+  contact_membre: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+};
+const ROLE_LABELS: Record<string, string> = {
+  direction: "Direction",
+  responsable_formation: "Resp. formation",
+  manager: "Manager",
+  employe: "Employé",
+};
+type FilterType = "tous" | "contact" | "membre" | "contact_membre";
 
 function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
   const router = useRouter();
   const { toast } = useToast();
   const { confirm: confirmAction, ConfirmDialog: ContactConfirmDialog } = useConfirm();
-  const [contacts, setContacts] = React.useState<ContactLink[]>([]);
+  const [items, setItems] = React.useState<UnifiedContact[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [activePanel, setActivePanel] = React.useState<"none" | "create">("none");
   const [isCreating, setIsCreating] = React.useState(false);
   const [newContactFonction, setNewContactFonction] = React.useState("");
+  const [filter, setFilter] = React.useState<FilterType>("tous");
+  const [searchQuery, setSearchQuery] = React.useState("");
 
-  const fetchContacts = React.useCallback(async () => {
+  const fetchData = React.useCallback(async () => {
     setIsLoading(true);
-    const result = await getEntrepriseContacts(entrepriseId);
-    setContacts(result.data);
+    const result = await getEntrepriseUnifiedContacts(entrepriseId);
+    setItems(result.data);
     setIsLoading(false);
   }, [entrepriseId]);
 
-  React.useEffect(() => { fetchContacts(); }, [fetchContacts]);
+  React.useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Filtering + search
+  const filtered = React.useMemo(() => {
+    let list = items;
+    if (filter !== "tous") {
+      list = list.filter((i) => i.type === filter);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter((i) =>
+        i.nom.toLowerCase().includes(q) ||
+        i.prenom.toLowerCase().includes(q) ||
+        (i.email?.toLowerCase().includes(q) ?? false) ||
+        (i.fonction?.toLowerCase().includes(q) ?? false) ||
+        (i.numero_affichage_contact?.toLowerCase().includes(q) ?? false) ||
+        (i.numero_affichage_apprenant?.toLowerCase().includes(q) ?? false)
+      );
+    }
+    return list;
+  }, [items, filter, searchQuery]);
+
+  // Count per type for filter badges
+  const counts = React.useMemo(() => {
+    const c = { tous: items.length, contact: 0, membre: 0, contact_membre: 0 };
+    for (const i of items) c[i.type]++;
+    return c;
+  }, [items]);
 
   function openPanel(panel: "create") {
     setActivePanel((prev) => prev === panel ? "none" : panel);
   }
 
-  const handleUnlinkContact = async (contact: ContactLink) => {
-    if (!(await confirmAction({ title: "Retirer ce contact ?", description: `${contact.prenom} ${contact.nom} sera détaché(e) de cette entreprise mais ne sera pas supprimé(e).`, confirmLabel: "Retirer", variant: "destructive" }))) return;
-    const result = await unlinkContactFromEntreprise(entrepriseId, contact.id);
+  const handleUnlinkContact = async (item: UnifiedContact) => {
+    if (!item.contact_client_id) return;
+    if (!(await confirmAction({ title: "Retirer ce contact ?", description: `${item.prenom} ${item.nom} sera détaché(e) de cette entreprise mais ne sera pas supprimé(e).`, confirmLabel: "Retirer", variant: "destructive" }))) return;
+    const result = await unlinkContactFromEntreprise(entrepriseId, item.contact_client_id);
     if (result.error) { toast({ title: "Erreur", description: typeof result.error === "string" ? result.error : "Une erreur est survenue", variant: "destructive" }); return; }
-    fetchContacts();
+    fetchData();
     toast({ title: "Contact retiré", variant: "success" });
   };
 
@@ -605,19 +654,35 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
     const result = await createContactClient(input);
     if (result.error) { toast({ title: "Erreur", description: "Impossible de créer le contact.", variant: "destructive" }); setIsCreating(false); return; }
     if (result.data) await linkContactToEntreprise(entrepriseId, result.data.id);
-    setActivePanel("none"); setIsCreating(false); setNewContactFonction(""); fetchContacts();
+    setActivePanel("none"); setIsCreating(false); setNewContactFonction(""); fetchData();
     toast({ title: "Contact créé et rattaché", variant: "success" });
+  };
+
+  const navigateTo = (item: UnifiedContact) => {
+    if (item.contact_client_id) {
+      router.push(`/contacts-clients/${item.contact_client_id}`);
+    } else if (item.apprenant_id) {
+      router.push(`/apprenants/${item.apprenant_id}`);
+    }
   };
 
   const selectClass = "flex h-9 w-full rounded-md border border-border/60 bg-muted px-3 py-1 text-[13px] text-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring";
 
+  const FILTER_OPTIONS: { value: FilterType; label: string }[] = [
+    { value: "tous", label: "Tous" },
+    { value: "contact", label: "Contacts" },
+    { value: "membre", label: "Membres" },
+    { value: "contact_membre", label: "Contact + Membre" },
+  ];
+
   return (
     <section className="rounded-lg border border-border/60 bg-card">
+      {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-border/60">
         <h3 className="text-sm font-semibold">
-          Contacts clients
-          {contacts.length > 0 && (
-            <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary/10 px-1.5 text-[11px] font-medium text-primary">{contacts.length}</span>
+          Contacts et membres
+          {items.length > 0 && (
+            <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary/10 px-1.5 text-[11px] font-medium text-primary">{items.length}</span>
           )}
         </h3>
         <div className="flex gap-1.5">
@@ -627,6 +692,7 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
         </div>
       </div>
 
+      {/* Create contact panel */}
       {activePanel === "create" && (
         <form onSubmit={handleCreateContact} className="px-5 py-4 border-b border-border/40 bg-muted/10">
           <p className="text-xs font-medium mb-3">Nouveau contact</p>
@@ -648,23 +714,70 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
         </form>
       )}
 
+      {/* Search + Filters */}
+      {!isLoading && items.length > 0 && (
+        <div className="flex flex-col gap-3 px-5 py-3 border-b border-border/40">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/40" />
+            <Input
+              placeholder="Rechercher par nom, email, fonction..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-8 pl-9 text-[13px] border-border/60"
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery("")} className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-muted/30">
+                <X className="h-3 w-3 text-muted-foreground/60" />
+              </button>
+            )}
+          </div>
+          {/* Filter pills */}
+          <div className="flex gap-1.5 flex-wrap">
+            {FILTER_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setFilter(opt.value)}
+                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium border transition-colors ${
+                  filter === opt.value
+                    ? "bg-primary/10 text-primary border-primary/30"
+                    : "bg-muted/30 text-muted-foreground/60 border-border/40 hover:text-muted-foreground hover:border-border/60"
+                }`}
+              >
+                {opt.label}
+                <span className={`inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] ${
+                  filter === opt.value ? "bg-primary/20 text-primary" : "bg-muted/50 text-muted-foreground/50"
+                }`}>
+                  {counts[opt.value]}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
+      {/* Content */}
       {isLoading ? (
         <div className="p-5 space-y-2">{[1, 2, 3].map((i) => <div key={i} className="h-10 animate-pulse rounded bg-muted/30" />)}</div>
-      ) : contacts.length === 0 ? (
+      ) : items.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-16">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50"><Users className="h-6 w-6 text-muted-foreground/30" /></div>
           <div className="text-center">
-            <p className="text-sm font-medium text-muted-foreground/60">Aucun contact rattaché</p>
-            <p className="mt-0.5 text-xs text-muted-foreground/40">Créez un contact client pour l&apos;associer à cette entreprise.</p>
+            <p className="text-sm font-medium text-muted-foreground/60">Aucun contact ou membre rattaché</p>
+            <p className="mt-0.5 text-xs text-muted-foreground/40">Créez un contact ou ajoutez des membres via l&apos;onglet Organisation.</p>
           </div>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center gap-3 py-12">
+          <Search className="h-5 w-5 text-muted-foreground/30" />
+          <p className="text-sm text-muted-foreground/60">Aucun résultat pour cette recherche.</p>
         </div>
       ) : (
         <table className="w-full">
           <thead>
             <tr className="border-b border-border/60 bg-muted/30">
-              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">ID</th>
               <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Nom</th>
+              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Statut</th>
               <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Fonction</th>
               <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Email</th>
               <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Téléphone</th>
@@ -672,30 +785,86 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
             </tr>
           </thead>
           <tbody>
-            {contacts.map((c) => (
+            {filtered.map((item) => (
               <tr
-                key={c.id}
+                key={item.key}
                 className="border-b border-border/40 transition-colors hover:bg-muted/20 group cursor-pointer"
-                onClick={() => router.push(`/contacts-clients/${c.id}`)}
+                onClick={() => navigateTo(item)}
               >
-                <td className="px-4 py-2.5"><span className="font-mono text-xs text-muted-foreground">{c.numero_affichage}</span></td>
+                {/* Name + ID */}
                 <td className="px-4 py-2.5">
                   <div className="flex items-center gap-2">
-                    <Users className="h-3.5 w-3.5 text-purple-400" />
-                    <span className="text-[13px] font-medium">{c.prenom} {c.nom}</span>
+                    {item.contact_client_id ? (
+                      <Users className="h-3.5 w-3.5 text-purple-400 shrink-0" />
+                    ) : (
+                      <GraduationCap className="h-3.5 w-3.5 text-blue-400 shrink-0" />
+                    )}
+                    <div className="min-w-0">
+                      <span className="text-[13px] font-medium">{item.prenom} {item.nom}</span>
+                      {(item.numero_affichage_contact || item.numero_affichage_apprenant) && (
+                        <span className="ml-1.5 font-mono text-[11px] text-muted-foreground/50">
+                          {item.numero_affichage_contact ?? item.numero_affichage_apprenant}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </td>
-                <td className="px-4 py-2.5 text-[13px] text-muted-foreground">{c.fonction ?? <span className="text-muted-foreground/40">--</span>}</td>
+                {/* Status badge */}
                 <td className="px-4 py-2.5">
-                  {c.email ? <a href={`mailto:${c.email}`} className="flex items-center gap-1.5 text-[13px] text-primary hover:underline" onClick={(e) => e.stopPropagation()}><Mail className="h-3 w-3" />{c.email}</a> : <span className="text-[13px] text-muted-foreground/40">--</span>}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <Badge className={`text-[10px] font-medium border ${TYPE_COLORS[item.type]}`}>
+                      {TYPE_LABELS[item.type]}
+                    </Badge>
+                    {item.roles.length > 0 && item.roles.map((r) => (
+                      <Badge key={r} variant="outline" className="text-[10px] font-normal border-border/40 text-muted-foreground/60">
+                        {ROLE_LABELS[r] ?? r}
+                      </Badge>
+                    ))}
+                  </div>
                 </td>
+                {/* Fonction */}
+                <td className="px-4 py-2.5 text-[13px] text-muted-foreground">
+                  {item.fonction ?? <span className="text-muted-foreground/40">--</span>}
+                </td>
+                {/* Email */}
                 <td className="px-4 py-2.5">
-                  {c.telephone ? <a href={`tel:${c.telephone}`} className="flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground" onClick={(e) => e.stopPropagation()}><Phone className="h-3 w-3" />{c.telephone}</a> : <span className="text-[13px] text-muted-foreground/40">--</span>}
+                  {item.email ? (
+                    <a href={`mailto:${item.email}`} className="flex items-center gap-1.5 text-[13px] text-primary hover:underline" onClick={(e) => e.stopPropagation()}>
+                      <Mail className="h-3 w-3 shrink-0" /><span className="truncate max-w-[180px]">{item.email}</span>
+                    </a>
+                  ) : (
+                    <span className="text-[13px] text-muted-foreground/40">--</span>
+                  )}
                 </td>
+                {/* Phone */}
+                <td className="px-4 py-2.5">
+                  {item.telephone ? (
+                    <a href={`tel:${item.telephone}`} className="flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground" onClick={(e) => e.stopPropagation()}>
+                      <Phone className="h-3 w-3 shrink-0" />{item.telephone}
+                    </a>
+                  ) : (
+                    <span className="text-[13px] text-muted-foreground/40">--</span>
+                  )}
+                </td>
+                {/* Actions */}
                 <td className="px-4 py-2.5">
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={(e) => { e.stopPropagation(); router.push(`/contacts-clients/${c.id}`); }} className="p-1 rounded hover:bg-muted/30 text-muted-foreground/40 hover:text-foreground" title="Voir la fiche"><ExternalLink className="h-3.5 w-3.5" /></button>
-                    <button onClick={(e) => { e.stopPropagation(); handleUnlinkContact(c); }} className="p-1 rounded hover:bg-destructive/10 text-muted-foreground/40 hover:text-destructive" title="Retirer de l'entreprise"><Unlink className="h-3.5 w-3.5" /></button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); navigateTo(item); }}
+                      className="p-1 rounded hover:bg-muted/30 text-muted-foreground/40 hover:text-foreground"
+                      title="Voir la fiche"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </button>
+                    {item.contact_client_id && (item.type === "contact" || item.type === "contact_membre") && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleUnlinkContact(item); }}
+                        className="p-1 rounded hover:bg-destructive/10 text-muted-foreground/40 hover:text-destructive"
+                        title="Retirer le contact de l'entreprise"
+                      >
+                        <Unlink className="h-3.5 w-3.5" />
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>

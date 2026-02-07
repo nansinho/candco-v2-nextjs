@@ -583,7 +583,220 @@ export async function searchContactsForLinking(search: string, excludeIds: strin
   return { data: data ?? [] };
 }
 
-export async function searchApprenantsForLinking(search: string, excludeIds: string[]) {
+// ─── Unified Contacts + Membres ─────────────────────────
+
+export type UnifiedContactType = "contact" | "membre" | "contact_membre";
+
+export interface UnifiedContact {
+  /** Unique key for React rendering */
+  key: string;
+  type: UnifiedContactType;
+  prenom: string;
+  nom: string;
+  email: string | null;
+  telephone: string | null;
+  fonction: string | null;
+  // Contact-specific
+  contact_client_id: string | null;
+  numero_affichage_contact: string | null;
+  civilite: string | null;
+  // Membre-specific
+  membre_id: string | null;
+  apprenant_id: string | null;
+  numero_affichage_apprenant: string | null;
+  roles: string[];
+  rattache_siege: boolean;
+  pole_nom: string | null;
+}
+
+/**
+ * Fetches a unified list of contacts (from contact_entreprises) and members
+ * (from entreprise_membres) for an enterprise, with deduplication.
+ * A contact_client appearing in both lists gets type "contact_membre".
+ */
+export async function getEntrepriseUnifiedContacts(entrepriseId: string) {
+  const result = await getOrganisationId();
+  if ("error" in result) return { data: [], error: result.error };
+
+  const { admin } = result;
+
+  // Fetch both datasets in parallel
+  const [contactsResult, membresResult] = await Promise.all([
+    admin
+      .from("contact_entreprises")
+      .select(
+        "contact_client_id, contacts_clients(id, numero_affichage, civilite, prenom, nom, email, telephone, fonction)",
+      )
+      .eq("entreprise_id", entrepriseId),
+    admin
+      .from("entreprise_membres")
+      .select(
+        "id, apprenant_id, contact_client_id, roles, fonction, rattache_siege, pole_id, apprenants(prenom, nom, email, telephone, numero_affichage), contacts_clients(prenom, nom, email, telephone, numero_affichage), entreprise_poles(nom)",
+      )
+      .eq("entreprise_id", entrepriseId),
+  ]);
+
+  if (contactsResult.error && membresResult.error) {
+    return {
+      data: [],
+      error: `${contactsResult.error.message}; ${membresResult.error.message}`,
+    };
+  }
+
+  // Build a map of unique key → UnifiedContact for deduplication
+  const unified = new Map<string, UnifiedContact>();
+
+  // 1) Process contacts from contact_entreprises
+  interface ContactJoinRow {
+    contacts_clients: {
+      id: string;
+      numero_affichage: string;
+      civilite: string | null;
+      prenom: string;
+      nom: string;
+      email: string | null;
+      telephone: string | null;
+      fonction: string | null;
+    } | null;
+  }
+
+  const contactRows = (contactsResult.data ?? []) as unknown as ContactJoinRow[];
+  for (const row of contactRows) {
+    const c = row.contacts_clients;
+    if (!c) continue;
+    unified.set(`contact:${c.id}`, {
+      key: `contact:${c.id}`,
+      type: "contact",
+      prenom: c.prenom,
+      nom: c.nom,
+      email: c.email,
+      telephone: c.telephone,
+      fonction: c.fonction,
+      contact_client_id: c.id,
+      numero_affichage_contact: c.numero_affichage,
+      civilite: c.civilite,
+      membre_id: null,
+      apprenant_id: null,
+      numero_affichage_apprenant: null,
+      roles: [],
+      rattache_siege: false,
+      pole_nom: null,
+    });
+  }
+
+  // 2) Process members from entreprise_membres
+  interface MembreRow {
+    id: string;
+    apprenant_id: string | null;
+    contact_client_id: string | null;
+    roles: string[] | null;
+    fonction: string | null;
+    rattache_siege: boolean | null;
+    pole_id: string | null;
+    apprenants: {
+      prenom: string;
+      nom: string;
+      email: string | null;
+      telephone: string | null;
+      numero_affichage: string;
+    } | null;
+    contacts_clients: {
+      prenom: string;
+      nom: string;
+      email: string | null;
+      telephone: string | null;
+      numero_affichage: string;
+    } | null;
+    entreprise_poles: { nom: string } | null;
+  }
+
+  const membreRows = (membresResult.data ?? []) as unknown as MembreRow[];
+  for (const m of membreRows) {
+    const roles = m.roles ?? [];
+    const poleName = m.entreprise_poles?.nom ?? null;
+    const rattacheSiege = m.rattache_siege ?? false;
+
+    if (m.contact_client_id) {
+      // Check if this contact already exists from contact_entreprises
+      const existingKey = `contact:${m.contact_client_id}`;
+      const existing = unified.get(existingKey);
+
+      if (existing) {
+        // Merge: contact + membre → contact_membre
+        existing.type = "contact_membre";
+        existing.membre_id = m.id;
+        existing.roles = roles;
+        existing.rattache_siege = rattacheSiege;
+        existing.pole_nom = poleName;
+        // Use membre fonction if contact has none
+        if (!existing.fonction && m.fonction) {
+          existing.fonction = m.fonction;
+        }
+        // Update key to reflect merged state
+        existing.key = `merged:${m.contact_client_id}`;
+        unified.delete(existingKey);
+        unified.set(existing.key, existing);
+      } else {
+        // Membre with contact_client_id not in contact_entreprises
+        const cc = m.contacts_clients;
+        unified.set(`membre_cc:${m.id}`, {
+          key: `membre_cc:${m.id}`,
+          type: "membre",
+          prenom: cc?.prenom ?? "",
+          nom: cc?.nom ?? "",
+          email: cc?.email ?? null,
+          telephone: cc?.telephone ?? null,
+          fonction: m.fonction ?? null,
+          contact_client_id: m.contact_client_id,
+          numero_affichage_contact: cc?.numero_affichage ?? null,
+          civilite: null,
+          membre_id: m.id,
+          apprenant_id: null,
+          numero_affichage_apprenant: null,
+          roles,
+          rattache_siege: rattacheSiege,
+          pole_nom: poleName,
+        });
+      }
+    } else if (m.apprenant_id) {
+      // Membre is an apprenant — always "membre" type
+      const a = m.apprenants;
+      unified.set(`membre_app:${m.id}`, {
+        key: `membre_app:${m.id}`,
+        type: "membre",
+        prenom: a?.prenom ?? "",
+        nom: a?.nom ?? "",
+        email: a?.email ?? null,
+        telephone: a?.telephone ?? null,
+        fonction: m.fonction ?? null,
+        contact_client_id: null,
+        numero_affichage_contact: null,
+        civilite: null,
+        membre_id: m.id,
+        apprenant_id: m.apprenant_id,
+        numero_affichage_apprenant: a?.numero_affichage ?? null,
+        roles,
+        rattache_siege: rattacheSiege,
+        pole_nom: poleName,
+      });
+    }
+  }
+
+  // Sort alphabetically by nom, then prenom
+  const sorted = Array.from(unified.values()).sort((a, b) => {
+    const cmp = a.nom.localeCompare(b.nom, "fr");
+    return cmp !== 0 ? cmp : a.prenom.localeCompare(b.prenom, "fr");
+  });
+
+  return { data: sorted };
+}
+
+// ─── Search helpers ─────────────────────────────────────
+
+export async function searchApprenantsForLinking(
+  search: string,
+  excludeIds: string[],
+) {
   const authResult = await getOrganisationId();
   if ("error" in authResult) return { data: [], error: authResult.error };
   const { organisationId, admin } = authResult;
