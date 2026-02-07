@@ -40,10 +40,14 @@ export function OrgSelector({
   }, []);
 
   async function handleSwitch(orgId: string) {
+    if (orgId === currentOrganisation?.id) {
+      setOpen(false);
+      return;
+    }
     setOpen(false);
     const result = await switchOrganisation(orgId);
     if (!("error" in result)) {
-      router.refresh();
+      window.location.href = "/";
     }
   }
 

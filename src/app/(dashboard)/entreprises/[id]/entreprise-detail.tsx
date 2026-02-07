@@ -43,7 +43,6 @@ import {
   getEntrepriseContacts,
   linkContactToEntreprise,
   unlinkContactFromEntreprise,
-  searchContactsForLinking,
   type ApprenantLink,
   type ContactLink,
 } from "@/actions/entreprises";
@@ -566,10 +565,7 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
   const { confirm: confirmAction, ConfirmDialog: ContactConfirmDialog } = useConfirm();
   const [contacts, setContacts] = React.useState<ContactLink[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
-  const [activePanel, setActivePanel] = React.useState<"none" | "create" | "search_contact">("none");
-  const [searchQuery, setSearchQuery] = React.useState("");
-  const [searchResults, setSearchResults] = React.useState<ContactLink[]>([]);
-  const [isSearching, setIsSearching] = React.useState(false);
+  const [activePanel, setActivePanel] = React.useState<"none" | "create">("none");
   const [isCreating, setIsCreating] = React.useState(false);
   const [newContactFonction, setNewContactFonction] = React.useState("");
 
@@ -582,30 +578,9 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
 
   React.useEffect(() => { fetchContacts(); }, [fetchContacts]);
 
-  // Search contacts
-  React.useEffect(() => {
-    if (activePanel !== "search_contact" || !searchQuery.trim()) { setSearchResults([]); return; }
-    const timer = setTimeout(async () => {
-      setIsSearching(true);
-      const excludeIds = contacts.map((c) => c.id);
-      const result = await searchContactsForLinking(searchQuery, excludeIds);
-      setSearchResults(result.data as ContactLink[]);
-      setIsSearching(false);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchQuery, contacts, activePanel]);
-
-  function openPanel(panel: "create" | "search_contact") {
+  function openPanel(panel: "create") {
     setActivePanel((prev) => prev === panel ? "none" : panel);
-    setSearchQuery(""); setSearchResults([]);
   }
-
-  const handleLinkContact = async (contactId: string) => {
-    const result = await linkContactToEntreprise(entrepriseId, contactId);
-    if (result.error) { toast({ title: "Erreur", description: typeof result.error === "string" ? result.error : "Une erreur est survenue", variant: "destructive" }); return; }
-    setSearchQuery(""); setSearchResults([]); setActivePanel("none"); fetchContacts();
-    toast({ title: "Contact rattaché", variant: "success" });
-  };
 
   const handleUnlinkContact = async (contact: ContactLink) => {
     if (!(await confirmAction({ title: "Retirer ce contact ?", description: `${contact.prenom} ${contact.nom} sera détaché(e) de cette entreprise mais ne sera pas supprimé(e).`, confirmLabel: "Retirer", variant: "destructive" }))) return;
@@ -649,9 +624,6 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
           <Button variant="outline" size="sm" className="h-7 text-[11px] border-border/60" onClick={() => openPanel("create")}>
             {activePanel === "create" ? <><X className="mr-1 h-3 w-3" />Fermer</> : <><UserPlus className="mr-1 h-3 w-3" />Créer un contact</>}
           </Button>
-          <Button variant="outline" size="sm" className="h-7 text-[11px] border-border/60" onClick={() => openPanel("search_contact")}>
-            {activePanel === "search_contact" ? <><X className="mr-1 h-3 w-3" />Fermer</> : <><Plus className="mr-1 h-3 w-3" />Rattacher contact</>}
-          </Button>
         </div>
       </div>
 
@@ -676,33 +648,6 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
         </form>
       )}
 
-      {activePanel === "search_contact" && (
-        <div className="px-5 py-3 border-b border-border/40 bg-muted/10">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/50" />
-            <Input placeholder="Rechercher un contact par nom ou email..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="h-8 pl-9 text-xs border-border/60" autoFocus />
-          </div>
-          {isSearching && <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" />Recherche...</div>}
-          {searchResults.length > 0 && (
-            <div className="mt-2 space-y-1">
-              {searchResults.map((c) => (
-                <button key={c.id} type="button" className="flex w-full items-center justify-between rounded-md px-3 py-2 hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => handleLinkContact(c.id)}>
-                  <div className="flex items-center gap-2">
-                    <Users className="h-3.5 w-3.5 text-purple-400" />
-                    <span className="text-[13px] font-medium">{c.prenom} {c.nom}</span>
-                    {c.fonction && <span className="text-[11px] text-muted-foreground/50">{c.fonction}</span>}
-                    {c.email && <span className="text-[11px] text-muted-foreground/40">{c.email}</span>}
-                  </div>
-                  <span className="text-[10px] text-primary font-medium flex items-center gap-0.5"><Plus className="h-3 w-3" />Rattacher</span>
-                </button>
-              ))}
-            </div>
-          )}
-          {searchQuery.trim() && !isSearching && searchResults.length === 0 && (
-            <p className="mt-2 text-xs text-muted-foreground/50">Aucun contact trouvé pour &laquo; {searchQuery} &raquo;</p>
-          )}
-        </div>
-      )}
 
       {isLoading ? (
         <div className="p-5 space-y-2">{[1, 2, 3].map((i) => <div key={i} className="h-10 animate-pulse rounded bg-muted/30" />)}</div>
@@ -711,7 +656,7 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50"><Users className="h-6 w-6 text-muted-foreground/30" /></div>
           <div className="text-center">
             <p className="text-sm font-medium text-muted-foreground/60">Aucun contact rattaché</p>
-            <p className="mt-0.5 text-xs text-muted-foreground/40">Créez un contact ou rattachez un contact existant.</p>
+            <p className="mt-0.5 text-xs text-muted-foreground/40">Créez un contact client pour l&apos;associer à cette entreprise.</p>
           </div>
         </div>
       ) : (
