@@ -22,6 +22,8 @@ import { formatCurrency } from "@/lib/utils";
 import { TachesActivitesTab } from "@/components/shared/taches-activites";
 import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
 import { ExtranetAccessPanel } from "@/components/shared/extranet-access-panel";
+import { useBreadcrumb } from "@/components/layout/breadcrumb-context";
+import { QuickActionsBar } from "@/components/shared/quick-actions-bar";
 
 interface FormateurData {
   id: string;
@@ -52,6 +54,7 @@ export default function FormateurDetailPage() {
   const id = params.id as string;
 
   const [formateur, setFormateur] = React.useState<FormateurData | null>(null);
+  useBreadcrumb(id, formateur ? `${formateur.prenom} ${formateur.nom}` : undefined);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isSaving, setIsSaving] = React.useState(false);
   const [isArchiving, setIsArchiving] = React.useState(false);
@@ -267,6 +270,13 @@ export default function FormateurDetailPage() {
       )}
 
       <Separator className="bg-border/60" />
+
+      {/* Quick Actions */}
+      <QuickActionsBar
+        email={form.email ?? null}
+        telephone={form.telephone ?? null}
+        emailContextLabel={formateur ? `${formateur.prenom} ${formateur.nom}` : undefined}
+      />
 
       {/* Content: Tabs + Side Panel */}
       <div className="flex gap-6">

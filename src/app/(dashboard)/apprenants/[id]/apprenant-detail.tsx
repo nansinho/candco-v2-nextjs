@@ -28,6 +28,8 @@ import {
   type UpdateApprenantInput,
 } from "@/actions/apprenants";
 import { TachesActivitesTab } from "@/components/shared/taches-activites";
+import { useBreadcrumb } from "@/components/layout/breadcrumb-context";
+import { QuickActionsBar } from "@/components/shared/quick-actions-bar";
 import { ExtranetAccessPanel } from "@/components/shared/extranet-access-panel";
 import { formatDate } from "@/lib/utils";
 
@@ -107,6 +109,7 @@ export function ApprenantDetail({
   const router = useRouter();
   const { toast } = useToast();
   const { confirm, ConfirmDialog } = useConfirm();
+  useBreadcrumb(apprenant.id, `${apprenant.prenom} ${apprenant.nom}`);
   const [isPending, setIsPending] = React.useState(false);
   const [isArchiving, setIsArchiving] = React.useState(false);
   const [errors, setErrors] = React.useState<FormErrors>({});
@@ -243,6 +246,13 @@ export function ApprenantDetail({
           </Button>
         </div>
       </div>
+
+      {/* Quick Actions */}
+      <QuickActionsBar
+        email={apprenant.email}
+        telephone={apprenant.telephone}
+        emailContextLabel={`${apprenant.prenom} ${apprenant.nom}`}
+      />
 
       {/* Content: Tabs + Side Panel */}
       <div className="flex gap-6">

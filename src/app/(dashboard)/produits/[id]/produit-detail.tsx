@@ -26,6 +26,8 @@ import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/alert-dialog";
 import { TachesActivitesTab } from "@/components/shared/taches-activites";
 import { formatDate, formatCurrency } from "@/lib/utils";
+import { useBreadcrumb } from "@/components/layout/breadcrumb-context";
+import { QuickActionsBar } from "@/components/shared/quick-actions-bar";
 import {
   updateProduit,
   archiveProduit,
@@ -123,6 +125,7 @@ export function ProduitDetail({
   const router = useRouter();
   const { toast } = useToast();
   const { confirm, ConfirmDialog } = useConfirm();
+  useBreadcrumb(produit.id, produit.intitule);
   const [isPending, setIsPending] = React.useState(false);
   const [isArchiving, setIsArchiving] = React.useState(false);
   const [isGeneratingImage, setIsGeneratingImage] = React.useState(false);
@@ -289,6 +292,17 @@ export function ProduitDetail({
           </Button>
         </div>
       </div>
+
+      {/* Quick Actions */}
+      <QuickActionsBar
+        actions={[
+          {
+            label: produit.publie ? "Publié" : "Non publié",
+            icon: <Globe className="h-3 w-3" />,
+            variant: "outline" as const,
+          },
+        ]}
+      />
 
       {/* Tabs */}
       <Tabs defaultValue="config">

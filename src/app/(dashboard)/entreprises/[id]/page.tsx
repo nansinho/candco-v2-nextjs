@@ -28,6 +28,8 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/alert-dialog";
+import { useBreadcrumb } from "@/components/layout/breadcrumb-context";
+import { QuickActionsBar } from "@/components/shared/quick-actions-bar";
 import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
 import { SiretSearch } from "@/components/shared/siret-search";
 import {
@@ -94,6 +96,7 @@ export default function EntrepriseDetailPage() {
 
   const [entreprise, setEntreprise] = React.useState<EntrepriseData | null>(null);
   const [bpfCategories, setBpfCategories] = React.useState<BpfCategorie[]>([]);
+  useBreadcrumb(id, entreprise?.nom ?? undefined);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isArchiving, setIsArchiving] = React.useState(false);
 
@@ -224,6 +227,13 @@ export default function EntrepriseDetailPage() {
 
       <Separator className="bg-border/60" />
 
+      {/* Quick Actions */}
+      <QuickActionsBar
+        email={entreprise.email}
+        telephone={entreprise.telephone}
+        emailContextLabel={entreprise.nom}
+      />
+
       {/* Tabs */}
       <Tabs defaultValue="general">
         <TabsList className="bg-muted/50">
@@ -320,6 +330,7 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
       adresse_ville: formData.get("adresse_ville") as string,
       bpf_categorie_id: formData.get("bpf_categorie_id") as string,
       numero_compte_comptable: formData.get("numero_compte_comptable") as string,
+      est_siege: formData.get("est_siege") === "on",
     };
 
     const result = await updateEntreprise(entreprise.id, input);
@@ -542,6 +553,18 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
                 className="h-9 text-[13px] border-border/60"
               />
             </div>
+          </div>
+          <div className="mt-4 flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="est_siege"
+              name="est_siege"
+              defaultChecked={(entreprise as unknown as { est_siege?: boolean }).est_siege ?? false}
+              className="h-4 w-4 rounded border-border/60"
+            />
+            <Label htmlFor="est_siege" className="text-[13px] font-normal">
+              Siège social
+            </Label>
           </div>
         </section>
 

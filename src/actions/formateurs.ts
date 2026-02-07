@@ -133,9 +133,13 @@ export async function getFormateurs(
 }
 
 export async function getFormateur(id: string) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) {
+    return { data: null, error: result.error };
+  }
+  const { admin } = result;
 
-  const { data, error } = await supabase
+  const { data, error } = await admin
     .from("formateurs")
     .select("*")
     .eq("id", id)

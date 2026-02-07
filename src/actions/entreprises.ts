@@ -24,6 +24,7 @@ const CreateEntrepriseSchema = z.object({
   facturation_ville: z.string().optional().or(z.literal("")),
   bpf_categorie_id: z.string().uuid().optional().or(z.literal("")),
   numero_compte_comptable: z.string().optional().or(z.literal("")),
+  est_siege: z.boolean().optional().default(false),
 });
 
 export type CreateEntrepriseInput = z.infer<typeof CreateEntrepriseSchema>;
@@ -102,9 +103,13 @@ export async function getEntreprises(
 }
 
 export async function getEntreprise(id: string) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) {
+    return { data: null, error: result.error };
+  }
+  const { admin } = result;
 
-  const { data, error } = await supabase
+  const { data, error } = await admin
     .from("entreprises")
     .select("*")
     .eq("id", id)

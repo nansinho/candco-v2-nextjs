@@ -14,6 +14,8 @@ import {
   unarchiveFinanceur,
 } from "@/actions/financeurs";
 import { useConfirm } from "@/components/ui/alert-dialog";
+import { useBreadcrumb } from "@/components/layout/breadcrumb-context";
+import { QuickActionsBar } from "@/components/shared/quick-actions-bar";
 import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
 
 const FINANCEUR_TYPES = [
@@ -67,6 +69,7 @@ export default function FinanceurDetailPage() {
   const id = params.id as string;
 
   const [financeur, setFinanceur] = React.useState<FinanceurData | null>(null);
+  useBreadcrumb(id, financeur?.nom ?? undefined);
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [archiving, setArchiving] = React.useState(false);
@@ -259,6 +262,13 @@ export default function FinanceurDetailPage() {
           {errorMsg}
         </div>
       )}
+
+      {/* Quick Actions */}
+      <QuickActionsBar
+        email={financeur.email}
+        telephone={financeur.telephone}
+        emailContextLabel={financeur.nom}
+      />
 
       {/* Informations générales */}
       <div className="rounded-lg border border-border/60 bg-card">

@@ -137,9 +137,13 @@ export async function getSessions(
 }
 
 export async function getSession(id: string) {
-  const supabase = await createClient();
+  const orgResult = await getOrganisationId();
+  if ("error" in orgResult) {
+    return { data: null, error: orgResult.error };
+  }
+  const { admin } = orgResult;
 
-  const { data, error } = await supabase
+  const { data, error } = await admin
     .from("sessions")
     .select(`
       *,
@@ -504,6 +508,82 @@ export async function removeCreneau(creneauId: string, sessionId: string) {
 
   revalidatePath(`/sessions/${sessionId}`);
   return { success: true };
+}
+
+// ─── Bulk Inscriptions ──────────────────────────────────
+
+export async function searchSessionsForInscription(search: string) {
+  const result = await getOrganisationId();
+  if ("error" in result) return { data: [] };
+  const { organisationId, admin } = result;
+
+  let query = admin
+    .from("sessions")
+    .select("id, nom, numero_affichage, statut, date_debut, date_fin, places_max, inscriptions(id)")
+    .eq("organisation_id", organisationId)
+    .is("archived_at", null)
+    .in("statut", ["en_projet", "validee", "en_cours"])
+    .order("date_debut", { ascending: true })
+    .limit(15);
+
+  if (search) {
+    query = query.or(`nom.ilike.%${search}%,numero_affichage.ilike.%${search}%`);
+  }
+
+  const { data, error } = await query;
+  if (error) return { data: [] };
+
+  return {
+    data: (data ?? []).map((s) => ({
+      id: s.id as string,
+      nom: s.nom as string,
+      numero_affichage: s.numero_affichage as string,
+      statut: s.statut as string,
+      date_debut: s.date_debut as string | null,
+      date_fin: s.date_fin as string | null,
+      places_max: s.places_max as number | null,
+      inscrits: Array.isArray(s.inscriptions) ? s.inscriptions.length : 0,
+    })),
+  };
+}
+
+export async function bulkAddInscriptions(
+  sessionId: string,
+  apprenantIds: string[],
+  commanditaireId?: string,
+) {
+  if (apprenantIds.length === 0) return { error: "Aucun apprenant sélectionné" };
+
+  const supabase = await createClient();
+
+  // Get existing inscriptions for this session to avoid duplicates
+  const { data: existing } = await supabase
+    .from("inscriptions")
+    .select("apprenant_id")
+    .eq("session_id", sessionId);
+
+  const existingIds = new Set((existing ?? []).map((e) => e.apprenant_id));
+  const newIds = apprenantIds.filter((id) => !existingIds.has(id));
+
+  if (newIds.length === 0) {
+    return { error: "Tous les apprenants sélectionnés sont déjà inscrits à cette session" };
+  }
+
+  const rows = newIds.map((apprenantId) => ({
+    session_id: sessionId,
+    apprenant_id: apprenantId,
+    commanditaire_id: commanditaireId || null,
+    statut: "inscrit" as const,
+  }));
+
+  const { error } = await supabase
+    .from("inscriptions")
+    .insert(rows);
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/sessions/${sessionId}`);
+  return { success: true, count: newIds.length, skipped: apprenantIds.length - newIds.length };
 }
 
 // ─── Financial helpers ───────────────────────────────────

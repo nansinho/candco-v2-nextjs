@@ -113,9 +113,13 @@ export async function getApprenants(
 }
 
 export async function getApprenant(id: string) {
-  const supabase = await createClient();
+  const orgResult = await getOrganisationId();
+  if ("error" in orgResult) {
+    return { data: null, entreprises: [], error: orgResult.error };
+  }
+  const { admin } = orgResult;
 
-  const { data: apprenant, error } = await supabase
+  const { data: apprenant, error } = await admin
     .from("apprenants")
     .select("*")
     .eq("id", id)
@@ -126,7 +130,7 @@ export async function getApprenant(id: string) {
   }
 
   // Fetch linked entreprises via junction table
-  const { data: liens } = await supabase
+  const { data: liens } = await admin
     .from("apprenant_entreprises")
     .select("entreprise_id, entreprises(id, nom, siret, email, adresse_ville)")
     .eq("apprenant_id", id);
