@@ -465,6 +465,73 @@ export async function importApprenants(
   return { success: successCount, errors: importErrors };
 }
 
+// ─── Entreprise linking from apprenant side ─────────────
+
+export async function linkEntrepriseToApprenant(apprenantId: string, entrepriseId: string) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("apprenant_entreprises")
+    .insert({ apprenant_id: apprenantId, entreprise_id: entrepriseId });
+
+  if (error) {
+    if (error.code === "23505") {
+      return { error: "Cette entreprise est déjà rattachée à cet apprenant." };
+    }
+    return { error: error.message };
+  }
+
+  revalidatePath(`/apprenants/${apprenantId}`);
+  return { success: true };
+}
+
+export async function unlinkEntrepriseFromApprenant(apprenantId: string, entrepriseId: string) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("apprenant_entreprises")
+    .delete()
+    .eq("apprenant_id", apprenantId)
+    .eq("entreprise_id", entrepriseId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath(`/apprenants/${apprenantId}`);
+  return { success: true };
+}
+
+export async function searchEntreprisesForLinking(search: string, excludeIds: string[]) {
+  const authResult = await getOrganisationId();
+  if ("error" in authResult) return { data: [], error: authResult.error };
+  const { organisationId, admin } = authResult;
+
+  let query = admin
+    .from("entreprises")
+    .select("id, nom, siret, email, adresse_ville")
+    .eq("organisation_id", organisationId)
+    .is("archived_at", null)
+    .order("nom", { ascending: true })
+    .limit(10);
+
+  if (search) {
+    query = query.or(`nom.ilike.%${search}%,siret.ilike.%${search}%,email.ilike.%${search}%`);
+  }
+
+  if (excludeIds.length > 0) {
+    query = query.not("id", "in", `(${excludeIds.join(",")})`);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    return { data: [], error: error.message };
+  }
+
+  return { data: data ?? [] };
+}
+
 // ─── Dropdown helper ────────────────────────────────────
 
 export async function getAllApprenants() {
