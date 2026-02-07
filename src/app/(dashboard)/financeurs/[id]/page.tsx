@@ -135,9 +135,9 @@ export default function FinanceurDetailPage() {
     if (result.error) {
       const errors = result.error;
       if ("_form" in errors && Array.isArray(errors._form)) {
-        setErrorMsg(errors._form[0]);
+        setErrorMsg(errors._form[0] ?? "Erreur inconnue");
       } else if ("nom" in errors && Array.isArray(errors.nom)) {
-        setErrorMsg(errors.nom[0]);
+        setErrorMsg(errors.nom[0] ?? "Erreur inconnue");
       } else {
         setErrorMsg("Erreur lors de la mise à jour");
       }
