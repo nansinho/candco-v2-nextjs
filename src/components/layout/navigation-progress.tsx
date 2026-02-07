@@ -8,8 +8,8 @@ export function NavigationProgress() {
   const [isNavigating, setIsNavigating] = React.useState(false);
   const [progress, setProgress] = React.useState(0);
   const prevPathname = React.useRef(pathname);
-  const timerRef = React.useRef<ReturnType<typeof setTimeout>>();
-  const intervalRef = React.useRef<ReturnType<typeof setInterval>>();
+  const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const intervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
 
   React.useEffect(() => {
     if (pathname !== prevPathname.current) {
@@ -17,8 +17,8 @@ export function NavigationProgress() {
       setProgress(100);
       setIsNavigating(true);
 
-      clearTimeout(timerRef.current);
-      clearInterval(intervalRef.current);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      if (intervalRef.current) clearInterval(intervalRef.current);
 
       timerRef.current = setTimeout(() => {
         setIsNavigating(false);
@@ -44,11 +44,11 @@ export function NavigationProgress() {
       setIsNavigating(true);
       setProgress(15);
 
-      clearInterval(intervalRef.current);
+      if (intervalRef.current) clearInterval(intervalRef.current);
       intervalRef.current = setInterval(() => {
         setProgress((prev) => {
           if (prev >= 90) {
-            clearInterval(intervalRef.current);
+            if (intervalRef.current) clearInterval(intervalRef.current);
             return 90;
           }
           // Slow down as it progresses
