@@ -1,6 +1,5 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
 import { getOrganisationId } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -89,9 +88,12 @@ const MembreSchema = z.object({
 // ─── Agences ─────────────────────────────────────────────
 
 export async function getAgences(entrepriseId: string) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { data: [], error: result.error };
 
-  const { data, error } = await supabase
+  const { admin } = result;
+
+  const { data, error } = await admin
     .from("entreprise_agences")
     .select("*")
     .eq("entreprise_id", entrepriseId)
@@ -107,10 +109,13 @@ export async function createAgence(entrepriseId: string, input: z.infer<typeof A
   if (!parsed.success) return { error: parsed.error.flatten().fieldErrors };
 
   try {
-    const supabase = await createClient();
+    const result = await getOrganisationId();
+    if ("error" in result) return { error: { _form: [result.error] } };
+
+    const { admin } = result;
 
     const d = parsed.data;
-    const { data, error } = await supabase
+    const { data, error } = await admin
       .from("entreprise_agences")
       .insert({
         entreprise_id: entrepriseId,
@@ -150,10 +155,13 @@ export async function updateAgence(agenceId: string, entrepriseId: string, input
   if (!parsed.success) return { error: parsed.error.flatten().fieldErrors };
 
   try {
-    const supabase = await createClient();
+    const result = await getOrganisationId();
+    if ("error" in result) return { error: { _form: [result.error] } };
+
+    const { admin } = result;
 
     const d = parsed.data;
-    const { data, error } = await supabase
+    const { data, error } = await admin
       .from("entreprise_agences")
       .update({
         nom: d.nom,
@@ -185,9 +193,12 @@ export async function updateAgence(agenceId: string, entrepriseId: string, input
 
 export async function deleteAgence(agenceId: string, entrepriseId: string) {
   try {
-    const supabase = await createClient();
+    const result = await getOrganisationId();
+    if ("error" in result) return { error: result.error };
 
-    const { error } = await supabase
+    const { admin } = result;
+
+    const { error } = await admin
       .from("entreprise_agences")
       .delete()
       .eq("id", agenceId);
@@ -208,9 +219,12 @@ export async function deleteAgence(agenceId: string, entrepriseId: string) {
 // ─── Pôles ───────────────────────────────────────────────
 
 export async function getPoles(entrepriseId: string) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { data: [], error: result.error };
 
-  const { data, error } = await supabase
+  const { admin } = result;
+
+  const { data, error } = await admin
     .from("entreprise_poles")
     .select("*, entreprise_agences(nom)")
     .eq("entreprise_id", entrepriseId)
@@ -231,10 +245,13 @@ export async function createPole(entrepriseId: string, input: z.infer<typeof Pol
   if (!parsed.success) return { error: parsed.error.flatten().fieldErrors };
 
   try {
-    const supabase = await createClient();
+    const result = await getOrganisationId();
+    if ("error" in result) return { error: { _form: [result.error] } };
+
+    const { admin } = result;
 
     const d = parsed.data;
-    const { data, error } = await supabase
+    const { data, error } = await admin
       .from("entreprise_poles")
       .insert({
         entreprise_id: entrepriseId,
@@ -263,10 +280,13 @@ export async function updatePole(poleId: string, entrepriseId: string, input: z.
   if (!parsed.success) return { error: parsed.error.flatten().fieldErrors };
 
   try {
-    const supabase = await createClient();
+    const result = await getOrganisationId();
+    if ("error" in result) return { error: { _form: [result.error] } };
+
+    const { admin } = result;
 
     const d = parsed.data;
-    const { data, error } = await supabase
+    const { data, error } = await admin
       .from("entreprise_poles")
       .update({
         nom: d.nom,
@@ -292,9 +312,12 @@ export async function updatePole(poleId: string, entrepriseId: string, input: z.
 
 export async function deletePole(poleId: string, entrepriseId: string) {
   try {
-    const supabase = await createClient();
+    const result = await getOrganisationId();
+    if ("error" in result) return { error: result.error };
 
-    const { error } = await supabase
+    const { admin } = result;
+
+    const { error } = await admin
       .from("entreprise_poles")
       .delete()
       .eq("id", poleId);
@@ -315,9 +338,12 @@ export async function deletePole(poleId: string, entrepriseId: string) {
 // ─── Membres ─────────────────────────────────────────────
 
 export async function getMembres(entrepriseId: string) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { data: [], error: result.error };
 
-  const { data, error } = await supabase
+  const { admin } = result;
+
+  const { data, error } = await admin
     .from("entreprise_membres")
     .select("*, apprenants(prenom, nom), contacts_clients(prenom, nom), entreprise_poles(nom), membre_agences(entreprise_agences(id, nom))")
     .eq("entreprise_id", entrepriseId)
@@ -364,9 +390,12 @@ export async function createMembre(entrepriseId: string, input: z.infer<typeof M
   }
 
   try {
-    const supabase = await createClient();
+    const result = await getOrganisationId();
+    if ("error" in result) return { error: { _form: [result.error] } };
 
-    const { data, error } = await supabase
+    const { admin } = result;
+
+    const { data, error } = await admin
       .from("entreprise_membres")
       .insert({
         entreprise_id: entrepriseId,
@@ -386,7 +415,7 @@ export async function createMembre(entrepriseId: string, input: z.infer<typeof M
 
     // Insert agence links via junction table
     if (d.agence_ids.length > 0) {
-      const { error: agenceError } = await supabase
+      const { error: agenceError } = await admin
         .from("membre_agences")
         .insert(d.agence_ids.map((agenceId) => ({
           membre_id: data.id,
@@ -413,9 +442,12 @@ export async function updateMembre(membreId: string, entrepriseId: string, input
   const d = parsed.data;
 
   try {
-    const supabase = await createClient();
+    const result = await getOrganisationId();
+    if ("error" in result) return { error: { _form: [result.error] } };
 
-    const { data, error } = await supabase
+    const { admin } = result;
+
+    const { data, error } = await admin
       .from("entreprise_membres")
       .update({
         pole_id: d.pole_id || null,
@@ -432,10 +464,10 @@ export async function updateMembre(membreId: string, entrepriseId: string, input
     }
 
     // Sync agences: delete all existing, then insert new
-    await supabase.from("membre_agences").delete().eq("membre_id", membreId);
+    await admin.from("membre_agences").delete().eq("membre_id", membreId);
 
     if (d.agence_ids.length > 0) {
-      const { error: agenceError } = await supabase
+      const { error: agenceError } = await admin
         .from("membre_agences")
         .insert(d.agence_ids.map((agenceId) => ({
           membre_id: membreId,
@@ -457,9 +489,12 @@ export async function updateMembre(membreId: string, entrepriseId: string, input
 
 export async function deleteMembre(membreId: string, entrepriseId: string) {
   try {
-    const supabase = await createClient();
+    const result = await getOrganisationId();
+    if ("error" in result) return { error: result.error };
 
-    const { error } = await supabase
+    const { admin } = result;
+
+    const { error } = await admin
       .from("entreprise_membres")
       .delete()
       .eq("id", membreId);
@@ -493,14 +528,14 @@ export async function quickCreateApprenant(input: z.infer<typeof QuickApprenantS
   const result = await getOrganisationId();
   if ("error" in result) return { data: null, error: { _form: [result.error] } };
 
-  const { organisationId, supabase } = result;
+  const { organisationId, admin } = result;
 
-  const { data: numero } = await supabase.rpc("next_numero", {
+  const { data: numero } = await admin.rpc("next_numero", {
     p_organisation_id: organisationId,
     p_entite: "APP",
   });
 
-  const { data, error } = await supabase
+  const { data, error } = await admin
     .from("apprenants")
     .insert({
       organisation_id: organisationId,
@@ -525,11 +560,15 @@ export async function quickCreateApprenant(input: z.infer<typeof QuickApprenantS
 // ─── Search helpers for linking membres ──────────────────
 
 export async function searchApprenantsForMembre(search: string) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { data: [] };
 
-  let query = supabase
+  const { organisationId, admin } = result;
+
+  let query = admin
     .from("apprenants")
     .select("id, prenom, nom, email")
+    .eq("organisation_id", organisationId)
     .is("archived_at", null)
     .order("nom", { ascending: true })
     .limit(10);
@@ -544,11 +583,15 @@ export async function searchApprenantsForMembre(search: string) {
 }
 
 export async function searchContactsForMembre(search: string) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { data: [] };
 
-  let query = supabase
+  const { organisationId, admin } = result;
+
+  let query = admin
     .from("contacts_clients")
     .select("id, prenom, nom, email, fonction")
+    .eq("organisation_id", organisationId)
     .is("archived_at", null)
     .order("nom", { ascending: true })
     .limit(10);
