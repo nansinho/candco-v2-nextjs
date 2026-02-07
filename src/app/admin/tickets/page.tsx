@@ -43,7 +43,7 @@ export default async function AdminTicketsPage() {
 
       <div className="grid gap-3">
         {tickets?.map((ticket) => {
-          const org = ticket.organisations as { nom: string } | null;
+          const org = ticket.organisations as unknown as { nom: string } | null;
           return (
             <Card key={ticket.id}>
               <CardHeader className="pb-2">
