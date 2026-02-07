@@ -384,151 +384,24 @@ export function OrganisationTab({ entrepriseId }: OrganisationTabProps) {
               description="Ajoutez des personnes à l'organigramme (direction, responsables formation, employés)."
             />
           ) : (
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border/60 bg-muted/30">
-                  <th className="w-10 px-3 py-2.5">
-                    <input
-                      type="checkbox"
-                      className="h-3.5 w-3.5 rounded border-border/60"
-                      checked={selectedMembreIds.size > 0 && membres.filter((m) => m.apprenant_id).every((m) => selectedMembreIds.has(m.id))}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedMembreIds(new Set(membres.filter((m) => m.apprenant_id).map((m) => m.id)));
-                        } else {
-                          setSelectedMembreIds(new Set());
-                        }
-                      }}
-                      title="Sélectionner tous les apprenants"
-                    />
-                  </th>
-                  <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-                    Personne
-                  </th>
-                  <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-                    Rôle
-                  </th>
-                  <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-                    Fonction
-                  </th>
-                  <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-                    Agence / Pôle
-                  </th>
-                  <th className="w-16" />
-                </tr>
-              </thead>
-              <tbody>
-                {membres.map((m) => {
-                  const name = m.apprenant_id
-                    ? `${m.apprenant_prenom ?? ""} ${m.apprenant_nom ?? ""}`
-                    : `${m.contact_prenom ?? ""} ${m.contact_nom ?? ""}`;
-                  const type = m.apprenant_id ? "apprenant" : "contact";
-
-                  return (
-                    <tr key={m.id} className={`border-b border-border/40 transition-colors hover:bg-muted/10 group ${selectedMembreIds.has(m.id) ? "bg-primary/5" : ""}`}>
-                      <td className="px-3 py-2.5">
-                        {type === "apprenant" ? (
-                          <input
-                            type="checkbox"
-                            className="h-3.5 w-3.5 rounded border-border/60"
-                            checked={selectedMembreIds.has(m.id)}
-                            onChange={(e) => {
-                              const next = new Set(selectedMembreIds);
-                              if (e.target.checked) next.add(m.id);
-                              else next.delete(m.id);
-                              setSelectedMembreIds(next);
-                            }}
-                          />
-                        ) : (
-                          <span className="block h-3.5 w-3.5" title="Seuls les apprenants peuvent être inscrits" />
-                        )}
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <div className="flex items-center gap-2">
-                          {type === "apprenant" ? (
-                            <GraduationCap className="h-3.5 w-3.5 text-blue-400" />
-                          ) : (
-                            <UserCheck className="h-3.5 w-3.5 text-emerald-400" />
-                          )}
-                          <span className="text-[13px] font-medium">{name.trim()}</span>
-                          <Badge variant="outline" className="text-[10px] border-border/40 text-muted-foreground/60">
-                            {type === "apprenant" ? "Apprenant" : "Contact"}
-                          </Badge>
-                        </div>
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <div className="flex flex-wrap gap-1">
-                          {(m.roles && m.roles.length > 0 ? m.roles : ["employe"]).map((r) => (
-                            <Badge key={r} className={`text-[10px] ${ROLE_COLORS[r] ?? ROLE_COLORS.employe}`}>
-                              {ROLE_LABELS[r] ?? r}
-                            </Badge>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-4 py-2.5 text-[13px] text-muted-foreground">
-                        {m.fonction || <span className="text-muted-foreground/40">--</span>}
-                      </td>
-                      <td className="px-4 py-2.5 text-[11px] text-muted-foreground/60">
-                        <div className="space-y-0.5">
-                          {m.rattache_siege && (
-                            <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20 text-[10px]">
-                              <Star className="mr-0.5 h-2.5 w-2.5" />
-                              Siège social
-                            </Badge>
-                          )}
-                          {m.agences && m.agences.length > 0 && (
-                            <div className="flex flex-wrap gap-1">
-                              {m.agences.map((a) => (
-                                <span key={a.id} className="inline-flex items-center gap-0.5 rounded bg-muted/30 px-1.5 py-0.5 text-[10px]">
-                                  <Building className="h-2.5 w-2.5" />
-                                  {a.nom}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                          {m.pole_nom && (
-                            <span className="flex items-center gap-0.5">
-                              <Layers className="h-2.5 w-2.5" />
-                              {m.pole_nom}
-                            </span>
-                          )}
-                          {!m.rattache_siege && (!m.agences || m.agences.length === 0) && !m.pole_nom && (
-                            <span className="text-muted-foreground/40">--</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => { setEditingMembre(m); setMembreDialog(true); }}
-                            className="p-1.5 rounded hover:bg-muted/30 text-muted-foreground/60 hover:text-foreground transition-colors"
-                            title="Modifier"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </button>
-                          <button
-                            onClick={async () => {
-                              if (!(await confirm({ title: "Retirer ce membre ?", description: "Le membre sera retiré de l'organigramme.", confirmLabel: "Retirer", variant: "destructive" }))) return;
-                              const result = await deleteMembre(m.id, entrepriseId);
-                              if (result.error) {
-                                toast({ title: "Erreur", description: typeof result.error === "string" ? result.error : "Erreur", variant: "destructive" });
-                                return;
-                              }
-                              fetchAll();
-                              toast({ title: "Membre retiré", variant: "success" });
-                            }}
-                            className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground/60 hover:text-destructive transition-colors"
-                            title="Supprimer"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <MembresHierarchicalView
+              membres={membres}
+              agences={agences}
+              poles={poles}
+              selectedMembreIds={selectedMembreIds}
+              setSelectedMembreIds={setSelectedMembreIds}
+              onEdit={(m) => { setEditingMembre(m); setMembreDialog(true); }}
+              onDelete={async (m) => {
+                if (!(await confirm({ title: "Retirer ce membre ?", description: "Le membre sera retiré de l'organigramme.", confirmLabel: "Retirer", variant: "destructive" }))) return;
+                const result = await deleteMembre(m.id, entrepriseId);
+                if (result.error) {
+                  toast({ title: "Erreur", description: typeof result.error === "string" ? result.error : "Erreur", variant: "destructive" });
+                  return;
+                }
+                fetchAll();
+                toast({ title: "Membre retiré", variant: "success" });
+              }}
+            />
           )
         )}
       </section>
@@ -573,6 +446,254 @@ export function OrganisationTab({ entrepriseId }: OrganisationTabProps) {
       />
 
       <ConfirmDialog />
+    </div>
+  );
+}
+
+// ─── Membre Row (reusable) ───────────────────────────────
+
+function MembreRow({
+  m,
+  selected,
+  onToggleSelect,
+  onEdit,
+  onDelete,
+}: {
+  m: Membre;
+  selected: boolean;
+  onToggleSelect: (id: string, checked: boolean) => void;
+  onEdit: (m: Membre) => void;
+  onDelete: (m: Membre) => void;
+}) {
+  const name = m.apprenant_id
+    ? `${m.apprenant_prenom ?? ""} ${m.apprenant_nom ?? ""}`
+    : `${m.contact_prenom ?? ""} ${m.contact_nom ?? ""}`;
+  const type = m.apprenant_id ? "apprenant" : "contact";
+
+  return (
+    <div className={`flex items-center gap-3 px-4 py-2.5 hover:bg-muted/10 transition-colors group ${selected ? "bg-primary/5" : ""}`}>
+      <div className="w-5 flex-shrink-0">
+        {type === "apprenant" ? (
+          <input
+            type="checkbox"
+            className="h-3.5 w-3.5 rounded border-border/60"
+            checked={selected}
+            onChange={(e) => onToggleSelect(m.id, e.target.checked)}
+          />
+        ) : (
+          <span className="block h-3.5 w-3.5" title="Seuls les apprenants peuvent être inscrits" />
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          {type === "apprenant" ? (
+            <GraduationCap className="h-3.5 w-3.5 text-blue-400 shrink-0" />
+          ) : (
+            <UserCheck className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+          )}
+          <span className="text-[13px] font-medium">{name.trim()}</span>
+          <Badge variant="outline" className="text-[10px] border-border/40 text-muted-foreground/60">
+            {type === "apprenant" ? "Apprenant" : "Contact"}
+          </Badge>
+          {(m.roles && m.roles.length > 0 ? m.roles : ["employe"]).map((r) => (
+            <Badge key={r} className={`text-[10px] ${ROLE_COLORS[r] ?? ROLE_COLORS.employe}`}>
+              {ROLE_LABELS[r] ?? r}
+            </Badge>
+          ))}
+          {m.fonction && (
+            <span className="text-[11px] text-muted-foreground/50">{m.fonction}</span>
+          )}
+          {m.pole_nom && (
+            <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground/50">
+              <Layers className="h-2.5 w-2.5" />
+              {m.pole_nom}
+            </span>
+          )}
+        </div>
+      </div>
+      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+        <button
+          onClick={() => onEdit(m)}
+          className="p-1.5 rounded hover:bg-muted/30 text-muted-foreground/60 hover:text-foreground transition-colors"
+          title="Modifier"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+        </button>
+        <button
+          onClick={() => onDelete(m)}
+          className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground/60 hover:text-destructive transition-colors"
+          title="Supprimer"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Hierarchical Members View ──────────────────────────
+
+function MembresHierarchicalView({
+  membres,
+  agences,
+  poles,
+  selectedMembreIds,
+  setSelectedMembreIds,
+  onEdit,
+  onDelete,
+}: {
+  membres: Membre[];
+  agences: Agence[];
+  poles: (Pole & { agence_nom?: string })[];
+  selectedMembreIds: Set<string>;
+  setSelectedMembreIds: React.Dispatch<React.SetStateAction<Set<string>>>;
+  onEdit: (m: Membre) => void;
+  onDelete: (m: Membre) => void;
+}) {
+  const handleToggleSelect = (id: string, checked: boolean) => {
+    setSelectedMembreIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+
+  // Group members: siege, by agence, by pole (no agence), unaffiliated
+  const siegeMembers = membres.filter((m) => m.rattache_siege);
+  const siegeIds = new Set(siegeMembers.map((m) => m.id));
+
+  // Members by agence (excluding siege-only members already shown)
+  const agenceGroups: { agence: Agence; members: Membre[] }[] = agences.map((agence) => ({
+    agence,
+    members: membres.filter(
+      (m) => !siegeIds.has(m.id) && m.agences && m.agences.some((a) => a.id === agence.id)
+    ),
+  })).filter((g) => g.members.length > 0);
+
+  // Track members already displayed
+  const displayedIds = new Set(siegeIds);
+  agenceGroups.forEach((g) => g.members.forEach((m) => displayedIds.add(m.id)));
+
+  // Members in a pole but not in any agence group
+  const poleOnlyMembers: { pole: Pole & { agence_nom?: string }; members: Membre[] }[] = poles.map((pole) => ({
+    pole,
+    members: membres.filter(
+      (m) => !displayedIds.has(m.id) && m.pole_id === pole.id
+    ),
+  })).filter((g) => g.members.length > 0);
+
+  poleOnlyMembers.forEach((g) => g.members.forEach((m) => displayedIds.add(m.id)));
+
+  // Unaffiliated members (no siege, no agence, no pole)
+  const unaffiliated = membres.filter((m) => !displayedIds.has(m.id));
+
+  return (
+    <div className="divide-y divide-border/40">
+      {/* Siege social group */}
+      {siegeMembers.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 px-5 py-2.5 bg-amber-500/5 border-b border-border/40">
+            <Star className="h-3.5 w-3.5 text-amber-400" />
+            <span className="text-[12px] font-semibold text-amber-400">Siège social</span>
+            <span className="text-[10px] text-amber-400/60">{siegeMembers.length} membre(s)</span>
+          </div>
+          <div className="divide-y divide-border/30">
+            {siegeMembers.map((m) => (
+              <MembreRow
+                key={m.id}
+                m={m}
+                selected={selectedMembreIds.has(m.id)}
+                onToggleSelect={handleToggleSelect}
+                onEdit={onEdit}
+                onDelete={onDelete}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Agence groups */}
+      {agenceGroups.map(({ agence, members }) => (
+        <div key={agence.id}>
+          <div className="flex items-center gap-2 px-5 py-2.5 bg-primary/5 border-b border-border/40">
+            <Building className="h-3.5 w-3.5 text-primary" />
+            <span className="text-[12px] font-semibold text-primary">{agence.nom}</span>
+            {agence.est_siege && (
+              <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20 text-[9px] py-0">
+                <Star className="mr-0.5 h-2 w-2" />Siège
+              </Badge>
+            )}
+            <span className="text-[10px] text-primary/60">{members.length} membre(s)</span>
+            {agence.adresse_ville && (
+              <span className="text-[10px] text-muted-foreground/40 flex items-center gap-0.5">
+                <MapPin className="h-2.5 w-2.5" />
+                {agence.adresse_ville}
+              </span>
+            )}
+          </div>
+          <div className="divide-y divide-border/30">
+            {members.map((m) => (
+              <MembreRow
+                key={m.id}
+                m={m}
+                selected={selectedMembreIds.has(m.id)}
+                onToggleSelect={handleToggleSelect}
+                onEdit={onEdit}
+                onDelete={onDelete}
+              />
+            ))}
+          </div>
+        </div>
+      ))}
+
+      {/* Pole-only groups */}
+      {poleOnlyMembers.map(({ pole, members }) => (
+        <div key={pole.id}>
+          <div className="flex items-center gap-2 px-5 py-2.5 bg-blue-500/5 border-b border-border/40">
+            <Layers className="h-3.5 w-3.5 text-blue-400" />
+            <span className="text-[12px] font-semibold text-blue-400">{pole.nom}</span>
+            <span className="text-[10px] text-blue-400/60">{members.length} membre(s)</span>
+          </div>
+          <div className="divide-y divide-border/30">
+            {members.map((m) => (
+              <MembreRow
+                key={m.id}
+                m={m}
+                selected={selectedMembreIds.has(m.id)}
+                onToggleSelect={handleToggleSelect}
+                onEdit={onEdit}
+                onDelete={onDelete}
+              />
+            ))}
+          </div>
+        </div>
+      ))}
+
+      {/* Unaffiliated members */}
+      {unaffiliated.length > 0 && (
+        <div>
+          {(siegeMembers.length > 0 || agenceGroups.length > 0 || poleOnlyMembers.length > 0) && (
+            <div className="flex items-center gap-2 px-5 py-2.5 bg-muted/20 border-b border-border/40">
+              <Users className="h-3.5 w-3.5 text-muted-foreground/50" />
+              <span className="text-[12px] font-semibold text-muted-foreground/60">Non rattachés</span>
+              <span className="text-[10px] text-muted-foreground/40">{unaffiliated.length} membre(s)</span>
+            </div>
+          )}
+          <div className="divide-y divide-border/30">
+            {unaffiliated.map((m) => (
+              <MembreRow
+                key={m.id}
+                m={m}
+                selected={selectedMembreIds.has(m.id)}
+                onToggleSelect={handleToggleSelect}
+                onEdit={onEdit}
+                onDelete={onDelete}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1047,8 +1168,6 @@ function MembreDialog({
   const [poleId, setPoleId] = React.useState(membre?.pole_id ?? "");
   const [rattacheSiege, setRattacheSiege] = React.useState(membre?.rattache_siege ?? false);
 
-  const hasSiege = agences.some((a) => a.est_siege);
-
   const isLegacyContact = !!membre?.contact_client_id;
 
   function toggleRole(role: string) {
@@ -1376,28 +1495,23 @@ function MembreDialog({
           </div>
 
           {/* Rattaché au Siège social */}
-          <div className="flex items-center gap-3 rounded-md border border-border/40 px-3 py-2.5">
-            <input
-              type="checkbox"
-              id="rattache_siege"
-              checked={rattacheSiege}
-              onChange={(e) => setRattacheSiege(e.target.checked)}
-              disabled={!hasSiege}
-              className="h-4 w-4 rounded border-border/60 accent-amber-500"
-            />
-            <div className="flex-1">
-              <Label htmlFor="rattache_siege" className={`text-[13px] font-medium ${!hasSiege ? "text-muted-foreground/40" : ""}`}>
-                Rattaché au Siège social
-              </Label>
-              {!hasSiege && (
-                <p className="text-[11px] text-muted-foreground/40 mt-0.5">
-                  Aucun siège social défini. Configurez une agence comme siège social d&apos;abord.
-                </p>
-              )}
+          <div className="space-y-2">
+            <Label className="text-[13px]">Siège social</Label>
+            <div className="flex">
+              <button
+                type="button"
+                onClick={() => setRattacheSiege(!rattacheSiege)}
+                className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[12px] font-medium transition-colors ${
+                  rattacheSiege
+                    ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
+                    : "border-border/40 text-muted-foreground/60 hover:text-foreground hover:border-border"
+                }`}
+              >
+                {rattacheSiege && <Check className="h-3 w-3" />}
+                <Star className="h-3 w-3" />
+                Rattaché au siège social
+              </button>
             </div>
-            {rattacheSiege && hasSiege && (
-              <Star className="h-3.5 w-3.5 text-amber-400" />
-            )}
           </div>
 
           {/* Agences (multi-select) */}

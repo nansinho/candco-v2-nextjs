@@ -537,11 +537,14 @@ export async function unlinkContactFromEntreprise(entrepriseId: string, contactI
 }
 
 export async function searchContactsForLinking(search: string, excludeIds: string[]) {
-  const supabase = await createClient();
+  const authResult = await getOrganisationId();
+  if ("error" in authResult) return { data: [], error: authResult.error };
+  const { organisationId, admin } = authResult;
 
-  let query = supabase
+  let query = admin
     .from("contacts_clients")
     .select("id, numero_affichage, prenom, nom, email, fonction")
+    .eq("organisation_id", organisationId)
     .is("archived_at", null)
     .order("nom", { ascending: true })
     .limit(10);
@@ -564,11 +567,14 @@ export async function searchContactsForLinking(search: string, excludeIds: strin
 }
 
 export async function searchApprenantsForLinking(search: string, excludeIds: string[]) {
-  const supabase = await createClient();
+  const authResult = await getOrganisationId();
+  if ("error" in authResult) return { data: [], error: authResult.error };
+  const { organisationId, admin } = authResult;
 
-  let query = supabase
+  let query = admin
     .from("apprenants")
     .select("id, numero_affichage, prenom, nom, email")
+    .eq("organisation_id", organisationId)
     .is("archived_at", null)
     .order("nom", { ascending: true })
     .limit(10);
