@@ -35,6 +35,19 @@ import { useTheme } from "@/components/theme-provider";
 import { NAV_SECTIONS } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
 import { useSidebar } from "./sidebar-context";
+import { OrgSelector } from "./OrgSelector";
+
+interface Organisation {
+  id: string;
+  nom: string;
+}
+
+interface SidebarProps {
+  currentOrganisation?: Organisation | null;
+  organisations?: Organisation[];
+  isSuperAdmin?: boolean;
+  hasMultiOrg?: boolean;
+}
 
 const iconMap: Record<string, React.ElementType> = {
   GraduationCap,
@@ -58,7 +71,12 @@ const iconMap: Record<string, React.ElementType> = {
   Settings,
 };
 
-export function Sidebar() {
+export function Sidebar({
+  currentOrganisation = null,
+  organisations = [],
+  isSuperAdmin = false,
+  hasMultiOrg = false,
+}: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { collapsed, setCollapsed, mobileOpen, setMobileOpen } = useSidebar();
@@ -104,6 +122,16 @@ export function Sidebar() {
           <X className="h-4 w-4" />
         </button>
       </div>
+
+      {/* Org Selector — visible only for super-admins or multi-org users */}
+      {hasMultiOrg && (
+        <OrgSelector
+          currentOrganisation={currentOrganisation}
+          organisations={organisations}
+          isSuperAdmin={isSuperAdmin}
+          collapsed={collapsed}
+        />
+      )}
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-3">
