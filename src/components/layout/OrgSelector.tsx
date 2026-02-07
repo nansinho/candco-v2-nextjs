@@ -4,6 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Building2, ChevronDown, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { switchOrganisation } from "@/lib/auth-helpers";
 
 interface Organisation {
   id: string;
@@ -40,7 +41,6 @@ export function OrgSelector({
 
   async function handleSwitch(orgId: string) {
     setOpen(false);
-    const { switchOrganisation } = await import("@/lib/auth-helpers");
     const result = await switchOrganisation(orgId);
     if (!("error" in result)) {
       router.refresh();

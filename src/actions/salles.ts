@@ -51,13 +51,18 @@ export async function getSalles(
   page: number = 1,
   search: string = "",
 ) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) {
+    return { data: [], count: 0, error: result.error };
+  }
+  const { organisationId, admin } = result;
   const limit = 25;
   const offset = (page - 1) * limit;
 
-  let query = supabase
+  let query = admin
     .from("salles")
     .select("*", { count: "exact" })
+    .eq("organisation_id", organisationId)
     .eq("actif", true)
     .order("nom", { ascending: true })
     .range(offset, offset + limit - 1);

@@ -33,13 +33,18 @@ export async function getActivites(
   entiteId?: string,
   page: number = 1
 ) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) {
+    return { data: [], count: 0, error: result.error };
+  }
+  const { organisationId, admin } = result;
   const limit = 25;
   const offset = (page - 1) * limit;
 
-  let query = supabase
+  let query = admin
     .from("activites")
     .select("*, utilisateurs:auteur_id(prenom, nom)", { count: "exact" })
+    .eq("organisation_id", organisationId)
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
 
