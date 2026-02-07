@@ -313,6 +313,23 @@ export async function updateProduit(id: string, input: UpdateProduitInput) {
   return { data };
 }
 
+export async function updateProduitImage(id: string, imageUrl: string) {
+  const orgResult = await getOrganisationId();
+  if ("error" in orgResult) return { error: orgResult.error };
+  const { organisationId, supabase } = orgResult;
+
+  const { error } = await supabase
+    .from("produits_formation")
+    .update({ image_url: imageUrl, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("organisation_id", organisationId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/produits/${id}`);
+  return { data: { image_url: imageUrl } };
+}
+
 export async function deleteProduits(ids: string[]) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };

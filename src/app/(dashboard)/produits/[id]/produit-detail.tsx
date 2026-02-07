@@ -30,6 +30,7 @@ import { useBreadcrumb } from "@/components/layout/breadcrumb-context";
 import { QuickActionsBar } from "@/components/shared/quick-actions-bar";
 import {
   updateProduit,
+  updateProduitImage,
   archiveProduit,
   unarchiveProduit,
   addTarif,
@@ -651,7 +652,7 @@ export function ProduitDetail({
                             .upload(filename, file, { contentType: file.type, upsert: true });
                           if (uploadError) throw uploadError;
                           const { data: urlData } = supabase.storage.from("images").getPublicUrl(filename);
-                          await updateProduit(produit.id, { image_url: urlData.publicUrl });
+                          await updateProduitImage(produit.id, urlData.publicUrl);
                           setCurrentImageUrl(urlData.publicUrl);
                           toast({ title: "Image mise a jour", variant: "success" });
                           router.refresh();
