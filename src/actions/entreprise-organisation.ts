@@ -32,10 +32,14 @@ export interface Pole {
   created_at: string;
 }
 
+export interface MembreAgence {
+  id: string;
+  nom: string;
+}
+
 export interface Membre {
   id: string;
   entreprise_id: string;
-  agence_id: string | null;
   pole_id: string | null;
   apprenant_id: string | null;
   contact_client_id: string | null;
@@ -47,7 +51,7 @@ export interface Membre {
   apprenant_prenom?: string;
   contact_nom?: string;
   contact_prenom?: string;
-  agence_nom?: string;
+  agences: MembreAgence[];
   pole_nom?: string;
 }
 
@@ -74,7 +78,7 @@ const PoleSchema = z.object({
 const VALID_ROLES = ["direction", "responsable_formation", "manager", "employe"] as const;
 
 const MembreSchema = z.object({
-  agence_id: z.string().uuid().optional().or(z.literal("")),
+  agence_ids: z.array(z.string().uuid()).default([]),
   pole_id: z.string().uuid().optional().or(z.literal("")),
   apprenant_id: z.string().uuid().optional().or(z.literal("")),
   contact_client_id: z.string().uuid().optional().or(z.literal("")),
@@ -315,29 +319,35 @@ export async function getMembres(entrepriseId: string) {
 
   const { data, error } = await supabase
     .from("entreprise_membres")
-    .select("*, apprenants(prenom, nom), contacts_clients(prenom, nom), entreprise_agences(nom), entreprise_poles(nom)")
+    .select("*, apprenants(prenom, nom), contacts_clients(prenom, nom), entreprise_poles(nom), membre_agences(entreprise_agences(id, nom))")
     .eq("entreprise_id", entrepriseId)
     .order("created_at", { ascending: false });
 
   if (error) return { data: [], error: error.message };
 
-  const membres = (data ?? []).map((m: Record<string, unknown>) => ({
-    id: m.id,
-    entreprise_id: m.entreprise_id,
-    agence_id: m.agence_id,
-    pole_id: m.pole_id,
-    apprenant_id: m.apprenant_id,
-    contact_client_id: m.contact_client_id,
-    roles: (m.roles as string[]) ?? [],
-    fonction: m.fonction,
-    created_at: m.created_at,
-    apprenant_prenom: (m.apprenants as { prenom: string; nom: string } | null)?.prenom ?? null,
-    apprenant_nom: (m.apprenants as { prenom: string; nom: string } | null)?.nom ?? null,
-    contact_prenom: (m.contacts_clients as { prenom: string; nom: string } | null)?.prenom ?? null,
-    contact_nom: (m.contacts_clients as { prenom: string; nom: string } | null)?.nom ?? null,
-    agence_nom: (m.entreprise_agences as { nom: string } | null)?.nom ?? null,
-    pole_nom: (m.entreprise_poles as { nom: string } | null)?.nom ?? null,
-  })) as Membre[];
+  const membres = (data ?? []).map((m: Record<string, unknown>) => {
+    const agencesRaw = (m.membre_agences as Array<{ entreprise_agences: { id: string; nom: string } | null }>) ?? [];
+    const agences: MembreAgence[] = agencesRaw
+      .filter((ma) => ma.entreprise_agences != null)
+      .map((ma) => ({ id: ma.entreprise_agences!.id, nom: ma.entreprise_agences!.nom }));
+
+    return {
+      id: m.id,
+      entreprise_id: m.entreprise_id,
+      pole_id: m.pole_id,
+      apprenant_id: m.apprenant_id,
+      contact_client_id: m.contact_client_id,
+      roles: (m.roles as string[]) ?? [],
+      fonction: m.fonction,
+      created_at: m.created_at,
+      apprenant_prenom: (m.apprenants as { prenom: string; nom: string } | null)?.prenom ?? null,
+      apprenant_nom: (m.apprenants as { prenom: string; nom: string } | null)?.nom ?? null,
+      contact_prenom: (m.contacts_clients as { prenom: string; nom: string } | null)?.prenom ?? null,
+      contact_nom: (m.contacts_clients as { prenom: string; nom: string } | null)?.nom ?? null,
+      agences,
+      pole_nom: (m.entreprise_poles as { nom: string } | null)?.nom ?? null,
+    };
+  }) as Membre[];
 
   return { data: membres };
 }
@@ -360,7 +370,6 @@ export async function createMembre(entrepriseId: string, input: z.infer<typeof M
       .from("entreprise_membres")
       .insert({
         entreprise_id: entrepriseId,
-        agence_id: d.agence_id || null,
         pole_id: d.pole_id || null,
         apprenant_id: d.apprenant_id || null,
         contact_client_id: d.contact_client_id || null,
@@ -373,6 +382,20 @@ export async function createMembre(entrepriseId: string, input: z.infer<typeof M
     if (error) {
       console.error("[createMembre] Supabase error:", error.message, error.details, error.hint);
       return { error: { _form: [error.message] } };
+    }
+
+    // Insert agence links via junction table
+    if (d.agence_ids.length > 0) {
+      const { error: agenceError } = await supabase
+        .from("membre_agences")
+        .insert(d.agence_ids.map((agenceId) => ({
+          membre_id: data.id,
+          agence_id: agenceId,
+        })));
+
+      if (agenceError) {
+        console.error("[createMembre] membre_agences error:", agenceError.message);
+      }
     }
 
     revalidatePath(`/entreprises/${entrepriseId}`);
@@ -395,7 +418,6 @@ export async function updateMembre(membreId: string, entrepriseId: string, input
     const { data, error } = await supabase
       .from("entreprise_membres")
       .update({
-        agence_id: d.agence_id || null,
         pole_id: d.pole_id || null,
         roles: d.roles.length > 0 ? d.roles : ["employe"],
         fonction: d.fonction || null,
@@ -407,6 +429,22 @@ export async function updateMembre(membreId: string, entrepriseId: string, input
     if (error) {
       console.error("[updateMembre] Supabase error:", error.message, error.details, error.hint);
       return { error: { _form: [error.message] } };
+    }
+
+    // Sync agences: delete all existing, then insert new
+    await supabase.from("membre_agences").delete().eq("membre_id", membreId);
+
+    if (d.agence_ids.length > 0) {
+      const { error: agenceError } = await supabase
+        .from("membre_agences")
+        .insert(d.agence_ids.map((agenceId) => ({
+          membre_id: membreId,
+          agence_id: agenceId,
+        })));
+
+      if (agenceError) {
+        console.error("[updateMembre] membre_agences error:", agenceError.message);
+      }
     }
 
     revalidatePath(`/entreprises/${entrepriseId}`);
