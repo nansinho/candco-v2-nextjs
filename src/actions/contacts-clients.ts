@@ -184,7 +184,11 @@ export async function updateContactClient(id: string, input: UpdateContactClient
     return { error: parsed.error.flatten().fieldErrors };
   }
 
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) {
+    return { error: { _form: [result.error] } };
+  }
+  const { organisationId, supabase } = result;
 
   const cleanedData = cleanEmptyStrings(parsed.data);
 
@@ -195,6 +199,7 @@ export async function updateContactClient(id: string, input: UpdateContactClient
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)
+    .eq("organisation_id", organisationId)
     .select()
     .single();
 
@@ -208,12 +213,15 @@ export async function updateContactClient(id: string, input: UpdateContactClient
 }
 
 export async function deleteContactsClients(ids: string[]) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, supabase } = result;
 
   const { error } = await supabase
     .from("contacts_clients")
     .delete()
-    .in("id", ids);
+    .in("id", ids)
+    .eq("organisation_id", organisationId);
 
   if (error) {
     return { error: error.message };
@@ -224,12 +232,15 @@ export async function deleteContactsClients(ids: string[]) {
 }
 
 export async function archiveContactClient(id: string) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, supabase } = result;
 
   const { error } = await supabase
     .from("contacts_clients")
     .update({ archived_at: new Date().toISOString() })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("organisation_id", organisationId);
 
   if (error) {
     return { error: error.message };
@@ -240,12 +251,15 @@ export async function archiveContactClient(id: string) {
 }
 
 export async function unarchiveContactClient(id: string) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, supabase } = result;
 
   const { error } = await supabase
     .from("contacts_clients")
     .update({ archived_at: null })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("organisation_id", organisationId);
 
   if (error) {
     return { error: error.message };
@@ -440,11 +454,14 @@ export async function importContactsClients(
 // ─── Dropdown helper ────────────────────────────────────
 
 export async function getAllContactsClients() {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { data: [] };
+  const { organisationId, supabase } = result;
 
   const { data, error } = await supabase
     .from("contacts_clients")
     .select("id, prenom, nom, email")
+    .eq("organisation_id", organisationId)
     .is("archived_at", null)
     .order("nom", { ascending: true });
 

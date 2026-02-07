@@ -157,6 +157,11 @@ export async function updateFinanceur(id: string, input: FinanceurInput) {
     return { error: parsed.error.flatten().fieldErrors };
   }
 
+  const orgResult = await getOrganisationId();
+  if ("error" in orgResult) {
+    return { error: { _form: [orgResult.error] } };
+  }
+  const { organisationId } = orgResult;
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -174,6 +179,7 @@ export async function updateFinanceur(id: string, input: FinanceurInput) {
       numero_compte_comptable: parsed.data.numero_compte_comptable || null,
     })
     .eq("id", id)
+    .eq("organisation_id", organisationId)
     .select()
     .single();
 
@@ -187,12 +193,15 @@ export async function updateFinanceur(id: string, input: FinanceurInput) {
 }
 
 export async function deleteFinanceurs(ids: string[]) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, supabase } = result;
 
   const { error } = await supabase
     .from("financeurs")
     .delete()
-    .in("id", ids);
+    .in("id", ids)
+    .eq("organisation_id", organisationId);
 
   if (error) {
     return { error: error.message };
@@ -203,12 +212,15 @@ export async function deleteFinanceurs(ids: string[]) {
 }
 
 export async function archiveFinanceur(id: string) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, supabase } = result;
 
   const { error } = await supabase
     .from("financeurs")
     .update({ archived_at: new Date().toISOString() })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("organisation_id", organisationId);
 
   if (error) {
     return { error: error.message };
@@ -219,12 +231,15 @@ export async function archiveFinanceur(id: string) {
 }
 
 export async function unarchiveFinanceur(id: string) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, supabase } = result;
 
   const { error } = await supabase
     .from("financeurs")
     .update({ archived_at: null })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("organisation_id", organisationId);
 
   if (error) {
     return { error: error.message };
@@ -357,11 +372,14 @@ export async function importFinanceurs(
 // ─── Dropdown helper ────────────────────────────────────
 
 export async function getAllFinanceurs() {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { data: [] };
+  const { organisationId, supabase } = result;
 
   const { data, error } = await supabase
     .from("financeurs")
     .select("id, nom, type")
+    .eq("organisation_id", organisationId)
     .is("archived_at", null)
     .order("nom", { ascending: true });
 

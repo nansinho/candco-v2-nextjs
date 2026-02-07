@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { PDFParse } from "pdf-parse";
+import { getOrganisationId } from "@/lib/auth-helpers";
 
 export const maxDuration = 60;
 
@@ -32,6 +33,12 @@ Règles :
 - Si le document n'est pas un programme de formation, retourne un JSON avec modules vide et un message dans description`;
 
 export async function POST(request: NextRequest) {
+  // Auth check
+  const authResult = await getOrganisationId();
+  if ("error" in authResult) {
+    return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+  }
+
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
@@ -75,7 +82,7 @@ export async function POST(request: NextRequest) {
     // Call Claude to structure the programme
     const anthropic = new Anthropic({ apiKey });
     const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-5-20250929",
+      model: "claude-sonnet-4-20250514",
       max_tokens: 4096,
       system: SYSTEM_PROMPT,
       messages: [

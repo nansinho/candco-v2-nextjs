@@ -167,7 +167,11 @@ export async function updateSession(id: string, input: UpdateSessionInput) {
     return { error: parsed.error.flatten().fieldErrors };
   }
 
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) {
+    return { error: { _form: [result.error] } };
+  }
+  const { organisationId, supabase } = result;
 
   const { data, error } = await supabase
     .from("sessions")
@@ -185,6 +189,7 @@ export async function updateSession(id: string, input: UpdateSessionInput) {
       emargement_auto: parsed.data.emargement_auto,
     })
     .eq("id", id)
+    .eq("organisation_id", organisationId)
     .select()
     .single();
 
@@ -198,12 +203,15 @@ export async function updateSession(id: string, input: UpdateSessionInput) {
 }
 
 export async function deleteSessions(ids: string[]) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, supabase } = result;
 
   const { error } = await supabase
     .from("sessions")
     .delete()
-    .in("id", ids);
+    .in("id", ids)
+    .eq("organisation_id", organisationId);
 
   if (error) {
     return { error: error.message };
@@ -214,12 +222,15 @@ export async function deleteSessions(ids: string[]) {
 }
 
 export async function archiveSession(id: string) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, supabase } = result;
 
   const { error } = await supabase
     .from("sessions")
     .update({ archived_at: new Date().toISOString() })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("organisation_id", organisationId);
 
   if (error) {
     return { error: error.message };
@@ -230,12 +241,15 @@ export async function archiveSession(id: string) {
 }
 
 export async function unarchiveSession(id: string) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, supabase } = result;
 
   const { error } = await supabase
     .from("sessions")
     .update({ archived_at: null })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("organisation_id", organisationId);
 
   if (error) {
     return { error: error.message };

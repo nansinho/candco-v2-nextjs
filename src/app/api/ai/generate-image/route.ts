@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getOrganisationId } from "@/lib/auth-helpers";
 
 export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
+  // Auth check
+  const authResult = await getOrganisationId();
+  if ("error" in authResult) {
+    return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+  }
+
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
@@ -80,11 +87,12 @@ export async function POST(request: NextRequest) {
       .from("images")
       .getPublicUrl(filename);
 
-    // Update the product with the image URL
+    // Update the product with the image URL (scoped to user's org via RLS)
     const { error: updateError } = await supabase
       .from("produits_formation")
       .update({ image_url: urlData.publicUrl })
-      .eq("id", produitId);
+      .eq("id", produitId)
+      .eq("organisation_id", authResult.organisationId);
 
     if (updateError) {
       return NextResponse.json(

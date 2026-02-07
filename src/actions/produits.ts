@@ -275,6 +275,11 @@ export async function updateProduit(id: string, input: UpdateProduitInput) {
     return { error: parsed.error.flatten().fieldErrors };
   }
 
+  const orgResult = await getOrganisationId();
+  if ("error" in orgResult) {
+    return { error: { _form: [orgResult.error] } };
+  }
+  const { organisationId } = orgResult;
   const supabase = await createClient();
   const cleanedData = cleanEmptyStrings(parsed.data);
 
@@ -295,6 +300,7 @@ export async function updateProduit(id: string, input: UpdateProduitInput) {
     .from("produits_formation")
     .update({ ...cleanedData, completion_pct })
     .eq("id", id)
+    .eq("organisation_id", organisationId)
     .select()
     .single();
 
@@ -308,12 +314,15 @@ export async function updateProduit(id: string, input: UpdateProduitInput) {
 }
 
 export async function deleteProduits(ids: string[]) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, supabase } = result;
 
   const { error } = await supabase
     .from("produits_formation")
     .delete()
-    .in("id", ids);
+    .in("id", ids)
+    .eq("organisation_id", organisationId);
 
   if (error) {
     return { error: error.message };
@@ -324,12 +333,15 @@ export async function deleteProduits(ids: string[]) {
 }
 
 export async function archiveProduit(id: string) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, supabase } = result;
 
   const { error } = await supabase
     .from("produits_formation")
     .update({ archived_at: new Date().toISOString() })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("organisation_id", organisationId);
 
   if (error) {
     return { error: error.message };
@@ -340,12 +352,15 @@ export async function archiveProduit(id: string) {
 }
 
 export async function unarchiveProduit(id: string) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, supabase } = result;
 
   const { error } = await supabase
     .from("produits_formation")
     .update({ archived_at: null })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("organisation_id", organisationId);
 
   if (error) {
     return { error: error.message };

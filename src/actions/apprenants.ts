@@ -185,7 +185,11 @@ export async function updateApprenant(id: string, input: UpdateApprenantInput) {
     return { error: parsed.error.flatten().fieldErrors };
   }
 
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) {
+    return { error: { _form: [result.error] } };
+  }
+  const { organisationId, supabase } = result;
 
   const { data, error } = await supabase
     .from("apprenants")
@@ -196,6 +200,7 @@ export async function updateApprenant(id: string, input: UpdateApprenantInput) {
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)
+    .eq("organisation_id", organisationId)
     .select()
     .single();
 
@@ -209,12 +214,15 @@ export async function updateApprenant(id: string, input: UpdateApprenantInput) {
 }
 
 export async function archiveApprenant(id: string) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, supabase } = result;
 
   const { error } = await supabase
     .from("apprenants")
     .update({ archived_at: new Date().toISOString() })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("organisation_id", organisationId);
 
   if (error) {
     return { error: error.message };
@@ -225,12 +233,15 @@ export async function archiveApprenant(id: string) {
 }
 
 export async function unarchiveApprenant(id: string) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, supabase } = result;
 
   const { error } = await supabase
     .from("apprenants")
     .update({ archived_at: null })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("organisation_id", organisationId);
 
   if (error) {
     return { error: error.message };
@@ -241,12 +252,15 @@ export async function unarchiveApprenant(id: string) {
 }
 
 export async function deleteApprenants(ids: string[]) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, supabase } = result;
 
   const { error } = await supabase
     .from("apprenants")
     .delete()
-    .in("id", ids);
+    .in("id", ids)
+    .eq("organisation_id", organisationId);
 
   if (error) {
     return { error: error.message };
@@ -535,11 +549,14 @@ export async function searchEntreprisesForLinking(search: string, excludeIds: st
 // ─── Dropdown helper ────────────────────────────────────
 
 export async function getAllApprenants() {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { data: [] };
+  const { organisationId, supabase } = result;
 
   const { data, error } = await supabase
     .from("apprenants")
     .select("id, prenom, nom, email, numero_affichage")
+    .eq("organisation_id", organisationId)
     .is("archived_at", null)
     .order("nom", { ascending: true });
 

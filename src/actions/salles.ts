@@ -81,11 +81,14 @@ export async function getSalles(
 }
 
 export async function getAllSalles() {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { data: [] };
+  const { organisationId, supabase } = result;
 
   const { data, error } = await supabase
     .from("salles")
     .select("id, nom, adresse, capacite")
+    .eq("organisation_id", organisationId)
     .eq("actif", true)
     .order("nom", { ascending: true });
 
@@ -102,6 +105,11 @@ export async function updateSalle(id: string, input: SalleInput) {
     return { error: parsed.error.flatten().fieldErrors };
   }
 
+  const orgResult = await getOrganisationId();
+  if ("error" in orgResult) {
+    return { error: { _form: [orgResult.error] } };
+  }
+  const { organisationId } = orgResult;
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -113,6 +121,7 @@ export async function updateSalle(id: string, input: SalleInput) {
       equipements: parsed.data.equipements || null,
     })
     .eq("id", id)
+    .eq("organisation_id", organisationId)
     .select()
     .single();
 
@@ -125,13 +134,16 @@ export async function updateSalle(id: string, input: SalleInput) {
 }
 
 export async function deleteSalles(ids: string[]) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, supabase } = result;
 
   // Soft delete by setting actif = false
   const { error } = await supabase
     .from("salles")
     .update({ actif: false })
-    .in("id", ids);
+    .in("id", ids)
+    .eq("organisation_id", organisationId);
 
   if (error) {
     return { error: error.message };
