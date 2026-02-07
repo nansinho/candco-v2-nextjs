@@ -137,9 +137,13 @@ export async function getSessions(
 }
 
 export async function getSession(id: string) {
-  const supabase = await createClient();
+  const orgResult = await getOrganisationId();
+  if ("error" in orgResult) {
+    return { data: null, error: orgResult.error };
+  }
+  const { admin } = orgResult;
 
-  const { data, error } = await supabase
+  const { data, error } = await admin
     .from("sessions")
     .select(`
       *,

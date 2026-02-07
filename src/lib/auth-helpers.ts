@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
 
 /**
  * Get the current user's organisation_id.
@@ -173,6 +174,9 @@ export async function switchOrganisation(organisationId: string) {
     maxAge: 60 * 60 * 24 * 30, // 30 days
     path: "/",
   });
+
+  // Invalidate cached server components so the layout re-fetches with new org
+  revalidatePath("/", "layout");
 
   return { success: true };
 }

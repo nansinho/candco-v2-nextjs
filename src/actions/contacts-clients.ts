@@ -106,9 +106,13 @@ export async function getContactClient(id: string): Promise<{
   entreprises: EntrepriseLink[];
   error?: string;
 }> {
-  const supabase = await createClient();
+  const orgResult = await getOrganisationId();
+  if ("error" in orgResult) {
+    return { data: null, entreprises: [], error: orgResult.error };
+  }
+  const { admin } = orgResult;
 
-  const { data, error } = await supabase
+  const { data, error } = await admin
     .from("contacts_clients")
     .select("*")
     .eq("id", id)
@@ -119,7 +123,7 @@ export async function getContactClient(id: string): Promise<{
   }
 
   // Fetch linked entreprises via the junction table
-  const { data: links } = await supabase
+  const { data: links } = await admin
     .from("contact_entreprises")
     .select("entreprise_id, entreprises(id, numero_affichage, nom, siret, email, adresse_ville)")
     .eq("contact_client_id", id);

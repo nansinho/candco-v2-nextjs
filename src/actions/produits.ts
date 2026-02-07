@@ -226,9 +226,13 @@ export async function getProduits(
 }
 
 export async function getProduit(id: string) {
-  const supabase = await createClient();
+  const orgResult = await getOrganisationId();
+  if ("error" in orgResult) {
+    return { data: null, tarifs: [], objectifs: [], programme: [], error: orgResult.error };
+  }
+  const { admin } = orgResult;
 
-  const { data: produit, error } = await supabase
+  const { data: produit, error } = await admin
     .from("produits_formation")
     .select("*")
     .eq("id", id)
@@ -240,17 +244,17 @@ export async function getProduit(id: string) {
 
   // Fetch related data in parallel
   const [tarifsResult, objectifsResult, programmeResult] = await Promise.all([
-    supabase
+    admin
       .from("produit_tarifs")
       .select("*")
       .eq("produit_id", id)
       .order("created_at", { ascending: true }),
-    supabase
+    admin
       .from("produit_objectifs")
       .select("*")
       .eq("produit_id", id)
       .order("ordre", { ascending: true }),
-    supabase
+    admin
       .from("produit_programme")
       .select("*")
       .eq("produit_id", id)

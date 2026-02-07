@@ -291,9 +291,10 @@ function CreateEntrepriseForm({ onSuccess, onCancel }: CreateFormProps) {
     adresse_rue: "",
     adresse_cp: "",
     adresse_ville: "",
+    est_siege: false,
   });
 
-  const updateField = (field: string, value: string) => {
+  const updateField = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -452,6 +453,19 @@ function CreateEntrepriseForm({ onSuccess, onCancel }: CreateFormProps) {
             className="h-9 text-[13px] border-border/60"
           />
         </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          id="est_siege"
+          checked={formData.est_siege}
+          onChange={(e) => updateField("est_siege", e.target.checked)}
+          className="h-4 w-4 rounded border-border/60"
+        />
+        <Label htmlFor="est_siege" className="text-[13px] font-normal">
+          Siège social
+        </Label>
       </div>
 
       <DialogFooter className="pt-2">

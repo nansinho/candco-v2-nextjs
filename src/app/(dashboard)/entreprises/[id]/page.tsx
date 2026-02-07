@@ -320,6 +320,7 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
       adresse_ville: formData.get("adresse_ville") as string,
       bpf_categorie_id: formData.get("bpf_categorie_id") as string,
       numero_compte_comptable: formData.get("numero_compte_comptable") as string,
+      est_siege: formData.get("est_siege") === "on",
     };
 
     const result = await updateEntreprise(entreprise.id, input);
@@ -542,6 +543,18 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
                 className="h-9 text-[13px] border-border/60"
               />
             </div>
+          </div>
+          <div className="mt-4 flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="est_siege"
+              name="est_siege"
+              defaultChecked={(entreprise as unknown as { est_siege?: boolean }).est_siege ?? false}
+              className="h-4 w-4 rounded border-border/60"
+            />
+            <Label htmlFor="est_siege" className="text-[13px] font-normal">
+              Siège social
+            </Label>
           </div>
         </section>
 
