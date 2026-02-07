@@ -1,8 +1,14 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getOrganisationId } from "@/lib/auth-helpers";
+import { createClient } from "@/lib/supabase/server";
 import { z } from "zod";
+
+const TABLE_MAP: Record<string, string> = {
+  formateur: "formateurs",
+  apprenant: "apprenants",
+  contact_client: "contacts_clients",
+};
 
 const InviteSchema = z.object({
   entiteType: z.enum(["formateur", "apprenant", "contact_client"]),
@@ -13,6 +19,42 @@ const InviteSchema = z.object({
 });
 
 export type InviteInput = z.infer<typeof InviteSchema>;
+
+/**
+ * Get the current authenticated user id, or return an error.
+ */
+async function requireAuth(): Promise<{ userId: string } | { error: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Non authentifié" };
+  }
+  return { userId: user.id };
+}
+
+/**
+ * Get organisation_id from the entity itself (formateur/apprenant/contact_client).
+ * This is more resilient than looking up through utilisateurs table.
+ */
+async function getOrganisationIdFromEntity(
+  entiteType: string,
+  entiteId: string
+): Promise<string | null> {
+  const admin = createAdminClient();
+  const tableName = TABLE_MAP[entiteType];
+  if (!tableName) return null;
+
+  const { data } = await admin
+    .from(tableName)
+    .select("organisation_id")
+    .eq("id", entiteId)
+    .single();
+
+  return (data as { organisation_id: string } | null)?.organisation_id ?? null;
+}
 
 /**
  * Invite a formateur, apprenant, or contact client to the extranet.
@@ -30,22 +72,22 @@ export async function inviteToExtranet(input: InviteInput) {
     return { error: firstError?.[0] || "Données invalides" };
   }
 
-  const authResult = await getOrganisationId();
-  if ("error" in authResult) {
-    return { error: authResult.error };
+  const authCheck = await requireAuth();
+  if ("error" in authCheck) {
+    return { error: authCheck.error };
   }
 
-  const { organisationId } = authResult;
   const { entiteType, entiteId, email, prenom, nom } = parsed.data;
   const admin = createAdminClient();
 
+  // Get organisation_id from the entity itself
+  const organisationId = await getOrganisationIdFromEntity(entiteType, entiteId);
+  if (!organisationId) {
+    return { error: "Entité introuvable ou sans organisation" };
+  }
+
   // Map entiteType to the extranet role
-  const roleMap: Record<string, string> = {
-    formateur: "formateur",
-    apprenant: "apprenant",
-    contact_client: "contact_client",
-  };
-  const role = roleMap[entiteType];
+  const role = entiteType; // formateur, apprenant, contact_client
 
   // Check if already invited
   const { data: existingAcces } = await admin
@@ -122,12 +164,7 @@ export async function inviteToExtranet(input: InviteInput) {
   }
 
   // 3. Update the entity's extranet fields
-  const tableMap: Record<string, string> = {
-    formateur: "formateurs",
-    apprenant: "apprenants",
-    contact_client: "contacts_clients",
-  };
-  const tableName = tableMap[entiteType];
+  const tableName = TABLE_MAP[entiteType];
 
   const { error: entityError } = await admin
     .from(tableName)
@@ -151,18 +188,17 @@ export async function inviteToExtranet(input: InviteInput) {
  * Revoke extranet access for a person.
  */
 export async function revokeExtranetAccess(extranetAccesId: string) {
-  const authResult = await getOrganisationId();
-  if ("error" in authResult) {
-    return { error: authResult.error };
+  const authCheck = await requireAuth();
+  if ("error" in authCheck) {
+    return { error: authCheck.error };
   }
 
   const admin = createAdminClient();
 
   const { data: acces, error: fetchError } = await admin
     .from("extranet_acces")
-    .select("id, entite_type, entite_id")
+    .select("id, entite_type, entite_id, organisation_id")
     .eq("id", extranetAccesId)
-    .eq("organisation_id", authResult.organisationId)
     .single();
 
   if (fetchError || !acces) {
@@ -180,12 +216,7 @@ export async function revokeExtranetAccess(extranetAccesId: string) {
   }
 
   // Update entity's extranet fields
-  const tableMap: Record<string, string> = {
-    formateur: "formateurs",
-    apprenant: "apprenants",
-    contact_client: "contacts_clients",
-  };
-  const tableName = tableMap[acces.entite_type];
+  const tableName = TABLE_MAP[acces.entite_type];
 
   await admin
     .from(tableName)
@@ -199,9 +230,9 @@ export async function revokeExtranetAccess(extranetAccesId: string) {
  * Get extranet access status for an entity.
  */
 export async function getExtranetAccess(entiteType: string, entiteId: string) {
-  const authResult = await getOrganisationId();
-  if ("error" in authResult) {
-    return { error: authResult.error };
+  const authCheck = await requireAuth();
+  if ("error" in authCheck) {
+    return { acces: null };
   }
 
   const admin = createAdminClient();
@@ -209,7 +240,6 @@ export async function getExtranetAccess(entiteType: string, entiteId: string) {
   const { data, error } = await admin
     .from("extranet_acces")
     .select("id, user_id, role, statut, invite_le, active_le")
-    .eq("organisation_id", authResult.organisationId)
     .eq("entite_type", entiteType)
     .eq("entite_id", entiteId)
     .single();
