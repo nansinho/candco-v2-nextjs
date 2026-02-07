@@ -26,6 +26,7 @@ import {
   type CreateSessionInput,
 } from "@/actions/sessions";
 import { formatDate, formatCurrency } from "@/lib/utils";
+import { DatePicker } from "@/components/ui/date-picker";
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -372,24 +373,20 @@ function CreateSessionForm({
           <Label htmlFor="date_debut" className="text-[13px]">
             Date de début
           </Label>
-          <Input
+          <DatePicker
             id="date_debut"
-            type="date"
             value={form.date_debut ?? ""}
-            onChange={(e) => updateField("date_debut", e.target.value)}
-            className="h-9 text-[13px] border-border/60"
+            onChange={(val) => updateField("date_debut", val)}
           />
         </div>
         <div className="space-y-2">
           <Label htmlFor="date_fin" className="text-[13px]">
             Date de fin
           </Label>
-          <Input
+          <DatePicker
             id="date_fin"
-            type="date"
             value={form.date_fin ?? ""}
-            onChange={(e) => updateField("date_fin", e.target.value)}
-            className="h-9 text-[13px] border-border/60"
+            onChange={(val) => updateField("date_fin", val)}
           />
         </div>
       </div>

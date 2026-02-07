@@ -207,8 +207,6 @@ export async function inviteToExtranet(input: InviteInput) {
     }
 
     // 4. Generate a login link for the invited user
-    // When Resend is set up, this link will be sent by email automatically.
-    // For now, we return it so the admin can copy/share it manually.
     let loginLink: string | null = null;
 
     const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({

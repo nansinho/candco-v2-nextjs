@@ -27,6 +27,7 @@ import { useConfirm } from "@/components/ui/alert-dialog";
 import { TachesActivitesTab } from "@/components/shared/taches-activites";
 import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
 import { formatDate, formatCurrency } from "@/lib/utils";
+import { DatePicker } from "@/components/ui/date-picker";
 import { useBreadcrumb } from "@/components/layout/breadcrumb-context";
 import {
   updateSession,
@@ -422,11 +423,11 @@ export function SessionDetail({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="date_debut" className="text-[13px]">Date début</Label>
-                      <Input id="date_debut" name="date_debut" type="date" defaultValue={session.date_debut ?? ""} className="h-9 text-[13px] border-border/60" />
+                      <DatePicker id="date_debut" name="date_debut" defaultValue={session.date_debut ?? ""} />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="date_fin" className="text-[13px]">Date fin</Label>
-                      <Input id="date_fin" name="date_fin" type="date" defaultValue={session.date_fin ?? ""} className="h-9 text-[13px] border-border/60" />
+                      <DatePicker id="date_fin" name="date_fin" defaultValue={session.date_fin ?? ""} />
                     </div>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1404,7 +1405,7 @@ function AddApprenantInline({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div className="space-y-1">
               <Label className="text-[11px] text-muted-foreground">Date de naissance</Label>
-              <Input type="date" value={newForm.date_naissance} onChange={(e) => setNewForm((p) => ({ ...p, date_naissance: e.target.value }))} className="h-8 text-[13px] border-border/60" />
+              <DatePicker value={newForm.date_naissance} onChange={(val) => setNewForm((p) => ({ ...p, date_naissance: val }))} className="h-8" />
             </div>
             <div className="space-y-1">
               <Label className="text-[11px] text-muted-foreground">Fonction</Label>
@@ -1514,7 +1515,7 @@ function AddCreneauForm({
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="space-y-1.5">
             <Label className="text-[12px]">Date <span className="text-destructive">*</span></Label>
-            <Input name="date" type="date" required className="h-8 text-[13px] border-border/60" />
+            <DatePicker name="date" className="h-8" />
           </div>
           <div className="space-y-1.5">
             <Label className="text-[12px]">Début <span className="text-destructive">*</span></Label>

@@ -1,6 +1,7 @@
 import { ToastProvider } from "@/components/ui/toast";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
+import { NavigationProgress } from "@/components/layout/navigation-progress";
 import { SidebarProvider } from "@/components/layout/sidebar-context";
 import { BreadcrumbProvider } from "@/components/layout/breadcrumb-context";
 import { getCurrentUser } from "@/lib/auth-helpers";
@@ -16,6 +17,7 @@ export default async function DashboardLayout({
     <ToastProvider>
       <SidebarProvider>
         <BreadcrumbProvider>
+          <NavigationProgress />
           <div className="flex min-h-screen bg-background">
             <Sidebar
               currentOrganisation={user?.currentOrganisation ?? null}
