@@ -83,11 +83,15 @@ export async function getSessions(
   sortDir: "asc" | "desc" = "desc",
   filters: QueryFilter[] = [],
 ) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) {
+    return { data: [], count: 0, error: result.error };
+  }
+  const { organisationId, admin } = result;
   const limit = 25;
   const offset = (page - 1) * limit;
 
-  let query = supabase
+  let query = admin
     .from("sessions")
     .select(`
       *,
@@ -96,6 +100,7 @@ export async function getSessions(
       inscriptions(id),
       session_commanditaires(id, budget, entreprises(nom))
     `, { count: "exact" })
+    .eq("organisation_id", organisationId)
     .order(sortBy, { ascending: sortDir === "asc" })
     .range(offset, offset + limit - 1);
 

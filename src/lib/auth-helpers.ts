@@ -50,6 +50,7 @@ export async function getOrganisationId() {
           role: utilisateur.role as "admin" | "manager" | "user",
           isSuperAdmin: true,
           supabase,
+          admin,
         };
       }
     }
@@ -61,6 +62,7 @@ export async function getOrganisationId() {
     role: utilisateur.role as "admin" | "manager" | "user",
     isSuperAdmin: utilisateur.is_super_admin as boolean,
     supabase,
+    admin,
   };
 }
 
