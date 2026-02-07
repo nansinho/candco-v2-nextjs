@@ -2,6 +2,7 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { randomUUID } from "crypto";
 import { z } from "zod";
 
 const TABLE_MAP: Record<string, string> = {
@@ -47,11 +48,16 @@ async function getOrganisationIdFromEntity(
   const tableName = TABLE_MAP[entiteType];
   if (!tableName) return null;
 
-  const { data } = await admin
+  const { data, error } = await admin
     .from(tableName)
     .select("organisation_id")
     .eq("id", entiteId)
     .single();
+
+  if (error) {
+    console.error(`[extranet] getOrganisationIdFromEntity error:`, error.message);
+    return null;
+  }
 
   return (data as { organisation_id: string } | null)?.organisation_id ?? null;
 }
@@ -66,89 +72,102 @@ async function getOrganisationIdFromEntity(
  * 4. TODO: Send invitation email via Resend with a first-access link
  */
 export async function inviteToExtranet(input: InviteInput) {
-  const parsed = InviteSchema.safeParse(input);
-  if (!parsed.success) {
-    const firstError = Object.values(parsed.error.flatten().fieldErrors)[0];
-    return { error: firstError?.[0] || "Données invalides" };
-  }
-
-  const authCheck = await requireAuth();
-  if ("error" in authCheck) {
-    return { error: authCheck.error };
-  }
-
-  const { entiteType, entiteId, email, prenom, nom } = parsed.data;
-  const admin = createAdminClient();
-
-  // Get organisation_id from the entity itself
-  const organisationId = await getOrganisationIdFromEntity(entiteType, entiteId);
-  if (!organisationId) {
-    return { error: "Entité introuvable ou sans organisation" };
-  }
-
-  // Map entiteType to the extranet role
-  const role = entiteType; // formateur, apprenant, contact_client
-
-  // Check if already invited
-  const { data: existingAcces } = await admin
-    .from("extranet_acces")
-    .select("id, statut")
-    .eq("organisation_id", organisationId)
-    .eq("entite_type", entiteType)
-    .eq("entite_id", entiteId)
-    .single();
-
-  if (existingAcces) {
-    if (existingAcces.statut === "actif") {
-      return { error: "Cette personne a déjà un accès extranet actif" };
+  try {
+    const parsed = InviteSchema.safeParse(input);
+    if (!parsed.success) {
+      const firstError = Object.values(parsed.error.flatten().fieldErrors)[0];
+      return { error: firstError?.[0] || "Données invalides" };
     }
-    if (existingAcces.statut === "invite") {
-      return { error: "Une invitation est déjà en cours pour cette personne" };
+
+    const authCheck = await requireAuth();
+    if ("error" in authCheck) {
+      return { error: authCheck.error };
     }
-  }
 
-  // 1. Check if auth user exists with this email
-  const { data: existingUsers } = await admin.auth.admin.listUsers();
-  const existingUser = existingUsers?.users?.find((u) => u.email === email);
+    const { entiteType, entiteId, email, prenom, nom } = parsed.data;
+    const admin = createAdminClient();
 
-  let authUserId: string;
+    // Get organisation_id from the entity itself
+    const organisationId = await getOrganisationIdFromEntity(entiteType, entiteId);
+    if (!organisationId) {
+      return { error: "Entité introuvable ou sans organisation" };
+    }
 
-  if (existingUser) {
-    authUserId = existingUser.id;
-  } else {
-    // Create auth user with a temporary password (they'll set their own via email link)
-    const tempPassword = crypto.randomUUID();
-    const { data: authData, error: authError } = await admin.auth.admin.createUser({
-      email,
-      password: tempPassword,
-      email_confirm: true,
-      user_metadata: { prenom, nom, extranet_role: role },
+    // Map entiteType to the extranet role
+    const role = entiteType; // formateur, apprenant, contact_client
+
+    // Check if already invited
+    const { data: existingAcces } = await admin
+      .from("extranet_acces")
+      .select("id, statut")
+      .eq("organisation_id", organisationId)
+      .eq("entite_type", entiteType)
+      .eq("entite_id", entiteId)
+      .single();
+
+    if (existingAcces) {
+      if (existingAcces.statut === "actif") {
+        return { error: "Cette personne a déjà un accès extranet actif" };
+      }
+      if (existingAcces.statut === "invite") {
+        return { error: "Une invitation est déjà en cours pour cette personne" };
+      }
+    }
+
+    // 1. Check if auth user exists with this email, or create one
+    let authUserId: string;
+
+    // Try to find by email using admin API
+    const { data: userListData, error: listError } = await admin.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
     });
 
-    if (authError) {
-      return { error: `Erreur création du compte : ${authError.message}` };
+    if (listError) {
+      console.error("[extranet] listUsers error:", listError.message);
+      return { error: `Erreur listing utilisateurs : ${listError.message}` };
     }
-    authUserId = authData.user.id;
-  }
 
-  // 2. Create or update extranet_acces entry
-  if (existingAcces) {
-    const { error: updateError } = await admin
-      .from("extranet_acces")
-      .update({
-        user_id: authUserId,
-        statut: "invite",
-        invite_le: new Date().toISOString(),
-      })
-      .eq("id", existingAcces.id);
+    const existingUser = userListData?.users?.find(
+      (u) => u.email?.toLowerCase() === email.toLowerCase()
+    );
 
-    if (updateError) {
-      return { error: "Erreur lors de la mise à jour de l'accès extranet" };
+    if (existingUser) {
+      authUserId = existingUser.id;
+    } else {
+      // Create auth user with a temporary password (they'll set their own via email link)
+      const tempPassword = randomUUID();
+      const { data: authData, error: authError } = await admin.auth.admin.createUser({
+        email,
+        password: tempPassword,
+        email_confirm: true,
+        user_metadata: { prenom, nom, extranet_role: role },
+      });
+
+      if (authError) {
+        console.error("[extranet] createUser error:", authError.message);
+        return { error: `Erreur création du compte : ${authError.message}` };
+      }
+      authUserId = authData.user.id;
     }
-  } else {
-    const { error: insertError } = await admin
-      .from("extranet_acces")
-      .insert({
+
+    // 2. Create or update extranet_acces entry
+    if (existingAcces) {
+      const { error: updateError } = await admin
+        .from("extranet_acces")
+        .update({
+          user_id: authUserId,
+          statut: "invite",
+          invite_le: new Date().toISOString(),
+        })
+        .eq("id", existingAcces.id);
+
+      if (updateError) {
+        console.error("[extranet] update extranet_acces error:", updateError.message, updateError.details, updateError.hint);
+        return { error: `Erreur mise à jour accès : ${updateError.message}` };
+      }
+    } else {
+      const insertPayload = {
         organisation_id: organisationId,
         user_id: authUserId,
         role,
@@ -156,97 +175,118 @@ export async function inviteToExtranet(input: InviteInput) {
         entite_id: entiteId,
         statut: "invite",
         invite_le: new Date().toISOString(),
-      });
+      };
+      console.log("[extranet] INSERT extranet_acces payload:", JSON.stringify(insertPayload));
 
-    if (insertError) {
-      return { error: "Erreur lors de la création de l'accès extranet" };
+      const { error: insertError } = await admin
+        .from("extranet_acces")
+        .insert(insertPayload);
+
+      if (insertError) {
+        console.error("[extranet] insert extranet_acces error:", insertError.message, insertError.details, insertError.hint, insertError.code);
+        return { error: `Erreur création accès : ${insertError.message}` };
+      }
     }
+
+    // 3. Update the entity's extranet fields
+    const tableName = TABLE_MAP[entiteType];
+
+    const { error: entityError } = await admin
+      .from(tableName)
+      .update({
+        extranet_actif: true,
+        extranet_user_id: authUserId,
+      })
+      .eq("id", entiteId);
+
+    if (entityError) {
+      console.error("[extranet] update entity error:", entityError.message, entityError.details);
+      return { error: `Erreur mise à jour fiche : ${entityError.message}` };
+    }
+
+    // 4. TODO: Send invitation email via Resend
+    // For now, the user account is created and ready
+
+    return { success: true, userId: authUserId };
+  } catch (err) {
+    console.error("[extranet] inviteToExtranet unexpected error:", err);
+    return { error: `Erreur inattendue : ${err instanceof Error ? err.message : String(err)}` };
   }
-
-  // 3. Update the entity's extranet fields
-  const tableName = TABLE_MAP[entiteType];
-
-  const { error: entityError } = await admin
-    .from(tableName)
-    .update({
-      extranet_actif: true,
-      extranet_user_id: authUserId,
-    })
-    .eq("id", entiteId);
-
-  if (entityError) {
-    return { error: "Erreur lors de la mise à jour de la fiche" };
-  }
-
-  // 4. TODO: Send invitation email via Resend
-  // For now, the user account is created and ready
-
-  return { success: true, userId: authUserId };
 }
 
 /**
  * Revoke extranet access for a person.
  */
 export async function revokeExtranetAccess(extranetAccesId: string) {
-  const authCheck = await requireAuth();
-  if ("error" in authCheck) {
-    return { error: authCheck.error };
+  try {
+    const authCheck = await requireAuth();
+    if ("error" in authCheck) {
+      return { error: authCheck.error };
+    }
+
+    const admin = createAdminClient();
+
+    const { data: acces, error: fetchError } = await admin
+      .from("extranet_acces")
+      .select("id, entite_type, entite_id, organisation_id")
+      .eq("id", extranetAccesId)
+      .single();
+
+    if (fetchError || !acces) {
+      return { error: "Accès extranet non trouvé" };
+    }
+
+    // Update status to disabled
+    const { error: updateError } = await admin
+      .from("extranet_acces")
+      .update({ statut: "desactive" })
+      .eq("id", extranetAccesId);
+
+    if (updateError) {
+      return { error: `Erreur révocation : ${updateError.message}` };
+    }
+
+    // Update entity's extranet fields
+    const tableName = TABLE_MAP[acces.entite_type];
+
+    await admin
+      .from(tableName)
+      .update({ extranet_actif: false })
+      .eq("id", acces.entite_id);
+
+    return { success: true };
+  } catch (err) {
+    console.error("[extranet] revokeExtranetAccess error:", err);
+    return { error: `Erreur inattendue : ${err instanceof Error ? err.message : String(err)}` };
   }
-
-  const admin = createAdminClient();
-
-  const { data: acces, error: fetchError } = await admin
-    .from("extranet_acces")
-    .select("id, entite_type, entite_id, organisation_id")
-    .eq("id", extranetAccesId)
-    .single();
-
-  if (fetchError || !acces) {
-    return { error: "Accès extranet non trouvé" };
-  }
-
-  // Update status to disabled
-  const { error: updateError } = await admin
-    .from("extranet_acces")
-    .update({ statut: "desactive" })
-    .eq("id", extranetAccesId);
-
-  if (updateError) {
-    return { error: "Erreur lors de la révocation" };
-  }
-
-  // Update entity's extranet fields
-  const tableName = TABLE_MAP[acces.entite_type];
-
-  await admin
-    .from(tableName)
-    .update({ extranet_actif: false })
-    .eq("id", acces.entite_id);
-
-  return { success: true };
 }
 
 /**
  * Get extranet access status for an entity.
  */
 export async function getExtranetAccess(entiteType: string, entiteId: string) {
-  const authCheck = await requireAuth();
-  if ("error" in authCheck) {
+  try {
+    const authCheck = await requireAuth();
+    if ("error" in authCheck) {
+      return { acces: null };
+    }
+
+    const admin = createAdminClient();
+
+    const { data, error } = await admin
+      .from("extranet_acces")
+      .select("id, user_id, role, statut, invite_le, active_le")
+      .eq("entite_type", entiteType)
+      .eq("entite_id", entiteId)
+      .single();
+
+    if (error || !data) {
+      return { acces: null };
+    }
+
+    return { acces: data };
+  } catch (err) {
+    console.error("[extranet] getExtranetAccess error:", err);
     return { acces: null };
   }
-
-  const admin = createAdminClient();
-
-  const { data, error } = await admin
-    .from("extranet_acces")
-    .select("id, user_id, role, statut, invite_le, active_le")
-    .eq("entite_type", entiteType)
-    .eq("entite_id", entiteId)
-    .single();
-
-  if (error || !data) {
-    return { acces: null };
-  }
-
-  return { acces: data };
 }
