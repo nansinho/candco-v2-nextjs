@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getOrganisationId } from "@/lib/auth-helpers";
+import { callDallE, checkCredits, deductCredits } from "@/lib/ai-providers";
 
 export const maxDuration = 60;
 
@@ -8,14 +9,19 @@ export async function POST(request: NextRequest) {
   // Auth check
   const authResult = await getOrganisationId();
   if ("error" in authResult) {
-    return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+    return NextResponse.json({ error: "Non authentifie" }, { status: 401 });
   }
 
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
+  const { organisationId } = authResult;
+
+  // Check AI credits
+  const { ok, credits } = await checkCredits(organisationId, "generate_image");
+  if (!ok) {
     return NextResponse.json(
-      { error: "OPENAI_API_KEY non configurée. Ajoutez-la dans vos variables d'environnement." },
-      { status: 500 }
+      {
+        error: `Credits IA insuffisants. ${credits.used}/${credits.monthly_limit} credits utilises ce mois-ci. La generation d'image coute 3 credits.`,
+      },
+      { status: 429 }
     );
   }
 
@@ -33,35 +39,8 @@ export async function POST(request: NextRequest) {
     // Build a prompt optimized for training/education imagery
     const fullPrompt = `Professional, modern, clean illustration for a training course: "${prompt}". Style: corporate illustration, flat design, soft gradients, minimalist, suitable for a professional training catalog. No text in the image. High quality, 16:9 aspect ratio.`;
 
-    // Call OpenAI DALL-E API
-    const response = await fetch("https://api.openai.com/v1/images/generations", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "dall-e-3",
-        prompt: fullPrompt,
-        n: 1,
-        size: "1792x1024",
-        quality: "standard",
-        response_format: "b64_json",
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      const errorMessage = (errorData as { error?: { message?: string } })?.error?.message || "Erreur lors de la génération de l'image";
-      return NextResponse.json({ error: errorMessage }, { status: response.status });
-    }
-
-    const data = await response.json();
-    const b64Image = (data as { data: { b64_json: string }[] }).data[0]?.b64_json;
-
-    if (!b64Image) {
-      return NextResponse.json({ error: "Aucune image générée" }, { status: 500 });
-    }
+    // Call DALL-E with global API key
+    const b64Image = await callDallE(fullPrompt);
 
     // Upload to Supabase Storage
     const supabase = await createClient();
@@ -77,7 +56,7 @@ export async function POST(request: NextRequest) {
 
     if (uploadError) {
       return NextResponse.json(
-        { error: `Upload échoué: ${uploadError.message}` },
+        { error: `Upload echoue: ${uploadError.message}` },
         { status: 500 }
       );
     }
@@ -87,19 +66,22 @@ export async function POST(request: NextRequest) {
       .from("images")
       .getPublicUrl(filename);
 
-    // Update the product with the image URL (scoped to user's org via RLS)
+    // Update the product with the image URL
     const { error: updateError } = await supabase
       .from("produits_formation")
       .update({ image_url: urlData.publicUrl })
       .eq("id", produitId)
-      .eq("organisation_id", authResult.organisationId);
+      .eq("organisation_id", organisationId);
 
     if (updateError) {
       return NextResponse.json(
-        { error: `Mise à jour produit échouée: ${updateError.message}` },
+        { error: `Mise a jour produit echouee: ${updateError.message}` },
         { status: 500 }
       );
     }
+
+    // Deduct credits after successful generation
+    await deductCredits(organisationId, "generate_image");
 
     return NextResponse.json({ data: { image_url: urlData.publicUrl } });
   } catch (error) {

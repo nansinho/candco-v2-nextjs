@@ -16,6 +16,10 @@ import {
   Loader2,
   Save,
   Image as ImageIcon,
+  Bot,
+  Zap,
+  FileText,
+  ImagePlus,
 } from "lucide-react";
 import type { OrganisationSettings } from "@/actions/parametres";
 import {
@@ -24,9 +28,11 @@ import {
   updateEmailSettings,
   uploadOrganisationLogo,
   removeOrganisationLogo,
+  getAICredits,
 } from "@/actions/parametres";
 import { SiretSearch } from "@/components/shared/siret-search";
 import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
+import { AI_COSTS } from "@/lib/ai-providers";
 
 // ─── Main Component ─────────────────────────────────────
 
@@ -57,6 +63,10 @@ export function ParametresClient({ settings }: { settings: OrganisationSettings 
             <Mail className="h-3.5 w-3.5" />
             Emails
           </TabsTrigger>
+          <TabsTrigger value="ia" className="text-xs gap-1.5">
+            <Bot className="h-3.5 w-3.5" />
+            IA
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="general">
@@ -67,6 +77,9 @@ export function ParametresClient({ settings }: { settings: OrganisationSettings 
         </TabsContent>
         <TabsContent value="emails">
           <EmailsTab settings={settings} />
+        </TabsContent>
+        <TabsContent value="ia">
+          <AITab settings={settings} />
         </TabsContent>
       </Tabs>
     </div>
@@ -444,6 +457,132 @@ function EmailsTab({ settings }: { settings: OrganisationSettings }) {
           Enregistrer
         </Button>
       </div>
+    </div>
+  );
+}
+
+// ─── AI Tab ─────────────────────────────────────────────
+
+function AITab({ settings }: { settings: OrganisationSettings }) {
+  const [loading, setLoading] = React.useState(true);
+  const [credits, setCredits] = React.useState<{
+    monthly_limit: number;
+    used: number;
+    remaining: number;
+  } | null>(null);
+
+  React.useEffect(() => {
+    getAICredits().then((result) => {
+      if (result.data) setCredits(result.data);
+      setLoading(false);
+    });
+  }, []);
+
+  const usagePercent = credits
+    ? Math.min(100, Math.round((credits.used / credits.monthly_limit) * 100))
+    : 0;
+
+  const progressColor =
+    usagePercent >= 90
+      ? "bg-red-500"
+      : usagePercent >= 70
+        ? "bg-yellow-500"
+        : "bg-emerald-500";
+
+  return (
+    <div className="space-y-6 mt-4">
+      {/* Credits overview */}
+      <SettingsCard
+        title="Credits IA"
+        description="Vos credits IA sont inclus dans votre forfait et se renouvellent chaque mois."
+      >
+        {loading ? (
+          <div className="flex items-center gap-2 py-4">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">Chargement...</span>
+          </div>
+        ) : credits ? (
+          <div className="space-y-4">
+            {/* Progress bar */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">
+                  {credits.used} / {credits.monthly_limit} credits utilises
+                </span>
+                <span className="font-medium">
+                  {credits.remaining} restants
+                </span>
+              </div>
+              <div className="h-2.5 w-full rounded-full bg-muted">
+                <div
+                  className={`h-full rounded-full transition-all ${progressColor}`}
+                  style={{ width: `${usagePercent}%` }}
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Les credits se renouvellent automatiquement le 1er de chaque mois.
+              </p>
+            </div>
+
+            {/* Credit costs */}
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="flex items-center gap-3 rounded-lg border border-border/60 bg-muted/30 p-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+                  <FileText className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Extraction PDF</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {AI_COSTS.extract_programme} credit par extraction
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 rounded-lg border border-border/60 bg-muted/30 p-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+                  <ImagePlus className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Generation d&apos;image</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {AI_COSTS.generate_image} credits par image
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground py-2">
+            Impossible de charger les credits.
+          </p>
+        )}
+      </SettingsCard>
+
+      {/* Features description */}
+      <SettingsCard
+        title="Fonctionnalites IA"
+        description="Les fonctionnalites IA disponibles avec votre forfait."
+      >
+        <div className="space-y-4">
+          <div className="flex items-start gap-3">
+            <Zap className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+            <div>
+              <p className="text-sm font-medium">Import PDF intelligent</p>
+              <p className="text-[12px] text-muted-foreground">
+                Importez un programme de formation au format PDF. L&apos;IA (Claude) extrait automatiquement les modules, objectifs et durees pour pre-remplir votre produit de formation.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <Zap className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+            <div>
+              <p className="text-sm font-medium">Generation d&apos;images</p>
+              <p className="text-[12px] text-muted-foreground">
+                Generez des images professionnelles pour vos formations avec l&apos;IA (DALL-E). Ideal pour illustrer votre catalogue en ligne.
+              </p>
+            </div>
+          </div>
+        </div>
+      </SettingsCard>
     </div>
   );
 }
