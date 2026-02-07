@@ -218,7 +218,21 @@ export async function inviteToExtranet(input: InviteInput) {
       console.error("[extranet] generateLink error:", linkError.message);
       // Not a blocking error — the account is created, just no link
     } else if (linkData?.properties?.action_link) {
-      loginLink = linkData.properties.action_link;
+      // GoTrue returns links with its internal URL (e.g. http://supabase-kong:8000).
+      // Replace with the public Supabase URL so the link works externally.
+      const publicSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+      let rawLink = linkData.properties.action_link;
+      try {
+        const parsed = new URL(rawLink);
+        const publicParsed = new URL(publicSupabaseUrl);
+        parsed.protocol = publicParsed.protocol;
+        parsed.host = publicParsed.host;
+        rawLink = parsed.toString();
+      } catch {
+        // If URL parsing fails, fallback: naive string replacement
+        rawLink = rawLink.replace(/^https?:\/\/[^/]+/, publicSupabaseUrl.replace(/\/$/, ""));
+      }
+      loginLink = rawLink;
     }
 
     return { success: true, userId: authUserId, loginLink };

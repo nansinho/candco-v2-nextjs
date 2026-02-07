@@ -560,60 +560,27 @@ function FacturationTab({ entreprise, onUpdate }: { entreprise: EntrepriseData; 
 
 // ─── Contacts Tab ───────────────────────────────────────
 
-type UnifiedContact = {
-  id: string;
-  type: "contact" | "apprenant";
-  numero_affichage: string;
-  prenom: string;
-  nom: string;
-  email: string | null;
-  telephone: string | null;
-  fonction: string | null;
-};
-
 function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
   const router = useRouter();
   const { toast } = useToast();
   const { confirm: confirmAction, ConfirmDialog: ContactConfirmDialog } = useConfirm();
   const [contacts, setContacts] = React.useState<ContactLink[]>([]);
-  const [linkedApprenants, setLinkedApprenants] = React.useState<ApprenantLink[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
-  const [activePanel, setActivePanel] = React.useState<"none" | "create" | "search_contact" | "search_apprenant">("none");
+  const [activePanel, setActivePanel] = React.useState<"none" | "create" | "search_contact">("none");
   const [searchQuery, setSearchQuery] = React.useState("");
   const [searchResults, setSearchResults] = React.useState<ContactLink[]>([]);
-  const [apprenantSearchQuery, setApprenantSearchQuery] = React.useState("");
-  const [apprenantSearchResults, setApprenantSearchResults] = React.useState<ApprenantLink[]>([]);
   const [isSearching, setIsSearching] = React.useState(false);
   const [isCreating, setIsCreating] = React.useState(false);
   const [newContactFonction, setNewContactFonction] = React.useState("");
 
-  // Merged list for display
-  const mergedList: UnifiedContact[] = React.useMemo(() => {
-    const fromContacts: UnifiedContact[] = contacts.map((c) => ({
-      id: c.id, type: "contact", numero_affichage: c.numero_affichage,
-      prenom: c.prenom, nom: c.nom, email: c.email, telephone: c.telephone,
-      fonction: c.fonction,
-    }));
-    const fromApprenants: UnifiedContact[] = linkedApprenants.map((a) => ({
-      id: a.id, type: "apprenant", numero_affichage: a.numero_affichage,
-      prenom: a.prenom, nom: a.nom, email: a.email, telephone: a.telephone,
-      fonction: null,
-    }));
-    return [...fromContacts, ...fromApprenants];
-  }, [contacts, linkedApprenants]);
-
-  const fetchAll = React.useCallback(async () => {
+  const fetchContacts = React.useCallback(async () => {
     setIsLoading(true);
-    const [contactsResult, apprenantsResult] = await Promise.all([
-      getEntrepriseContacts(entrepriseId),
-      getEntrepriseApprenants(entrepriseId),
-    ]);
-    setContacts(contactsResult.data);
-    setLinkedApprenants(apprenantsResult.data);
+    const result = await getEntrepriseContacts(entrepriseId);
+    setContacts(result.data);
     setIsLoading(false);
   }, [entrepriseId]);
 
-  React.useEffect(() => { fetchAll(); }, [fetchAll]);
+  React.useEffect(() => { fetchContacts(); }, [fetchContacts]);
 
   // Search contacts
   React.useEffect(() => {
@@ -628,48 +595,24 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
     return () => clearTimeout(timer);
   }, [searchQuery, contacts, activePanel]);
 
-  // Search apprenants
-  React.useEffect(() => {
-    if (activePanel !== "search_apprenant" || !apprenantSearchQuery.trim()) { setApprenantSearchResults([]); return; }
-    const timer = setTimeout(async () => {
-      setIsSearching(true);
-      const excludeIds = linkedApprenants.map((a) => a.id);
-      const result = await searchApprenantsForLinking(apprenantSearchQuery, excludeIds);
-      setApprenantSearchResults(result.data as ApprenantLink[]);
-      setIsSearching(false);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [apprenantSearchQuery, linkedApprenants, activePanel]);
-
-  function openPanel(panel: "create" | "search_contact" | "search_apprenant") {
+  function openPanel(panel: "create" | "search_contact") {
     setActivePanel((prev) => prev === panel ? "none" : panel);
     setSearchQuery(""); setSearchResults([]);
-    setApprenantSearchQuery(""); setApprenantSearchResults([]);
   }
 
   const handleLinkContact = async (contactId: string) => {
     const result = await linkContactToEntreprise(entrepriseId, contactId);
     if (result.error) { toast({ title: "Erreur", description: typeof result.error === "string" ? result.error : "Une erreur est survenue", variant: "destructive" }); return; }
-    setSearchQuery(""); setSearchResults([]); setActivePanel("none"); fetchAll();
+    setSearchQuery(""); setSearchResults([]); setActivePanel("none"); fetchContacts();
     toast({ title: "Contact rattaché", variant: "success" });
   };
 
-  const handleLinkApprenant = async (apprenantId: string) => {
-    const result = await linkApprenantToEntreprise(entrepriseId, apprenantId);
+  const handleUnlinkContact = async (contact: ContactLink) => {
+    if (!(await confirmAction({ title: "Retirer ce contact ?", description: `${contact.prenom} ${contact.nom} sera détaché(e) de cette entreprise mais ne sera pas supprimé(e).`, confirmLabel: "Retirer", variant: "destructive" }))) return;
+    const result = await unlinkContactFromEntreprise(entrepriseId, contact.id);
     if (result.error) { toast({ title: "Erreur", description: typeof result.error === "string" ? result.error : "Une erreur est survenue", variant: "destructive" }); return; }
-    setApprenantSearchQuery(""); setApprenantSearchResults([]); setActivePanel("none"); fetchAll();
-    toast({ title: "Apprenant rattaché", variant: "success" });
-  };
-
-  const handleUnlink = async (item: UnifiedContact) => {
-    const label = item.type === "contact" ? "ce contact" : "cet apprenant";
-    if (!(await confirmAction({ title: `Retirer ${label} ?`, description: `${item.prenom} ${item.nom} sera détaché(e) de cette entreprise mais ne sera pas supprimé(e).`, confirmLabel: "Retirer", variant: "destructive" }))) return;
-    const result = item.type === "contact"
-      ? await unlinkContactFromEntreprise(entrepriseId, item.id)
-      : await unlinkApprenantFromEntreprise(entrepriseId, item.id);
-    if (result.error) { toast({ title: "Erreur", description: typeof result.error === "string" ? result.error : "Une erreur est survenue", variant: "destructive" }); return; }
-    fetchAll();
-    toast({ title: item.type === "contact" ? "Contact retiré" : "Apprenant retiré", variant: "success" });
+    fetchContacts();
+    toast({ title: "Contact retiré", variant: "success" });
   };
 
   const handleCreateContact = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -687,7 +630,7 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
     const result = await createContactClient(input);
     if (result.error) { toast({ title: "Erreur", description: "Impossible de créer le contact.", variant: "destructive" }); setIsCreating(false); return; }
     if (result.data) await linkContactToEntreprise(entrepriseId, result.data.id);
-    setActivePanel("none"); setIsCreating(false); setNewContactFonction(""); fetchAll();
+    setActivePanel("none"); setIsCreating(false); setNewContactFonction(""); fetchContacts();
     toast({ title: "Contact créé et rattaché", variant: "success" });
   };
 
@@ -697,9 +640,9 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
     <section className="rounded-lg border border-border/60 bg-card">
       <div className="flex items-center justify-between px-5 py-4 border-b border-border/60">
         <h3 className="text-sm font-semibold">
-          Contacts de l&apos;entreprise
-          {mergedList.length > 0 && (
-            <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary/10 px-1.5 text-[11px] font-medium text-primary">{mergedList.length}</span>
+          Contacts clients
+          {contacts.length > 0 && (
+            <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary/10 px-1.5 text-[11px] font-medium text-primary">{contacts.length}</span>
           )}
         </h3>
         <div className="flex gap-1.5">
@@ -708,9 +651,6 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
           </Button>
           <Button variant="outline" size="sm" className="h-7 text-[11px] border-border/60" onClick={() => openPanel("search_contact")}>
             {activePanel === "search_contact" ? <><X className="mr-1 h-3 w-3" />Fermer</> : <><Plus className="mr-1 h-3 w-3" />Rattacher contact</>}
-          </Button>
-          <Button variant="outline" size="sm" className="h-7 text-[11px] border-border/60" onClick={() => openPanel("search_apprenant")}>
-            {activePanel === "search_apprenant" ? <><X className="mr-1 h-3 w-3" />Fermer</> : <><GraduationCap className="mr-1 h-3 w-3" />Ajouter depuis apprenants</>}
           </Button>
         </div>
       </div>
@@ -764,105 +704,59 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
         </div>
       )}
 
-      {activePanel === "search_apprenant" && (
-        <div className="px-5 py-3 border-b border-border/40 bg-blue-500/5">
-          <p className="text-[11px] font-medium text-blue-400 mb-2">Rattacher un apprenant existant à cette entreprise</p>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/50" />
-            <Input placeholder="Rechercher un apprenant par nom ou email..." value={apprenantSearchQuery} onChange={(e) => setApprenantSearchQuery(e.target.value)} className="h-8 pl-9 text-xs border-border/60" autoFocus />
-          </div>
-          {isSearching && <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" />Recherche...</div>}
-          {apprenantSearchResults.length > 0 && (
-            <div className="mt-2 space-y-1">
-              {apprenantSearchResults.map((a) => (
-                <button key={a.id} type="button" className="flex w-full items-center justify-between rounded-md px-3 py-2 hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => handleLinkApprenant(a.id)}>
-                  <div className="flex items-center gap-2">
-                    <GraduationCap className="h-3.5 w-3.5 text-blue-400" />
-                    <span className="text-[13px] font-medium">{a.prenom} {a.nom}</span>
-                    <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-[9px] px-1.5 py-0">Apprenant</Badge>
-                    {a.email && <span className="text-[11px] text-muted-foreground/40">{a.email}</span>}
-                  </div>
-                  <span className="text-[10px] text-primary font-medium flex items-center gap-0.5"><Plus className="h-3 w-3" />Rattacher</span>
-                </button>
-              ))}
-            </div>
-          )}
-          {apprenantSearchQuery.trim() && !isSearching && apprenantSearchResults.length === 0 && (
-            <p className="mt-2 text-xs text-muted-foreground/50">Aucun apprenant trouvé pour &laquo; {apprenantSearchQuery} &raquo;</p>
-          )}
-        </div>
-      )}
-
       {isLoading ? (
         <div className="p-5 space-y-2">{[1, 2, 3].map((i) => <div key={i} className="h-10 animate-pulse rounded bg-muted/30" />)}</div>
-      ) : mergedList.length === 0 ? (
+      ) : contacts.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-16">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50"><Users className="h-6 w-6 text-muted-foreground/30" /></div>
           <div className="text-center">
             <p className="text-sm font-medium text-muted-foreground/60">Aucun contact rattaché</p>
-            <p className="mt-0.5 text-xs text-muted-foreground/40">Créez un contact, rattachez un contact existant, ou ajoutez depuis les apprenants.</p>
+            <p className="mt-0.5 text-xs text-muted-foreground/40">Créez un contact ou rattachez un contact existant.</p>
           </div>
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border/60 bg-muted/30">
-                <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Type</th>
-                <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">ID</th>
-                <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Nom</th>
-                <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Fonction</th>
-                <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Email</th>
-                <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Téléphone</th>
-                <th className="w-10" />
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-border/60 bg-muted/30">
+              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">ID</th>
+              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Nom</th>
+              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Fonction</th>
+              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Email</th>
+              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Téléphone</th>
+              <th className="w-10" />
+            </tr>
+          </thead>
+          <tbody>
+            {contacts.map((c) => (
+              <tr
+                key={c.id}
+                className="border-b border-border/40 transition-colors hover:bg-muted/20 group cursor-pointer"
+                onClick={() => router.push(`/contacts-clients/${c.id}`)}
+              >
+                <td className="px-4 py-2.5"><span className="font-mono text-xs text-muted-foreground">{c.numero_affichage}</span></td>
+                <td className="px-4 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-3.5 w-3.5 text-purple-400" />
+                    <span className="text-[13px] font-medium">{c.prenom} {c.nom}</span>
+                  </div>
+                </td>
+                <td className="px-4 py-2.5 text-[13px] text-muted-foreground">{c.fonction ?? <span className="text-muted-foreground/40">--</span>}</td>
+                <td className="px-4 py-2.5">
+                  {c.email ? <a href={`mailto:${c.email}`} className="flex items-center gap-1.5 text-[13px] text-primary hover:underline" onClick={(e) => e.stopPropagation()}><Mail className="h-3 w-3" />{c.email}</a> : <span className="text-[13px] text-muted-foreground/40">--</span>}
+                </td>
+                <td className="px-4 py-2.5">
+                  {c.telephone ? <a href={`tel:${c.telephone}`} className="flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground" onClick={(e) => e.stopPropagation()}><Phone className="h-3 w-3" />{c.telephone}</a> : <span className="text-[13px] text-muted-foreground/40">--</span>}
+                </td>
+                <td className="px-4 py-2.5">
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={(e) => { e.stopPropagation(); router.push(`/contacts-clients/${c.id}`); }} className="p-1 rounded hover:bg-muted/30 text-muted-foreground/40 hover:text-foreground" title="Voir la fiche"><ExternalLink className="h-3.5 w-3.5" /></button>
+                    <button onClick={(e) => { e.stopPropagation(); handleUnlinkContact(c); }} className="p-1 rounded hover:bg-destructive/10 text-muted-foreground/40 hover:text-destructive" title="Retirer de l'entreprise"><Unlink className="h-3.5 w-3.5" /></button>
+                  </div>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {mergedList.map((item) => (
-                <tr
-                  key={`${item.type}-${item.id}`}
-                  className="border-b border-border/40 transition-colors hover:bg-muted/20 group cursor-pointer"
-                  onClick={() => router.push(item.type === "contact" ? `/contacts-clients/${item.id}` : `/apprenants/${item.id}`)}
-                >
-                  <td className="px-4 py-2.5">
-                    {item.type === "contact" ? (
-                      <Badge className="bg-purple-500/10 text-purple-400 border-purple-500/20 text-[10px]">
-                        <Users className="mr-0.5 h-2.5 w-2.5" />Contact
-                      </Badge>
-                    ) : (
-                      <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-[10px]">
-                        <GraduationCap className="mr-0.5 h-2.5 w-2.5" />Apprenant
-                      </Badge>
-                    )}
-                  </td>
-                  <td className="px-4 py-2.5"><span className="font-mono text-xs text-muted-foreground">{item.numero_affichage}</span></td>
-                  <td className="px-4 py-2.5">
-                    <div className="flex items-center gap-2">
-                      {item.type === "contact"
-                        ? <Users className="h-3.5 w-3.5 text-purple-400" />
-                        : <GraduationCap className="h-3.5 w-3.5 text-blue-400" />
-                      }
-                      <span className="text-[13px] font-medium">{item.prenom} {item.nom}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-2.5 text-[13px] text-muted-foreground">{item.fonction ?? <span className="text-muted-foreground/40">--</span>}</td>
-                  <td className="px-4 py-2.5">
-                    {item.email ? <a href={`mailto:${item.email}`} className="flex items-center gap-1.5 text-[13px] text-primary hover:underline" onClick={(e) => e.stopPropagation()}><Mail className="h-3 w-3" />{item.email}</a> : <span className="text-[13px] text-muted-foreground/40">--</span>}
-                  </td>
-                  <td className="px-4 py-2.5">
-                    {item.telephone ? <a href={`tel:${item.telephone}`} className="flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground" onClick={(e) => e.stopPropagation()}><Phone className="h-3 w-3" />{item.telephone}</a> : <span className="text-[13px] text-muted-foreground/40">--</span>}
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={(e) => { e.stopPropagation(); router.push(item.type === "contact" ? `/contacts-clients/${item.id}` : `/apprenants/${item.id}`); }} className="p-1 rounded hover:bg-muted/30 text-muted-foreground/40 hover:text-foreground" title="Voir la fiche"><ExternalLink className="h-3.5 w-3.5" /></button>
-                      <button onClick={(e) => { e.stopPropagation(); handleUnlink(item); }} className="p-1 rounded hover:bg-destructive/10 text-muted-foreground/40 hover:text-destructive" title="Retirer de l'entreprise"><Unlink className="h-3.5 w-3.5" /></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </table>
       )}
       <ContactConfirmDialog />
     </section>
