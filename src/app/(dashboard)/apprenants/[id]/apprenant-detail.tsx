@@ -7,9 +7,14 @@ import {
   ArrowLeft,
   ArchiveRestore,
   Building2,
-  Mail,
-  Save,
+  ExternalLink,
   Loader2,
+  Mail,
+  Plus,
+  Save,
+  Search,
+  Unlink,
+  X,
   Archive,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -25,6 +30,9 @@ import {
   updateApprenant,
   archiveApprenant,
   unarchiveApprenant,
+  linkEntrepriseToApprenant,
+  unlinkEntrepriseFromApprenant,
+  searchEntreprisesForLinking,
   type UpdateApprenantInput,
 } from "@/actions/apprenants";
 import { TachesActivitesTab } from "@/components/shared/taches-activites";
@@ -665,64 +673,7 @@ export function ApprenantDetail({
 
         {/* Tab 2 -- Entreprises */}
         <TabsContent value="entreprises" className="mt-6">
-          <div className="rounded-lg border border-border/60 bg-card">
-            {entreprises.length === 0 ? (
-              <div className="flex flex-col items-center gap-3 py-16">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50">
-                  <Building2 className="h-6 w-6 text-muted-foreground/30" />
-                </div>
-                <div className="text-center">
-                  <p className="text-sm font-medium text-muted-foreground/60">
-                    Aucune entreprise associée
-                  </p>
-                  <p className="mt-0.5 text-xs text-muted-foreground/40">
-                    Cet apprenant n&apos;est rattaché à aucune entreprise.
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border/60 bg-muted/30">
-                    <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-                      Nom
-                    </th>
-                    <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-                      SIRET
-                    </th>
-                    <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-                      Email
-                    </th>
-                    <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-                      Ville
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {entreprises.map((ent) => (
-                    <tr
-                      key={ent.id}
-                      className="border-b border-border/40 transition-colors hover:bg-muted/20 cursor-pointer"
-                      onClick={() => router.push(`/entreprises/${ent.id}`)}
-                    >
-                      <td className="px-4 py-2.5 text-[13px] font-medium">
-                        {ent.nom}
-                      </td>
-                      <td className="px-4 py-2.5 text-[13px] text-muted-foreground">
-                        {ent.siret ?? <span className="text-muted-foreground/40">--</span>}
-                      </td>
-                      <td className="px-4 py-2.5 text-[13px] text-muted-foreground">
-                        {ent.email ?? <span className="text-muted-foreground/40">--</span>}
-                      </td>
-                      <td className="px-4 py-2.5 text-[13px] text-muted-foreground">
-                        {ent.adresse_ville ?? <span className="text-muted-foreground/40">--</span>}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
+          <EntreprisesTab apprenantId={apprenant.id} initialEntreprises={entreprises} />
         </TabsContent>
 
         {/* Tab 3 -- Tâches et activités */}
@@ -745,5 +696,158 @@ export function ApprenantDetail({
       </div>
       <ConfirmDialog />
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Entreprises Tab (interactive: search + link / unlink)
+// ---------------------------------------------------------------------------
+
+function EntreprisesTab({
+  apprenantId,
+  initialEntreprises,
+}: {
+  apprenantId: string;
+  initialEntreprises: Entreprise[];
+}) {
+  const router = useRouter();
+  const { toast } = useToast();
+  const { confirm: confirmAction, ConfirmDialog: EntrepriseConfirmDialog } = useConfirm();
+  const [entreprises, setEntreprises] = React.useState<Entreprise[]>(initialEntreprises);
+  const [showSearch, setShowSearch] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const [searchResults, setSearchResults] = React.useState<Entreprise[]>([]);
+  const [isSearching, setIsSearching] = React.useState(false);
+
+  // Debounced search
+  React.useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
+      const excludeIds = entreprises.map((e) => e.id);
+      const result = await searchEntreprisesForLinking(searchQuery, excludeIds);
+      setSearchResults(result.data as Entreprise[]);
+      setIsSearching(false);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery, entreprises]);
+
+  const handleLink = async (entrepriseId: string) => {
+    const result = await linkEntrepriseToApprenant(apprenantId, entrepriseId);
+    if (result.error) {
+      toast({ title: "Erreur", description: typeof result.error === "string" ? result.error : "Une erreur est survenue", variant: "destructive" });
+      return;
+    }
+    // Move from search results to linked list
+    const linked = searchResults.find((e) => e.id === entrepriseId);
+    if (linked) {
+      setEntreprises((prev) => [...prev, linked]);
+      setSearchResults((prev) => prev.filter((e) => e.id !== entrepriseId));
+    }
+    toast({ title: "Entreprise rattachée", variant: "success" });
+  };
+
+  const handleUnlink = async (ent: Entreprise) => {
+    if (!(await confirmAction({ title: "Retirer cette entreprise ?", description: `${ent.nom} sera détachée de cet apprenant mais ne sera pas supprimée.`, confirmLabel: "Retirer", variant: "destructive" }))) return;
+    const result = await unlinkEntrepriseFromApprenant(apprenantId, ent.id);
+    if (result.error) {
+      toast({ title: "Erreur", description: typeof result.error === "string" ? result.error : "Une erreur est survenue", variant: "destructive" });
+      return;
+    }
+    setEntreprises((prev) => prev.filter((e) => e.id !== ent.id));
+    toast({ title: "Entreprise retirée", variant: "success" });
+  };
+
+  return (
+    <section className="rounded-lg border border-border/60 bg-card">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-border/60">
+        <h3 className="text-sm font-semibold">
+          Entreprises
+          {entreprises.length > 0 && (
+            <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary/10 px-1.5 text-[11px] font-medium text-primary">{entreprises.length}</span>
+          )}
+        </h3>
+        <Button variant="outline" size="sm" className="h-7 text-[11px] border-border/60" onClick={() => { setShowSearch(!showSearch); setSearchQuery(""); setSearchResults([]); }}>
+          {showSearch ? <><X className="mr-1 h-3 w-3" />Fermer</> : <><Plus className="mr-1 h-3 w-3" />Rattacher une entreprise</>}
+        </Button>
+      </div>
+
+      {showSearch && (
+        <div className="px-5 py-3 border-b border-border/40 bg-muted/10">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/50" />
+            <Input placeholder="Rechercher une entreprise par nom ou SIRET..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="h-8 pl-9 text-xs border-border/60" autoFocus />
+          </div>
+          {isSearching && <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" />Recherche...</div>}
+          {searchResults.length > 0 && (
+            <div className="mt-2 space-y-1">
+              {searchResults.map((ent) => (
+                <button key={ent.id} type="button" className="flex w-full items-center justify-between rounded-md px-3 py-2 hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => handleLink(ent.id)}>
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-3.5 w-3.5 text-orange-400" />
+                    <span className="text-[13px] font-medium">{ent.nom}</span>
+                    {ent.siret && <span className="text-[11px] text-muted-foreground/50">{ent.siret}</span>}
+                    {ent.adresse_ville && <span className="text-[11px] text-muted-foreground/40">{ent.adresse_ville}</span>}
+                  </div>
+                  <span className="text-[10px] text-primary font-medium flex items-center gap-0.5"><Plus className="h-3 w-3" />Rattacher</span>
+                </button>
+              ))}
+            </div>
+          )}
+          {searchQuery.trim() && !isSearching && searchResults.length === 0 && (
+            <p className="mt-2 text-xs text-muted-foreground/50">Aucune entreprise trouvée pour &laquo; {searchQuery} &raquo;</p>
+          )}
+        </div>
+      )}
+
+      {entreprises.length === 0 ? (
+        <div className="flex flex-col items-center gap-3 py-16">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50">
+            <Building2 className="h-6 w-6 text-muted-foreground/30" />
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-medium text-muted-foreground/60">Aucune entreprise associée</p>
+            <p className="mt-0.5 text-xs text-muted-foreground/40">Rattachez une entreprise existante à cet apprenant.</p>
+          </div>
+        </div>
+      ) : (
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-border/60 bg-muted/30">
+              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Nom</th>
+              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">SIRET</th>
+              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Email</th>
+              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Ville</th>
+              <th className="w-10" />
+            </tr>
+          </thead>
+          <tbody>
+            {entreprises.map((ent) => (
+              <tr key={ent.id} className="border-b border-border/40 transition-colors hover:bg-muted/20 group cursor-pointer" onClick={() => router.push(`/entreprises/${ent.id}`)}>
+                <td className="px-4 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-3.5 w-3.5 text-orange-400" />
+                    <span className="text-[13px] font-medium">{ent.nom}</span>
+                  </div>
+                </td>
+                <td className="px-4 py-2.5 text-[13px] text-muted-foreground">{ent.siret ?? <span className="text-muted-foreground/40">--</span>}</td>
+                <td className="px-4 py-2.5 text-[13px] text-muted-foreground">{ent.email ?? <span className="text-muted-foreground/40">--</span>}</td>
+                <td className="px-4 py-2.5 text-[13px] text-muted-foreground">{ent.adresse_ville ?? <span className="text-muted-foreground/40">--</span>}</td>
+                <td className="px-4 py-2.5">
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={(e) => { e.stopPropagation(); router.push(`/entreprises/${ent.id}`); }} className="p-1 rounded hover:bg-muted/30 text-muted-foreground/40 hover:text-foreground" title="Voir la fiche"><ExternalLink className="h-3.5 w-3.5" /></button>
+                    <button onClick={(e) => { e.stopPropagation(); handleUnlink(ent); }} className="p-1 rounded hover:bg-destructive/10 text-muted-foreground/40 hover:text-destructive" title="Retirer de l'apprenant"><Unlink className="h-3.5 w-3.5" /></button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      <EntrepriseConfirmDialog />
+    </section>
   );
 }
