@@ -2,6 +2,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
+export const dynamic = "force-dynamic";
+
 const statutColors: Record<string, string> = {
   ouvert: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
   en_cours: "bg-blue-500/10 text-blue-500 border-blue-500/20",

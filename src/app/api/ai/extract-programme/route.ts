@@ -1,34 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
 import { PDFParse } from "pdf-parse";
 import { getOrganisationId } from "@/lib/auth-helpers";
+import { callClaude, checkCredits, deductCredits } from "@/lib/ai-providers";
 
-export const maxDuration = 60;
+export const maxDuration = 120;
 
-const SYSTEM_PROMPT = `Tu es un assistant spécialisé dans l'analyse de programmes de formation professionnelle.
-À partir du texte extrait d'un document PDF, tu dois identifier et structurer le programme de formation.
+const SYSTEM_PROMPT = `Tu es un assistant specialise dans l'analyse de programmes de formation professionnelle.
+A partir du texte extrait d'un document PDF, tu dois identifier et structurer le programme de formation.
 
 Tu dois retourner un JSON valide avec la structure suivante :
 {
-  "intitule": "Titre de la formation (si identifié)",
-  "description": "Description générale de la formation (si identifiée)",
+  "intitule": "Titre de la formation (si identifie)",
+  "description": "Description generale de la formation (si identifiee)",
   "duree_heures": nombre ou null,
   "duree_jours": nombre ou null,
   "modules": [
     {
       "titre": "Titre du module/section",
-      "contenu": "Contenu détaillé du module",
-      "duree": "Durée du module (ex: 2h, 1 jour)"
+      "contenu": "Contenu detaille du module",
+      "duree": "Duree du module (ex: 2h, 1 jour)"
     }
   ],
-  "objectifs": ["Objectif pédagogique 1", "Objectif pédagogique 2"]
+  "objectifs": ["Objectif pedagogique 1", "Objectif pedagogique 2"]
 }
 
-Règles :
+Regles :
 - Extrais tous les modules/sections du programme dans l'ordre
-- Si le document contient des objectifs pédagogiques, extrais-les
-- Si des durées sont mentionnées, inclus-les
-- Le contenu de chaque module doit être un résumé clair et concis
+- Si le document contient des objectifs pedagogiques, extrais-les
+- Si des durees sont mentionnees, inclus-les
+- Le contenu de chaque module doit etre un resume clair et concis
 - Retourne UNIQUEMENT le JSON, sans texte autour
 - Si le document n'est pas un programme de formation, retourne un JSON avec modules vide et un message dans description`;
 
@@ -36,14 +36,19 @@ export async function POST(request: NextRequest) {
   // Auth check
   const authResult = await getOrganisationId();
   if ("error" in authResult) {
-    return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+    return NextResponse.json({ error: "Non authentifie" }, { status: 401 });
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
+  const { organisationId } = authResult;
+
+  // Check AI credits
+  const { ok, credits } = await checkCredits(organisationId, "extract_programme");
+  if (!ok) {
     return NextResponse.json(
-      { error: "ANTHROPIC_API_KEY non configurée. Ajoutez-la dans vos variables d'environnement." },
-      { status: 500 }
+      {
+        error: `Credits IA insuffisants. ${credits.used}/${credits.monthly_limit} credits utilises ce mois-ci. L'extraction de programme coute 1 credit.`,
+      },
+      { status: 429 }
     );
   }
 
@@ -56,7 +61,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (file.type !== "application/pdf") {
-      return NextResponse.json({ error: "Le fichier doit être un PDF" }, { status: 400 });
+      return NextResponse.json({ error: "Le fichier doit etre un PDF" }, { status: 400 });
     }
 
     if (file.size > 10 * 1024 * 1024) {
@@ -76,39 +81,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Truncate to ~30k chars to stay within token limits
+    // Call Claude API
     const truncatedText = text.slice(0, 30000);
-
-    // Call Claude to structure the programme
-    const anthropic = new Anthropic({ apiKey });
-    const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 4096,
-      system: SYSTEM_PROMPT,
-      messages: [
-        {
-          role: "user",
-          content: `Voici le texte extrait du PDF d'un programme de formation. Analyse-le et retourne le JSON structuré :\n\n---\n${truncatedText}\n---`,
-        },
-      ],
-    });
-
-    // Extract text response
-    const responseText = message.content
-      .filter((block): block is Anthropic.TextBlock => block.type === "text")
-      .map((block) => block.text)
-      .join("");
+    const result = await callClaude([
+      { role: "system", content: SYSTEM_PROMPT },
+      {
+        role: "user",
+        content: `Voici le texte extrait du PDF d'un programme de formation. Analyse-le et retourne le JSON structure :\n\n---\n${truncatedText}\n---`,
+      },
+    ]);
 
     // Parse JSON from response
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    const jsonMatch = result.text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       return NextResponse.json(
-        { error: "L'IA n'a pas pu structurer le programme. Réessayez avec un autre document." },
+        { error: "L'IA n'a pas pu structurer le programme. Reessayez avec un autre document." },
         { status: 422 }
       );
     }
 
     const structured = JSON.parse(jsonMatch[0]);
+
+    // Deduct credits after successful call
+    await deductCredits(organisationId, "extract_programme");
 
     return NextResponse.json({ data: structured });
   } catch (error) {

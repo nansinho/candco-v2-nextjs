@@ -29,6 +29,8 @@ export interface OrganisationSettings {
   signature_email: string | null;
   // Style
   couleur_primaire: string | null;
+  // Settings JSONB (AI credits, etc.)
+  settings: Record<string, unknown> | null;
 }
 
 // ─── Schemas ────────────────────────────────────────────
@@ -67,7 +69,8 @@ const SETTINGS_FIELDS = `
   mentions_legales, conditions_paiement, coordonnees_bancaires,
   tva_defaut, numero_tva_intracommunautaire,
   email_expediteur, signature_email,
-  couleur_primaire
+  couleur_primaire,
+  settings
 `;
 
 export async function getOrganisationSettings(): Promise<{
@@ -258,4 +261,37 @@ export async function removeOrganisationLogo() {
   revalidatePath("/parametres");
   revalidatePath("/", "layout");
   return { success: true };
+}
+
+// ─── Get AI Credits ─────────────────────────────────────
+
+export async function getAICredits(): Promise<{
+  data: { monthly_limit: number; used: number; remaining: number } | null;
+  error: string | null;
+}> {
+  const result = await getOrganisationId();
+  if ("error" in result) return { data: null, error: result.error ?? "Erreur inconnue" };
+
+  const { organisationId, admin } = result;
+
+  const { data: org, error } = await admin
+    .from("organisations")
+    .select("settings")
+    .eq("id", organisationId)
+    .single();
+
+  if (error) return { data: null, error: error.message };
+
+  const { getCreditsFromSettings, creditsRemaining } = await import("@/lib/ai-providers");
+  const settings = (org?.settings ?? {}) as Record<string, unknown>;
+  const credits = getCreditsFromSettings(settings);
+
+  return {
+    data: {
+      monthly_limit: credits.monthly_limit,
+      used: credits.used,
+      remaining: creditsRemaining(credits),
+    },
+    error: null,
+  };
 }
