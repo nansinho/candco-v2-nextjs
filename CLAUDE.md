@@ -1,7 +1,7 @@
 # 🏗️ PLAN COMPLET — C&CO Formation v2 (Clone SmartOF Amélioré)
 
 > **Document de référence pour Claude Code**
-> Dernière mise à jour : 5 février 2026
+> Dernière mise à jour : 7 février 2026
 > Auteur : Nans (C&CO Formation)
 
 ---
@@ -10,11 +10,12 @@
 
 1. [Vision du projet](#1-vision-du-projet)
 2. [Stack technique](#2-stack-technique)
-3. [Architecture](#3-architecture)
+3. [Architecture (2 domaines, 3 couches)](#3-architecture)
 4. [Modules fonctionnels (15 documentés)](#4-modules-fonctionnels)
+4B. [Accès utilisateurs & Rôles](#4b-accès-utilisateurs--rôles)
 5. [Schéma BDD v2](#5-schéma-bdd-v2)
 6. [Design System](#6-design-system)
-7. [Roadmap par phases](#7-roadmap-par-phases)
+7. [Roadmap par phases (16 phases)](#7-roadmap-par-phases)
 8. [Instructions pour Claude Code](#8-instructions-pour-claude-code)
 9. [Modules non documentés (à prévoir)](#9-modules-non-documentés)
 10. [Features killer (avantages vs SmartOF)](#10-features-killer)
@@ -23,13 +24,19 @@
 
 ## 1. VISION DU PROJET
 
-**Objectif** : Recréer un logiciel de gestion d'Organisme de Formation (OF) de type SmartOF, en mieux, pour C&CO Formation.
+**Objectif** : Créer une plateforme SaaS de gestion d'Organisme de Formation (OF), inspirée de SmartOF en mieux, pour C&CO Formation et ses clients OF.
+
+**C&CO est deux choses à la fois :**
+1. **Un organisme de formation** (C&CO Formation) qui a besoin de gérer ses propres formations
+2. **Un éditeur de logiciel SaaS** qui propose sa plateforme à d'autres OF
 
 **Contexte** :
 - L'ancienne app (Lovable + Supabase Cloud) avait ~60 tables et 63 Edge Functions → trop complexe, non maintenable
 - On repart **de zéro** : nouvelle BDD, nouveau front, nouvelle architecture
 - Le logiciel actuel SmartOF est la référence fonctionnelle → on le copie et on l'améliore
 - **Multi-tenant** : le système doit supporter plusieurs organismes de formation
+- **Deux domaines** : `candco.fr` (site vitrine C&CO) + `app.candco.fr` (plateforme SaaS)
+- **Vitrines par OF** : chaque OF client peut avoir son propre site vitrine connecté à la BDD
 
 **Ce qu'on garde de l'ancienne app C&CO** :
 - Import PDF → remplissage auto du programme de formation (SmartOF n'a pas ça)
@@ -75,32 +82,75 @@ Next.js 16 + React 19.2
 
 ## 3. ARCHITECTURE
 
+### 3.1 — Vue globale (3 couches, 2 domaines)
+
 ```
-┌──────────────────────────────────────────────────────┐
-│                    FRONTEND                           │
-│              Next.js 16 App Router                    │
-│         (SSR + Server Components + PPR)               │
-│     Design : Cursor Style (Noir / Gris / Orange)      │
-├──────────────────────────────────────────────────────┤
-│                 LOGIQUE MÉTIER                         │
-│  ┌────────────────┐    ┌──────────────────────────┐  │
-│  │ Server Actions │    │ API Routes /api/*        │  │
-│  │ (mutations)    │    │ • Webhooks entrants      │  │
-│  │                │    │ • Emails (Resend)        │  │
-│  │                │    │ • Génération PDF/DOCX    │  │
-│  │                │    │ • Import PDF IA          │  │
-│  └────────────────┘    └──────────────────────────┘  │
-├──────────────────────────────────────────────────────┤
-│              SUPABASE SELF-HOSTED (Coolify)            │
-│  ┌──────────┐  ┌────────┐  ┌──────────┐  ┌────────┐ │
-│  │ Postgres │  │  Auth  │  │ Storage  │  │Realtime│ │
-│  │ +pg_cron │  │  JWT   │  │  Docs    │  │  WS    │ │
-│  │ +RPC     │  │ Rôles  │  │  PDFs    │  │        │ │
-│  └──────────┘  └────────┘  └──────────┘  └────────┘ │
-├──────────────────────────────────────────────────────┤
-│               SERVICES EXTERNES                       │
-│  Resend (emails) │ API SIRENE (INSEE) │ IA (OpenAI?) │
-└──────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│  COUCHE 1 — VITRINES PUBLIQUES (par OF)                 │
+│                                                          │
+│  candco.fr              → Vitrine C&CO Formation         │
+│  formationabc.fr        → Vitrine d'un OF client         │
+│  [slug].candco.app      → Vitrine OF sans domaine custom │
+│                                                          │
+│  Projet Next.js séparé, multi-tenant par domaine         │
+│  Pages : catalogue, fiche formation, inscription, blog   │
+├─────────────────────────────────────────────────────────┤
+│  COUCHE 2 — PLATEFORME SAAS (app.candco.fr)             │
+│                                                          │
+│  Projet Next.js principal (ce repo)                      │
+│  /             → Landing page "Notre solution"           │
+│  /login        → Connexion unique (tous les rôles)       │
+│  /dashboard    → Back-office admin OF (multi-tenant)     │
+│  /extranet     → Espaces formateurs/apprenants/clients   │
+│  /admin        → Vue super-admin (gestion plateforme)    │
+├─────────────────────────────────────────────────────────┤
+│  COUCHE 3 — BASE DE DONNÉES (Supabase self-hosted)      │
+│                                                          │
+│  Une seule BDD, multi-tenant par organisation_id         │
+│  Toutes les vitrines + la plateforme lisent la même BDD  │
+│                                                          │
+│  ┌──────────┐  ┌────────┐  ┌──────────┐  ┌────────┐    │
+│  │ Postgres │  │  Auth  │  │ Storage  │  │Realtime│    │
+│  │ +pg_cron │  │  JWT   │  │  Docs    │  │  WS    │    │
+│  │ +RPC     │  │ Rôles  │  │  PDFs    │  │  Chat  │    │
+│  └──────────┘  └────────┘  └──────────┘  └────────┘    │
+├─────────────────────────────────────────────────────────┤
+│               SERVICES EXTERNES                          │
+│  Resend (emails) │ API SIRENE (INSEE) │ IA (OpenAI?)    │
+└─────────────────────────────────────────────────────────┘
+```
+
+### 3.2 — Qui accède à quoi, où
+
+| Qui | Où | Ce qu'il voit |
+|-----|-----|---------------|
+| Visiteur | `candco.fr` | Catalogue C&CO, blog, inscription sessions |
+| Visiteur OF client | `formationabc.fr` | Catalogue de cet OF, inscription |
+| Admin / Manager OF | `app.candco.fr/dashboard` | Back-office complet de son OF |
+| Formateur | `app.candco.fr/extranet/formateur` | Ses sessions, planning, dispos, facturation, chat |
+| Apprenant | `app.candco.fr/extranet/apprenant` | Ses sessions, émargement, docs, certificats, chat |
+| Contact client | `app.candco.fr/extranet/client` | Sessions entreprise, devis, factures, docs |
+| Super-admin C&CO | `app.candco.fr/admin` | Switch entre toutes les orgs, tickets globaux |
+
+### 3.3 — Détail technique plateforme (app.candco.fr)
+
+```
+Next.js 16 + React 19.2
+├── Turbopack (bundler par défaut)
+├── App Router + Cache Components + PPR
+├── Server Actions (mutations BDD)
+├── API Routes /api/* (webhooks, Resend, génération docs)
+├── Middleware (auth + routing par rôle)
+├── 4 route groups :
+│   ├── (auth)       → login/register
+│   ├── (dashboard)  → back-office admin OF
+│   ├── (extranet)   → espaces formateur/apprenant/client
+│   └── (admin)      → super-admin plateforme
+└── Supabase self-hosted
+    ├── Postgres + pg_cron + RPC
+    ├── Auth (JWT, rôles, multi-tenant)
+    ├── Storage (documents, PDFs)
+    └── Realtime (messagerie, notifications)
 ```
 
 ---
@@ -575,6 +625,189 @@ questionnaire_reponses (id, questionnaire_id, invitation_id, respondent_email, r
 
 ---
 
+## 4B. ACCÈS UTILISATEURS & RÔLES
+
+### 4B.1 — Les 6 types d'utilisateurs
+
+| Type | Zone | Comment il se connecte | Ce qu'il voit |
+|------|------|----------------------|---------------|
+| **Visiteur** | `candco.fr` (ou vitrine OF) | Pas de login | Catalogue formations, blog, inscription sessions publiques |
+| **Admin OF** | `app.candco.fr/dashboard` | Email + MDP (créé à l'inscription) | Back-office complet de son OF |
+| **Manager OF** | `app.candco.fr/dashboard` | Email + MDP (invité par admin) | Back-office sans paramètres ni suppression |
+| **Formateur** | `app.candco.fr/extranet/formateur` | Invité par admin → reçoit email → crée son MDP | Ses sessions, planning, dispos, facturation, messagerie |
+| **Apprenant** | `app.candco.fr/extranet/apprenant` | Invité par admin ou inscrit via vitrine → reçoit email → crée son MDP | Ses sessions, émargement, documents, certificats, messagerie |
+| **Contact client** | `app.candco.fr/extranet/client` | Invité par admin → reçoit email → crée son MDP | Sessions de son entreprise, devis, factures, documents |
+| **Super-admin** | `app.candco.fr/admin` | Compte spécial C&CO | Toutes les organisations, tickets globaux, stats plateforme |
+
+### 4B.2 — Login unique + Routing par rôle
+
+Un seul formulaire de login sur `app.candco.fr/login`. Le middleware route automatiquement après connexion :
+
+```
+auth.users identifié
+  │
+  ├── Trouvé dans utilisateurs ?
+  │   ├── is_super_admin = true → /admin (vue plateforme)
+  │   └── sinon → /dashboard (back-office de son OF)
+  │
+  └── Trouvé dans extranet_acces ?
+      ├── role = 'formateur'       → /extranet/formateur
+      ├── role = 'apprenant'       → /extranet/apprenant
+      └── role = 'contact_client'  → /extranet/client
+```
+
+### 4B.3 — Flux d'invitation extranet
+
+L'admin d'un OF invite un formateur, apprenant ou contact client depuis le back-office :
+
+```
+Admin → fiche formateur/apprenant/contact → "Inviter à l'extranet"
+  │
+  1. Crée un compte auth.users avec l'email de la personne
+  2. Crée une entrée extranet_acces (role, entite_type, entite_id, statut='invite')
+  3. Envoie un email d'invitation (Resend) avec un lien de premier accès
+  │
+  ▼
+La personne clique le lien → définit son mot de passe → statut passe à 'actif'
+```
+
+### 4B.4 — Super-admin & Multi-organisation
+
+Le super-admin C&CO peut naviguer entre toutes les organisations.
+
+**Dans la sidebar, en haut à gauche — sélecteur d'organisation :**
+
+```
+[▼ C&CO Formation    ]
+  ├── C&CO Formation     ← son OF
+  ├── Formation ABC      ← un client
+  ├── Formation XYZ      ← un autre client
+  └── ⚙ Admin plateforme ← vue globale
+```
+
+- **Sélectionner un OF** → le super-admin voit le back-office de cet OF comme s'il était leur admin
+- **Sélectionner "Admin plateforme"** → vue globale avec :
+  - Liste de tous les OF inscrits
+  - Statistiques globales (nombre d'OF, d'apprenants, de sessions)
+  - **Tous les tickets de tous les OF** (support centralisé)
+  - Gestion des abonnements (quel OF a quel plan)
+  - Logs d'activité
+
+**Table `user_organisations`** : un admin peut être rattaché à plusieurs organisations (many-to-many).
+
+### 4B.5 — RBAC back-office (permissions par rôle)
+
+| Fonctionnalité | Admin | Manager | User |
+|----------------|-------|---------|------|
+| CRM complet (lecture) | Oui | Oui | Oui |
+| CRM (création/modification) | Oui | Oui | Non |
+| Créer/modifier sessions | Oui | Oui | Non |
+| Devis / Factures | Oui | Oui | Lecture seule |
+| Paramètres OF | Oui | Non | Non |
+| Gérer utilisateurs | Oui | Non | Non |
+| Inviter à l'extranet | Oui | Oui | Non |
+| Export comptable / BPF | Oui | Non | Non |
+| Supprimer des données | Oui | Non | Non |
+| Switcher d'organisation | Si multi-org | Si multi-org | Non |
+
+### 4B.6 — Espace Formateur (app.candco.fr/extranet/formateur)
+
+| Page | Contenu |
+|------|---------|
+| **Tableau de bord** | Prochaines sessions, alertes, stats personnelles |
+| **Mes sessions** | Sessions assignées avec détail (apprenants, créneaux, lieu) |
+| **Planning** | Calendrier de toutes ses interventions |
+| **Disponibilités** | Déclarer ses dispos (calendrier éditable, export iCal) |
+| **Documents** | Contrats sous-traitance, conventions, ressources pédagogiques à déposer |
+| **Facturation** | Créer des factures vers l'OF (montant pré-calculé : tarif jour × nb jours) |
+| **Questionnaires** | Évaluations formateur à remplir |
+| **Messagerie** | Chat temps réel avec admin et apprenants de ses sessions |
+| **Mon profil** | Coordonnées, compétences, SIRET, NDA |
+
+### 4B.7 — Espace Apprenant (app.candco.fr/extranet/apprenant)
+
+| Page | Contenu |
+|------|---------|
+| **Tableau de bord** | Sessions en cours, prochains créneaux |
+| **Mes sessions** | Sessions où il est inscrit, statut d'inscription |
+| **Planning** | Vue calendrier de ses créneaux |
+| **Émargement** | Signer sa présence quand le créneau est ouvert |
+| **Documents** | Conventions, attestations, certificats à télécharger |
+| **Questionnaires** | Satisfaction et évaluations pédagogiques à remplir |
+| **Messagerie** | Chat avec formateurs et admin |
+| **Mon profil** | Modifier ses infos personnelles |
+
+### 4B.8 — Espace Contact Client (app.candco.fr/extranet/client)
+
+| Page | Contenu |
+|------|---------|
+| **Tableau de bord** | Sessions en cours pour son entreprise, devis en attente |
+| **Sessions** | Suivi des sessions commanditées (statut, apprenants, progression) |
+| **Devis** | Consulter, signer (signature électronique) |
+| **Factures** | Consulter, télécharger PDF, statut paiement |
+| **Documents** | Conventions à signer, attestations de fin de formation |
+| **Questionnaires** | Satisfaction commanditaire |
+| **Messagerie** | Échanges avec l'admin de l'OF |
+
+### 4B.9 — Site vitrine par OF
+
+Chaque OF peut activer un site vitrine public connecté à sa BDD.
+
+**Activation :** Admin OF → Paramètres → Site vitrine → Activer
+
+**Configuration :**
+- Sous-domaine gratuit : `formation-abc.candco.app`
+- OU domaine custom : `formationabc.fr` (CNAME vers notre serveur)
+- Logo, couleurs, description
+- Pages à activer : catalogue, blog, inscriptions, contact
+
+**Pages vitrine :**
+- Accueil (présentation OF)
+- Catalogue (formations publiées avec `publie=true`)
+- Fiche formation (`/formations/[slug]`) + sessions ouvertes
+- Inscription publique (`/inscription/[sessionId]`) — formulaire sans compte requis
+- Blog / Articles
+- Contact
+
+**Parcours d'inscription publique :**
+
+```
+Visiteur → catalogue → fiche formation → "S'inscrire" à une session
+  │
+  ▼
+Formulaire (pas de compte requis) :
+  Civilité, Prénom, Nom, Email, Téléphone, Entreprise (optionnel), CGV
+  │
+  ▼
+Server Action :
+  1. Cherche si l'email existe dans apprenants → sinon crée la fiche
+  2. Crée l'inscription (liste_attente ou inscrit selon places)
+  3. Email de confirmation à l'apprenant (Resend)
+  4. Notification à l'admin de l'OF
+  │
+  ▼
+L'admin valide dans le back-office → peut inviter à l'extranet
+```
+
+**Le projet vitrine est un projet Next.js séparé** (voir Phase 13), multi-tenant par domaine :
+le middleware détecte le `Host` → cherche l'organisation → affiche ses données.
+
+### 4B.10 — Messagerie temps réel
+
+Chat intégré dans les espaces extranet et le back-office via Supabase Realtime.
+
+**Types de conversations :**
+- **Direct** : entre 2 personnes (admin ↔ formateur, formateur ↔ apprenant, etc.)
+- **Groupe session** : tous les participants d'une session (formateur + apprenants + admin)
+- **Support** : apprenant/formateur → admin (questions, demandes)
+
+**Fonctionnalités :**
+- Messages texte + pièces jointes (fichiers via Supabase Storage)
+- Indicateur de messages non lus
+- Notifications en temps réel (Supabase Realtime écoute les INSERT sur `messages`)
+
+---
+
 ## 5. SCHÉMA BDD v2
 
 ### Conventions
@@ -606,6 +839,11 @@ organisations (
   adresse_ville text,
   logo_url text,
   settings jsonb DEFAULT '{}',       -- Config générale (TVA défaut, mentions légales, etc.)
+  -- Vitrine (site public de l'OF)
+  vitrine_active boolean DEFAULT false,
+  sous_domaine text UNIQUE,          -- formation-abc → formation-abc.candco.app
+  domaine_custom text UNIQUE,        -- formationabc.fr (CNAME vers notre serveur)
+  vitrine_config jsonb DEFAULT '{}', -- Couleurs, pages actives, SEO, etc.
   created_at, updated_at
 )
 
@@ -616,9 +854,19 @@ utilisateurs (
   prenom text,
   nom text,
   role text DEFAULT 'user',          -- admin, manager, user
+  is_super_admin boolean DEFAULT false,  -- Accès à toutes les orgs + admin plateforme
   avatar_url text,
   actif boolean DEFAULT true,
   created_at, updated_at
+)
+
+user_organisations (                 -- Multi-org : un admin peut gérer plusieurs OF
+  id uuid PK,
+  user_id uuid FK → auth.users,
+  organisation_id uuid FK → organisations,
+  role text DEFAULT 'admin',         -- admin, manager, user
+  is_default boolean DEFAULT false,  -- Organisation affichée par défaut
+  created_at
 )
 
 -- ═══════════════════════════════════════════
@@ -703,6 +951,9 @@ apprenants (
   adresse_ville text,
   bpf_categorie_id uuid FK → bpf_categories_apprenant,
   numero_compte_comptable text,
+  -- Extranet
+  extranet_actif boolean DEFAULT false,
+  extranet_user_id uuid,             -- Lien auth.users si extranet activé
   -- Intégrations
   pennylane_id text,
   lms_id text,
@@ -1320,9 +1571,63 @@ extranet_acces (
   active_le timestamptz,
   created_at, updated_at
 )
+
+-- ═══════════════════════════════════════════
+-- MESSAGERIE TEMPS RÉEL
+-- ═══════════════════════════════════════════
+
+conversations (
+  id uuid PK,
+  organisation_id uuid FK,
+  type text NOT NULL,                -- 'direct', 'session_group', 'support'
+  session_id uuid FK → sessions,     -- Si conversation de groupe liée à une session
+  titre text,                        -- Optionnel, pour les groupes
+  created_at
+)
+
+conversation_participants (
+  id uuid PK,
+  conversation_id uuid FK → conversations,
+  user_id uuid FK → auth.users,
+  role text,                         -- 'admin', 'formateur', 'apprenant', 'contact_client'
+  dernier_lu_at timestamptz,         -- Pour calculer les messages non lus
+  created_at
+)
+
+messages (
+  id uuid PK,
+  organisation_id uuid FK,
+  conversation_id uuid FK → conversations,
+  sender_id uuid FK → auth.users,
+  contenu text NOT NULL,
+  fichier_url text,                  -- Pièce jointe (Supabase Storage)
+  fichier_nom text,
+  lu boolean DEFAULT false,
+  created_at
+)
+
+-- ═══════════════════════════════════════════
+-- BLOG / ARTICLES (vitrines OF)
+-- ═══════════════════════════════════════════
+
+articles (
+  id uuid PK,
+  organisation_id uuid FK,
+  titre text NOT NULL,
+  slug text NOT NULL,
+  contenu text,                      -- HTML éditeur riche
+  extrait text,                      -- Résumé court pour les listes
+  image_url text,
+  publie boolean DEFAULT false,
+  date_publication timestamptz,
+  categorie text,
+  tags text[],
+  auteur_id uuid FK → utilisateurs,
+  created_at, updated_at
+)
 ```
 
-### Total estimé : ~45 tables
+### Total estimé : ~55 tables
 
 ---
 
@@ -1368,51 +1673,52 @@ extranet_acces (
 
 ## 7. ROADMAP PAR PHASES
 
-### Phase 0 — Fondations (Semaine 1-2)
+### Phase 0 — Fondations ✅ TERMINÉE
 > **Objectif** : App fonctionnelle mais vide, prête à recevoir les modules
 
-- [ ] Initialisation Next.js 16 + TypeScript strict
-- [ ] Configuration Tailwind v4 + shadcn/ui + design system Cursor
-- [ ] Setup Supabase self-hosted (connexion depuis Next.js)
-- [ ] Auth : login/register + proxy.ts + protection routes
-- [ ] Layout principal : Sidebar + Header + Breadcrumb
-- [ ] Migration BDD : tables organisations, utilisateurs, sequences, bpf_categories
-- [ ] RLS (Row Level Security) multi-tenant sur toutes les tables
-- [ ] Deploy sur Coolify (CI/CD GitHub → Coolify)
-- [ ] Composants de base : DataTable générique, Modal, Panel latéral, Toast, Badges
+- [x] Initialisation Next.js 16 + TypeScript strict
+- [x] Configuration Tailwind v4 + shadcn/ui + design system Cursor
+- [x] Setup Supabase self-hosted (connexion depuis Next.js)
+- [x] Auth : login/register + middleware + protection routes
+- [x] Layout principal : Sidebar + Header + Breadcrumb
+- [x] Migration BDD : tables organisations, utilisateurs, sequences, bpf_categories
+- [x] RLS (Row Level Security) multi-tenant sur toutes les tables
+- [x] Deploy sur Coolify (CI/CD GitHub → Coolify)
+- [x] Composants de base : DataTable générique, Modal, Panel latéral, Toast, Badges
 
-### Phase 1 — CRM / Base de contacts (Semaine 3-5)
+### Phase 1 — CRM / Base de contacts ✅ TERMINÉE
 > **Objectif** : Pouvoir gérer toutes les entités de base
 
-- [ ] Module **Entreprises** (CRUD complet, 6 onglets, recherche INSEE)
-- [ ] Module **Apprenants** (CRUD, relation many-to-many entreprises, BPF)
-- [ ] Module **Contacts clients** (CRUD, association multi-entreprises, extranet)
-- [ ] Module **Formateurs** (CRUD, 4 onglets, coûts, BPF interne/externe)
-- [ ] Module **Financeurs** (CRUD, types OPCO/PE/Région)
+- [x] Module **Entreprises** (CRUD complet, 6 onglets, recherche INSEE)
+- [x] Module **Apprenants** (CRUD, relation many-to-many entreprises, BPF, import CSV)
+- [x] Module **Contacts clients** (CRUD, association multi-entreprises)
+- [x] Module **Formateurs** (CRUD, compétences, coûts, BPF interne/externe)
+- [x] Module **Financeurs** (CRUD, types OPCO/PE/Région)
+- [x] Module **Salles** (CRUD, capacité, équipements)
+- [x] Système de **tâches & activités** (polymorphique, rattachable à toute entité)
 - [ ] Système de **vues personnalisables** (colonnes, filtres, tri sauvegardés)
-- [ ] Système de **tâches & activités** (polymorphique, rattachable à toute entité)
 - [ ] **Recherche avancée** + **Export CSV/Excel**
 - [ ] **Archivage** (soft delete avec restauration)
 
-### Phase 2 — Catalogue & Bibliothèque (Semaine 6-7)
+### Phase 2 — Catalogue & Bibliothèque 🔄 EN COURS
 > **Objectif** : Pouvoir créer et gérer le catalogue de formations
 
-- [ ] Module **Produits de formation** (fusion SmartOF + C&CO)
-- [ ] Tarification multi-tarifs + TVA
-- [ ] Programme (édition riche, ordre des modules)
-- [ ] Objectifs pédagogiques
-- [ ] Import PDF IA → remplissage auto (feature killer)
-- [ ] Images IA (feature killer)
+- [x] Module **Produits de formation** (CRUD, onglets, tarifs, objectifs, programme)
+- [x] Tarification multi-tarifs + TVA
+- [x] Programme (édition riche, ordre des modules)
+- [x] Objectifs pédagogiques
+- [x] Import PDF IA → remplissage auto (feature killer)
+- [x] Images IA (feature killer)
 - [ ] Barre de progression complétion (feature killer)
 - [ ] Toggle publication catalogue en ligne
 - [ ] BPF produit (spécialité, catégorie, niveau)
 
-### Phase 3 — Sessions de formation (Semaine 8-11)
+### Phase 3 — Sessions de formation 🔄 EN COURS
 > **Objectif** : Le coeur du métier — gestion complète des sessions
 
-- [ ] Module **Sessions** (CRUD, statuts, lien produit)
-- [ ] **Multi-commanditaires** par session (entreprises + financeurs)
-- [ ] **Inscriptions** (par commanditaire, statuts, import CSV)
+- [x] Module **Sessions** (CRUD, statuts, lien produit)
+- [x] **Multi-commanditaires** par session (entreprises + financeurs)
+- [x] **Inscriptions** (par commanditaire, statuts)
 - [ ] **Créneaux horaires** (planning détaillé, types)
 - [ ] **Émargement** (ouverture/fermeture auto, signatures)
 - [ ] **Planning** (vue calendrier — semaine/mois)
@@ -1420,9 +1726,8 @@ extranet_acces (
 - [ ] Évaluations rattachées (satisfaction + pédagogique)
 - [ ] Documents session (génération auto + import)
 - [ ] Calcul **rentabilité** auto (budget - coût formateur - charges)
-- [ ] **Salles** (gestion ressources physiques)
 
-### Phase 4 — Questionnaires (Semaine 12-13)
+### Phase 4 — Questionnaires
 > **Objectif** : Enquêtes de satisfaction + évaluations pédagogiques
 
 - [ ] Module **Questionnaires** unifié (satisfaction + péda + standalone)
@@ -1434,7 +1739,7 @@ extranet_acces (
 - [ ] Import IA : PDF/Word → extraction questions automatique
 - [ ] Export réponses (CSV, PDF)
 
-### Phase 5 — Commercial (Semaine 14-16)
+### Phase 5 — Commercial
 > **Objectif** : Pipeline commercial complet
 
 - [ ] Module **Opportunités** (pipeline, statuts, montant estimé)
@@ -1446,7 +1751,7 @@ extranet_acces (
 - [ ] Templates de devis
 - [ ] Signature électronique (à évaluer : intégration externe ou maison)
 
-### Phase 6 — Facturation (Semaine 17-19)
+### Phase 6 — Facturation
 > **Objectif** : Facturation complète + export comptable
 
 - [ ] Module **Factures** (CRUD, même layout que devis)
@@ -1457,7 +1762,7 @@ extranet_acces (
 - [ ] **Export comptable** FEC (Fichier Écritures Comptables)
 - [ ] Génération PDF factures/avoirs
 
-### Phase 7 — Documents & Génération (Semaine 20-21)
+### Phase 7 — Documents & Génération
 > **Objectif** : Génération automatique de tous les documents réglementaires
 
 - [ ] Templates de documents (convention, attestation, certificat, programme, contrat sous-traitance)
@@ -1465,22 +1770,89 @@ extranet_acces (
 - [ ] Génération PDF/DOCX côté serveur
 - [ ] Gestion documents par entité (upload + téléchargement)
 
-### Phase 8 — Automatisations & Suivi (Semaine 22-24)
-> **Objectif** : Workflows automatisés + dashboard
+### Phase 8 — Accès, Rôles & Multi-organisation ⭐ NOUVEAU
+> **Objectif** : Système complet de gestion des accès et rôles
+
+- [ ] Migration BDD : `user_organisations`, `extranet_acces`, `apprenants.extranet_*`
+- [ ] **RBAC back-office** : permissions admin / manager / user (navigation conditionnelle, protection Server Actions)
+- [ ] **Middleware routing par rôle** : détection utilisateur vs extranet → redirection automatique
+- [ ] **Flux d'invitation extranet** : créer compte Auth + envoyer email (Resend) + activation MDP
+- [ ] UI d'invitation sur les fiches formateur/apprenant/contact client
+- [ ] **Sélecteur d'organisation** dans la sidebar pour super-admin
+- [ ] **Vue Admin plateforme** (`/admin`) : liste OF, stats globales, tickets de tous les OF, abonnements
+- [ ] Gestion utilisateurs dans Paramètres OF (inviter, modifier rôle, désactiver)
+
+### Phase 9 — Extranet Formateur ⭐ NOUVEAU
+> **Objectif** : Espace connecté pour les formateurs
+
+- [ ] Layout extranet formateur (sidebar dédiée, header, design adapté)
+- [ ] **Tableau de bord** : prochaines sessions, alertes
+- [ ] **Mes sessions** : liste sessions assignées + détail (apprenants, créneaux, lieu)
+- [ ] **Planning** : calendrier de ses interventions
+- [ ] **Disponibilités** : déclarer dispos (calendrier éditable, export iCal)
+- [ ] **Documents** : contrats, conventions, ressources pédagogiques à déposer
+- [ ] **Facturation** : créer factures vers l'OF (montant pré-calculé tarif jour × nb jours)
+- [ ] **Questionnaires** : évaluations formateur à remplir
+- [ ] **Mon profil** : modifier coordonnées, compétences, SIRET, NDA
+
+### Phase 10 — Extranet Apprenant ⭐ NOUVEAU
+> **Objectif** : Espace connecté pour les apprenants
+
+- [ ] Layout extranet apprenant (sidebar dédiée)
+- [ ] **Tableau de bord** : sessions en cours, prochains créneaux
+- [ ] **Mes sessions** : sessions inscrites, statut d'inscription
+- [ ] **Planning** : vue calendrier des créneaux
+- [ ] **Émargement** : signer sa présence quand créneau ouvert
+- [ ] **Documents** : conventions, attestations, certificats à télécharger
+- [ ] **Questionnaires** : satisfaction + évaluations pédagogiques
+- [ ] **Mon profil** : modifier ses infos
+
+### Phase 11 — Extranet Contact Client ⭐ NOUVEAU
+> **Objectif** : Espace connecté pour les contacts clients (commanditaires)
+
+- [ ] Layout extranet contact client (sidebar dédiée)
+- [ ] **Tableau de bord** : sessions en cours, devis en attente
+- [ ] **Sessions** : suivi sessions commanditées (statut, apprenants, progression)
+- [ ] **Devis** : consulter, signer (signature électronique)
+- [ ] **Factures** : consulter, télécharger PDF, statut paiement
+- [ ] **Documents** : conventions à signer, attestations
+
+### Phase 12 — Messagerie temps réel ⭐ NOUVEAU
+> **Objectif** : Chat entre admin, formateurs et apprenants
+
+- [ ] Migration BDD : `conversations`, `conversation_participants`, `messages`
+- [ ] **Supabase Realtime** : écoute INSERT sur messages → notifications push
+- [ ] UI chat dans les 3 espaces extranet + back-office
+- [ ] Conversations directes (1-to-1), groupes session, support
+- [ ] Pièces jointes (fichiers via Supabase Storage)
+- [ ] Indicateur messages non lus
+
+### Phase 13 — Vitrines OF ⭐ NOUVEAU
+> **Objectif** : Site vitrine public pour chaque OF, connecté à la BDD
+
+- [ ] **Nouveau projet Next.js** pour les vitrines (déployé séparément sur Coolify)
+- [ ] **Multi-tenant par domaine** : middleware détecte Host → trouve l'organisation → affiche ses données
+- [ ] Pages : accueil, catalogue formations, fiche formation `/formations/[slug]`, inscription publique
+- [ ] **Blog / Articles** : éditeur riche côté back-office, publication côté vitrine
+- [ ] Migration BDD : champs vitrine sur `organisations` + table `articles`
+- [ ] ISR (Incremental Static Regeneration) pour SEO et performance
+- [ ] Configuration vitrine dans Paramètres OF (sous-domaine, domaine custom, couleurs, logo)
+- [ ] `candco.fr` = première vitrine déployée (C&CO Formation)
+- [ ] Support domaines custom (CNAME) pour les OF clients
+
+### Phase 14 — Automatisations & Suivi
+> **Objectif** : Workflows automatisés + dashboard + reporting
 
 - [ ] **Automatisations** : workflows configurables (inscription → convocation → rappel → émargement → attestation → satisfaction)
 - [ ] **BPF** : génération automatique du Bilan Pédagogique et Financier
 - [ ] **Dashboard / Indicateurs** : KPIs (CA, taux remplissage, rentabilité, satisfaction moyenne)
 - [ ] **Rapports** : exports personnalisables
 - [ ] **Emails envoyés** : historique avec statuts (délivré, ouvert)
-- [ ] **Tickets** : support interne
+- [ ] **Tickets** : support interne par OF
 
-### Phase 9 — Extranet & Polish (Semaine 25-27)
-> **Objectif** : Accès externes + finitions
+### Phase 15 — Polish & Tests
+> **Objectif** : Finitions et qualité
 
-- [ ] **Extranet formateurs** : espace dédié (sessions, docs, dispos)
-- [ ] **Extranet apprenants** : espace dédié (inscriptions, émargement, docs)
-- [ ] **Extranet contacts clients** : espace dédié (sessions, factures, docs)
 - [ ] **Paramètres OF** complets (6 sections)
 - [ ] Tests E2E
 - [ ] Optimisation performances
@@ -1506,16 +1878,17 @@ extranet_acces (
 ```
 src/
 ├── app/
-│   ├── (auth)/              # Pages login/register (sans sidebar)
+│   ├── (auth)/                    # Pages login/register (sans sidebar)
+│   │   ├── layout.tsx
 │   │   ├── login/
 │   │   └── register/
-│   ├── (dashboard)/         # Pages protégées (avec sidebar)
-│   │   ├── layout.tsx       # Sidebar + Header
-│   │   ├── page.tsx         # Dashboard principal
+│   ├── (dashboard)/               # Back-office admin OF (avec sidebar admin)
+│   │   ├── layout.tsx             # Sidebar 7 sections + Header + org selector
+│   │   ├── page.tsx               # Dashboard principal
 │   │   ├── apprenants/
-│   │   │   ├── page.tsx     # Liste
+│   │   │   ├── page.tsx           # Liste
 │   │   │   └── [id]/
-│   │   │       └── page.tsx # Détail avec onglets
+│   │   │       └── page.tsx       # Détail avec onglets
 │   │   ├── entreprises/
 │   │   ├── contacts-clients/
 │   │   ├── formateurs/
@@ -1529,46 +1902,113 @@ src/
 │   │   ├── avoirs/
 │   │   ├── opportunites/
 │   │   ├── taches/
+│   │   ├── messagerie/            # Chat côté admin
 │   │   ├── parametres/
 │   │   └── ...
+│   ├── (extranet)/                # Espaces connectés externes
+│   │   ├── formateur/
+│   │   │   ├── layout.tsx         # Sidebar formateur dédiée
+│   │   │   ├── page.tsx           # Tableau de bord formateur
+│   │   │   ├── sessions/
+│   │   │   ├── planning/
+│   │   │   ├── disponibilites/
+│   │   │   ├── documents/
+│   │   │   ├── facturation/
+│   │   │   ├── messagerie/
+│   │   │   └── profil/
+│   │   ├── apprenant/
+│   │   │   ├── layout.tsx         # Sidebar apprenant dédiée
+│   │   │   ├── page.tsx           # Tableau de bord apprenant
+│   │   │   ├── sessions/
+│   │   │   ├── planning/
+│   │   │   ├── emargement/
+│   │   │   ├── documents/
+│   │   │   ├── questionnaires/
+│   │   │   ├── messagerie/
+│   │   │   └── profil/
+│   │   └── client/
+│   │       ├── layout.tsx         # Sidebar contact client dédiée
+│   │       ├── page.tsx           # Tableau de bord client
+│   │       ├── sessions/
+│   │       ├── devis/
+│   │       ├── factures/
+│   │       ├── documents/
+│   │       └── messagerie/
+│   ├── (admin)/                   # Vue super-admin plateforme
+│   │   ├── layout.tsx
+│   │   ├── page.tsx               # Dashboard global (stats, OF, tickets)
+│   │   ├── organisations/         # Liste de tous les OF
+│   │   └── tickets/               # Tickets de tous les OF
 │   ├── api/
+│   │   ├── ai/                    # Import PDF IA, génération images
 │   │   ├── webhooks/
 │   │   ├── emails/
 │   │   ├── documents/
 │   │   └── export/
-│   ├── extranet/            # Espace externe (formateurs, apprenants, clients)
-│   │   ├── formateur/
-│   │   ├── apprenant/
-│   │   └── client/
 │   ├── layout.tsx
 │   └── globals.css
 ├── components/
-│   ├── ui/                  # shadcn/ui components
+│   ├── ui/                        # shadcn/ui components
 │   ├── layout/
-│   │   ├── Sidebar.tsx
+│   │   ├── Sidebar.tsx            # Sidebar admin (back-office)
+│   │   ├── SidebarFormateur.tsx   # Sidebar formateur (extranet)
+│   │   ├── SidebarApprenant.tsx   # Sidebar apprenant (extranet)
+│   │   ├── SidebarClient.tsx      # Sidebar contact client (extranet)
 │   │   ├── Header.tsx
-│   │   └── Breadcrumb.tsx
-│   ├── data-table/          # Table générique réutilisable
+│   │   ├── Breadcrumb.tsx
+│   │   └── OrgSelector.tsx        # Sélecteur d'organisation (super-admin)
+│   ├── data-table/                # Table générique réutilisable
 │   │   ├── DataTable.tsx
 │   │   ├── columns.tsx
 │   │   ├── toolbar.tsx
 │   │   └── view-selector.tsx
-│   ├── forms/               # Formulaires réutilisables
-│   └── shared/              # Composants partagés
+│   ├── chat/                      # Composants messagerie
+│   │   ├── ChatWindow.tsx
+│   │   ├── MessageList.tsx
+│   │   ├── MessageInput.tsx
+│   │   └── ConversationList.tsx
+│   ├── forms/                     # Formulaires réutilisables
+│   └── shared/                    # Composants partagés
 ├── lib/
 │   ├── supabase/
-│   │   ├── client.ts        # Supabase browser client
-│   │   ├── server.ts        # Supabase server client
-│   │   └── middleware.ts     # ou proxy.ts
+│   │   ├── client.ts              # Supabase browser client
+│   │   ├── server.ts              # Supabase server client
+│   │   ├── admin.ts               # Supabase admin client (service role)
+│   │   └── middleware.ts          # Auth + routing par rôle
+│   ├── permissions.ts             # RBAC : vérification permissions par rôle
 │   ├── utils.ts
-│   ├── types.ts             # Types TypeScript générés depuis Supabase
+│   ├── types.ts                   # Types TypeScript générés depuis Supabase
 │   └── constants.ts
-├── actions/                 # Server Actions par module
+├── actions/                       # Server Actions par module
+│   ├── auth.ts                    # Register, login
+│   ├── extranet.ts                # Invitations, activation, gestion accès
+│   ├── messagerie.ts              # Conversations, messages
 │   ├── apprenants.ts
 │   ├── entreprises.ts
 │   ├── sessions.ts
 │   └── ...
-└── hooks/                   # Custom hooks
+└── hooks/                         # Custom hooks
+    ├── use-realtime-messages.ts   # Hook Supabase Realtime pour le chat
+    └── ...
+```
+
+**Projet vitrine (repo séparé — Phase 13) :**
+```
+candco-vitrines/
+├── src/app/
+│   ├── page.tsx                   # Accueil OF
+│   ├── formations/
+│   │   ├── page.tsx               # Catalogue
+│   │   └── [slug]/page.tsx        # Fiche formation
+│   ├── inscription/
+│   │   └── [sessionId]/page.tsx   # Formulaire inscription public
+│   ├── blog/
+│   │   ├── page.tsx               # Liste articles
+│   │   └── [slug]/page.tsx        # Article
+│   └── contact/page.tsx
+├── src/lib/
+│   └── supabase/                  # Même config Supabase, lecture seule
+└── src/middleware.ts               # Détection Host → organisation_id
 ```
 
 ### Pattern pour chaque module CRUD
@@ -1642,17 +2082,26 @@ Ces modules n'ont pas eu de captures SmartOF mais sont dans le menu :
 | **Signature électronique** | Intégrée nativement (à évaluer) | Non |
 | **Templates devis** | Modèles réutilisables | Non |
 | **Relances intelligentes** | Automatiques avec tracking | Basique |
+| **Vitrines OF auto** | Chaque OF peut avoir son site vitrine connecté à la BDD, sous-domaine ou domaine custom | Non |
+| **Espace formateur** | Planning, dispos, facturation vers l'OF, messagerie | Basique |
+| **Espace apprenant** | Émargement en ligne, certificats, suivi sessions, messagerie | Non |
+| **Espace contact client** | Suivi sessions, signature devis, consultation factures | Non |
+| **Messagerie temps réel** | Chat intégré entre admin, formateurs et apprenants (Supabase Realtime) | Non |
+| **Multi-org admin** | Super-admin peut switcher entre organisations et aider les OF | Non |
+| **Inscription publique** | Les apprenants s'inscrivent directement depuis la vitrine OF | Non |
 
 ---
 
 ## RÉSUMÉ EXÉCUTIF
 
-- **15 modules documentés** à partir de captures SmartOF
-- **~45 tables** dans le schéma BDD v2
-- **9 phases de développement** (~27 semaines)
+- **15 modules documentés** à partir de captures SmartOF + **section accès/rôles**
+- **~55 tables** dans le schéma BDD v2
+- **16 phases de développement** (Phases 0-3 terminées/en cours, Phases 4-15 à faire)
+- **2 domaines** : `candco.fr` (vitrine) + `app.candco.fr` (plateforme SaaS)
+- **6 types d'utilisateurs** : visiteur, admin OF, manager, formateur, apprenant, contact client + super-admin
 - **Stack** : Next.js 16 + Supabase self-hosted + Coolify + Resend
 - **Design** : Style Cursor (Noir / Gris / Orange)
-- **Avantage concurrentiel** : IA intégrée (import PDF, images, analyse)
+- **Avantage concurrentiel** : IA intégrée + espaces extranet + vitrines OF + messagerie temps réel
 - **Claude Code** exécute le développement
 
 > Ce document est la référence unique pour le développement. Toute décision technique doit s'y référer.
