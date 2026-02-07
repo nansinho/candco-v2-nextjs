@@ -212,6 +212,7 @@ export function SessionDetail({
   useBreadcrumb(session.id, session.nom);
   const [isPending, setIsPending] = React.useState(false);
   const [isArchiving, setIsArchiving] = React.useState(false);
+  const [lieuAdresse, setLieuAdresse] = React.useState(session.lieu_adresse ?? "");
 
   // Dialog states
   const [showAddFormateur, setShowAddFormateur] = React.useState(false);
@@ -468,7 +469,14 @@ export function SessionDetail({
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="lieu_adresse" className="text-[13px]">Adresse libre</Label>
-                    <Input id="lieu_adresse" name="lieu_adresse" defaultValue={session.lieu_adresse ?? ""} placeholder="Si pas de salle rattachée" className="h-9 text-[13px] border-border/60" />
+                    <AddressAutocomplete
+                      id="lieu_adresse"
+                      name="lieu_adresse"
+                      value={lieuAdresse}
+                      onChange={(v) => setLieuAdresse(v)}
+                      onSelect={(r) => setLieuAdresse(`${r.rue}, ${r.cp} ${r.ville}`)}
+                      placeholder="Rechercher une adresse..."
+                    />
                   </div>
                   <div className="flex items-center gap-3">
                     <input type="checkbox" id="emargement_auto" name="emargement_auto" defaultChecked={session.emargement_auto} className="h-4 w-4 rounded border-border accent-primary" />

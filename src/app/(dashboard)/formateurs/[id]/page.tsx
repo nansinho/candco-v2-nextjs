@@ -21,6 +21,7 @@ import {
 import { formatCurrency } from "@/lib/utils";
 import { TachesActivitesTab } from "@/components/shared/taches-activites";
 import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
+import { SiretSearch } from "@/components/shared/siret-search";
 import { ExtranetAccessPanel } from "@/components/shared/extranet-access-panel";
 import { useBreadcrumb } from "@/components/layout/breadcrumb-context";
 import { QuickActionsBar } from "@/components/shared/quick-actions-bar";
@@ -436,44 +437,60 @@ export default function FormateurDetailPage() {
             {/* Informations professionnelles */}
             <section className="rounded-lg border border-border/60 bg-card p-5">
               <h3 className="mb-4 text-sm font-semibold">Informations professionnelles</h3>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="text-[13px]">Statut BPF</Label>
-                  <select
-                    value={form.statut_bpf ?? "externe"}
-                    onChange={(e) =>
+                  <Label className="text-[13px]">Recherche INSEE (SIRET / Nom)</Label>
+                  <SiretSearch
+                    onSelect={(r) =>
                       setForm((prev) => ({
                         ...prev,
-                        statut_bpf: e.target.value as "interne" | "externe",
+                        siret: r.siret || prev.siret,
+                        adresse_rue: r.adresse_rue || prev.adresse_rue,
+                        adresse_cp: r.adresse_cp || prev.adresse_cp,
+                        adresse_ville: r.adresse_ville || prev.adresse_ville,
                       }))
                     }
-                    className="h-9 w-full rounded-md border border-border/60 bg-muted px-3 py-1 text-[13px] text-foreground"
-                  >
-                    <option value="externe">Externe (sous-traitant)</option>
-                    <option value="interne">Interne (salarié)</option>
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-[13px]">NDA (sous-traitant)</Label>
-                  <Input
-                    value={form.nda ?? ""}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, nda: e.target.value }))
-                    }
-                    placeholder="11755555555"
-                    className="h-9 text-[13px] border-border/60"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-[13px]">SIRET</Label>
-                  <Input
-                    value={form.siret ?? ""}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, siret: e.target.value }))
-                    }
-                    placeholder="123 456 789 00012"
-                    className="h-9 text-[13px] border-border/60"
-                  />
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-[13px]">Statut BPF</Label>
+                    <select
+                      value={form.statut_bpf ?? "externe"}
+                      onChange={(e) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          statut_bpf: e.target.value as "interne" | "externe",
+                        }))
+                      }
+                      className="h-9 w-full rounded-md border border-border/60 bg-muted px-3 py-1 text-[13px] text-foreground"
+                    >
+                      <option value="externe">Externe (sous-traitant)</option>
+                      <option value="interne">Interne (salarié)</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[13px]">NDA (sous-traitant)</Label>
+                    <Input
+                      value={form.nda ?? ""}
+                      onChange={(e) =>
+                        setForm((prev) => ({ ...prev, nda: e.target.value }))
+                      }
+                      placeholder="11755555555"
+                      className="h-9 text-[13px] border-border/60"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[13px]">SIRET</Label>
+                    <Input
+                      value={form.siret ?? ""}
+                      onChange={(e) =>
+                        setForm((prev) => ({ ...prev, siret: e.target.value }))
+                      }
+                      placeholder="123 456 789 00012"
+                      className="h-9 text-[13px] border-border/60"
+                    />
+                  </div>
                 </div>
               </div>
             </section>

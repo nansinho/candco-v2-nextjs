@@ -17,6 +17,7 @@ import { useConfirm } from "@/components/ui/alert-dialog";
 import { useBreadcrumb } from "@/components/layout/breadcrumb-context";
 import { QuickActionsBar } from "@/components/shared/quick-actions-bar";
 import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
+import { SiretSearch } from "@/components/shared/siret-search";
 
 const FINANCEUR_TYPES = [
   "OPCO",
@@ -307,6 +308,21 @@ export default function FinanceurDetailPage() {
                 ))}
               </select>
             </div>
+          </div>
+
+          {/* Recherche INSEE */}
+          <div className="space-y-2">
+            <Label className="text-[13px]">Recherche INSEE (SIRET / Nom)</Label>
+            <SiretSearch
+              onSelect={(r) => {
+                setFormNom(r.nom || formNom);
+                setFormSiret(r.siret || formSiret);
+                setFormAdresseRue(r.adresse_rue || formAdresseRue);
+                setFormAdresseCp(r.adresse_cp || formAdresseCp);
+                setFormAdresseVille(r.adresse_ville || formAdresseVille);
+              }}
+              className="max-w-md"
+            />
           </div>
 
           {/* Row 2: SIRET */}

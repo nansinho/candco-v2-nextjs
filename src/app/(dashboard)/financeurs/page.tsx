@@ -18,6 +18,8 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toast";
 import { getFinanceurs, createFinanceur, archiveFinanceur, unarchiveFinanceur, deleteFinanceurs, importFinanceurs } from "@/actions/financeurs";
+import { SiretSearch } from "@/components/shared/siret-search";
+import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
 import { CsvImport, type ImportColumn } from "@/components/shared/csv-import";
 import { formatDate } from "@/lib/utils";
 
@@ -189,6 +191,9 @@ export default function FinanceursPage() {
   const [formSiret, setFormSiret] = React.useState("");
   const [formEmail, setFormEmail] = React.useState("");
   const [formTelephone, setFormTelephone] = React.useState("");
+  const [formAdresseRue, setFormAdresseRue] = React.useState("");
+  const [formAdresseCp, setFormAdresseCp] = React.useState("");
+  const [formAdresseVille, setFormAdresseVille] = React.useState("");
 
   // Debounce search
   React.useEffect(() => {
@@ -218,6 +223,9 @@ export default function FinanceursPage() {
     setFormSiret("");
     setFormEmail("");
     setFormTelephone("");
+    setFormAdresseRue("");
+    setFormAdresseCp("");
+    setFormAdresseVille("");
     setFormError(null);
   };
 
@@ -231,6 +239,9 @@ export default function FinanceursPage() {
       siret: formSiret,
       email: formEmail,
       telephone: formTelephone,
+      adresse_rue: formAdresseRue,
+      adresse_cp: formAdresseCp,
+      adresse_ville: formAdresseVille,
     });
 
     setSaving(false);
@@ -329,6 +340,20 @@ export default function FinanceursPage() {
               </div>
             )}
 
+            {/* Recherche INSEE */}
+            <div className="space-y-2">
+              <Label className="text-[13px]">Recherche INSEE (SIRET / Nom)</Label>
+              <SiretSearch
+                onSelect={(r) => {
+                  setFormNom(r.nom || formNom);
+                  setFormSiret(r.siret || formSiret);
+                  setFormAdresseRue(r.adresse_rue || formAdresseRue);
+                  setFormAdresseCp(r.adresse_cp || formAdresseCp);
+                  setFormAdresseVille(r.adresse_ville || formAdresseVille);
+                }}
+              />
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="nom" className="text-[13px]">
                 Nom <span className="text-destructive">*</span>
@@ -397,6 +422,41 @@ export default function FinanceursPage() {
                   value={formTelephone}
                   onChange={(e) => setFormTelephone(e.target.value)}
                   placeholder="01 23 45 67 89"
+                  className="h-9 text-[13px] border-border/60"
+                />
+              </div>
+            </div>
+
+            {/* Adresse */}
+            <div className="space-y-2">
+              <Label className="text-[13px]">Adresse</Label>
+              <AddressAutocomplete
+                value={formAdresseRue}
+                onChange={(v) => setFormAdresseRue(v)}
+                onSelect={(r) => {
+                  setFormAdresseRue(r.rue);
+                  setFormAdresseCp(r.cp);
+                  setFormAdresseVille(r.ville);
+                }}
+                placeholder="Rechercher une adresse..."
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label className="text-[13px]">Code postal</Label>
+                <Input
+                  value={formAdresseCp}
+                  onChange={(e) => setFormAdresseCp(e.target.value)}
+                  placeholder="75001"
+                  className="h-9 text-[13px] border-border/60"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[13px]">Ville</Label>
+                <Input
+                  value={formAdresseVille}
+                  onChange={(e) => setFormAdresseVille(e.target.value)}
+                  placeholder="Paris"
                   className="h-9 text-[13px] border-border/60"
                 />
               </div>
