@@ -41,6 +41,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ITEMS_PER_PAGE } from "@/lib/constants";
 import { useToast } from "@/components/ui/toast";
+import { DatePicker } from "@/components/ui/date-picker";
 
 export interface Column<T> {
   key: string;
@@ -569,15 +570,14 @@ export function DataTable<T>({
                     ))}
                   </select>
                 ) : col?.filterType === "date" ? (
-                  <input
-                    type="date"
+                  <DatePicker
                     value={filter.value}
-                    onChange={(e) => {
+                    onChange={(val) => {
                       const newFilters = [...filters];
-                      newFilters[idx] = { ...filter, value: e.target.value };
+                      newFilters[idx] = { ...filter, value: val };
                       onFiltersChange(newFilters);
                     }}
-                    className="h-8 flex-1 min-w-[140px] rounded-md border border-border/60 bg-muted px-2 text-xs text-foreground"
+                    className="h-8 flex-1 min-w-[140px] text-xs"
                   />
                 ) : (
                   <Input

@@ -25,6 +25,8 @@ import {
   uploadOrganisationLogo,
   removeOrganisationLogo,
 } from "@/actions/parametres";
+import { SiretSearch } from "@/components/shared/siret-search";
+import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
 
 // ─── Main Component ─────────────────────────────────────
 
@@ -138,6 +140,19 @@ function GeneralTab({ settings }: { settings: OrganisationSettings }) {
       {/* Logo */}
       <LogoSection logoUrl={settings.logo_url} />
 
+      {/* Recherche INSEE */}
+      <SettingsCard title="Recherche INSEE" description="Recherchez par SIRET ou nom pour pré-remplir les informations">
+        <SiretSearch
+          onSelect={(r) => {
+            setNom(r.nom || nom);
+            setSiret(r.siret || siret);
+            setAdresseRue(r.adresse_rue || adresseRue);
+            setAdresseCp(r.adresse_cp || adresseCp);
+            setAdresseVille(r.adresse_ville || adresseVille);
+          }}
+        />
+      </SettingsCard>
+
       {/* Informations */}
       <SettingsCard title="Informations de l'organisme" description="Nom, identifiants et coordonnées">
         <div className="grid gap-4 sm:grid-cols-2">
@@ -153,7 +168,19 @@ function GeneralTab({ settings }: { settings: OrganisationSettings }) {
       <SettingsCard title="Adresse" description="Adresse du siège social">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <FieldGroup label="Rue" value={adresseRue} onChange={setAdresseRue} placeholder="123 rue de la Formation" />
+            <div className="space-y-1.5">
+              <Label className="text-[13px]">Rue</Label>
+              <AddressAutocomplete
+                value={adresseRue}
+                onChange={(v) => setAdresseRue(v)}
+                onSelect={(r) => {
+                  setAdresseRue(r.rue);
+                  setAdresseCp(r.cp);
+                  setAdresseVille(r.ville);
+                }}
+                placeholder="Rechercher une adresse..."
+              />
+            </div>
           </div>
           <div className="sm:col-span-2">
             <FieldGroup label="Complément" value={adresseComplement} onChange={setAdresseComplement} placeholder="Bâtiment A, 2e étage" />

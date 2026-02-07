@@ -22,6 +22,7 @@ import {
   deleteSalles,
   type SalleInput,
 } from "@/actions/salles";
+import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
 
 interface Salle {
   id: string;
@@ -295,12 +296,12 @@ function SalleForm({
 
       <div className="space-y-2">
         <Label htmlFor="adresse" className="text-[13px]">Adresse</Label>
-        <Input
+        <AddressAutocomplete
           id="adresse"
           value={form.adresse ?? ""}
-          onChange={(e) => setForm({ ...form, adresse: e.target.value })}
-          placeholder="12 rue de la Formation, 75001 Paris"
-          className="h-9 text-[13px] border-border/60"
+          onChange={(v) => setForm({ ...form, adresse: v })}
+          onSelect={(r) => setForm({ ...form, adresse: `${r.rue}, ${r.cp} ${r.ville}` })}
+          placeholder="Rechercher une adresse..."
         />
       </div>
 
