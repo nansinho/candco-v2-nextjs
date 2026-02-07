@@ -14,7 +14,7 @@ function Calendar({
   showOutsideDays = true,
   ...props
 }: CalendarProps) {
-  const isDropdown = props.captionLayout === "dropdown" || props.captionLayout === "dropdown-buttons";
+  const isDropdown = props.captionLayout === "dropdown" || props.captionLayout === "dropdown-months" || props.captionLayout === "dropdown-years";
 
   return (
     <DayPicker
