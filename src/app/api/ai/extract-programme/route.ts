@@ -44,7 +44,24 @@ Tu dois retourner un JSON valide avec la structure suivante :
   "accessibilite": "Informations d'accessibilite handicap (ex: Formation accessible aux personnes en situation de handicap)" ou null,
   "financement": ["Mode de financement 1 (ex: Financement sur fonds propres)", "Mode 2 (ex: Financement possible par le FIF-PL)", ...],
   "modalites_paiement": "Conditions de paiement (ex: Paiement a reception de la facture)" ou null,
-  "equipe_pedagogique": "Description de l'equipe pedagogique (ex: Formation animee par un formateur specialise en orthoplastie)" ou null
+  "equipe_pedagogique": "Description de l'equipe pedagogique (ex: Formation animee par un formateur specialise en orthoplastie)" ou null,
+  "ouvrages": [
+    {
+      "auteurs": "Nom(s) auteur(s) (ex: Elsevier Masson.)",
+      "titre": "Titre de l'ouvrage",
+      "annee": "Annee de publication ou s. d.",
+      "source_editeur": "Editeur ou source (ex: Dans EMC Podologie, EM Consulte.)"
+    }
+  ] ou [],
+  "articles": [
+    {
+      "auteurs": "Nom(s) auteur(s) (ex: Chevallier, T. L., Hodgins, H., & Chockalingam, N.)",
+      "titre": "Titre de l'article scientifique",
+      "source_revue": "Nom de la revue, volume, pages (ex: Clinical Biomechanics, 18(8), 679-687.)",
+      "annee": "Annee de publication",
+      "doi": "DOI si disponible (ex: https://doi.org/10.1016/...)" ou null
+    }
+  ] ou []
 }
 
 === REGLES CRITIQUES POUR LES MODULES / PROGRAMME ===
@@ -87,7 +104,8 @@ Regles pour les modules :
 - type_action, modalite, formule doivent correspondre EXACTEMENT aux valeurs listees ci-dessus
 - Retourne UNIQUEMENT le JSON valide, sans texte ni markdown autour
 - Si le document n'est pas un programme de formation, retourne quand meme un JSON avec ce que tu peux extraire
-- En cas de doute sur un champ, mets la valeur la plus probable plutot que null`;
+- En cas de doute sur un champ, mets la valeur la plus probable plutot que null
+- BIBLIOGRAPHIE : Si le document contient une bibliographie, des references bibliographiques, des ouvrages de reference ou des articles scientifiques, extrait-les dans "ouvrages" et "articles". C'est frequent dans les formations en sante (podologie, kinesitherapie, etc.). Chaque ouvrage et article doit etre un element separe. Si aucune reference n'est presente, retourne des tableaux vides [].`;
 
 export async function POST(request: NextRequest) {
   // Auth check
