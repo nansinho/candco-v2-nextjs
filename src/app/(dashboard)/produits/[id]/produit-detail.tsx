@@ -12,8 +12,6 @@ import {
   Trash2,
   Euro,
   ArchiveRestore,
-  FileUp,
-  Sparkles,
   ChevronDown,
   ChevronRight,
   CheckCircle2,
@@ -54,11 +52,9 @@ import {
   deleteProgrammeModule,
   addListItem,
   deleteListItem,
-  createProduitFromPDF,
   type UpdateProduitInput,
   type TarifInput,
   type ProgrammeModuleInput,
-  type PDFExtractedData,
 } from "@/actions/produits";
 
 // ─── Types ───────────────────────────────────────────────
@@ -1132,9 +1128,7 @@ function ProgrammeTab({
   const { confirm: confirmModule, ConfirmDialog: ConfirmModuleDialog } = useConfirm();
   const [isAdding, setIsAdding] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
-  const [isExtracting, setIsExtracting] = React.useState(false);
   const [expandedModules, setExpandedModules] = React.useState<Set<string>>(new Set());
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const toggleModule = (id: string) => {
     setExpandedModules((prev) => {
@@ -1173,134 +1167,16 @@ function ProgrammeTab({
     router.refresh();
   };
 
-  const handlePdfImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsExtracting(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await fetch("/api/ai/extract-programme", {
-        method: "POST",
-        body: formData,
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        toast({ title: "Erreur", description: result.error, variant: "destructive" });
-        setIsExtracting(false);
-        return;
-      }
-
-      const data = result.data as PDFExtractedData;
-
-      // Add extracted modules
-      let addedModules = 0;
-      for (const mod of data.modules ?? []) {
-        if (!mod.titre) continue;
-        await addProgrammeModule(produitId, {
-          titre: mod.titre,
-          contenu: mod.contenu || "",
-          duree: mod.duree || "",
-        });
-        addedModules++;
-      }
-
-      // Add extracted objectives
-      let addedObjectifs = 0;
-      for (const obj of data.objectifs ?? []) {
-        if (!obj) continue;
-        await addObjectif(produitId, obj);
-        addedObjectifs++;
-      }
-
-      // Add extracted competences
-      let addedCompetences = 0;
-      for (const comp of data.competences ?? []) {
-        if (!comp) continue;
-        await addListItem(produitId, "produit_competences", comp);
-        addedCompetences++;
-      }
-
-      // Add extracted prerequis
-      let addedPrerequis = 0;
-      for (const prereq of data.prerequis ?? []) {
-        if (!prereq) continue;
-        await addListItem(produitId, "produit_prerequis", prereq);
-        addedPrerequis++;
-      }
-
-      // Add extracted public_vise
-      let addedPublicVise = 0;
-      for (const pv of data.public_vise ?? []) {
-        if (!pv) continue;
-        await addListItem(produitId, "produit_public_vise", pv);
-        addedPublicVise++;
-      }
-
-      // Add extracted financement
-      let addedFinancement = 0;
-      for (const fin of data.financement ?? []) {
-        if (!fin) continue;
-        await addListItem(produitId, "produit_financement", fin);
-        addedFinancement++;
-      }
-
-      const parts: string[] = [];
-      if (addedModules > 0) parts.push(`${addedModules} module(s)`);
-      if (addedObjectifs > 0) parts.push(`${addedObjectifs} objectif(s)`);
-      if (addedCompetences > 0) parts.push(`${addedCompetences} compétence(s)`);
-      if (addedPrerequis > 0) parts.push(`${addedPrerequis} prérequis`);
-      if (addedPublicVise > 0) parts.push(`${addedPublicVise} public(s) visé(s)`);
-      if (addedFinancement > 0) parts.push(`${addedFinancement} financement(s)`);
-
-      toast({
-        title: "Import PDF terminé",
-        description: parts.length > 0
-          ? `${parts.join(", ")} ajouté(s) depuis le PDF.`
-          : "Aucun élément extrait du PDF.",
-        variant: parts.length > 0 ? "success" : "default",
-      });
-
-      router.refresh();
-    } catch {
-      toast({ title: "Erreur", description: "Impossible d'analyser le PDF.", variant: "destructive" });
-    } finally {
-      setIsExtracting(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  };
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <SectionTitle icon={<GripVertical className="h-4 w-4 text-primary" />}>
           Programme détaillé
         </SectionTitle>
-        <div className="flex items-center gap-2">
-          <input ref={fileInputRef} type="file" accept="application/pdf" className="hidden" onChange={handlePdfImport} />
-          <Button size="sm" variant="outline" className="h-8 text-xs border-border/60" onClick={() => fileInputRef.current?.click()} disabled={isExtracting} type="button">
-            {isExtracting ? (
-              <>
-                <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
-                Analyse IA...
-              </>
-            ) : (
-              <>
-                <Sparkles className="mr-1.5 h-3 w-3 text-primary" />
-                <FileUp className="mr-1 h-3 w-3" />
-                Import PDF (IA)
-              </>
-            )}
-          </Button>
-          <Button size="sm" className="h-8 text-xs" onClick={() => setIsAdding(true)} type="button">
-            <Plus className="mr-1.5 h-3 w-3" />
-            Ajouter un module
-          </Button>
-        </div>
+        <Button size="sm" className="h-8 text-xs" onClick={() => setIsAdding(true)} type="button">
+          <Plus className="mr-1.5 h-3 w-3" />
+          Ajouter un module
+        </Button>
       </div>
 
       {isAdding && (
@@ -1342,7 +1218,7 @@ function ProgrammeTab({
           </div>
           <p className="text-sm text-muted-foreground/60">Aucun module de programme</p>
           <p className="text-xs text-muted-foreground/40">
-            Importez un programme PDF avec l&apos;IA ou ajoutez des modules manuellement.
+            Ajoutez des modules manuellement ci-dessus.
           </p>
         </div>
       ) : (
