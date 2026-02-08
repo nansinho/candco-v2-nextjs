@@ -89,6 +89,14 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
+  // Redirect bare /extranet to the user's role-specific extranet route
+  if (user && pathname === "/extranet") {
+    const redirectPath = await getRedirectPath(supabase, user.id);
+    const url = request.nextUrl.clone();
+    url.pathname = redirectPath;
+    return NextResponse.redirect(url);
+  }
+
   // Protect extranet routes — only extranet users with matching role
   // Also auto-activate "invite" status on first access
   if (user && pathname.startsWith("/extranet/")) {
