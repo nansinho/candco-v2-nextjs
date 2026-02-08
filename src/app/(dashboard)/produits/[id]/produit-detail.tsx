@@ -8,14 +8,28 @@ import {
   Loader2,
   Archive,
   Globe,
-  GlobeIcon,
   Plus,
   Trash2,
-  GripVertical,
   Euro,
   ArchiveRestore,
   FileUp,
   Sparkles,
+  ChevronDown,
+  ChevronRight,
+  CheckCircle2,
+  XCircle,
+  Eye,
+  Link2,
+  Image as ImageIcon,
+  Search as SearchIcon,
+  Users,
+  MapPin,
+  Clock,
+  Award,
+  BookOpen,
+  BarChart3,
+  GripVertical,
+  Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +41,6 @@ import { useConfirm } from "@/components/ui/alert-dialog";
 import { TachesActivitesTab } from "@/components/shared/taches-activites";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { useBreadcrumb } from "@/components/layout/breadcrumb-context";
-import { QuickActionsBar } from "@/components/shared/quick-actions-bar";
 import {
   updateProduit,
   updateProduitImage,
@@ -39,9 +52,13 @@ import {
   deleteObjectif,
   addProgrammeModule,
   deleteProgrammeModule,
+  addListItem,
+  deleteListItem,
+  createProduitFromPDF,
   type UpdateProduitInput,
   type TarifInput,
   type ProgrammeModuleInput,
+  type PDFExtractedData,
 } from "@/actions/produits";
 
 // ─── Types ───────────────────────────────────────────────
@@ -54,6 +71,7 @@ interface Produit {
   description: string | null;
   identifiant_interne: string | null;
   domaine: string | null;
+  categorie: string | null;
   type_action: string | null;
   modalite: string | null;
   formule: string | null;
@@ -63,9 +81,23 @@ interface Produit {
   bpf_categorie: string | null;
   bpf_niveau: string | null;
   publie: boolean;
+  populaire: boolean;
   slug: string | null;
   image_url: string | null;
   completion_pct: number;
+  certification: string | null;
+  delai_acces: string | null;
+  nombre_participants_min: number | null;
+  nombre_participants_max: number | null;
+  lieu_format: string | null;
+  modalites_evaluation: string | null;
+  modalites_pedagogiques: string | null;
+  moyens_pedagogiques: string | null;
+  accessibilite: string | null;
+  modalites_paiement: string | null;
+  equipe_pedagogique: string | null;
+  meta_titre: string | null;
+  meta_description: string | null;
   created_at: string;
   updated_at: string | null;
 }
@@ -93,11 +125,42 @@ interface ProgrammeModule {
   ordre: number;
 }
 
+interface ListItem {
+  id: string;
+  texte: string;
+  ordre: number;
+}
+
 interface BpfSpecialite {
   id: string;
   code: string | null;
   libelle: string;
   ordre: number | null;
+}
+
+// ─── Shared UI ──────────────────────────────────────────
+
+function FieldBadge({ filled }: { filled: boolean }) {
+  return filled ? (
+    <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[10px] font-normal gap-1 px-1.5 py-0">
+      <CheckCircle2 className="h-2.5 w-2.5" />
+      Renseigné
+    </Badge>
+  ) : (
+    <Badge className="bg-destructive/10 text-destructive border-destructive/20 text-[10px] font-normal gap-1 px-1.5 py-0">
+      <XCircle className="h-2.5 w-2.5" />
+      Non renseigné
+    </Badge>
+  );
+}
+
+function SectionTitle({ children, icon }: { children: React.ReactNode; icon?: React.ReactNode }) {
+  return (
+    <h2 className="flex items-center gap-2 text-base font-semibold tracking-tight">
+      {icon}
+      {children}
+    </h2>
+  );
 }
 
 const UNITE_LABELS: Record<string, string> = {
@@ -108,6 +171,92 @@ const UNITE_LABELS: Record<string, string> = {
   forfait: "forfait",
 };
 
+// ─── Dynamic List Component ─────────────────────────────
+
+function DynamicList({
+  produitId,
+  table,
+  items,
+  title,
+  subtitle,
+  addLabel,
+  placeholder,
+}: {
+  produitId: string;
+  table: "produit_prerequis" | "produit_public_vise" | "produit_financement" | "produit_competences";
+  items: ListItem[];
+  title: string;
+  subtitle?: string;
+  addLabel: string;
+  placeholder: string;
+}) {
+  const router = useRouter();
+  const { toast } = useToast();
+  const [newItem, setNewItem] = React.useState("");
+  const [saving, setSaving] = React.useState(false);
+
+  const handleAdd = async () => {
+    if (!newItem.trim()) return;
+    setSaving(true);
+    const result = await addListItem(produitId, table, newItem.trim());
+    setSaving(false);
+    if (result.error) {
+      toast({ title: "Erreur", variant: "destructive" });
+      return;
+    }
+    setNewItem("");
+    router.refresh();
+  };
+
+  const handleDelete = async (itemId: string) => {
+    await deleteListItem(itemId, produitId, table);
+    router.refresh();
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <h3 className="text-sm font-semibold">{title}</h3>
+        <FieldBadge filled={items.length > 0} />
+      </div>
+      {subtitle && <p className="text-xs text-muted-foreground/60">{subtitle}</p>}
+
+      {items.map((item) => (
+        <div key={item.id} className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 group">
+          <p className="text-[13px] flex-1 min-w-0 truncate">{item.texte}</p>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive shrink-0"
+            onClick={() => handleDelete(item.id)}
+          >
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        </div>
+      ))}
+
+      <div className="flex items-center gap-2">
+        <Input
+          value={newItem}
+          onChange={(e) => setNewItem(e.target.value)}
+          placeholder={placeholder}
+          className="h-8 text-xs border-border/60 flex-1"
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              handleAdd();
+            }
+          }}
+        />
+        <Button size="sm" variant="outline" className="h-8 text-xs shrink-0" onClick={handleAdd} disabled={saving || !newItem.trim()}>
+          {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3 mr-1" />}
+          {addLabel}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Component ──────────────────────────────────────
 
 export function ProduitDetail({
@@ -115,12 +264,20 @@ export function ProduitDetail({
   tarifs: initialTarifs,
   objectifs: initialObjectifs,
   programme: initialProgramme,
+  prerequis: initialPrerequis,
+  publicVise: initialPublicVise,
+  competences: initialCompetences,
+  financement: initialFinancement,
   bpfSpecialites,
 }: {
   produit: Produit;
   tarifs: Tarif[];
   objectifs: Objectif[];
   programme: ProgrammeModule[];
+  prerequis: ListItem[];
+  publicVise: ListItem[];
+  competences: ListItem[];
+  financement: ListItem[];
   bpfSpecialites: BpfSpecialite[];
 }) {
   const router = useRouter();
@@ -132,8 +289,14 @@ export function ProduitDetail({
   const [currentImageUrl, setCurrentImageUrl] = React.useState(produit.image_url);
   const [isUploadingImage, setIsUploadingImage] = React.useState(false);
   const imageInputRef = React.useRef<HTMLInputElement>(null);
+  const formRef = React.useRef<HTMLFormElement>(null);
 
-  // ─── Config form submit ────────────────────────────────
+  // Count missing fields for tab badges
+  const missingGeneral = [produit.intitule, produit.description, produit.domaine].filter((v) => !v).length;
+  const missingPratique = [produit.duree_heures, produit.certification, produit.delai_acces, produit.lieu_format].filter((v) => !v).length
+    + (initialTarifs.length === 0 ? 1 : 0) + (initialPrerequis.length === 0 ? 1 : 0) + (initialPublicVise.length === 0 ? 1 : 0);
+
+  // ─── Form submit (saves all fields across tabs) ─────────
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -147,6 +310,7 @@ export function ProduitDetail({
       description: (fd.get("description") as string) || undefined,
       identifiant_interne: (fd.get("identifiant_interne") as string) || undefined,
       domaine: (fd.get("domaine") as string) || undefined,
+      categorie: (fd.get("categorie") as string) || undefined,
       type_action: (fd.get("type_action") as string) || undefined,
       modalite: (fd.get("modalite") as string) || undefined,
       formule: (fd.get("formule") as string) || undefined,
@@ -156,7 +320,24 @@ export function ProduitDetail({
       bpf_categorie: (fd.get("bpf_categorie") as string) || undefined,
       bpf_niveau: (fd.get("bpf_niveau") as string) || undefined,
       publie: fd.get("publie") === "on",
+      populaire: fd.get("populaire") === "on",
       slug: (fd.get("slug") as string) || undefined,
+      // Pratique
+      certification: (fd.get("certification") as string) || undefined,
+      delai_acces: (fd.get("delai_acces") as string) || undefined,
+      nombre_participants_min: fd.get("nombre_participants_min") ? Number(fd.get("nombre_participants_min")) : undefined,
+      nombre_participants_max: fd.get("nombre_participants_max") ? Number(fd.get("nombre_participants_max")) : undefined,
+      lieu_format: (fd.get("lieu_format") as string) || undefined,
+      // Modalités
+      modalites_evaluation: (fd.get("modalites_evaluation") as string) || undefined,
+      modalites_pedagogiques: (fd.get("modalites_pedagogiques") as string) || undefined,
+      moyens_pedagogiques: (fd.get("moyens_pedagogiques") as string) || undefined,
+      accessibilite: (fd.get("accessibilite") as string) || undefined,
+      modalites_paiement: (fd.get("modalites_paiement") as string) || undefined,
+      equipe_pedagogique: (fd.get("equipe_pedagogique") as string) || undefined,
+      // SEO
+      meta_titre: (fd.get("meta_titre") as string) || undefined,
+      meta_description: (fd.get("meta_description") as string) || undefined,
     };
 
     const result = await updateProduit(produit.id, input);
@@ -187,196 +368,184 @@ export function ProduitDetail({
     router.push("/produits");
   };
 
+  const handleImageUpload = async (file: File) => {
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ title: "Erreur", description: "L'image ne doit pas dépasser 2 Mo.", variant: "destructive" });
+      return;
+    }
+    setIsUploadingImage(true);
+    try {
+      const { createClient } = await import("@/lib/supabase/client");
+      const supabase = createClient();
+      const filename = `produits/${produit.id}/${Date.now()}.${file.name.split(".").pop()}`;
+      const { error: uploadError } = await supabase.storage
+        .from("images")
+        .upload(filename, file, { contentType: file.type, upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from("images").getPublicUrl(filename);
+      await updateProduitImage(produit.id, urlData.publicUrl);
+      setCurrentImageUrl(urlData.publicUrl);
+      toast({ title: "Image mise à jour", variant: "success" });
+      router.refresh();
+    } catch {
+      toast({ title: "Erreur", description: "Impossible d'uploader l'image.", variant: "destructive" });
+    } finally {
+      setIsUploadingImage(false);
+      if (imageInputRef.current) imageInputRef.current.value = "";
+    }
+  };
+
   return (
-    <div className="space-y-6">
-      {isArchived && (
-        <div className="flex items-center justify-between rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3">
-          <p className="text-sm text-amber-400">Ce produit est archivé.</p>
-          <Button size="sm" variant="outline" className="h-8 text-xs text-amber-400 border-amber-500/30 hover:bg-amber-500/10" onClick={handleUnarchive}>
-            <ArchiveRestore className="mr-1.5 h-3 w-3" />
-            Restaurer
-          </Button>
-        </div>
-      )}
-
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => router.push("/produits")}
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-semibold tracking-tight">
-                {produit.intitule}
-              </h1>
-              <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[11px] font-mono">
-                {produit.numero_affichage}
-              </Badge>
-              {produit.publie ? (
-                <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[11px]">
-                  <Globe className="mr-1 h-3 w-3" />
-                  Publié
-                </Badge>
-              ) : (
-                <Badge className="bg-muted/50 text-muted-foreground/60 border-border/40 text-[11px] font-normal">
-                  Brouillon
-                </Badge>
-              )}
-            </div>
-            {produit.domaine && (
-              <p className="mt-0.5 text-xs text-muted-foreground">{produit.domaine}</p>
-            )}
+    <form ref={formRef} onSubmit={handleSubmit}>
+      <div className="space-y-6">
+        {isArchived && (
+          <div className="flex items-center justify-between rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+            <p className="text-sm text-amber-400">Ce produit est archivé.</p>
+            <Button size="sm" variant="outline" className="h-8 text-xs text-amber-400 border-amber-500/30 hover:bg-amber-500/10" onClick={handleUnarchive} type="button">
+              <ArchiveRestore className="mr-1.5 h-3 w-3" />
+              Restaurer
+            </Button>
           </div>
-        </div>
+        )}
 
-        <div className="flex items-center gap-3">
-          {/* Completion bar */}
-          <div className="flex items-center gap-2">
-            <div className="h-2 w-24 overflow-hidden rounded-full bg-muted/50">
-              <div
-                className="h-full rounded-full bg-primary transition-all"
-                style={{ width: `${produit.completion_pct}%` }}
-              />
-            </div>
-            <span className="text-xs text-muted-foreground font-medium">
-              {produit.completion_pct}%
-            </span>
-          </div>
-
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 text-xs border-border/60 text-muted-foreground hover:text-destructive hover:border-destructive/50"
-            onClick={handleArchive}
-            disabled={isArchiving}
-          >
-            {isArchiving ? (
-              <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
-            ) : (
-              <Archive className="mr-1.5 h-3 w-3" />
-            )}
-            Archiver
-          </Button>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <QuickActionsBar
-        actions={[
-          {
-            label: produit.publie ? "Publié" : "Non publié",
-            icon: <Globe className="h-3 w-3" />,
-            variant: "outline" as const,
-          },
-        ]}
-      />
-
-      {/* Tabs */}
-      <Tabs defaultValue="config">
-        <TabsList className="bg-muted/50">
-          <TabsTrigger value="config" className="text-xs">
-            Configuration
-          </TabsTrigger>
-          <TabsTrigger value="tarifs" className="text-xs">
-            Tarifs
-            {initialTarifs.length > 0 && (
-              <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[11px] font-medium text-primary">
-                {initialTarifs.length}
-              </span>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="programme" className="text-xs">
-            Programme
-            {initialProgramme.length > 0 && (
-              <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[11px] font-medium text-primary">
-                {initialProgramme.length}
-              </span>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="objectifs" className="text-xs">
-            Objectifs
-            {initialObjectifs.length > 0 && (
-              <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[11px] font-medium text-primary">
-                {initialObjectifs.length}
-              </span>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="taches" className="text-xs">
-            Tâches
-          </TabsTrigger>
-        </TabsList>
-
-        {/* ═══ Tab: Configuration ═══ */}
-        <TabsContent value="config" className="mt-6">
-          <form onSubmit={handleSubmit}>
-            <div className="rounded-lg border border-border/60 bg-card">
-              <div className="p-6 space-y-6">
-                {/* General */}
-                <fieldset className="space-y-4">
-                  <legend className="text-sm font-semibold text-muted-foreground/80 uppercase tracking-wider">
-                    Informations générales
-                  </legend>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="intitule" className="text-[13px]">
-                        Intitulé <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="intitule"
-                        name="intitule"
-                        defaultValue={produit.intitule}
-                        className="h-9 text-[13px] border-border/60"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="sous_titre" className="text-[13px]">
-                        Sous-titre
-                      </Label>
-                      <Input
-                        id="sous_titre"
-                        name="sous_titre"
-                        defaultValue={produit.sous_titre ?? ""}
-                        className="h-9 text-[13px] border-border/60"
-                      />
-                    </div>
+        {/* ═══ Header ═══ */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => router.push("/produits")} type="button">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-lg font-semibold tracking-tight">Modifier la formation</h1>
+                <div className="flex items-center gap-1.5">
+                  <div className="h-2 w-20 overflow-hidden rounded-full bg-muted/50">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{
+                        width: `${produit.completion_pct}%`,
+                        backgroundColor: produit.completion_pct >= 80 ? "#22c55e" : produit.completion_pct >= 50 ? "#f97316" : "#ef4444",
+                      }}
+                    />
                   </div>
+                  <span className="text-xs font-medium" style={{
+                    color: produit.completion_pct >= 80 ? "#22c55e" : produit.completion_pct >= 50 ? "#f97316" : "#ef4444",
+                  }}>
+                    {produit.completion_pct}%
+                  </span>
+                </div>
+                {missingGeneral + missingPratique > 0 && (
+                  <span className="text-[11px] text-muted-foreground">
+                    {missingGeneral + missingPratique} manquants
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {produit.numero_affichage} &middot; {produit.intitule}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => router.push("/produits")} type="button">
+              <ArrowLeft className="mr-1.5 h-3 w-3" />
+              Retour
+            </Button>
+            {produit.publie && produit.slug && (
+              <Button variant="outline" size="sm" className="h-8 text-xs" type="button">
+                <Eye className="mr-1.5 h-3 w-3" />
+                Aperçu
+              </Button>
+            )}
+            <Button variant="outline" size="sm" className="h-8 text-xs text-muted-foreground hover:text-destructive hover:border-destructive/50" onClick={handleArchive} disabled={isArchiving} type="button">
+              {isArchiving ? <Loader2 className="mr-1.5 h-3 w-3 animate-spin" /> : <Archive className="mr-1.5 h-3 w-3" />}
+              Archiver
+            </Button>
+            <Button type="submit" size="sm" className="h-8 text-xs" disabled={isPending}>
+              {isPending ? (
+                <>
+                  <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+                  Enregistrement...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-1.5 h-3.5 w-3.5" />
+                  Enregistrer
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+
+        {/* ═══ Content: Tabs + Sidebar ═══ */}
+        <div className="flex gap-6">
+          {/* Main content */}
+          <div className="flex-1 min-w-0">
+            <Tabs defaultValue="general">
+              <TabsList className="bg-muted/50">
+                <TabsTrigger value="general" className="text-xs gap-1.5">
+                  <BookOpen className="h-3 w-3" />
+                  Général
+                  {missingGeneral > 0 && (
+                    <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-destructive/10 text-[10px] font-medium text-destructive">{missingGeneral}</span>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="pratique" className="text-xs gap-1.5">
+                  <Clock className="h-3 w-3" />
+                  Pratique
+                  {missingPratique > 0 && (
+                    <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-destructive/10 text-[10px] font-medium text-destructive">{missingPratique}</span>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="objectifs" className="text-xs gap-1.5">
+                  <Award className="h-3 w-3" />
+                  Objectifs
+                  {initialObjectifs.length > 0 && (
+                    <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary/10 text-[10px] font-medium text-primary">{initialObjectifs.length}</span>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="programme" className="text-xs gap-1.5">
+                  <GripVertical className="h-3 w-3" />
+                  Programme
+                  {initialProgramme.length > 0 && (
+                    <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary/10 text-[10px] font-medium text-primary">{initialProgramme.length}</span>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="modalites" className="text-xs gap-1.5">
+                  <BarChart3 className="h-3 w-3" />
+                  Modalités
+                </TabsTrigger>
+                <TabsTrigger value="taches" className="text-xs">
+                  Tâches
+                </TabsTrigger>
+              </TabsList>
+
+              {/* ═══ Tab: Général ═══ */}
+              <TabsContent value="general" className="mt-6 space-y-6">
+                <div className="rounded-lg border border-border/60 bg-card p-6 space-y-5">
+                  <SectionTitle>Informations générales</SectionTitle>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="identifiant_interne" className="text-[13px]">
-                        Identifiant interne
-                      </Label>
-                      <Input
-                        id="identifiant_interne"
-                        name="identifiant_interne"
-                        defaultValue={produit.identifiant_interne ?? ""}
-                        className="h-9 text-[13px] border-border/60"
-                      />
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor="intitule" className="text-[13px]">Titre <span className="text-destructive">*</span></Label>
+                        <FieldBadge filled={!!produit.intitule} />
+                      </div>
+                      <Input id="intitule" name="intitule" defaultValue={produit.intitule} className="h-9 text-[13px] border-border/60" />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="domaine" className="text-[13px]">
-                        Domaine / Pôle
-                      </Label>
-                      <Input
-                        id="domaine"
-                        name="domaine"
-                        defaultValue={produit.domaine ?? ""}
-                        className="h-9 text-[13px] border-border/60"
-                      />
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor="sous_titre" className="text-[13px]">Sous-titre</Label>
+                        <FieldBadge filled={!!produit.sous_titre} />
+                      </div>
+                      <Input id="sous_titre" name="sous_titre" defaultValue={produit.sous_titre ?? ""} className="h-9 text-[13px] border-border/60" />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="description" className="text-[13px]">
-                      Description
-                    </Label>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="description" className="text-[13px]">Description</Label>
+                      <FieldBadge filled={!!produit.description} />
+                    </div>
                     <textarea
                       id="description"
                       name="description"
@@ -385,25 +554,29 @@ export function ProduitDetail({
                       className="w-full rounded-md border border-input bg-muted px-3 py-2 text-[13px] text-foreground resize-y"
                     />
                   </div>
-                </fieldset>
 
-                {/* Classification */}
-                <fieldset className="space-y-4">
-                  <legend className="text-sm font-semibold text-muted-foreground/80 uppercase tracking-wider">
-                    Classification
-                  </legend>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor="domaine" className="text-[13px]">Pôle</Label>
+                        <FieldBadge filled={!!produit.domaine} />
+                      </div>
+                      <Input id="domaine" name="domaine" defaultValue={produit.domaine ?? ""} placeholder="Santé, Sécurité, Management..." className="h-9 text-[13px] border-border/60" />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor="categorie" className="text-[13px]">Catégorie</Label>
+                        <FieldBadge filled={!!produit.categorie} />
+                      </div>
+                      <Input id="categorie" name="categorie" defaultValue={produit.categorie ?? ""} placeholder="Pratiques cliniques et techniques..." className="h-9 text-[13px] border-border/60" />
+                    </div>
+                  </div>
 
+                  {/* Classification */}
                   <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="type_action" className="text-[13px]">
-                        Type d&apos;action
-                      </Label>
-                      <select
-                        id="type_action"
-                        name="type_action"
-                        defaultValue={produit.type_action ?? ""}
-                        className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
-                      >
+                      <Label htmlFor="type_action" className="text-[13px]">Type d&apos;action</Label>
+                      <select id="type_action" name="type_action" defaultValue={produit.type_action ?? ""} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground">
                         <option value="">--</option>
                         <option value="action_formation">Action de formation</option>
                         <option value="bilan_competences">Bilan de compétences</option>
@@ -411,17 +584,9 @@ export function ProduitDetail({
                         <option value="apprentissage">Apprentissage</option>
                       </select>
                     </div>
-
                     <div className="space-y-2">
-                      <Label htmlFor="modalite" className="text-[13px]">
-                        Modalité
-                      </Label>
-                      <select
-                        id="modalite"
-                        name="modalite"
-                        defaultValue={produit.modalite ?? ""}
-                        className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
-                      >
+                      <Label htmlFor="modalite" className="text-[13px]">Modalité</Label>
+                      <select id="modalite" name="modalite" defaultValue={produit.modalite ?? ""} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground">
                         <option value="">--</option>
                         <option value="presentiel">Présentiel</option>
                         <option value="distanciel">Distanciel</option>
@@ -429,17 +594,9 @@ export function ProduitDetail({
                         <option value="afest">AFEST</option>
                       </select>
                     </div>
-
                     <div className="space-y-2">
-                      <Label htmlFor="formule" className="text-[13px]">
-                        Formule
-                      </Label>
-                      <select
-                        id="formule"
-                        name="formule"
-                        defaultValue={produit.formule ?? ""}
-                        className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
-                      >
+                      <Label htmlFor="formule" className="text-[13px]">Formule</Label>
+                      <select id="formule" name="formule" defaultValue={produit.formule ?? ""} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground">
                         <option value="">--</option>
                         <option value="inter">Inter</option>
                         <option value="intra">Intra</option>
@@ -447,92 +604,33 @@ export function ProduitDetail({
                       </select>
                     </div>
                   </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="duree_heures" className="text-[13px]">
-                        Durée (heures)
-                      </Label>
-                      <Input
-                        id="duree_heures"
-                        name="duree_heures"
-                        type="number"
-                        step="0.5"
-                        min="0"
-                        defaultValue={produit.duree_heures ?? ""}
-                        className="h-9 text-[13px] border-border/60"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="duree_jours" className="text-[13px]">
-                        Durée (jours)
-                      </Label>
-                      <Input
-                        id="duree_jours"
-                        name="duree_jours"
-                        type="number"
-                        step="0.5"
-                        min="0"
-                        defaultValue={produit.duree_jours ?? ""}
-                        className="h-9 text-[13px] border-border/60"
-                      />
-                    </div>
-                  </div>
-                </fieldset>
+                </div>
 
                 {/* BPF */}
-                <fieldset className="space-y-4">
-                  <legend className="text-sm font-semibold text-muted-foreground/80 uppercase tracking-wider">
-                    BPF (Bilan Pédagogique et Financier)
-                  </legend>
-
+                <div className="rounded-lg border border-border/60 bg-card p-6 space-y-4">
+                  <SectionTitle>BPF (Bilan Pédagogique et Financier)</SectionTitle>
                   <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="bpf_specialite_id" className="text-[13px]">
-                        Spécialité
-                      </Label>
-                      <select
-                        id="bpf_specialite_id"
-                        name="bpf_specialite_id"
-                        defaultValue={produit.bpf_specialite_id ?? ""}
-                        className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
-                      >
+                      <Label htmlFor="bpf_specialite_id" className="text-[13px]">Spécialité</Label>
+                      <select id="bpf_specialite_id" name="bpf_specialite_id" defaultValue={produit.bpf_specialite_id ?? ""} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground">
                         <option value="">-- Aucune --</option>
                         {bpfSpecialites.map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.code ? `${s.code} — ` : ""}{s.libelle}
-                          </option>
+                          <option key={s.id} value={s.id}>{s.code ? `${s.code} — ` : ""}{s.libelle}</option>
                         ))}
                       </select>
                     </div>
-
                     <div className="space-y-2">
-                      <Label htmlFor="bpf_categorie" className="text-[13px]">
-                        Catégorie
-                      </Label>
-                      <select
-                        id="bpf_categorie"
-                        name="bpf_categorie"
-                        defaultValue={produit.bpf_categorie ?? ""}
-                        className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
-                      >
+                      <Label htmlFor="bpf_categorie" className="text-[13px]">Catégorie BPF</Label>
+                      <select id="bpf_categorie" name="bpf_categorie" defaultValue={produit.bpf_categorie ?? ""} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground">
                         <option value="">--</option>
                         <option value="A">A — Actions de formation</option>
                         <option value="B">B — Bilans de compétences</option>
                         <option value="C">C — VAE</option>
                       </select>
                     </div>
-
                     <div className="space-y-2">
-                      <Label htmlFor="bpf_niveau" className="text-[13px]">
-                        Niveau
-                      </Label>
-                      <select
-                        id="bpf_niveau"
-                        name="bpf_niveau"
-                        defaultValue={produit.bpf_niveau ?? ""}
-                        className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
-                      >
+                      <Label htmlFor="bpf_niveau" className="text-[13px]">Niveau</Label>
+                      <select id="bpf_niveau" name="bpf_niveau" defaultValue={produit.bpf_niveau ?? ""} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground">
                         <option value="">--</option>
                         <option value="I">Niveau I</option>
                         <option value="II">Niveau II</option>
@@ -542,190 +640,350 @@ export function ProduitDetail({
                       </select>
                     </div>
                   </div>
-                </fieldset>
-
-                {/* Catalogue en ligne */}
-                <fieldset className="space-y-4">
-                  <legend className="text-sm font-semibold text-muted-foreground/80 uppercase tracking-wider">
-                    Catalogue en ligne
-                  </legend>
-
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      id="publie"
-                      name="publie"
-                      defaultChecked={produit.publie}
-                      className="h-4 w-4 rounded border-border accent-primary"
-                    />
-                    <Label htmlFor="publie" className="text-[13px] cursor-pointer flex items-center gap-1.5">
-                      <GlobeIcon className="h-3.5 w-3.5 text-muted-foreground" />
-                      Publier dans le catalogue en ligne
-                    </Label>
-                  </div>
-
-                  <div className="max-w-md space-y-2">
-                    <Label htmlFor="slug" className="text-[13px]">
-                      Slug URL
-                    </Label>
-                    <Input
-                      id="slug"
-                      name="slug"
-                      defaultValue={produit.slug ?? ""}
-                      placeholder="formation-react-avance"
-                      className="h-9 text-[13px] border-border/60"
-                    />
-                  </div>
-
-                  {/* Image */}
-                  <div className="space-y-3">
-                    <Label className="text-[13px]">Image de couverture</Label>
-                    {currentImageUrl ? (
-                      <div className="relative max-w-md overflow-hidden rounded-lg border border-border/60">
-                        <img
-                          src={currentImageUrl}
-                          alt={produit.intitule}
-                          className="w-full h-40 object-cover"
-                        />
-                        <div className="absolute bottom-2 right-2">
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            className="h-7 text-[11px] bg-background/80 backdrop-blur-sm"
-                            onClick={() => imageInputRef.current?.click()}
-                            disabled={isUploadingImage}
-                          >
-                            {isUploadingImage ? (
-                              <>
-                                <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                                Upload...
-                              </>
-                            ) : (
-                              "Changer"
-                            )}
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="max-w-md">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="h-9 text-xs border-border/60 w-full"
-                          onClick={() => imageInputRef.current?.click()}
-                          disabled={isUploadingImage}
-                        >
-                          {isUploadingImage ? (
-                            <>
-                              <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
-                              Upload en cours...
-                            </>
-                          ) : (
-                            "Uploader une image"
-                          )}
-                        </Button>
-                        <p className="mt-1.5 text-[11px] text-muted-foreground/50">
-                          PNG, JPG ou WebP. Max 2 Mo.
-                        </p>
-                      </div>
-                    )}
-                    <input
-                      ref={imageInputRef}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        if (file.size > 2 * 1024 * 1024) {
-                          toast({ title: "Erreur", description: "L'image ne doit pas depasser 2 Mo.", variant: "destructive" });
-                          return;
-                        }
-                        setIsUploadingImage(true);
-                        try {
-                          const { createClient } = await import("@/lib/supabase/client");
-                          const supabase = createClient();
-                          const filename = `produits/${produit.id}/${Date.now()}.${file.name.split(".").pop()}`;
-                          const { error: uploadError } = await supabase.storage
-                            .from("images")
-                            .upload(filename, file, { contentType: file.type, upsert: true });
-                          if (uploadError) throw uploadError;
-                          const { data: urlData } = supabase.storage.from("images").getPublicUrl(filename);
-                          await updateProduitImage(produit.id, urlData.publicUrl);
-                          setCurrentImageUrl(urlData.publicUrl);
-                          toast({ title: "Image mise a jour", variant: "success" });
-                          router.refresh();
-                        } catch {
-                          toast({ title: "Erreur", description: "Impossible d'uploader l'image.", variant: "destructive" });
-                        } finally {
-                          setIsUploadingImage(false);
-                          if (imageInputRef.current) imageInputRef.current.value = "";
-                        }
-                      }}
-                    />
-                  </div>
-                </fieldset>
-              </div>
-
-              {/* Footer */}
-              <div className="flex items-center justify-between border-t border-border/60 px-6 py-4">
-                <div className="flex items-center gap-4">
-                  <p className="text-[11px] text-muted-foreground/50">
-                    Créé le {formatDate(produit.created_at)}
-                  </p>
-                  {produit.updated_at && (
-                    <p className="text-[11px] text-muted-foreground/50">
-                      Modifié le {formatDate(produit.updated_at)}
-                    </p>
-                  )}
                 </div>
-                <Button type="submit" size="sm" className="h-8 text-xs" disabled={isPending}>
-                  {isPending ? (
-                    <>
-                      <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
-                      Enregistrement...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="mr-1.5 h-3.5 w-3.5" />
-                      Enregistrer
-                    </>
-                  )}
-                </Button>
+              </TabsContent>
+
+              {/* ═══ Tab: Pratique ═══ */}
+              <TabsContent value="pratique" className="mt-6 space-y-6">
+                {/* Durée et tarif */}
+                <div className="rounded-lg border border-border/60 bg-card p-6 space-y-5">
+                  <SectionTitle icon={<Clock className="h-4 w-4 text-primary" />}>Durée et tarif</SectionTitle>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Label className="text-[13px]">Durée <span className="text-destructive">*</span></Label>
+                      <FieldBadge filled={!!produit.duree_heures} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="flex items-center gap-2">
+                        <Input id="duree_heures" name="duree_heures" type="number" step="0.5" min="0" defaultValue={produit.duree_heures ?? ""} placeholder="15" className="h-9 text-[13px] border-border/60" />
+                        <span className="text-xs text-muted-foreground shrink-0">heures</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Input id="duree_jours" name="duree_jours" type="number" step="0.5" min="0" defaultValue={produit.duree_jours ?? ""} placeholder="2" className="h-9 text-[13px] border-border/60" />
+                        <span className="text-xs text-muted-foreground shrink-0">jours</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <TarifsSection produitId={produit.id} tarifs={initialTarifs} />
+                </div>
+
+                {/* Informations pratiques */}
+                <div className="rounded-lg border border-border/60 bg-card p-6 space-y-5">
+                  <SectionTitle icon={<MapPin className="h-4 w-4 text-primary" />}>Informations pratiques</SectionTitle>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Label className="text-[13px]">Nombre de participants</Label>
+                        <FieldBadge filled={!!produit.nombre_participants_min || !!produit.nombre_participants_max} />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Input name="nombre_participants_min" type="number" min="0" defaultValue={produit.nombre_participants_min ?? ""} placeholder="Min" className="h-9 text-[13px] border-border/60" />
+                        <span className="text-xs text-muted-foreground">à</span>
+                        <Input name="nombre_participants_max" type="number" min="0" defaultValue={produit.nombre_participants_max ?? ""} placeholder="Max" className="h-9 text-[13px] border-border/60" />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor="lieu_format" className="text-[13px]">Format et lieu</Label>
+                        <FieldBadge filled={!!produit.lieu_format} />
+                      </div>
+                      <Input id="lieu_format" name="lieu_format" defaultValue={produit.lieu_format ?? ""} placeholder="Présentiel, Sur site..." className="h-9 text-[13px] border-border/60" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor="delai_acces" className="text-[13px]">Délai d&apos;accès</Label>
+                        <FieldBadge filled={!!produit.delai_acces} />
+                      </div>
+                      <Input id="delai_acces" name="delai_acces" defaultValue={produit.delai_acces ?? ""} placeholder="Inscription jusqu'au matin de la formation" className="h-9 text-[13px] border-border/60" />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor="certification" className="text-[13px]">Certification</Label>
+                        <FieldBadge filled={!!produit.certification} />
+                      </div>
+                      <Input id="certification" name="certification" defaultValue={produit.certification ?? ""} placeholder="Certificat de réalisation" className="h-9 text-[13px] border-border/60" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Prérequis */}
+                <div className="rounded-lg border border-border/60 bg-card p-6">
+                  <DynamicList
+                    produitId={produit.id}
+                    table="produit_prerequis"
+                    items={initialPrerequis}
+                    title="Prérequis"
+                    addLabel="Ajouter"
+                    placeholder="Être titulaire du diplôme de..."
+                  />
+                </div>
+
+                {/* Public visé */}
+                <div className="rounded-lg border border-border/60 bg-card p-6">
+                  <DynamicList
+                    produitId={produit.id}
+                    table="produit_public_vise"
+                    items={initialPublicVise}
+                    title="Public visé"
+                    addLabel="Ajouter un profil"
+                    placeholder="Professionnels de santé, Managers..."
+                  />
+                </div>
+
+                {/* Financement */}
+                <div className="rounded-lg border border-border/60 bg-card p-6 space-y-5">
+                  <DynamicList
+                    produitId={produit.id}
+                    table="produit_financement"
+                    items={initialFinancement}
+                    title="Financement"
+                    addLabel="Ajouter un mode"
+                    placeholder="Financement sur fonds propres..."
+                  />
+
+                  <div className="space-y-2">
+                    <Label htmlFor="modalites_paiement" className="text-[13px]">Modalités de paiement</Label>
+                    <textarea
+                      id="modalites_paiement"
+                      name="modalites_paiement"
+                      rows={2}
+                      defaultValue={produit.modalites_paiement ?? ""}
+                      placeholder="Paiement à réception de la facture."
+                      className="w-full rounded-md border border-input bg-muted px-3 py-2 text-[13px] text-foreground resize-y"
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* ═══ Tab: Objectifs ═══ */}
+              <TabsContent value="objectifs" className="mt-6 space-y-6">
+                <div className="rounded-lg border border-border/60 bg-card p-6">
+                  <ObjectifsTab produitId={produit.id} objectifs={initialObjectifs} />
+                </div>
+                <div className="rounded-lg border border-border/60 bg-card p-6">
+                  <DynamicList
+                    produitId={produit.id}
+                    table="produit_competences"
+                    items={initialCompetences}
+                    title="Compétences visées"
+                    subtitle="Capacités acquises à la fin de la formation"
+                    addLabel="Ajouter"
+                    placeholder="Être capable de..."
+                  />
+                </div>
+              </TabsContent>
+
+              {/* ═══ Tab: Programme ═══ */}
+              <TabsContent value="programme" className="mt-6">
+                <ProgrammeTab produitId={produit.id} modules={initialProgramme} />
+              </TabsContent>
+
+              {/* ═══ Tab: Modalités ═══ */}
+              <TabsContent value="modalites" className="mt-6 space-y-6">
+                <div className="rounded-lg border border-border/60 bg-card p-6 space-y-5">
+                  <SectionTitle icon={<BarChart3 className="h-4 w-4 text-primary" />}>Approche pédagogique</SectionTitle>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="modalites_pedagogiques" className="text-[13px]">Méthodes pédagogiques</Label>
+                      <FieldBadge filled={!!produit.modalites_pedagogiques} />
+                    </div>
+                    <textarea
+                      id="modalites_pedagogiques"
+                      name="modalites_pedagogiques"
+                      rows={3}
+                      defaultValue={produit.modalites_pedagogiques ?? ""}
+                      placeholder="Cours magistral, exercices pratiques, études de cas..."
+                      className="w-full rounded-md border border-input bg-muted px-3 py-2 text-[13px] text-foreground resize-y"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="moyens_pedagogiques" className="text-[13px]">Moyens pédagogiques</Label>
+                      <FieldBadge filled={!!produit.moyens_pedagogiques} />
+                    </div>
+                    <textarea
+                      id="moyens_pedagogiques"
+                      name="moyens_pedagogiques"
+                      rows={3}
+                      defaultValue={produit.moyens_pedagogiques ?? ""}
+                      placeholder="Supports de cours, matériel de pratique, salle équipée..."
+                      className="w-full rounded-md border border-input bg-muted px-3 py-2 text-[13px] text-foreground resize-y"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="modalites_evaluation" className="text-[13px]">Modalités d&apos;évaluation</Label>
+                      <FieldBadge filled={!!produit.modalites_evaluation} />
+                    </div>
+                    <textarea
+                      id="modalites_evaluation"
+                      name="modalites_evaluation"
+                      rows={3}
+                      defaultValue={produit.modalites_evaluation ?? ""}
+                      placeholder="Évaluation des acquis par questionnaire, exercices pratiques..."
+                      className="w-full rounded-md border border-input bg-muted px-3 py-2 text-[13px] text-foreground resize-y"
+                    />
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-border/60 bg-card p-6 space-y-5">
+                  <SectionTitle icon={<Users className="h-4 w-4 text-primary" />}>Équipe & Accessibilité</SectionTitle>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="equipe_pedagogique" className="text-[13px]">Équipe pédagogique</Label>
+                      <FieldBadge filled={!!produit.equipe_pedagogique} />
+                    </div>
+                    <textarea
+                      id="equipe_pedagogique"
+                      name="equipe_pedagogique"
+                      rows={2}
+                      defaultValue={produit.equipe_pedagogique ?? ""}
+                      placeholder="Formation animée par un formateur spécialisé..."
+                      className="w-full rounded-md border border-input bg-muted px-3 py-2 text-[13px] text-foreground resize-y"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="accessibilite" className="text-[13px]">Accessibilité</Label>
+                      <FieldBadge filled={!!produit.accessibilite} />
+                    </div>
+                    <textarea
+                      id="accessibilite"
+                      name="accessibilite"
+                      rows={2}
+                      defaultValue={produit.accessibilite ?? ""}
+                      placeholder="Formation accessible aux personnes en situation de handicap..."
+                      className="w-full rounded-md border border-input bg-muted px-3 py-2 text-[13px] text-foreground resize-y"
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* ═══ Tab: Tâches ═══ */}
+              <TabsContent value="taches" className="mt-6">
+                <TachesActivitesTab entiteType="produit" entiteId={produit.id} />
+              </TabsContent>
+            </Tabs>
+          </div>
+
+          {/* ═══ Right Sidebar ═══ */}
+          <div className="w-72 shrink-0 space-y-5">
+            {/* Publication */}
+            <div className="rounded-lg border border-border/60 bg-card p-5 space-y-4">
+              <h3 className="text-sm font-semibold">Publication</h3>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="publie" className="text-[13px] cursor-pointer">Formation active</Label>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="publie" name="publie" defaultChecked={produit.publie} className="sr-only peer" />
+                  <div className="w-9 h-5 bg-muted rounded-full peer peer-checked:bg-primary transition-colors after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
+                </label>
+              </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="populaire" className="text-[13px] cursor-pointer">Populaire</Label>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="populaire" name="populaire" defaultChecked={produit.populaire} className="sr-only peer" />
+                  <div className="w-9 h-5 bg-muted rounded-full peer peer-checked:bg-primary transition-colors after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
+                </label>
               </div>
             </div>
-          </form>
-        </TabsContent>
 
-        {/* ═══ Tab: Tarifs ═══ */}
-        <TabsContent value="tarifs" className="mt-6">
-          <TarifsTab produitId={produit.id} tarifs={initialTarifs} />
-        </TabsContent>
+            {/* URL & Identifiants */}
+            <div className="rounded-lg border border-border/60 bg-card p-5 space-y-4">
+              <h3 className="text-sm font-semibold">URL & Identifiants</h3>
+              <div className="space-y-2">
+                <Label htmlFor="identifiant_interne" className="text-[11px] text-muted-foreground">Identifiant interne</Label>
+                <Input id="identifiant_interne" name="identifiant_interne" defaultValue={produit.identifiant_interne ?? ""} className="h-8 text-xs border-border/60" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="slug" className="text-[11px] text-muted-foreground">Slug URL</Label>
+                <Input id="slug" name="slug" defaultValue={produit.slug ?? ""} placeholder={produit.intitule ? produit.intitule.toLowerCase().replace(/\s+/g, "-") : ""} className="h-8 text-xs border-border/60" />
+              </div>
+            </div>
 
-        {/* ═══ Tab: Programme ═══ */}
-        <TabsContent value="programme" className="mt-6">
-          <ProgrammeTab produitId={produit.id} modules={initialProgramme} />
-        </TabsContent>
+            {/* Image */}
+            <div className="rounded-lg border border-border/60 bg-card p-5 space-y-3">
+              <h3 className="text-sm font-semibold">Image</h3>
+              {currentImageUrl ? (
+                <div className="relative overflow-hidden rounded-lg border border-border/60">
+                  <img src={currentImageUrl} alt={produit.intitule} className="w-full h-36 object-cover" />
+                  <div className="absolute bottom-2 right-2">
+                    <Button type="button" size="sm" variant="outline" className="h-7 text-[11px] bg-background/80 backdrop-blur-sm" onClick={() => imageInputRef.current?.click()} disabled={isUploadingImage}>
+                      {isUploadingImage ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : null}
+                      {isUploadingImage ? "Upload..." : "Changer"}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Button type="button" variant="outline" className="h-24 text-xs border-dashed border-border/60 w-full flex-col gap-2" onClick={() => imageInputRef.current?.click()} disabled={isUploadingImage}>
+                  {isUploadingImage ? <Loader2 className="h-5 w-5 animate-spin" /> : <ImageIcon className="h-5 w-5 text-muted-foreground/40" />}
+                  <span className="text-muted-foreground/60">{isUploadingImage ? "Upload en cours..." : "Uploader une image"}</span>
+                </Button>
+              )}
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleImageUpload(file);
+                }}
+              />
+              <p className="text-[10px] text-muted-foreground/40">PNG, JPG ou WebP. Max 2 Mo.</p>
+            </div>
 
-        {/* ═══ Tab: Objectifs ═══ */}
-        <TabsContent value="objectifs" className="mt-6">
-          <ObjectifsTab produitId={produit.id} objectifs={initialObjectifs} />
-        </TabsContent>
+            {/* SEO */}
+            <div className="rounded-lg border border-border/60 bg-card p-5 space-y-4">
+              <h3 className="text-sm font-semibold">SEO</h3>
+              <div className="space-y-2">
+                <Label htmlFor="meta_titre" className="text-[11px] text-muted-foreground">Meta titre</Label>
+                <Input id="meta_titre" name="meta_titre" defaultValue={produit.meta_titre ?? ""} className="h-8 text-xs border-border/60" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="meta_description" className="text-[11px] text-muted-foreground">Meta description</Label>
+                <textarea
+                  id="meta_description"
+                  name="meta_description"
+                  rows={3}
+                  defaultValue={produit.meta_description ?? ""}
+                  className="w-full rounded-md border border-input bg-muted px-3 py-2 text-xs text-foreground resize-y"
+                />
+              </div>
+            </div>
 
-        {/* ═══ Tab: Tâches ═══ */}
-        <TabsContent value="taches" className="mt-6">
-          <TachesActivitesTab entiteType="produit" entiteId={produit.id} />
-        </TabsContent>
-      </Tabs>
+            {/* Timestamps */}
+            <div className="px-1 space-y-1">
+              <p className="text-[10px] text-muted-foreground/40">
+                Créé le {formatDate(produit.created_at)}
+              </p>
+              {produit.updated_at && (
+                <p className="text-[10px] text-muted-foreground/40">
+                  Modifié le {formatDate(produit.updated_at)}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
       <ConfirmDialog />
-    </div>
+    </form>
   );
 }
 
-// ─── Tarifs Tab ──────────────────────────────────────────
+// ─── Tarifs Section (inside Pratique tab) ────────────────
 
-function TarifsTab({ produitId, tarifs }: { produitId: string; tarifs: Tarif[] }) {
+function TarifsSection({ produitId, tarifs }: { produitId: string; tarifs: Tarif[] }) {
   const router = useRouter();
   const { toast } = useToast();
   const { confirm: confirmTarif, ConfirmDialog: ConfirmTarifDialog } = useConfirm();
@@ -734,68 +992,65 @@ function TarifsTab({ produitId, tarifs }: { produitId: string; tarifs: Tarif[] }
 
   const handleAddTarif = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    e.stopPropagation();
     setSaving(true);
-
     const fd = new FormData(e.currentTarget);
     const input: TarifInput = {
-      nom: (fd.get("nom") as string) || "",
-      prix_ht: Number(fd.get("prix_ht")),
-      taux_tva: Number(fd.get("taux_tva") || 0),
-      unite: (fd.get("unite") as TarifInput["unite"]) || "",
-      is_default: fd.get("is_default") === "on",
+      nom: (fd.get("tarif_nom") as string) || "",
+      prix_ht: Number(fd.get("tarif_prix_ht")),
+      taux_tva: Number(fd.get("tarif_taux_tva") || 0),
+      unite: (fd.get("tarif_unite") as TarifInput["unite"]) || "",
+      is_default: fd.get("tarif_is_default") === "on",
     };
-
     const result = await addTarif(produitId, input);
     setSaving(false);
-
     if (result.error) {
       toast({ title: "Erreur", description: "Impossible d'ajouter le tarif.", variant: "destructive" });
       return;
     }
-
     setIsAdding(false);
     toast({ title: "Tarif ajouté", variant: "success" });
     router.refresh();
   };
 
   const handleDelete = async (tarifId: string) => {
-    if (!(await confirmTarif({ title: "Supprimer ce tarif ?", description: "Cette action est irréversible.", confirmLabel: "Supprimer", variant: "destructive" }))) return;
+    if (!(await confirmTarif({ title: "Supprimer ce tarif ?", confirmLabel: "Supprimer", variant: "destructive" }))) return;
     await deleteTarif(tarifId, produitId);
     toast({ title: "Tarif supprimé", variant: "success" });
     router.refresh();
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          Définissez les différents tarifs pour ce produit de formation.
-        </p>
-        <Button size="sm" className="h-8 text-xs" onClick={() => setIsAdding(true)}>
-          <Plus className="mr-1.5 h-3 w-3" />
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-semibold">Tarifs de la formation</h3>
+          <FieldBadge filled={tarifs.length > 0} />
+        </div>
+        <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => setIsAdding(true)} type="button">
+          <Plus className="mr-1 h-3 w-3" />
           Ajouter un tarif
         </Button>
       </div>
 
-      {/* Add form */}
       {isAdding && (
-        <form onSubmit={handleAddTarif} className="rounded-lg border border-primary/20 bg-card p-4 space-y-3">
-          <div className="grid grid-cols-5 gap-3">
+        <form onSubmit={handleAddTarif} className="rounded-lg border border-primary/20 bg-muted/30 p-3 space-y-2">
+          <div className="grid grid-cols-4 gap-2">
             <div className="space-y-1">
-              <Label className="text-[11px]">Nom</Label>
-              <Input name="nom" placeholder="Tarif standard" className="h-8 text-xs border-border/60" />
+              <Label className="text-[10px]">Nom</Label>
+              <Input name="tarif_nom" placeholder="Inter-entreprise" className="h-7 text-[11px] border-border/60" />
             </div>
             <div className="space-y-1">
-              <Label className="text-[11px]">Prix HT</Label>
-              <Input name="prix_ht" type="number" step="0.01" min="0" required className="h-8 text-xs border-border/60" />
+              <Label className="text-[10px]">Prix HT</Label>
+              <Input name="tarif_prix_ht" type="number" step="0.01" min="0" required className="h-7 text-[11px] border-border/60" />
             </div>
             <div className="space-y-1">
-              <Label className="text-[11px]">TVA %</Label>
-              <Input name="taux_tva" type="number" step="0.01" min="0" max="100" defaultValue="0" className="h-8 text-xs border-border/60" />
+              <Label className="text-[10px]">TVA %</Label>
+              <Input name="tarif_taux_tva" type="number" step="0.01" defaultValue="0" className="h-7 text-[11px] border-border/60" />
             </div>
             <div className="space-y-1">
-              <Label className="text-[11px]">Unité</Label>
-              <select name="unite" className="h-8 w-full rounded-md border border-input bg-muted px-2 py-1 text-xs text-foreground">
+              <Label className="text-[10px]">Unité</Label>
+              <select name="tarif_unite" className="h-7 w-full rounded-md border border-input bg-muted px-2 text-[11px] text-foreground">
                 <option value="">--</option>
                 <option value="stagiaire">/ stagiaire</option>
                 <option value="groupe">/ groupe</option>
@@ -804,82 +1059,46 @@ function TarifsTab({ produitId, tarifs }: { produitId: string; tarifs: Tarif[] }
                 <option value="forfait">forfait</option>
               </select>
             </div>
-            <div className="flex items-end gap-2">
-              <Button type="submit" size="sm" className="h-8 text-xs" disabled={saving}>
-                {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : "Ajouter"}
-              </Button>
-              <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={() => setIsAdding(false)}>
-                Annuler
-              </Button>
-            </div>
+          </div>
+          <div className="flex items-center gap-2 justify-end">
+            <Button type="button" variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => setIsAdding(false)}>Annuler</Button>
+            <Button type="submit" size="sm" className="h-7 text-[11px]" disabled={saving}>
+              {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : "Ajouter"}
+            </Button>
           </div>
         </form>
       )}
 
-      {/* Tarifs list */}
-      {tarifs.length === 0 && !isAdding ? (
-        <div className="flex flex-col items-center gap-3 rounded-lg border border-border/60 bg-card py-16">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50">
-            <Euro className="h-6 w-6 text-muted-foreground/30" />
-          </div>
-          <p className="text-sm text-muted-foreground/60">Aucun tarif défini</p>
-          <p className="text-xs text-muted-foreground/40">
-            Les OF exonérés de TVA (art. 261-4-4a CGI) utilisent un taux à 0%.
-          </p>
-        </div>
-      ) : (
-        <div className="rounded-lg border border-border/60 bg-card overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border/60 bg-muted/30">
-                <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Nom</th>
-                <th className="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Prix HT</th>
-                <th className="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">TVA</th>
-                <th className="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Prix TTC</th>
-                <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Unité</th>
-                <th className="px-4 py-2.5 w-16" />
-              </tr>
-            </thead>
-            <tbody>
-              {tarifs.map((t) => {
-                const ttc = t.prix_ht * (1 + t.taux_tva / 100);
-                return (
-                  <tr key={t.id} className="border-b border-border/40 hover:bg-muted/20 group">
-                    <td className="px-4 py-2.5 text-[13px]">
-                      {t.nom || <span className="text-muted-foreground/40">Sans nom</span>}
-                      {t.is_default && (
-                        <Badge className="ml-2 text-[10px]" variant="outline">
-                          Défaut
-                        </Badge>
-                      )}
-                    </td>
-                    <td className="px-4 py-2.5 text-[13px] text-right font-mono">
-                      {formatCurrency(t.prix_ht)}
-                    </td>
-                    <td className="px-4 py-2.5 text-[13px] text-right text-muted-foreground">
-                      {t.taux_tva}%
-                    </td>
-                    <td className="px-4 py-2.5 text-[13px] text-right font-mono font-medium">
-                      {formatCurrency(ttc)}
-                    </td>
-                    <td className="px-4 py-2.5 text-[13px] text-muted-foreground">
-                      {t.unite ? (UNITE_LABELS[t.unite] ?? t.unite) : "--"}
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
-                        onClick={() => handleDelete(t.id)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+      {tarifs.length > 0 && (
+        <div className="space-y-2">
+          {tarifs.map((t) => {
+            const ttc = t.prix_ht * (1 + t.taux_tva / 100);
+            return (
+              <div key={t.id} className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/30 px-3 py-2 group">
+                <div className="flex items-center gap-3">
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <Wallet className="h-3 w-3 text-muted-foreground/50" />
+                      <span className="text-[13px] font-medium">{t.nom || "Sans nom"}</span>
+                      {t.is_default && <Badge className="text-[9px] px-1 py-0" variant="outline">Défaut</Badge>}
+                    </div>
+                    <span className="text-[11px] text-muted-foreground/60">
+                      {t.unite ? UNITE_LABELS[t.unite] ?? t.unite : ""}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <p className="text-[13px] font-mono font-medium">{formatCurrency(t.prix_ht)} HT</p>
+                    {t.taux_tva > 0 && <p className="text-[11px] text-muted-foreground/60">{formatCurrency(ttc)} TTC</p>}
+                  </div>
+                  <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive" onClick={() => handleDelete(t.id)} type="button">
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
       <ConfirmTarifDialog />
@@ -902,27 +1121,34 @@ function ProgrammeTab({
   const [isAdding, setIsAdding] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [isExtracting, setIsExtracting] = React.useState(false);
+  const [expandedModules, setExpandedModules] = React.useState<Set<string>>(new Set());
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const toggleModule = (id: string) => {
+    setExpandedModules((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const handleAdd = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    e.stopPropagation();
     setSaving(true);
-
     const fd = new FormData(e.currentTarget);
     const input: ProgrammeModuleInput = {
-      titre: fd.get("titre") as string,
-      contenu: (fd.get("contenu") as string) || "",
-      duree: (fd.get("duree") as string) || "",
+      titre: fd.get("module_titre") as string,
+      contenu: (fd.get("module_contenu") as string) || "",
+      duree: (fd.get("module_duree") as string) || "",
     };
-
     const result = await addProgrammeModule(produitId, input);
     setSaving(false);
-
     if (result.error) {
       toast({ title: "Erreur", variant: "destructive" });
       return;
     }
-
     setIsAdding(false);
     toast({ title: "Module ajouté", variant: "success" });
     router.refresh();
@@ -957,14 +1183,7 @@ function ProgrammeTab({
         return;
       }
 
-      const data = result.data as {
-        intitule?: string;
-        description?: string;
-        duree_heures?: number;
-        duree_jours?: number;
-        modules?: { titre: string; contenu?: string; duree?: string }[];
-        objectifs?: string[];
-      };
+      const data = result.data as PDFExtractedData;
 
       // Add extracted modules
       let addedModules = 0;
@@ -986,14 +1205,50 @@ function ProgrammeTab({
         addedObjectifs++;
       }
 
+      // Add extracted competences
+      let addedCompetences = 0;
+      for (const comp of data.competences ?? []) {
+        if (!comp) continue;
+        await addListItem(produitId, "produit_competences", comp);
+        addedCompetences++;
+      }
+
+      // Add extracted prerequis
+      let addedPrerequis = 0;
+      for (const prereq of data.prerequis ?? []) {
+        if (!prereq) continue;
+        await addListItem(produitId, "produit_prerequis", prereq);
+        addedPrerequis++;
+      }
+
+      // Add extracted public_vise
+      let addedPublicVise = 0;
+      for (const pv of data.public_vise ?? []) {
+        if (!pv) continue;
+        await addListItem(produitId, "produit_public_vise", pv);
+        addedPublicVise++;
+      }
+
+      // Add extracted financement
+      let addedFinancement = 0;
+      for (const fin of data.financement ?? []) {
+        if (!fin) continue;
+        await addListItem(produitId, "produit_financement", fin);
+        addedFinancement++;
+      }
+
       const parts: string[] = [];
       if (addedModules > 0) parts.push(`${addedModules} module(s)`);
       if (addedObjectifs > 0) parts.push(`${addedObjectifs} objectif(s)`);
+      if (addedCompetences > 0) parts.push(`${addedCompetences} compétence(s)`);
+      if (addedPrerequis > 0) parts.push(`${addedPrerequis} prérequis`);
+      if (addedPublicVise > 0) parts.push(`${addedPublicVise} public(s) visé(s)`);
+      if (addedFinancement > 0) parts.push(`${addedFinancement} financement(s)`);
 
       toast({
         title: "Import PDF terminé",
         description: parts.length > 0
-          ? `${parts.join(" et ")} ajouté(s) depuis le PDF.`
+          ? `${parts.join(", ")} ajouté(s) depuis le PDF.`
           : "Aucun élément extrait du PDF.",
         variant: parts.length > 0 ? "success" : "default",
       });
@@ -1003,7 +1258,6 @@ function ProgrammeTab({
       toast({ title: "Erreur", description: "Impossible d'analyser le PDF.", variant: "destructive" });
     } finally {
       setIsExtracting(false);
-      // Reset file input
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
@@ -1011,24 +1265,12 @@ function ProgrammeTab({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          Structurez le programme en modules ou sections.
-        </p>
+        <SectionTitle icon={<GripVertical className="h-4 w-4 text-primary" />}>
+          Programme détaillé
+        </SectionTitle>
         <div className="flex items-center gap-2">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="application/pdf"
-            className="hidden"
-            onChange={handlePdfImport}
-          />
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-8 text-xs border-border/60"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isExtracting}
-          >
+          <input ref={fileInputRef} type="file" accept="application/pdf" className="hidden" onChange={handlePdfImport} />
+          <Button size="sm" variant="outline" className="h-8 text-xs border-border/60" onClick={() => fileInputRef.current?.click()} disabled={isExtracting} type="button">
             {isExtracting ? (
               <>
                 <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
@@ -1042,7 +1284,7 @@ function ProgrammeTab({
               </>
             )}
           </Button>
-          <Button size="sm" className="h-8 text-xs" onClick={() => setIsAdding(true)}>
+          <Button size="sm" className="h-8 text-xs" onClick={() => setIsAdding(true)} type="button">
             <Plus className="mr-1.5 h-3 w-3" />
             Ajouter un module
           </Button>
@@ -1054,11 +1296,11 @@ function ProgrammeTab({
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1">
               <Label className="text-[11px]">Titre *</Label>
-              <Input name="titre" required placeholder="Module 1 : Introduction" className="h-8 text-xs border-border/60" />
+              <Input name="module_titre" required placeholder="Séquence 1 : Introduction" className="h-8 text-xs border-border/60" />
             </div>
             <div className="space-y-1">
               <Label className="text-[11px]">Durée</Label>
-              <Input name="duree" placeholder="2h" className="h-8 text-xs border-border/60" />
+              <Input name="module_duree" placeholder="2h" className="h-8 text-xs border-border/60" />
             </div>
             <div className="flex items-end gap-2">
               <Button type="submit" size="sm" className="h-8 text-xs" disabled={saving}>
@@ -1072,7 +1314,7 @@ function ProgrammeTab({
           <div className="space-y-1">
             <Label className="text-[11px]">Contenu</Label>
             <textarea
-              name="contenu"
+              name="module_contenu"
               rows={3}
               placeholder="Décrivez le contenu de ce module..."
               className="w-full rounded-md border border-input bg-muted px-3 py-2 text-xs text-foreground resize-y"
@@ -1093,37 +1335,61 @@ function ProgrammeTab({
         </div>
       ) : (
         <div className="space-y-2">
-          {modules.map((m, idx) => (
-            <div
-              key={m.id}
-              className="flex items-start gap-3 rounded-lg border border-border/60 bg-card p-4 group"
-            >
-              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary shrink-0 mt-0.5">
-                {idx + 1}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-[13px] font-medium">{m.titre}</h3>
-                  {m.duree && (
-                    <span className="text-[11px] text-muted-foreground/60">({m.duree})</span>
+          {modules.map((m, idx) => {
+            const isExpanded = expandedModules.has(m.id);
+            return (
+              <div key={m.id} className="rounded-lg border border-border/60 bg-card overflow-hidden group">
+                <button
+                  type="button"
+                  className="flex items-center gap-3 w-full px-4 py-3 text-left hover:bg-muted/20 transition-colors"
+                  onClick={() => toggleModule(m.id)}
+                >
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary shrink-0">
+                    {idx + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-[13px] font-medium truncate">{m.titre}</h3>
+                      {m.duree && (
+                        <span className="text-[11px] text-muted-foreground/60 shrink-0">({m.duree})</span>
+                      )}
+                    </div>
+                  </div>
+                  {isExpanded ? (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground/40 shrink-0" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-muted-foreground/40 shrink-0" />
                   )}
-                </div>
-                {m.contenu && (
-                  <p className="mt-1 text-xs text-muted-foreground/80 line-clamp-2">
-                    {m.contenu}
-                  </p>
+                </button>
+
+                {isExpanded && m.contenu && (
+                  <div className="px-4 pb-3 pl-[52px] border-t border-border/40">
+                    <p className="text-xs text-muted-foreground/80 whitespace-pre-wrap pt-3">
+                      {m.contenu}
+                    </p>
+                    <div className="mt-3 flex justify-end">
+                      <Button variant="ghost" size="sm" className="h-7 text-[11px] text-muted-foreground hover:text-destructive" onClick={() => handleDelete(m.id)} type="button">
+                        <Trash2 className="mr-1 h-3 w-3" />
+                        Supprimer
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {isExpanded && !m.contenu && (
+                  <div className="px-4 pb-3 pl-[52px] border-t border-border/40">
+                    <p className="text-xs text-muted-foreground/40 italic pt-3">Aucun contenu détaillé</p>
+                    <div className="mt-3 flex justify-end">
+                      <Button variant="ghost" size="sm" className="h-7 text-[11px] text-muted-foreground hover:text-destructive" onClick={() => handleDelete(m.id)} type="button">
+                        <Trash2 className="mr-1 h-3 w-3" />
+                        Supprimer
+                      </Button>
+                    </div>
+                  </div>
                 )}
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive shrink-0"
-                onClick={() => handleDelete(m.id)}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
       <ConfirmModuleDialog />
@@ -1148,33 +1414,28 @@ function ObjectifsTab({
   const handleAdd = async () => {
     if (!newObjectif.trim()) return;
     setSaving(true);
-
     const result = await addObjectif(produitId, newObjectif.trim());
     setSaving(false);
-
     if (result.error) {
       toast({ title: "Erreur", variant: "destructive" });
       return;
     }
-
     setNewObjectif("");
-    toast({ title: "Objectif ajouté", variant: "success" });
     router.refresh();
   };
 
   const handleDelete = async (objectifId: string) => {
     await deleteObjectif(objectifId, produitId);
-    toast({ title: "Objectif supprimé", variant: "success" });
     router.refresh();
   };
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
-        Listez les objectifs pédagogiques de cette formation.
-      </p>
+      <div className="flex items-center gap-2">
+        <h3 className="text-sm font-semibold">Objectifs pédagogiques</h3>
+        <FieldBadge filled={objectifs.length > 0} />
+      </div>
 
-      {/* Add */}
       <div className="flex items-center gap-2">
         <Input
           value={newObjectif}
@@ -1188,31 +1449,23 @@ function ObjectifsTab({
             }
           }}
         />
-        <Button size="sm" className="h-9 text-xs" onClick={handleAdd} disabled={saving || !newObjectif.trim()}>
+        <Button size="sm" className="h-9 text-xs" onClick={handleAdd} disabled={saving || !newObjectif.trim()} type="button">
           {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
         </Button>
       </div>
 
-      {/* List */}
       {objectifs.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-lg border border-border/60 bg-card py-12">
+        <div className="flex flex-col items-center gap-3 rounded-lg border border-border/60 bg-muted/30 py-10">
           <p className="text-sm text-muted-foreground/60">Aucun objectif défini</p>
         </div>
       ) : (
-        <div className="rounded-lg border border-border/60 bg-card divide-y divide-border/40">
+        <div className="rounded-lg border border-border/60 divide-y divide-border/40">
           {objectifs.map((o, idx) => (
-            <div key={o.id} className="flex items-center gap-3 px-4 py-3 group">
-              <span className="text-[11px] font-mono text-muted-foreground/40 w-5 shrink-0">
-                {idx + 1}.
-              </span>
+            <div key={o.id} className="flex items-center gap-3 px-4 py-2.5 group">
+              <span className="text-[11px] font-mono text-muted-foreground/40 w-5 shrink-0">{idx + 1}.</span>
               <p className="text-[13px] flex-1">{o.objectif}</p>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive shrink-0"
-                onClick={() => handleDelete(o.id)}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
+              <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive shrink-0" onClick={() => handleDelete(o.id)} type="button">
+                <Trash2 className="h-3 w-3" />
               </Button>
             </div>
           ))}

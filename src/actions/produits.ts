@@ -14,6 +14,7 @@ const CreateProduitSchema = z.object({
   description: z.string().optional().or(z.literal("")),
   identifiant_interne: z.string().optional().or(z.literal("")),
   domaine: z.string().optional().or(z.literal("")),
+  categorie: z.string().optional().or(z.literal("")),
   type_action: z
     .enum(["action_formation", "bilan_competences", "vae", "apprentissage"])
     .optional()
@@ -38,6 +39,7 @@ const UpdateProduitSchema = z.object({
   description: z.string().optional().or(z.literal("")),
   identifiant_interne: z.string().optional().or(z.literal("")),
   domaine: z.string().optional().or(z.literal("")),
+  categorie: z.string().optional().or(z.literal("")),
   type_action: z.string().optional().or(z.literal("")),
   modalite: z.string().optional().or(z.literal("")),
   formule: z.string().optional().or(z.literal("")),
@@ -49,8 +51,27 @@ const UpdateProduitSchema = z.object({
   bpf_niveau: z.string().optional().or(z.literal("")),
   // Catalogue
   publie: z.boolean().optional(),
+  populaire: z.boolean().optional(),
   slug: z.string().optional().or(z.literal("")),
   image_url: z.string().optional().or(z.literal("")),
+  // Infos pratiques
+  certification: z.string().optional().or(z.literal("")),
+  delai_acces: z.string().optional().or(z.literal("")),
+  nombre_participants_min: z.coerce.number().nonnegative().optional().nullable(),
+  nombre_participants_max: z.coerce.number().nonnegative().optional().nullable(),
+  lieu_format: z.string().optional().or(z.literal("")),
+  // Modalités pédagogiques
+  modalites_evaluation: z.string().optional().or(z.literal("")),
+  modalites_pedagogiques: z.string().optional().or(z.literal("")),
+  moyens_pedagogiques: z.string().optional().or(z.literal("")),
+  accessibilite: z.string().optional().or(z.literal("")),
+  // Paiement
+  modalites_paiement: z.string().optional().or(z.literal("")),
+  // Équipe
+  equipe_pedagogique: z.string().optional().or(z.literal("")),
+  // SEO
+  meta_titre: z.string().optional().or(z.literal("")),
+  meta_description: z.string().optional().or(z.literal("")),
 });
 
 export type UpdateProduitInput = z.infer<typeof UpdateProduitSchema>;
@@ -67,14 +88,30 @@ function cleanEmptyStrings<T extends Record<string, unknown>>(data: T): T {
   return cleaned;
 }
 
+/** Generate a URL-friendly slug from text */
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")
+    .substring(0, 80);
+}
+
 /** Calculate completion percentage based on filled fields + related data counts */
 function calculateCompletion(
   produit: Record<string, unknown>,
-  counts?: { tarifs: number; objectifs: number; programme: number },
+  counts?: {
+    tarifs: number;
+    objectifs: number;
+    programme: number;
+    prerequis: number;
+    publicVise: number;
+  },
 ): number {
   const fields = [
     "intitule",
-    "sous_titre",
     "description",
     "domaine",
     "type_action",
@@ -82,9 +119,12 @@ function calculateCompletion(
     "formule",
     "duree_heures",
     "duree_jours",
-    "bpf_specialite_id",
-    "bpf_categorie",
-    "bpf_niveau",
+    "certification",
+    "delai_acces",
+    "lieu_format",
+    "modalites_evaluation",
+    "modalites_pedagogiques",
+    "moyens_pedagogiques",
   ];
   let filled = 0;
   for (const f of fields) {
@@ -92,13 +132,14 @@ function calculateCompletion(
       filled++;
     }
   }
-  // Include related data in completion (3 extra criteria)
   let total = fields.length;
   if (counts) {
-    total += 3;
+    total += 5; // tarifs, objectifs, programme, prerequis, publicVise
     if (counts.tarifs > 0) filled++;
     if (counts.objectifs > 0) filled++;
     if (counts.programme > 0) filled++;
+    if (counts.prerequis > 0) filled++;
+    if (counts.publicVise > 0) filled++;
   }
   return Math.round((filled / total) * 100);
 }
@@ -112,16 +153,20 @@ async function recalculateCompletion(produitId: string, supabase: Awaited<Return
     .single();
   if (!produit) return;
 
-  const [tarifsRes, objectifsRes, programmeRes] = await Promise.all([
+  const [tarifsRes, objectifsRes, programmeRes, prerequisRes, publicViseRes] = await Promise.all([
     supabase.from("produit_tarifs").select("id", { count: "exact", head: true }).eq("produit_id", produitId),
     supabase.from("produit_objectifs").select("id", { count: "exact", head: true }).eq("produit_id", produitId),
     supabase.from("produit_programme").select("id", { count: "exact", head: true }).eq("produit_id", produitId),
+    supabase.from("produit_prerequis").select("id", { count: "exact", head: true }).eq("produit_id", produitId),
+    supabase.from("produit_public_vise").select("id", { count: "exact", head: true }).eq("produit_id", produitId),
   ]);
 
   const pct = calculateCompletion(produit as Record<string, unknown>, {
     tarifs: tarifsRes.count ?? 0,
     objectifs: objectifsRes.count ?? 0,
     programme: programmeRes.count ?? 0,
+    prerequis: prerequisRes.count ?? 0,
+    publicVise: publicViseRes.count ?? 0,
   });
 
   await supabase
@@ -157,6 +202,7 @@ export async function createProduit(input: CreateProduitInput) {
     .insert({
       organisation_id: organisationId,
       numero_affichage: numero,
+      slug: slugify(parsed.data.intitule),
       ...cleanedData,
     })
     .select()
@@ -172,24 +218,26 @@ export async function createProduit(input: CreateProduitInput) {
 
 // ─── Create full product from PDF AI extraction ──────────
 
-interface PDFExtractedData {
+export interface PDFExtractedData {
   intitule?: string;
   sous_titre?: string | null;
   description?: string | null;
   domaine?: string | null;
+  categorie?: string | null;
   type_action?: string | null;
   modalite?: string | null;
   formule?: string | null;
   duree_heures?: number | null;
   duree_jours?: number | null;
   objectifs?: string[];
-  public_vise?: string | null;
-  prerequis?: string | null;
+  competences?: string[];
+  public_vise?: string[];
+  prerequis?: string[];
   nombre_participants_min?: number | null;
   nombre_participants_max?: number | null;
   certification?: string | null;
   delai_acces?: string | null;
-  lieu?: string | null;
+  lieu_format?: string | null;
   tarif_inter_ht?: number | null;
   tarif_intra_ht?: number | null;
   modules?: { titre: string; contenu: string; duree?: string | null }[];
@@ -197,6 +245,9 @@ interface PDFExtractedData {
   modalites_pedagogiques?: string | null;
   moyens_pedagogiques?: string | null;
   accessibilite?: string | null;
+  financement?: string[];
+  modalites_paiement?: string | null;
+  equipe_pedagogique?: string | null;
 }
 
 export async function createProduitFromPDF(extracted: PDFExtractedData) {
@@ -217,24 +268,12 @@ export async function createProduitFromPDF(extracted: PDFExtractedData) {
     p_entite: "PROD",
   });
 
-  // Build description with extra info that doesn't have dedicated columns
-  const descParts: string[] = [];
-  if (extracted.description) descParts.push(extracted.description);
-  if (extracted.public_vise) descParts.push(`\n\n**Public visé :** ${extracted.public_vise}`);
-  if (extracted.prerequis) descParts.push(`\n\n**Prérequis :** ${extracted.prerequis}`);
-  if (extracted.certification) descParts.push(`\n\n**Certification :** ${extracted.certification}`);
-  if (extracted.delai_acces) descParts.push(`\n\n**Délai d'accès :** ${extracted.delai_acces}`);
-  if (extracted.modalites_evaluation) descParts.push(`\n\n**Modalités d'évaluation :** ${extracted.modalites_evaluation}`);
-  if (extracted.modalites_pedagogiques) descParts.push(`\n\n**Modalités pédagogiques :** ${extracted.modalites_pedagogiques}`);
-  if (extracted.moyens_pedagogiques) descParts.push(`\n\n**Moyens pédagogiques :** ${extracted.moyens_pedagogiques}`);
-  if (extracted.accessibilite) descParts.push(`\n\n**Accessibilité :** ${extracted.accessibilite}`);
-
   // Validate enum values
   const validTypeAction = ["action_formation", "bilan_competences", "vae", "apprentissage"];
   const validModalite = ["presentiel", "distanciel", "mixte", "afest"];
   const validFormule = ["inter", "intra", "individuel"];
 
-  // Create the product
+  // Create the product with all fields mapped to dedicated columns
   const { data: produit, error: produitError } = await supabase
     .from("produits_formation")
     .insert({
@@ -242,13 +281,27 @@ export async function createProduitFromPDF(extracted: PDFExtractedData) {
       numero_affichage: numero,
       intitule: extracted.intitule,
       sous_titre: extracted.sous_titre || null,
-      description: descParts.join("") || null,
+      description: extracted.description || null,
       domaine: extracted.domaine || null,
+      categorie: extracted.categorie || null,
       type_action: validTypeAction.includes(extracted.type_action || "") ? extracted.type_action : null,
       modalite: validModalite.includes(extracted.modalite || "") ? extracted.modalite : null,
       formule: validFormule.includes(extracted.formule || "") ? extracted.formule : null,
       duree_heures: extracted.duree_heures || null,
       duree_jours: extracted.duree_jours || null,
+      slug: slugify(extracted.intitule),
+      // New dedicated fields
+      certification: extracted.certification || null,
+      delai_acces: extracted.delai_acces || null,
+      nombre_participants_min: extracted.nombre_participants_min || null,
+      nombre_participants_max: extracted.nombre_participants_max || null,
+      lieu_format: extracted.lieu_format || null,
+      modalites_evaluation: extracted.modalites_evaluation || null,
+      modalites_pedagogiques: extracted.modalites_pedagogiques || null,
+      moyens_pedagogiques: extracted.moyens_pedagogiques || null,
+      accessibilite: extracted.accessibilite || null,
+      modalites_paiement: extracted.modalites_paiement || null,
+      equipe_pedagogique: extracted.equipe_pedagogique || null,
     })
     .select()
     .single();
@@ -259,17 +312,30 @@ export async function createProduitFromPDF(extracted: PDFExtractedData) {
 
   const produitId = produit.id;
 
-  // Insert objectifs
+  // Insert all related data in parallel
+  const insertPromises: PromiseLike<unknown>[] = [];
+
+  // Objectifs
   if (extracted.objectifs && extracted.objectifs.length > 0) {
     const objectifsData = extracted.objectifs.map((obj, i) => ({
       produit_id: produitId,
       objectif: obj,
       ordre: i + 1,
     }));
-    await supabase.from("produit_objectifs").insert(objectifsData);
+    insertPromises.push(supabase.from("produit_objectifs").insert(objectifsData).select());
   }
 
-  // Insert programme modules
+  // Compétences
+  if (extracted.competences && extracted.competences.length > 0) {
+    const competencesData = extracted.competences.map((c, i) => ({
+      produit_id: produitId,
+      texte: c,
+      ordre: i + 1,
+    }));
+    insertPromises.push(supabase.from("produit_competences").insert(competencesData).select());
+  }
+
+  // Programme modules
   if (extracted.modules && extracted.modules.length > 0) {
     const modulesData = extracted.modules.map((mod, i) => ({
       produit_id: produitId,
@@ -278,10 +344,40 @@ export async function createProduitFromPDF(extracted: PDFExtractedData) {
       duree: mod.duree || null,
       ordre: i + 1,
     }));
-    await supabase.from("produit_programme").insert(modulesData);
+    insertPromises.push(supabase.from("produit_programme").insert(modulesData).select());
   }
 
-  // Insert tarifs
+  // Prérequis
+  if (extracted.prerequis && extracted.prerequis.length > 0) {
+    const prerequisData = extracted.prerequis.map((p, i) => ({
+      produit_id: produitId,
+      texte: p,
+      ordre: i + 1,
+    }));
+    insertPromises.push(supabase.from("produit_prerequis").insert(prerequisData).select());
+  }
+
+  // Public visé
+  if (extracted.public_vise && extracted.public_vise.length > 0) {
+    const publicViseData = extracted.public_vise.map((p, i) => ({
+      produit_id: produitId,
+      texte: p,
+      ordre: i + 1,
+    }));
+    insertPromises.push(supabase.from("produit_public_vise").insert(publicViseData).select());
+  }
+
+  // Financement
+  if (extracted.financement && extracted.financement.length > 0) {
+    const financementData = extracted.financement.map((f, i) => ({
+      produit_id: produitId,
+      texte: f,
+      ordre: i + 1,
+    }));
+    insertPromises.push(supabase.from("produit_financement").insert(financementData).select());
+  }
+
+  // Tarifs
   const tarifs: { produit_id: string; nom: string; prix_ht: number; unite: string; is_default: boolean }[] = [];
   if (extracted.tarif_intra_ht) {
     tarifs.push({
@@ -302,8 +398,10 @@ export async function createProduitFromPDF(extracted: PDFExtractedData) {
     });
   }
   if (tarifs.length > 0) {
-    await supabase.from("produit_tarifs").insert(tarifs);
+    insertPromises.push(supabase.from("produit_tarifs").insert(tarifs).select());
   }
+
+  await Promise.all(insertPromises);
 
   // Recalculate completion
   await recalculateCompletion(produitId, supabase);
@@ -370,7 +468,7 @@ export async function getProduits(
 export async function getProduit(id: string) {
   const orgResult = await getOrganisationId();
   if ("error" in orgResult) {
-    return { data: null, tarifs: [], objectifs: [], programme: [], error: orgResult.error };
+    return { data: null, tarifs: [], objectifs: [], programme: [], prerequis: [], publicVise: [], competences: [], financement: [], error: orgResult.error };
   }
   const { admin } = orgResult;
 
@@ -381,26 +479,18 @@ export async function getProduit(id: string) {
     .single();
 
   if (error) {
-    return { data: null, tarifs: [], objectifs: [], programme: [], error: error.message };
+    return { data: null, tarifs: [], objectifs: [], programme: [], prerequis: [], publicVise: [], competences: [], financement: [], error: error.message };
   }
 
-  // Fetch related data in parallel
-  const [tarifsResult, objectifsResult, programmeResult] = await Promise.all([
-    admin
-      .from("produit_tarifs")
-      .select("*")
-      .eq("produit_id", id)
-      .order("created_at", { ascending: true }),
-    admin
-      .from("produit_objectifs")
-      .select("*")
-      .eq("produit_id", id)
-      .order("ordre", { ascending: true }),
-    admin
-      .from("produit_programme")
-      .select("*")
-      .eq("produit_id", id)
-      .order("ordre", { ascending: true }),
+  // Fetch all related data in parallel
+  const [tarifsResult, objectifsResult, programmeResult, prerequisResult, publicViseResult, competencesResult, financementResult] = await Promise.all([
+    admin.from("produit_tarifs").select("*").eq("produit_id", id).order("created_at", { ascending: true }),
+    admin.from("produit_objectifs").select("*").eq("produit_id", id).order("ordre", { ascending: true }),
+    admin.from("produit_programme").select("*").eq("produit_id", id).order("ordre", { ascending: true }),
+    admin.from("produit_prerequis").select("*").eq("produit_id", id).order("ordre", { ascending: true }),
+    admin.from("produit_public_vise").select("*").eq("produit_id", id).order("ordre", { ascending: true }),
+    admin.from("produit_competences").select("*").eq("produit_id", id).order("ordre", { ascending: true }),
+    admin.from("produit_financement").select("*").eq("produit_id", id).order("ordre", { ascending: true }),
   ]);
 
   return {
@@ -408,6 +498,10 @@ export async function getProduit(id: string) {
     tarifs: tarifsResult.data ?? [],
     objectifs: objectifsResult.data ?? [],
     programme: programmeResult.data ?? [],
+    prerequis: prerequisResult.data ?? [],
+    publicVise: publicViseResult.data ?? [],
+    competences: competencesResult.data ?? [],
+    financement: financementResult.data ?? [],
   };
 }
 
@@ -426,16 +520,20 @@ export async function updateProduit(id: string, input: UpdateProduitInput) {
   const cleanedData = cleanEmptyStrings(parsed.data);
 
   // Query related data counts for completion calculation
-  const [tarifsRes, objectifsRes, programmeRes] = await Promise.all([
+  const [tarifsRes, objectifsRes, programmeRes, prerequisRes, publicViseRes] = await Promise.all([
     supabase.from("produit_tarifs").select("id", { count: "exact", head: true }).eq("produit_id", id),
     supabase.from("produit_objectifs").select("id", { count: "exact", head: true }).eq("produit_id", id),
     supabase.from("produit_programme").select("id", { count: "exact", head: true }).eq("produit_id", id),
+    supabase.from("produit_prerequis").select("id", { count: "exact", head: true }).eq("produit_id", id),
+    supabase.from("produit_public_vise").select("id", { count: "exact", head: true }).eq("produit_id", id),
   ]);
 
   const completion_pct = calculateCompletion(cleanedData, {
     tarifs: tarifsRes.count ?? 0,
     objectifs: objectifsRes.count ?? 0,
     programme: programmeRes.count ?? 0,
+    prerequis: prerequisRes.count ?? 0,
+    publicVise: publicViseRes.count ?? 0,
   });
 
   const { data, error } = await supabase
@@ -622,7 +720,6 @@ export async function deleteTarif(tarifId: string, produitId: string) {
 export async function addObjectif(produitId: string, objectif: string) {
   const supabase = await createClient();
 
-  // Get max ordre
   const { data: existing } = await supabase
     .from("produit_objectifs")
     .select("ordre")
@@ -698,7 +795,6 @@ export async function addProgrammeModule(produitId: string, input: ProgrammeModu
 
   const supabase = await createClient();
 
-  // Get max ordre
   const { data: existing } = await supabase
     .from("produit_programme")
     .select("ordre")
@@ -775,6 +871,60 @@ export async function deleteProgrammeModule(moduleId: string, produitId: string)
   return { success: true };
 }
 
+// ─── Generic list items (prerequis, public_vise, financement, competences) ─
+
+export async function addListItem(
+  produitId: string,
+  table: "produit_prerequis" | "produit_public_vise" | "produit_financement" | "produit_competences",
+  texte: string,
+) {
+  const supabase = await createClient();
+
+  const { data: existing } = await supabase
+    .from(table)
+    .select("ordre")
+    .eq("produit_id", produitId)
+    .order("ordre", { ascending: false })
+    .limit(1);
+
+  const nextOrdre = existing && existing.length > 0 ? ((existing[0] as { ordre: number }).ordre ?? 0) + 1 : 0;
+
+  const { data, error } = await supabase
+    .from(table)
+    .insert({ produit_id: produitId, texte, ordre: nextOrdre })
+    .select()
+    .single();
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  await recalculateCompletion(produitId, supabase);
+  revalidatePath(`/produits/${produitId}`);
+  return { data };
+}
+
+export async function deleteListItem(
+  itemId: string,
+  produitId: string,
+  table: "produit_prerequis" | "produit_public_vise" | "produit_financement" | "produit_competences",
+) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from(table)
+    .delete()
+    .eq("id", itemId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  await recalculateCompletion(produitId, supabase);
+  revalidatePath(`/produits/${produitId}`);
+  return { success: true };
+}
+
 // ─── Import ──────────────────────────────────────────────
 
 const TYPE_ACTION_MAP = new Map<string, string>([
@@ -824,7 +974,6 @@ export async function importProduits(
   let successCount = 0;
   const importErrors: string[] = [];
 
-  // Contrôle de doublons — pré-charger intitulés existants
   const { data: existingProduits } = await supabase
     .from("produits_formation")
     .select("intitule")
@@ -844,7 +993,6 @@ export async function importProduits(
       continue;
     }
 
-    // Contrôle doublon
     const intituleLower = intitule.toLowerCase();
     if (existingIntitules.has(intituleLower) || batchIntitules.has(intituleLower)) {
       importErrors.push(`Ligne ${i + 1} (${intitule}): Intitulé déjà existant — ignoré`);
@@ -852,7 +1000,6 @@ export async function importProduits(
     }
     batchIntitules.add(intituleLower);
 
-    // Résoudre enums
     const typeAction = row.type_action?.trim()
       ? TYPE_ACTION_MAP.get(row.type_action.trim().toLowerCase()) ?? null
       : null;
@@ -863,11 +1010,9 @@ export async function importProduits(
       ? FORMULE_MAP.get(row.formule.trim().toLowerCase()) ?? null
       : null;
 
-    // Durées
     const dureeHeures = row.duree_heures ? parseFloat(row.duree_heures.replace(",", ".")) : null;
     const dureeJours = row.duree_jours ? parseFloat(row.duree_jours.replace(",", ".")) : null;
 
-    // Générer numéro
     const { data: numero } = await supabase.rpc("next_numero", {
       p_organisation_id: organisationId,
       p_entite: "PROD",
@@ -886,9 +1031,9 @@ export async function importProduits(
       formule,
       duree_heures: dureeHeures && !isNaN(dureeHeures) ? dureeHeures : null,
       duree_jours: dureeJours && !isNaN(dureeJours) ? dureeJours : null,
+      slug: slugify(intitule),
     };
 
-    // Calculate completion
     const completion_pct = calculateCompletion(insertData);
     insertData.completion_pct = completion_pct;
 
@@ -923,4 +1068,44 @@ export async function getBpfSpecialites() {
   }
 
   return { data: data ?? [] };
+}
+
+// ─── Import Templates ────────────────────────────────────
+
+export async function getImportTemplates() {
+  const result = await getOrganisationId();
+  if ("error" in result) return { data: [] };
+  const { organisationId, supabase } = result;
+
+  const { data } = await supabase
+    .from("import_templates")
+    .select("*")
+    .eq("organisation_id", organisationId)
+    .order("created_at", { ascending: false });
+
+  return { data: data ?? [] };
+}
+
+export async function saveImportTemplate(
+  nom: string,
+  extraction: PDFExtractedData,
+  fieldHints?: Record<string, string>,
+) {
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, supabase } = result;
+
+  const { data, error } = await supabase
+    .from("import_templates")
+    .insert({
+      organisation_id: organisationId,
+      nom,
+      exemple_extraction: extraction,
+      field_hints: fieldHints || {},
+    })
+    .select()
+    .single();
+
+  if (error) return { error: error.message };
+  return { data };
 }
