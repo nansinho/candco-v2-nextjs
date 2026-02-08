@@ -89,10 +89,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Le fichier est trop volumineux (max 10 Mo)" }, { status: 400 });
     }
 
-    // Extract text from PDF using pdf-parse
+    // Extract text from PDF using pdf-parse v1
     const arrayBuffer = await file.arrayBuffer();
-    // @ts-expect-error - pdf-parse v2 ESM types don't expose default correctly
-    const pdfParse: (buf: Buffer) => Promise<{ text: string }> = (await import("pdf-parse")).default;
+    const { default: pdfParse } = (await import("pdf-parse")) as {
+      default: (buf: Buffer) => Promise<{ text: string }>;
+    };
     const pdfData = await pdfParse(Buffer.from(arrayBuffer));
     const text = pdfData.text;
 
