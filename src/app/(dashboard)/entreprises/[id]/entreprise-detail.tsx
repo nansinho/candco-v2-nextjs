@@ -48,11 +48,12 @@ import {
   type UnifiedContactType,
 } from "@/actions/entreprises";
 import { createContactClient, type CreateContactClientInput } from "@/actions/contacts-clients";
-import { TachesActivitesTab } from "@/components/shared/taches-activites";
+
 import { FonctionSelect } from "@/components/shared/fonction-select";
 import { OrganisationTab } from "@/components/entreprise/organisation-tab";
 import { EntrepriseSessionsTab } from "@/components/entreprise/sessions-tab";
 import { BesoinsFormationTab } from "@/components/entreprise/besoins-formation-tab";
+import { HistoriqueTab } from "@/components/entreprise/historique-tab";
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -570,7 +571,7 @@ function SuiviFormationTab({ entrepriseId, agences }: { entrepriseId: string; ag
         <BesoinsFormationTab entrepriseId={entrepriseId} agences={agences} />
       )}
       {subTab === "historique" && (
-        <TachesActivitesTab entiteType="entreprise" entiteId={entrepriseId} />
+        <HistoriqueTab entrepriseId={entrepriseId} />
       )}
     </div>
   );

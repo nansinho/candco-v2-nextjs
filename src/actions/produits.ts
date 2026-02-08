@@ -76,6 +76,8 @@ const UpdateProduitSchema = z.object({
   organise_par_nom: z.string().optional().or(z.literal("")),
   organise_par_logo_url: z.string().optional().or(z.literal("")),
   organise_par_actif: z.boolean().optional(),
+  // Programme display
+  programme_numerotation: z.enum(["arabic", "roman", "letters", "none"]).optional(),
 });
 
 export type UpdateProduitInput = z.infer<typeof UpdateProduitSchema>;
@@ -707,6 +709,7 @@ export async function updateProduit(id: string, input: UpdateProduitInput) {
       "modalites_pedagogiques", "moyens_pedagogiques", "accessibilite",
       "modalites_paiement", "equipe_pedagogique", "meta_titre", "meta_description",
       "organise_par_nom", "organise_par_logo_url", "organise_par_actif",
+      "programme_numerotation",
     ];
     const coreData = { ...cleanedData, completion_pct };
     for (const key of extendedKeys) {
@@ -1053,6 +1056,43 @@ export async function deleteProgrammeModule(moduleId: string, produitId: string)
   }
 
   await recalculateCompletion(produitId, supabase);
+  revalidatePath(`/produits/${produitId}`);
+  return { success: true };
+}
+
+export async function reorderProgrammeModule(
+  moduleId: string,
+  produitId: string,
+  direction: "up" | "down",
+) {
+  const supabase = await createClient();
+
+  // Fetch all modules ordered
+  const { data: modules, error: fetchError } = await supabase
+    .from("produit_programme")
+    .select("id, ordre")
+    .eq("produit_id", produitId)
+    .order("ordre", { ascending: true });
+
+  if (fetchError || !modules) {
+    return { error: fetchError?.message ?? "Modules introuvables" };
+  }
+
+  const idx = modules.findIndex((m: { id: string; ordre: number }) => m.id === moduleId);
+  if (idx === -1) return { error: "Module introuvable" };
+
+  const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+  if (swapIdx < 0 || swapIdx >= modules.length) return { success: true }; // already at edge
+
+  // Swap ordre values
+  const currentOrdre = modules[idx].ordre;
+  const swapOrdre = modules[swapIdx].ordre;
+
+  await Promise.all([
+    supabase.from("produit_programme").update({ ordre: swapOrdre }).eq("id", modules[idx].id),
+    supabase.from("produit_programme").update({ ordre: currentOrdre }).eq("id", modules[swapIdx].id),
+  ]);
+
   revalidatePath(`/produits/${produitId}`);
   return { success: true };
 }
