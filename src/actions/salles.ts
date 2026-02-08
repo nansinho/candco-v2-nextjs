@@ -1,10 +1,9 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
 import { getOrganisationId } from "@/lib/auth-helpers";
+import { logHistorique, logHistoriqueBatch } from "@/lib/historique";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { logHistorique, logHistoriqueBatch } from "@/lib/historique";
 
 const SalleSchema = z.object({
   nom: z.string().min(1, "Le nom est requis"),
@@ -123,8 +122,7 @@ export async function updateSalle(id: string, input: SalleInput) {
   if ("error" in orgResult) {
     return { error: { _form: [orgResult.error] } };
   }
-  const { organisationId, userId, role } = orgResult;
-  const supabase = await createClient();
+  const { organisationId, userId, role, supabase } = orgResult;
 
   const { data, error } = await supabase
     .from("salles")

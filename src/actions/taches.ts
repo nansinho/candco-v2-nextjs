@@ -2,7 +2,6 @@
 
 import { getOrganisationId } from "@/lib/auth-helpers";
 import { logHistorique } from "@/lib/historique";
-import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 // ─── Schemas ─────────────────────────────────────────────
