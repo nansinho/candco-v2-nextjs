@@ -273,41 +273,95 @@ export async function createProduitFromPDF(extracted: PDFExtractedData) {
   const validModalite = ["presentiel", "distanciel", "mixte", "afest"];
   const validFormule = ["inter", "intra", "individuel"];
 
-  // Create the product with all fields mapped to dedicated columns
-  const { data: produit, error: produitError } = await supabase
+  // Core fields (always exist in schema)
+  const coreData: Record<string, unknown> = {
+    organisation_id: organisationId,
+    numero_affichage: numero,
+    intitule: extracted.intitule,
+    sous_titre: extracted.sous_titre || null,
+    description: extracted.description || null,
+    domaine: extracted.domaine || null,
+    type_action: validTypeAction.includes(extracted.type_action || "") ? extracted.type_action : null,
+    modalite: validModalite.includes(extracted.modalite || "") ? extracted.modalite : null,
+    formule: validFormule.includes(extracted.formule || "") ? extracted.formule : null,
+    duree_heures: extracted.duree_heures || null,
+    duree_jours: extracted.duree_jours || null,
+    slug: slugify(extracted.intitule),
+  };
+
+  // Extended fields (require migration 00015)
+  const extendedFields: Record<string, unknown> = {
+    categorie: extracted.categorie || null,
+    certification: extracted.certification || null,
+    delai_acces: extracted.delai_acces || null,
+    nombre_participants_min: extracted.nombre_participants_min || null,
+    nombre_participants_max: extracted.nombre_participants_max || null,
+    lieu_format: extracted.lieu_format || null,
+    modalites_evaluation: extracted.modalites_evaluation || null,
+    modalites_pedagogiques: extracted.modalites_pedagogiques || null,
+    moyens_pedagogiques: extracted.moyens_pedagogiques || null,
+    accessibilite: extracted.accessibilite || null,
+    modalites_paiement: extracted.modalites_paiement || null,
+    equipe_pedagogique: extracted.equipe_pedagogique || null,
+  };
+
+  // Try with all fields first, fallback to core only if migration not applied
+  let produit: { id: string; intitule: string } | null = null;
+  let migrationApplied = true;
+
+  const { data: fullData, error: fullError } = await supabase
     .from("produits_formation")
-    .insert({
-      organisation_id: organisationId,
-      numero_affichage: numero,
-      intitule: extracted.intitule,
-      sous_titre: extracted.sous_titre || null,
-      description: extracted.description || null,
-      domaine: extracted.domaine || null,
-      categorie: extracted.categorie || null,
-      type_action: validTypeAction.includes(extracted.type_action || "") ? extracted.type_action : null,
-      modalite: validModalite.includes(extracted.modalite || "") ? extracted.modalite : null,
-      formule: validFormule.includes(extracted.formule || "") ? extracted.formule : null,
-      duree_heures: extracted.duree_heures || null,
-      duree_jours: extracted.duree_jours || null,
-      slug: slugify(extracted.intitule),
-      // New dedicated fields
-      certification: extracted.certification || null,
-      delai_acces: extracted.delai_acces || null,
-      nombre_participants_min: extracted.nombre_participants_min || null,
-      nombre_participants_max: extracted.nombre_participants_max || null,
-      lieu_format: extracted.lieu_format || null,
-      modalites_evaluation: extracted.modalites_evaluation || null,
-      modalites_pedagogiques: extracted.modalites_pedagogiques || null,
-      moyens_pedagogiques: extracted.moyens_pedagogiques || null,
-      accessibilite: extracted.accessibilite || null,
-      modalites_paiement: extracted.modalites_paiement || null,
-      equipe_pedagogique: extracted.equipe_pedagogique || null,
-    })
+    .insert({ ...coreData, ...extendedFields })
     .select()
     .single();
 
-  if (produitError || !produit) {
-    return { error: produitError?.message || "Erreur lors de la creation du produit" };
+  if (fullError && fullError.message?.includes("column")) {
+    // Migration not applied — fallback to core fields only
+    migrationApplied = false;
+    console.warn("[createProduitFromPDF] Migration 00015 not applied, using core fields only");
+
+    // Build a rich description with the extra data that can't go in dedicated columns
+    const extraSections: string[] = [];
+    if (extracted.prerequis?.length) {
+      extraSections.push(`<h3>Prérequis</h3><ul>${extracted.prerequis.map(p => `<li>${p}</li>`).join("")}</ul>`);
+    }
+    if (extracted.public_vise?.length) {
+      extraSections.push(`<h3>Public visé</h3><ul>${extracted.public_vise.map(p => `<li>${p}</li>`).join("")}</ul>`);
+    }
+    if (extracted.competences?.length) {
+      extraSections.push(`<h3>Compétences visées</h3><ul>${extracted.competences.map(c => `<li>${c}</li>`).join("")}</ul>`);
+    }
+    if (extracted.financement?.length) {
+      extraSections.push(`<h3>Financement</h3><ul>${extracted.financement.map(f => `<li>${f}</li>`).join("")}</ul>`);
+    }
+    if (extracted.modalites_pedagogiques) extraSections.push(`<h3>Modalités pédagogiques</h3><p>${extracted.modalites_pedagogiques}</p>`);
+    if (extracted.moyens_pedagogiques) extraSections.push(`<h3>Moyens pédagogiques</h3><p>${extracted.moyens_pedagogiques}</p>`);
+    if (extracted.modalites_evaluation) extraSections.push(`<h3>Modalités d'évaluation</h3><p>${extracted.modalites_evaluation}</p>`);
+    if (extracted.accessibilite) extraSections.push(`<h3>Accessibilité</h3><p>${extracted.accessibilite}</p>`);
+    if (extracted.certification) extraSections.push(`<h3>Certification</h3><p>${extracted.certification}</p>`);
+
+    if (extraSections.length > 0) {
+      coreData.description = (coreData.description || "") + "\n\n" + extraSections.join("\n\n");
+    }
+
+    const { data: coreOnly, error: coreError } = await supabase
+      .from("produits_formation")
+      .insert(coreData)
+      .select()
+      .single();
+
+    if (coreError || !coreOnly) {
+      return { error: coreError?.message || "Erreur lors de la creation du produit" };
+    }
+    produit = coreOnly;
+  } else if (fullError) {
+    return { error: fullError.message || "Erreur lors de la creation du produit" };
+  } else {
+    produit = fullData;
+  }
+
+  if (!produit) {
+    return { error: "Erreur lors de la creation du produit" };
   }
 
   const produitId = produit.id;
@@ -315,7 +369,7 @@ export async function createProduitFromPDF(extracted: PDFExtractedData) {
   // Insert all related data in parallel
   const insertPromises: PromiseLike<unknown>[] = [];
 
-  // Objectifs
+  // Objectifs (table exists from migration 00002)
   if (extracted.objectifs && extracted.objectifs.length > 0) {
     const objectifsData = extracted.objectifs.map((obj, i) => ({
       produit_id: produitId,
@@ -325,17 +379,7 @@ export async function createProduitFromPDF(extracted: PDFExtractedData) {
     insertPromises.push(supabase.from("produit_objectifs").insert(objectifsData).select());
   }
 
-  // Compétences
-  if (extracted.competences && extracted.competences.length > 0) {
-    const competencesData = extracted.competences.map((c, i) => ({
-      produit_id: produitId,
-      texte: c,
-      ordre: i + 1,
-    }));
-    insertPromises.push(supabase.from("produit_competences").insert(competencesData).select());
-  }
-
-  // Programme modules
+  // Programme modules (table exists from migration 00002)
   if (extracted.modules && extracted.modules.length > 0) {
     const modulesData = extracted.modules.map((mod, i) => ({
       produit_id: produitId,
@@ -347,37 +391,7 @@ export async function createProduitFromPDF(extracted: PDFExtractedData) {
     insertPromises.push(supabase.from("produit_programme").insert(modulesData).select());
   }
 
-  // Prérequis
-  if (extracted.prerequis && extracted.prerequis.length > 0) {
-    const prerequisData = extracted.prerequis.map((p, i) => ({
-      produit_id: produitId,
-      texte: p,
-      ordre: i + 1,
-    }));
-    insertPromises.push(supabase.from("produit_prerequis").insert(prerequisData).select());
-  }
-
-  // Public visé
-  if (extracted.public_vise && extracted.public_vise.length > 0) {
-    const publicViseData = extracted.public_vise.map((p, i) => ({
-      produit_id: produitId,
-      texte: p,
-      ordre: i + 1,
-    }));
-    insertPromises.push(supabase.from("produit_public_vise").insert(publicViseData).select());
-  }
-
-  // Financement
-  if (extracted.financement && extracted.financement.length > 0) {
-    const financementData = extracted.financement.map((f, i) => ({
-      produit_id: produitId,
-      texte: f,
-      ordre: i + 1,
-    }));
-    insertPromises.push(supabase.from("produit_financement").insert(financementData).select());
-  }
-
-  // Tarifs
+  // Tarifs (table exists from migration 00002)
   const tarifs: { produit_id: string; nom: string; prix_ht: number; unite: string; is_default: boolean }[] = [];
   if (extracted.tarif_intra_ht) {
     tarifs.push({
@@ -399,6 +413,45 @@ export async function createProduitFromPDF(extracted: PDFExtractedData) {
   }
   if (tarifs.length > 0) {
     insertPromises.push(supabase.from("produit_tarifs").insert(tarifs).select());
+  }
+
+  // New tables (require migration 00015) — only insert if migration applied
+  if (migrationApplied) {
+    if (extracted.competences && extracted.competences.length > 0) {
+      const competencesData = extracted.competences.map((c, i) => ({
+        produit_id: produitId,
+        texte: c,
+        ordre: i + 1,
+      }));
+      insertPromises.push(supabase.from("produit_competences").insert(competencesData).select());
+    }
+
+    if (extracted.prerequis && extracted.prerequis.length > 0) {
+      const prerequisData = extracted.prerequis.map((p, i) => ({
+        produit_id: produitId,
+        texte: p,
+        ordre: i + 1,
+      }));
+      insertPromises.push(supabase.from("produit_prerequis").insert(prerequisData).select());
+    }
+
+    if (extracted.public_vise && extracted.public_vise.length > 0) {
+      const publicViseData = extracted.public_vise.map((p, i) => ({
+        produit_id: produitId,
+        texte: p,
+        ordre: i + 1,
+      }));
+      insertPromises.push(supabase.from("produit_public_vise").insert(publicViseData).select());
+    }
+
+    if (extracted.financement && extracted.financement.length > 0) {
+      const financementData = extracted.financement.map((f, i) => ({
+        produit_id: produitId,
+        texte: f,
+        ordre: i + 1,
+      }));
+      insertPromises.push(supabase.from("produit_financement").insert(financementData).select());
+    }
   }
 
   await Promise.all(insertPromises);
@@ -482,26 +535,43 @@ export async function getProduit(id: string) {
     return { data: null, tarifs: [], objectifs: [], programme: [], prerequis: [], publicVise: [], competences: [], financement: [], error: error.message };
   }
 
-  // Fetch all related data in parallel
-  const [tarifsResult, objectifsResult, programmeResult, prerequisResult, publicViseResult, competencesResult, financementResult] = await Promise.all([
+  // Fetch core related data (tables from migration 00002)
+  const [tarifsResult, objectifsResult, programmeResult] = await Promise.all([
     admin.from("produit_tarifs").select("*").eq("produit_id", id).order("created_at", { ascending: true }),
     admin.from("produit_objectifs").select("*").eq("produit_id", id).order("ordre", { ascending: true }),
     admin.from("produit_programme").select("*").eq("produit_id", id).order("ordre", { ascending: true }),
-    admin.from("produit_prerequis").select("*").eq("produit_id", id).order("ordre", { ascending: true }),
-    admin.from("produit_public_vise").select("*").eq("produit_id", id).order("ordre", { ascending: true }),
-    admin.from("produit_competences").select("*").eq("produit_id", id).order("ordre", { ascending: true }),
-    admin.from("produit_financement").select("*").eq("produit_id", id).order("ordre", { ascending: true }),
   ]);
+
+  // Fetch extended related data (tables from migration 00015) — graceful fallback
+  let prerequis: { id: string; texte: string; ordre: number }[] = [];
+  let publicVise: { id: string; texte: string; ordre: number }[] = [];
+  let competences: { id: string; texte: string; ordre: number }[] = [];
+  let financement: { id: string; texte: string; ordre: number }[] = [];
+
+  try {
+    const [prerequisResult, publicViseResult, competencesResult, financementResult] = await Promise.all([
+      admin.from("produit_prerequis").select("*").eq("produit_id", id).order("ordre", { ascending: true }),
+      admin.from("produit_public_vise").select("*").eq("produit_id", id).order("ordre", { ascending: true }),
+      admin.from("produit_competences").select("*").eq("produit_id", id).order("ordre", { ascending: true }),
+      admin.from("produit_financement").select("*").eq("produit_id", id).order("ordre", { ascending: true }),
+    ]);
+    prerequis = (prerequisResult.data ?? []) as typeof prerequis;
+    publicVise = (publicViseResult.data ?? []) as typeof publicVise;
+    competences = (competencesResult.data ?? []) as typeof competences;
+    financement = (financementResult.data ?? []) as typeof financement;
+  } catch {
+    console.warn("[getProduit] Extended tables not available (migration 00015 not applied)");
+  }
 
   return {
     data: produit,
     tarifs: tarifsResult.data ?? [],
     objectifs: objectifsResult.data ?? [],
     programme: programmeResult.data ?? [],
-    prerequis: prerequisResult.data ?? [],
-    publicVise: publicViseResult.data ?? [],
-    competences: competencesResult.data ?? [],
-    financement: financementResult.data ?? [],
+    prerequis,
+    publicVise,
+    competences,
+    financement,
   };
 }
 
@@ -520,22 +590,35 @@ export async function updateProduit(id: string, input: UpdateProduitInput) {
   const cleanedData = cleanEmptyStrings(parsed.data);
 
   // Query related data counts for completion calculation
-  const [tarifsRes, objectifsRes, programmeRes, prerequisRes, publicViseRes] = await Promise.all([
+  const [tarifsRes, objectifsRes, programmeRes] = await Promise.all([
     supabase.from("produit_tarifs").select("id", { count: "exact", head: true }).eq("produit_id", id),
     supabase.from("produit_objectifs").select("id", { count: "exact", head: true }).eq("produit_id", id),
     supabase.from("produit_programme").select("id", { count: "exact", head: true }).eq("produit_id", id),
-    supabase.from("produit_prerequis").select("id", { count: "exact", head: true }).eq("produit_id", id),
-    supabase.from("produit_public_vise").select("id", { count: "exact", head: true }).eq("produit_id", id),
   ]);
+
+  // Try extended table counts (migration 00015)
+  let prerequisCount = 0;
+  let publicViseCount = 0;
+  try {
+    const [prerequisRes, publicViseRes] = await Promise.all([
+      supabase.from("produit_prerequis").select("id", { count: "exact", head: true }).eq("produit_id", id),
+      supabase.from("produit_public_vise").select("id", { count: "exact", head: true }).eq("produit_id", id),
+    ]);
+    prerequisCount = prerequisRes.count ?? 0;
+    publicViseCount = publicViseRes.count ?? 0;
+  } catch {
+    // Migration not applied
+  }
 
   const completion_pct = calculateCompletion(cleanedData, {
     tarifs: tarifsRes.count ?? 0,
     objectifs: objectifsRes.count ?? 0,
     programme: programmeRes.count ?? 0,
-    prerequis: prerequisRes.count ?? 0,
-    publicVise: publicViseRes.count ?? 0,
+    prerequis: prerequisCount,
+    publicVise: publicViseCount,
   });
 
+  // Try full update with extended fields
   const { data, error } = await supabase
     .from("produits_formation")
     .update({ ...cleanedData, completion_pct })
@@ -543,6 +626,36 @@ export async function updateProduit(id: string, input: UpdateProduitInput) {
     .eq("organisation_id", organisationId)
     .select()
     .single();
+
+  if (error && error.message?.includes("column")) {
+    // Migration not applied — strip extended fields and retry
+    const extendedKeys = [
+      "categorie", "certification", "delai_acces", "nombre_participants_min",
+      "nombre_participants_max", "lieu_format", "modalites_evaluation",
+      "modalites_pedagogiques", "moyens_pedagogiques", "accessibilite",
+      "modalites_paiement", "equipe_pedagogique", "meta_titre", "meta_description",
+    ];
+    const coreData = { ...cleanedData, completion_pct };
+    for (const key of extendedKeys) {
+      delete (coreData as Record<string, unknown>)[key];
+    }
+
+    const { data: coreResult, error: coreError } = await supabase
+      .from("produits_formation")
+      .update(coreData)
+      .eq("id", id)
+      .eq("organisation_id", organisationId)
+      .select()
+      .single();
+
+    if (coreError) {
+      return { error: { _form: [coreError.message] } };
+    }
+
+    revalidatePath("/produits");
+    revalidatePath(`/produits/${id}`);
+    return { data: coreResult };
+  }
 
   if (error) {
     return { error: { _form: [error.message] } };
