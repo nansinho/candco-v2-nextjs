@@ -36,6 +36,10 @@ import {
   Building,
   Share2,
   FileDown,
+  ArrowUp,
+  ArrowDown,
+  ChevronsUpDown,
+  Hash,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,6 +65,7 @@ import {
   addProgrammeModule,
   updateProgrammeModule,
   deleteProgrammeModule,
+  reorderProgrammeModule,
   addListItem,
   updateListItem,
   deleteListItem,
@@ -117,6 +122,7 @@ interface Produit {
   organise_par_nom: string | null;
   organise_par_logo_url: string | null;
   organise_par_actif: boolean;
+  programme_numerotation: string | null;
   created_at: string;
   updated_at: string | null;
 }
@@ -405,15 +411,90 @@ export function ProduitDetail({
   // Whether biblio tab should show (only if there are ouvrages or articles)
   const hasBiblio = initialOuvrages.length > 0 || initialArticles.length > 0;
 
-  // Count missing fields for tab badges (aligned with server-side calculation)
-  const missingGeneral = [produit.intitule, produit.description, produit.domaine, produit.type_action, produit.modalite, produit.formule].filter((v) => !v).length;
-  const missingPratique = [produit.duree_heures, produit.certification, produit.delai_acces, produit.lieu_format].filter((v) => !v).length
+  // ─── Dynamic field tracking for real-time completion ────
+  const TRACKABLE_FIELDS = [
+    "intitule", "sous_titre", "description", "domaine", "categorie",
+    "type_action", "modalite", "formule", "duree_heures", "duree_jours",
+    "certification", "delai_acces", "lieu_format",
+    "modalites_evaluation", "modalites_pedagogiques", "moyens_pedagogiques",
+    "accessibilite", "equipe_pedagogique",
+    "nombre_participants_min", "nombre_participants_max",
+  ] as const;
+
+  const [fieldFilled, setFieldFilled] = React.useState<Record<string, boolean>>(() => {
+    const init: Record<string, boolean> = {};
+    for (const f of TRACKABLE_FIELDS) {
+      const val = produit[f as keyof Produit];
+      init[f] = val !== null && val !== undefined && val !== "" && val !== 0;
+    }
+    return init;
+  });
+
+  // Re-sync from form DOM values when props change (after save or list mutation)
+  const prevProduitId = React.useRef(produit.updated_at);
+  React.useEffect(() => {
+    if (prevProduitId.current !== produit.updated_at) {
+      prevProduitId.current = produit.updated_at;
+      if (formRef.current) {
+        const form = formRef.current;
+        const updated: Record<string, boolean> = {};
+        for (const f of TRACKABLE_FIELDS) {
+          const el = form.elements.namedItem(f) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null;
+          updated[f] = !!el && el.value.trim() !== "";
+        }
+        setFieldFilled(updated);
+      }
+    }
+  }, [produit.updated_at]);
+
+  const handleFormChange = React.useCallback(() => {
+    if (!formRef.current) return;
+    const form = formRef.current;
+    const updated: Record<string, boolean> = {};
+    for (const f of TRACKABLE_FIELDS) {
+      const el = form.elements.namedItem(f) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null;
+      updated[f] = !!el && el.value.trim() !== "";
+    }
+    setFieldFilled(updated);
+  }, []);
+
+  const isFilled = (name: string): boolean => !!fieldFilled[name];
+
+  // ─── Dynamic completion calculation ─────────────────────
+  const COMPLETION_FIELDS = [
+    "intitule", "description", "domaine", "type_action", "modalite", "formule",
+    "duree_heures", "duree_jours", "certification", "delai_acces", "lieu_format",
+    "modalites_evaluation", "modalites_pedagogiques", "moyens_pedagogiques",
+    "accessibilite", "equipe_pedagogique",
+  ];
+
+  const dynamicCompletion = React.useMemo(() => {
+    let filled = 0;
+    for (const f of COMPLETION_FIELDS) {
+      if (fieldFilled[f]) filled++;
+    }
+    if (fieldFilled["nombre_participants_min"] || fieldFilled["nombre_participants_max"]) filled++;
+    const totalCore = COMPLETION_FIELDS.length + 1;
+    const total = totalCore + 7;
+    if (initialTarifs.length > 0) filled++;
+    if (initialObjectifs.length > 0) filled++;
+    if (initialProgramme.length > 0) filled++;
+    if (initialPrerequis.length > 0) filled++;
+    if (initialPublicVise.length > 0) filled++;
+    if (initialCompetences.length > 0) filled++;
+    if (initialFinancement.length > 0) filled++;
+    return Math.round((filled / total) * 100);
+  }, [fieldFilled, initialTarifs.length, initialObjectifs.length, initialProgramme.length, initialPrerequis.length, initialPublicVise.length, initialCompetences.length, initialFinancement.length]);
+
+  // ─── Dynamic missing counts (for tab badges) ───────────
+  const missingGeneral = [isFilled("intitule"), isFilled("description"), isFilled("domaine"), isFilled("type_action"), isFilled("modalite"), isFilled("formule")].filter((v) => !v).length;
+  const missingPratique = [isFilled("duree_heures"), isFilled("certification"), isFilled("delai_acces"), isFilled("lieu_format")].filter((v) => !v).length
     + (initialTarifs.length === 0 ? 1 : 0) + (initialPrerequis.length === 0 ? 1 : 0) + (initialPublicVise.length === 0 ? 1 : 0)
     + (initialFinancement.length === 0 ? 1 : 0)
-    + ((!produit.nombre_participants_min && !produit.nombre_participants_max) ? 1 : 0);
+    + ((!isFilled("nombre_participants_min") && !isFilled("nombre_participants_max")) ? 1 : 0);
   const missingObjectifs = (initialObjectifs.length === 0 ? 1 : 0) + (initialCompetences.length === 0 ? 1 : 0);
   const missingProgramme = initialProgramme.length === 0 ? 1 : 0;
-  const missingModalites = [produit.modalites_pedagogiques, produit.moyens_pedagogiques, produit.modalites_evaluation, produit.accessibilite, produit.equipe_pedagogique].filter((v) => !v).length;
+  const missingModalites = [isFilled("modalites_pedagogiques"), isFilled("moyens_pedagogiques"), isFilled("modalites_evaluation"), isFilled("accessibilite"), isFilled("equipe_pedagogique")].filter((v) => !v).length;
   const totalMissing = missingGeneral + missingPratique + missingObjectifs + missingProgramme + missingModalites;
 
   // ─── Form submit (saves all fields across tabs) ─────────
@@ -462,6 +543,8 @@ export function ProduitDetail({
       organise_par_nom: (fd.get("organise_par_nom") as string) || undefined,
       organise_par_logo_url: (fd.get("organise_par_logo_url") as string) || undefined,
       organise_par_actif: fd.get("organise_par_actif") === "on",
+      // Programme display
+      programme_numerotation: (fd.get("programme_numerotation") as "arabic" | "roman" | "letters" | "none") || undefined,
     };
 
     const result = await updateProduit(produit.id, input);
@@ -520,7 +603,7 @@ export function ProduitDetail({
   };
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit}>
+    <form ref={formRef} onSubmit={handleSubmit} onChange={handleFormChange}>
       <div className="space-y-6">
         {isArchived && (
           <div className="flex items-center justify-between rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3">
@@ -546,15 +629,15 @@ export function ProduitDetail({
                     <div
                       className="h-full rounded-full transition-all"
                       style={{
-                        width: `${produit.completion_pct}%`,
-                        backgroundColor: produit.completion_pct >= 80 ? "#22c55e" : produit.completion_pct >= 50 ? "#f97316" : "#ef4444",
+                        width: `${dynamicCompletion}%`,
+                        backgroundColor: dynamicCompletion >= 80 ? "#22c55e" : dynamicCompletion >= 50 ? "#f97316" : "#ef4444",
                       }}
                     />
                   </div>
                   <span className="text-xs font-medium" style={{
-                    color: produit.completion_pct >= 80 ? "#22c55e" : produit.completion_pct >= 50 ? "#f97316" : "#ef4444",
+                    color: dynamicCompletion >= 80 ? "#22c55e" : dynamicCompletion >= 50 ? "#f97316" : "#ef4444",
                   }}>
-                    {produit.completion_pct}%
+                    {dynamicCompletion}%
                   </span>
                 </div>
                 {totalMissing > 0 ? (
@@ -655,14 +738,14 @@ export function ProduitDetail({
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <Label htmlFor="intitule" className="text-[13px]">Titre <span className="text-destructive">*</span></Label>
-                        <FieldBadge filled={!!produit.intitule} />
+                        <FieldBadge filled={isFilled("intitule")} />
                       </div>
                       <Input id="intitule" name="intitule" defaultValue={produit.intitule} className="h-9 text-[13px] border-border/60" />
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <Label htmlFor="sous_titre" className="text-[13px]">Sous-titre</Label>
-                        <FieldBadge filled={!!produit.sous_titre} />
+                        <FieldBadge filled={isFilled("sous_titre")} />
                       </div>
                       <Input id="sous_titre" name="sous_titre" defaultValue={produit.sous_titre ?? ""} className="h-9 text-[13px] border-border/60" />
                     </div>
@@ -671,7 +754,7 @@ export function ProduitDetail({
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Label htmlFor="description" className="text-[13px]">Description</Label>
-                      <FieldBadge filled={!!produit.description} />
+                      <FieldBadge filled={isFilled("description")} />
                     </div>
                     <textarea
                       id="description"
@@ -686,14 +769,14 @@ export function ProduitDetail({
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <Label htmlFor="domaine" className="text-[13px]">Pôle</Label>
-                        <FieldBadge filled={!!produit.domaine} />
+                        <FieldBadge filled={isFilled("domaine")} />
                       </div>
                       <Input id="domaine" name="domaine" defaultValue={produit.domaine ?? ""} placeholder="Santé, Sécurité, Management..." className="h-9 text-[13px] border-border/60" />
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <Label htmlFor="categorie" className="text-[13px]">Catégorie</Label>
-                        <FieldBadge filled={!!produit.categorie} />
+                        <FieldBadge filled={isFilled("categorie")} />
                       </div>
                       <Input id="categorie" name="categorie" defaultValue={produit.categorie ?? ""} placeholder="Pratiques cliniques et techniques..." className="h-9 text-[13px] border-border/60" />
                     </div>
@@ -702,7 +785,10 @@ export function ProduitDetail({
                   {/* Classification */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="type_action" className="text-[13px]">Type d&apos;action</Label>
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor="type_action" className="text-[13px]">Type d&apos;action</Label>
+                        <FieldBadge filled={isFilled("type_action")} />
+                      </div>
                       <select id="type_action" name="type_action" defaultValue={produit.type_action ?? ""} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground">
                         <option value="">--</option>
                         <option value="action_formation">Action de formation</option>
@@ -712,7 +798,10 @@ export function ProduitDetail({
                       </select>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="modalite" className="text-[13px]">Modalité</Label>
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor="modalite" className="text-[13px]">Modalité</Label>
+                        <FieldBadge filled={isFilled("modalite")} />
+                      </div>
                       <select id="modalite" name="modalite" defaultValue={produit.modalite ?? ""} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground">
                         <option value="">--</option>
                         <option value="presentiel">Présentiel</option>
@@ -722,7 +811,10 @@ export function ProduitDetail({
                       </select>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="formule" className="text-[13px]">Formule</Label>
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor="formule" className="text-[13px]">Formule</Label>
+                        <FieldBadge filled={isFilled("formule")} />
+                      </div>
                       <select id="formule" name="formule" defaultValue={produit.formule ?? ""} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground">
                         <option value="">--</option>
                         <option value="inter">Inter</option>
@@ -779,7 +871,7 @@ export function ProduitDetail({
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Label className="text-[13px]">Durée <span className="text-destructive">*</span></Label>
-                      <FieldBadge filled={!!produit.duree_heures} />
+                      <FieldBadge filled={isFilled("duree_heures")} />
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="flex items-center gap-2">
@@ -804,7 +896,7 @@ export function ProduitDetail({
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <Label className="text-[13px]">Nombre de participants</Label>
-                        <FieldBadge filled={!!produit.nombre_participants_min || !!produit.nombre_participants_max} />
+                        <FieldBadge filled={isFilled("nombre_participants_min") || isFilled("nombre_participants_max")} />
                       </div>
                       <div className="flex items-center gap-2">
                         <Input name="nombre_participants_min" type="number" min="0" defaultValue={produit.nombre_participants_min ?? ""} placeholder="Min" className="h-9 text-[13px] border-border/60" />
@@ -815,7 +907,7 @@ export function ProduitDetail({
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <Label htmlFor="lieu_format" className="text-[13px]">Format et lieu</Label>
-                        <FieldBadge filled={!!produit.lieu_format} />
+                        <FieldBadge filled={isFilled("lieu_format")} />
                       </div>
                       <Input id="lieu_format" name="lieu_format" defaultValue={produit.lieu_format ?? ""} placeholder="Présentiel, Sur site..." className="h-9 text-[13px] border-border/60" />
                     </div>
@@ -825,14 +917,14 @@ export function ProduitDetail({
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <Label htmlFor="delai_acces" className="text-[13px]">Délai d&apos;accès</Label>
-                        <FieldBadge filled={!!produit.delai_acces} />
+                        <FieldBadge filled={isFilled("delai_acces")} />
                       </div>
                       <Input id="delai_acces" name="delai_acces" defaultValue={produit.delai_acces ?? ""} placeholder="Inscription jusqu'au matin de la formation" className="h-9 text-[13px] border-border/60" />
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <Label htmlFor="certification" className="text-[13px]">Certification</Label>
-                        <FieldBadge filled={!!produit.certification} />
+                        <FieldBadge filled={isFilled("certification")} />
                       </div>
                       <Input id="certification" name="certification" defaultValue={produit.certification ?? ""} placeholder="Certificat de réalisation" className="h-9 text-[13px] border-border/60" />
                     </div>
@@ -908,7 +1000,7 @@ export function ProduitDetail({
 
               {/* ═══ Tab: Programme ═══ */}
               <TabsContent value="programme" className="mt-6">
-                <ProgrammeTab produitId={produit.id} modules={initialProgramme} />
+                <ProgrammeTab produitId={produit.id} modules={initialProgramme} numerotation={produit.programme_numerotation ?? "arabic"} />
               </TabsContent>
 
               {/* ═══ Tab: Modalités ═══ */}
@@ -919,7 +1011,7 @@ export function ProduitDetail({
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Label htmlFor="modalites_pedagogiques" className="text-[13px]">Méthodes pédagogiques</Label>
-                      <FieldBadge filled={!!produit.modalites_pedagogiques} />
+                      <FieldBadge filled={isFilled("modalites_pedagogiques")} />
                     </div>
                     <textarea
                       id="modalites_pedagogiques"
@@ -934,7 +1026,7 @@ export function ProduitDetail({
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Label htmlFor="moyens_pedagogiques" className="text-[13px]">Moyens pédagogiques</Label>
-                      <FieldBadge filled={!!produit.moyens_pedagogiques} />
+                      <FieldBadge filled={isFilled("moyens_pedagogiques")} />
                     </div>
                     <textarea
                       id="moyens_pedagogiques"
@@ -949,7 +1041,7 @@ export function ProduitDetail({
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Label htmlFor="modalites_evaluation" className="text-[13px]">Modalités d&apos;évaluation</Label>
-                      <FieldBadge filled={!!produit.modalites_evaluation} />
+                      <FieldBadge filled={isFilled("modalites_evaluation")} />
                     </div>
                     <textarea
                       id="modalites_evaluation"
@@ -968,7 +1060,7 @@ export function ProduitDetail({
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Label htmlFor="equipe_pedagogique" className="text-[13px]">Équipe pédagogique</Label>
-                      <FieldBadge filled={!!produit.equipe_pedagogique} />
+                      <FieldBadge filled={isFilled("equipe_pedagogique")} />
                     </div>
                     <textarea
                       id="equipe_pedagogique"
@@ -983,7 +1075,7 @@ export function ProduitDetail({
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Label htmlFor="accessibilite" className="text-[13px]">Accessibilité</Label>
-                      <FieldBadge filled={!!produit.accessibilite} />
+                      <FieldBadge filled={isFilled("accessibilite")} />
                     </div>
                     <textarea
                       id="accessibilite"
@@ -1709,12 +1801,47 @@ function TarifsSection({ produitId, tarifs }: { produitId: string; tarifs: Tarif
 
 // ─── Programme Tab ───────────────────────────────────────
 
+const NUMEROTATION_OPTIONS = [
+  { value: "arabic", label: "1, 2, 3...", example: "1" },
+  { value: "roman", label: "I, II, III...", example: "I" },
+  { value: "letters", label: "A, B, C...", example: "A" },
+  { value: "none", label: "Aucune", example: "" },
+] as const;
+
+function toRoman(num: number): string {
+  const vals = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1];
+  const syms = ["M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I"];
+  let result = "";
+  for (let i = 0; i < vals.length; i++) {
+    while (num >= vals[i]) {
+      result += syms[i];
+      num -= vals[i];
+    }
+  }
+  return result;
+}
+
+function formatModuleNumber(index: number, style: string): string {
+  switch (style) {
+    case "roman":
+      return toRoman(index + 1);
+    case "letters":
+      return String.fromCharCode(65 + (index % 26));
+    case "none":
+      return "";
+    default:
+      return String(index + 1);
+  }
+}
+
 function ProgrammeTab({
   produitId,
   modules,
+  numerotation,
 }: {
   produitId: string;
   modules: ProgrammeModule[];
+  numerotation: string;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -1725,6 +1852,9 @@ function ProgrammeTab({
   const [editingModuleId, setEditingModuleId] = React.useState<string | null>(null);
   const [editingModule, setEditingModule] = React.useState<{ titre: string; contenu: string; duree: string }>({ titre: "", contenu: "", duree: "" });
   const [savingEdit, setSavingEdit] = React.useState(false);
+  const [reordering, setReordering] = React.useState<string | null>(null);
+  const [localNumerotation, setLocalNumerotation] = React.useState(numerotation || "arabic");
+  const allExpanded = modules.length > 0 && modules.every((m) => expandedModules.has(m.id));
 
   const toggleModule = (id: string) => {
     setExpandedModules((prev) => {
@@ -1733,6 +1863,14 @@ function ProgrammeTab({
       else next.add(id);
       return next;
     });
+  };
+
+  const toggleAll = () => {
+    if (allExpanded) {
+      setExpandedModules(new Set());
+    } else {
+      setExpandedModules(new Set(modules.map((m) => m.id)));
+    }
   };
 
   const handleAdd = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -1760,6 +1898,13 @@ function ProgrammeTab({
     if (!(await confirmModule({ title: "Supprimer ce module ?", description: "Le contenu du module sera perdu.", confirmLabel: "Supprimer", variant: "destructive" }))) return;
     await deleteProgrammeModule(moduleId, produitId);
     toast({ title: "Module supprimé", variant: "success" });
+    router.refresh();
+  };
+
+  const handleReorder = async (moduleId: string, direction: "up" | "down") => {
+    setReordering(moduleId);
+    await reorderProgrammeModule(moduleId, produitId, direction);
+    setReordering(null);
     router.refresh();
   };
 
@@ -1791,28 +1936,92 @@ function ProgrammeTab({
     setEditingModuleId(null);
   };
 
+  // Parse and sum durations for total display
+  const totalDuration = React.useMemo(() => {
+    let totalMinutes = 0;
+    for (const m of modules) {
+      if (!m.duree) continue;
+      const d = m.duree.toLowerCase().trim();
+      // Match patterns: "2h", "2h30", "1h30min", "3 heures", "90min", "1.5h", "1 jour"
+      const hMatch = d.match(/(\d+(?:[.,]\d+)?)\s*h/);
+      const mMatch = d.match(/(\d+)\s*min/);
+      const jourMatch = d.match(/(\d+(?:[.,]\d+)?)\s*j/);
+      if (hMatch) totalMinutes += parseFloat(hMatch[1].replace(",", ".")) * 60;
+      if (mMatch) totalMinutes += parseInt(mMatch[1]);
+      if (jourMatch) totalMinutes += parseFloat(jourMatch[1].replace(",", ".")) * 7 * 60; // 7h/jour
+    }
+    if (totalMinutes === 0) return null;
+    const h = Math.floor(totalMinutes / 60);
+    const min = Math.round(totalMinutes % 60);
+    return min > 0 ? `${h}h${String(min).padStart(2, "0")}` : `${h}h`;
+  }, [modules]);
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <SectionTitle icon={<GripVertical className="h-4 w-4 text-primary" />}>
-          Programme détaillé
-        </SectionTitle>
-        <Button size="sm" className="h-8 text-xs" onClick={() => setIsAdding(true)} type="button">
-          <Plus className="mr-1.5 h-3 w-3" />
-          Ajouter un module
-        </Button>
+      {/* Header row */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-2">
+          <SectionTitle icon={<GripVertical className="h-4 w-4 text-primary" />}>
+            Programme détaillé
+          </SectionTitle>
+          <FieldBadge filled={modules.length > 0} />
+        </div>
+        <div className="flex items-center gap-2">
+          {modules.length > 0 && (
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={toggleAll} type="button">
+              <ChevronsUpDown className="mr-1.5 h-3 w-3" />
+              {allExpanded ? "Tout replier" : "Tout déplier"}
+            </Button>
+          )}
+          <Button size="sm" className="h-8 text-xs" onClick={() => setIsAdding(true)} type="button">
+            <Plus className="mr-1.5 h-3 w-3" />
+            Ajouter un module
+          </Button>
+        </div>
+      </div>
+
+      {/* Options bar: numbering + stats */}
+      <div className="flex items-center justify-between flex-wrap gap-3 rounded-lg border border-border/60 bg-card px-4 py-2.5">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Hash className="h-3.5 w-3.5 text-muted-foreground/60" />
+            <Label className="text-[11px] text-muted-foreground shrink-0">Numérotation</Label>
+            <select
+              name="programme_numerotation"
+              value={localNumerotation}
+              onChange={(e) => setLocalNumerotation(e.target.value)}
+              className="h-7 rounded-md border border-input bg-muted px-2 text-[11px] text-foreground"
+            >
+              {NUMEROTATION_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+          <span>{modules.length} module{modules.length !== 1 ? "s" : ""}</span>
+          {totalDuration && (
+            <>
+              <span className="text-border">|</span>
+              <span className="flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                Durée totale : {totalDuration}
+              </span>
+            </>
+          )}
+        </div>
       </div>
 
       {isAdding && (
         <form onSubmit={handleAdd} className="rounded-lg border border-primary/20 bg-card p-4 space-y-3">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="space-y-1">
               <Label className="text-[11px]">Titre *</Label>
               <Input name="module_titre" required placeholder="Séquence 1 : Introduction" className="h-8 text-sm border-border/60" />
             </div>
             <div className="space-y-1">
               <Label className="text-[11px]">Durée</Label>
-              <Input name="module_duree" placeholder="2h" className="h-8 text-sm border-border/60" />
+              <Input name="module_duree" placeholder="2h, 3h30, 1 jour..." className="h-8 text-sm border-border/60" />
             </div>
             <div className="flex items-end gap-2">
               <Button type="submit" size="sm" className="h-8 text-xs" disabled={saving}>
@@ -1842,7 +2051,7 @@ function ProgrammeTab({
           </div>
           <p className="text-sm text-muted-foreground/60">Aucun module de programme</p>
           <p className="text-xs text-muted-foreground/40">
-            Ajoutez des modules manuellement ci-dessus.
+            Ajoutez des modules manuellement ou importez depuis un PDF.
           </p>
         </div>
       ) : (
@@ -1850,37 +2059,71 @@ function ProgrammeTab({
           {modules.map((m, idx) => {
             const isExpanded = expandedModules.has(m.id);
             const isEditing = editingModuleId === m.id;
+            const numberLabel = formatModuleNumber(idx, localNumerotation);
+            const isReordering = reordering === m.id;
             return (
               <div key={m.id} className="rounded-lg border border-border/60 bg-card overflow-hidden group">
-                <button
-                  type="button"
-                  className="flex items-center gap-3 w-full px-4 py-3 text-left hover:bg-muted/20 transition-colors"
-                  onClick={() => { if (!isEditing) toggleModule(m.id); }}
-                >
-                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary shrink-0">
-                    {idx + 1}
+                <div className="flex items-center gap-0">
+                  {/* Reorder buttons */}
+                  <div className="flex flex-col border-r border-border/40 shrink-0">
+                    <button
+                      type="button"
+                      className="flex h-6 w-7 items-center justify-center text-muted-foreground/40 hover:text-foreground hover:bg-muted/30 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                      onClick={() => handleReorder(m.id, "up")}
+                      disabled={idx === 0 || isReordering}
+                      title="Monter"
+                    >
+                      <ArrowUp className="h-3 w-3" />
+                    </button>
+                    <button
+                      type="button"
+                      className="flex h-6 w-7 items-center justify-center text-muted-foreground/40 hover:text-foreground hover:bg-muted/30 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                      onClick={() => handleReorder(m.id, "down")}
+                      disabled={idx === modules.length - 1 || isReordering}
+                      title="Descendre"
+                    >
+                      <ArrowDown className="h-3 w-3" />
+                    </button>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-medium truncate">{m.titre}</h3>
-                      {m.duree && (
-                        <span className="text-xs text-muted-foreground/60 shrink-0">({m.duree})</span>
-                      )}
+
+                  {/* Module header */}
+                  <button
+                    type="button"
+                    className="flex items-center gap-3 flex-1 min-w-0 px-3 py-3 text-left hover:bg-muted/20 transition-colors"
+                    onClick={() => { if (!isEditing) toggleModule(m.id); }}
+                  >
+                    {numberLabel && (
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary shrink-0">
+                        {numberLabel}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-medium truncate">{m.titre}</h3>
+                        {m.duree && (
+                          <span className="text-xs text-muted-foreground/60 shrink-0">({m.duree})</span>
+                        )}
+                        {!m.contenu && (
+                          <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20 text-[9px] font-normal px-1.5 py-0 shrink-0">
+                            Sans contenu
+                          </Badge>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  {isExpanded ? (
-                    <ChevronDown className="h-4 w-4 text-muted-foreground/40 shrink-0" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 text-muted-foreground/40 shrink-0" />
-                  )}
-                </button>
+                    {isExpanded ? (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground/40 shrink-0" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-muted-foreground/40 shrink-0" />
+                    )}
+                  </button>
+                </div>
 
                 {isExpanded && (
-                  <div className="px-4 pb-3 pl-[52px] border-t border-border/40">
+                  <div className={`px-4 pb-3 border-t border-border/40 ${numberLabel ? "pl-[60px]" : "pl-[44px]"}`}>
                     {isEditing ? (
                       <div className="space-y-3 pt-3">
-                        <div className="grid grid-cols-3 gap-3">
-                          <div className="col-span-2 space-y-1">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div className="sm:col-span-2 space-y-1">
                             <Label className="text-[11px]">Titre</Label>
                             <Input
                               value={editingModule.titre}
@@ -1893,7 +2136,7 @@ function ProgrammeTab({
                             <Input
                               value={editingModule.duree}
                               onChange={(e) => setEditingModule((prev) => ({ ...prev, duree: e.target.value }))}
-                              placeholder="2h"
+                              placeholder="2h, 3h30, 1 jour..."
                               className="h-8 text-sm border-border/60"
                             />
                           </div>
