@@ -249,13 +249,13 @@ export async function getEntrepriseHistorique(
   // ── 3. Inscriptions → events ──
   if (inscriptionsResult.data) {
     for (const insc of inscriptionsResult.data) {
-      const apprenant = insc.apprenants as {
+      const apprenant = insc.apprenants as unknown as {
         id: string;
         numero_affichage: string;
         prenom: string;
         nom: string;
       } | null;
-      const session = insc.sessions as {
+      const session = insc.sessions as unknown as {
         id: string;
         numero_affichage: string;
         nom: string;
