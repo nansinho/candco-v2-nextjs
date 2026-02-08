@@ -522,6 +522,19 @@ export async function createMembre(entrepriseId: string, input: z.infer<typeof M
       }
     }
 
+    // Auto-link apprenant_entreprises for consistency (ignore duplicate)
+    if (d.apprenant_id) {
+      const { error: linkError } = await admin
+        .from("apprenant_entreprises")
+        .upsert(
+          { entreprise_id: entrepriseId, apprenant_id: d.apprenant_id },
+          { onConflict: "apprenant_id,entreprise_id", ignoreDuplicates: true }
+        );
+      if (linkError) {
+        console.error("[createMembre] apprenant_entreprises auto-link error:", linkError.message);
+      }
+    }
+
     // Fetch member name for logging
     let membreLabel = "Membre";
     if (d.apprenant_id) {

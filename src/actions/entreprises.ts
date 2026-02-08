@@ -551,24 +551,50 @@ export interface ApprenantLink {
 }
 
 export async function getEntrepriseApprenants(entrepriseId: string) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { data: [], error: result.error };
+  const { admin } = result;
 
-  const { data: links, error } = await supabase
+  // Source 1: apprenant_entreprises junction table (simple link)
+  const { data: links, error: linksError } = await admin
     .from("apprenant_entreprises")
     .select("apprenant_id, apprenants(id, numero_affichage, prenom, nom, email, telephone)")
     .eq("entreprise_id", entrepriseId);
 
-  if (error) {
-    return { data: [], error: error.message };
+  // Source 2: entreprise_membres table (organisation link)
+  const { data: membres, error: membresError } = await admin
+    .from("entreprise_membres")
+    .select("apprenant_id, apprenants(id, numero_affichage, prenom, nom, email, telephone)")
+    .eq("entreprise_id", entrepriseId)
+    .not("apprenant_id", "is", null);
+
+  if (linksError && membresError) {
+    return { data: [], error: linksError.message };
   }
 
   interface ApprenantJoin {
     apprenants: ApprenantLink | null;
   }
 
-  const apprenants: ApprenantLink[] = ((links ?? []) as unknown as ApprenantJoin[])
-    .map((link) => link.apprenants)
-    .filter((a): a is ApprenantLink => a !== null);
+  // Merge both sources and deduplicate by apprenant id
+  const seen = new Set<string>();
+  const apprenants: ApprenantLink[] = [];
+
+  for (const source of [links ?? [], membres ?? []]) {
+    for (const row of source as unknown as ApprenantJoin[]) {
+      const a = row.apprenants;
+      if (a && !seen.has(a.id)) {
+        seen.add(a.id);
+        apprenants.push(a);
+      }
+    }
+  }
+
+  // Sort by nom, prenom
+  apprenants.sort((a, b) => {
+    const cmp = a.nom.localeCompare(b.nom, "fr");
+    return cmp !== 0 ? cmp : a.prenom.localeCompare(b.prenom, "fr");
+  });
 
   return { data: apprenants };
 }
@@ -576,9 +602,9 @@ export async function getEntrepriseApprenants(entrepriseId: string) {
 export async function linkApprenantToEntreprise(entrepriseId: string, apprenantId: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { organisationId, userId, role, supabase, admin } = result;
+  const { organisationId, userId, role, admin } = result;
 
-  const { error } = await supabase
+  const { error } = await admin
     .from("apprenant_entreprises")
     .insert({ entreprise_id: entrepriseId, apprenant_id: apprenantId });
 
@@ -616,7 +642,7 @@ export async function linkApprenantToEntreprise(entrepriseId: string, apprenantI
 export async function unlinkApprenantFromEntreprise(entrepriseId: string, apprenantId: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { organisationId, userId, role, supabase, admin } = result;
+  const { organisationId, userId, role, admin } = result;
 
   // Fetch labels before unlinking
   const [{ data: ent }, { data: app }] = await Promise.all([
@@ -624,7 +650,7 @@ export async function unlinkApprenantFromEntreprise(entrepriseId: string, appren
     admin.from("apprenants").select("numero_affichage, prenom, nom").eq("id", apprenantId).single(),
   ]);
 
-  const { error } = await supabase
+  const { error } = await admin
     .from("apprenant_entreprises")
     .delete()
     .eq("entreprise_id", entrepriseId)

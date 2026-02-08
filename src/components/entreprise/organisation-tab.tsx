@@ -108,19 +108,30 @@ export function OrganisationTab({ entrepriseId }: OrganisationTabProps) {
   const [polesOpen, setPolesOpen] = React.useState(true);
   const [membresOpen, setMembresOpen] = React.useState(true);
 
+  const [loadError, setLoadError] = React.useState<string | null>(null);
+
   const fetchAll = React.useCallback(async () => {
     setIsLoading(true);
+    setLoadError(null);
     try {
       const [agencesResult, polesResult, membresResult] = await Promise.all([
         getAgences(entrepriseId),
         getPoles(entrepriseId),
         getMembres(entrepriseId),
       ]);
-      setAgences(agencesResult.data);
-      setPoles(polesResult.data as (Pole & { agence_nom?: string })[]);
-      setMembres(membresResult.data);
-    } catch {
-      // silently handle
+      if (agencesResult.error || polesResult.error || membresResult.error) {
+        console.error("[OrganisationTab] Load errors:", {
+          agences: agencesResult.error,
+          poles: polesResult.error,
+          membres: membresResult.error,
+        });
+      }
+      setAgences(agencesResult.data ?? []);
+      setPoles((polesResult.data ?? []) as (Pole & { agence_nom?: string })[]);
+      setMembres(membresResult.data ?? []);
+    } catch (err) {
+      console.error("[OrganisationTab] Unexpected error:", err);
+      setLoadError("Impossible de charger l'organisation. Veuillez recharger la page.");
     } finally {
       setIsLoading(false);
     }
@@ -136,6 +147,22 @@ export function OrganisationTab({ entrepriseId }: OrganisationTabProps) {
         {[1, 2, 3].map((i) => (
           <div key={i} className="h-32 animate-pulse rounded-lg bg-muted/30" />
         ))}
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-5 py-8 text-center">
+        <p className="text-sm text-destructive">{loadError}</p>
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-3 h-8 text-xs border-destructive/30 text-destructive hover:bg-destructive/10"
+          onClick={() => fetchAll()}
+        >
+          Réessayer
+        </Button>
       </div>
     );
   }
