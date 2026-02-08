@@ -173,10 +173,13 @@ export default function ApprenantsPage() {
   // Fetch data
   const fetchData = React.useCallback(async () => {
     setIsLoading(true);
-    const result = await getApprenants(page, debouncedSearch, showArchived, sortBy, sortDir, filters);
-    setData(result.data as Apprenant[]);
-    setTotalCount(result.count);
-    setIsLoading(false);
+    try {
+      const result = await getApprenants(page, debouncedSearch, showArchived, sortBy, sortDir, filters);
+      setData(result.data as Apprenant[]);
+      setTotalCount(result.count);
+    } finally {
+      setIsLoading(false);
+    }
   }, [page, debouncedSearch, showArchived, sortBy, sortDir, filters]);
 
   React.useEffect(() => {

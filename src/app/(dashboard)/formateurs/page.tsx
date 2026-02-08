@@ -173,10 +173,13 @@ export default function FormateursPage() {
   // Fetch data
   const fetchData = React.useCallback(async () => {
     setIsLoading(true);
-    const result = await getFormateurs(page, debouncedSearch, showArchived, sortBy, sortDir, filters);
-    setData(result.data as Formateur[]);
-    setTotalCount(result.count);
-    setIsLoading(false);
+    try {
+      const result = await getFormateurs(page, debouncedSearch, showArchived, sortBy, sortDir, filters);
+      setData(result.data as Formateur[]);
+      setTotalCount(result.count);
+    } finally {
+      setIsLoading(false);
+    }
   }, [page, debouncedSearch, showArchived, sortBy, sortDir, filters]);
 
   React.useEffect(() => {

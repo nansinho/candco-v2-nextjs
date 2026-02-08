@@ -88,11 +88,16 @@ export function ExtranetAccessPanel({
 
   const loadAccess = React.useCallback(async () => {
     setIsLoading(true);
-    const result = await getExtranetAccess(entiteType, entiteId);
-    if ("acces" in result) {
-      setAcces(result.acces ?? null);
+    try {
+      const result = await getExtranetAccess(entiteType, entiteId);
+      if ("acces" in result) {
+        setAcces(result.acces ?? null);
+      }
+    } catch {
+      // silently handle
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, [entiteType, entiteId]);
 
   React.useEffect(() => {

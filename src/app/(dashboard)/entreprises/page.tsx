@@ -168,10 +168,13 @@ export default function EntreprisesPage() {
   // Fetch data
   const fetchData = React.useCallback(async () => {
     setIsLoading(true);
-    const result = await getEntreprises(page, debouncedSearch, showArchived, sortBy, sortDir, filters);
-    setData(result.data as Entreprise[]);
-    setTotalCount(result.count);
-    setIsLoading(false);
+    try {
+      const result = await getEntreprises(page, debouncedSearch, showArchived, sortBy, sortDir, filters);
+      setData(result.data as Entreprise[]);
+      setTotalCount(result.count);
+    } finally {
+      setIsLoading(false);
+    }
   }, [page, debouncedSearch, showArchived, sortBy, sortDir, filters]);
 
   React.useEffect(() => {

@@ -55,10 +55,13 @@ export default function SallesPage() {
 
   const fetchData = React.useCallback(async () => {
     setIsLoading(true);
-    const result = await getSalles(page, debouncedSearch);
-    setData(result.data as Salle[]);
-    setTotalCount(result.count);
-    setIsLoading(false);
+    try {
+      const result = await getSalles(page, debouncedSearch);
+      setData(result.data as Salle[]);
+      setTotalCount(result.count);
+    } finally {
+      setIsLoading(false);
+    }
   }, [page, debouncedSearch]);
 
   React.useEffect(() => {
