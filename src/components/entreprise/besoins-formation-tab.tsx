@@ -140,6 +140,7 @@ export function BesoinsFormationTab({
   const [besoins, setBesoins] = React.useState<Besoin[]>([]);
   const [plans, setPlans] = React.useState<PlanFormation[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
   const [showForm, setShowForm] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
 
@@ -160,24 +161,30 @@ export function BesoinsFormationTab({
 
   const loadData = React.useCallback(async () => {
     setLoading(true);
-    const typeBesoin = typeFilter === "all" ? undefined : typeFilter;
-    const [besoinsRes, plansRes] = await Promise.all([
-      getBesoinsFormation(entrepriseId, anneeFilter ?? undefined, typeBesoin),
-      getPlansFormation(entrepriseId),
-    ]);
-    setBesoins(besoinsRes.data as Besoin[]);
-    setPlans(plansRes.data as PlanFormation[]);
+    setError(null);
+    try {
+      const typeBesoin = typeFilter === "all" ? undefined : typeFilter;
+      const [besoinsRes, plansRes] = await Promise.all([
+        getBesoinsFormation(entrepriseId, anneeFilter ?? undefined, typeBesoin),
+        getPlansFormation(entrepriseId),
+      ]);
+      setBesoins((besoinsRes.data ?? []) as Besoin[]);
+      setPlans((plansRes.data ?? []) as PlanFormation[]);
 
-    // Load budget summaries for all plans
-    const budgets: Record<string, PlanBudget> = {};
-    for (const plan of (plansRes.data as PlanFormation[])) {
-      const budgetRes = await getPlanBudgetSummary(plan.id);
-      if (budgetRes.data) {
-        budgets[plan.id] = budgetRes.data as PlanBudget;
+      // Load budget summaries for all plans
+      const budgets: Record<string, PlanBudget> = {};
+      for (const plan of (plansRes.data as PlanFormation[])) {
+        const budgetRes = await getPlanBudgetSummary(plan.id);
+        if (budgetRes.data) {
+          budgets[plan.id] = budgetRes.data as PlanBudget;
+        }
       }
+      setPlanBudgets(budgets);
+    } catch {
+      setError("Impossible de charger les besoins de formation");
+    } finally {
+      setLoading(false);
     }
-    setPlanBudgets(budgets);
-    setLoading(false);
   }, [entrepriseId, anneeFilter, typeFilter]);
 
   React.useEffect(() => {
@@ -202,7 +209,6 @@ export function BesoinsFormationTab({
       if (existingPlan) {
         planFormationId = existingPlan.id;
       }
-      // If no plan exists, we'll create one in the creation flow
     }
 
     const input: CreateBesoinInput = {
@@ -221,41 +227,48 @@ export function BesoinsFormationTab({
       cout_estime: Number(fd.get("cout_estime")) || 0,
     };
 
-    // Auto-create plan if needed
-    if (typeBesoin === "plan" && !planFormationId) {
-      const planRes = await createPlanFormation({
-        entreprise_id: entrepriseId,
-        annee,
-        budget_total: 0,
-      });
-      if (planRes.data) {
-        input.plan_formation_id = planRes.data.id;
+    try {
+      // Auto-create plan if needed
+      if (typeBesoin === "plan" && !planFormationId) {
+        const planRes = await createPlanFormation({
+          entreprise_id: entrepriseId,
+          annee,
+          budget_total: 0,
+        });
+        if (planRes.data) {
+          input.plan_formation_id = planRes.data.id;
+        }
       }
-    }
 
-    const res = await createBesoinFormation(input);
-    setSaving(false);
-
-    if (res.error) {
+      const res = await createBesoinFormation(input);
+      if (res.error) {
+        toast({ title: "Erreur", description: "Impossible de créer le besoin.", variant: "destructive" });
+        return;
+      }
+      toast({ title: "Besoin créé", variant: "success" });
+      setShowForm(false);
+      loadData();
+    } catch {
       toast({ title: "Erreur", description: "Impossible de créer le besoin.", variant: "destructive" });
-      return;
+    } finally {
+      setSaving(false);
     }
-
-    toast({ title: "Besoin créé", variant: "success" });
-    setShowForm(false);
-    loadData();
   };
 
   const handleStatutChange = async (id: string, newStatut: string) => {
-    const res = await updateBesoinFormation(id, {
-      statut: newStatut as "a_etudier" | "valide" | "planifie" | "realise" | "transforme",
-    });
-    if (res.error) {
-      toast({ title: "Erreur", description: String(res.error), variant: "destructive" });
-      return;
+    try {
+      const res = await updateBesoinFormation(id, {
+        statut: newStatut as "a_etudier" | "valide" | "planifie" | "realise" | "transforme",
+      });
+      if (res.error) {
+        toast({ title: "Erreur", description: String(res.error), variant: "destructive" });
+        return;
+      }
+      toast({ title: "Statut mis à jour", variant: "success" });
+      loadData();
+    } catch {
+      toast({ title: "Erreur", description: "Impossible de mettre à jour le statut", variant: "destructive" });
     }
-    toast({ title: "Statut mis à jour", variant: "success" });
-    loadData();
   };
 
   const handleDelete = async (id: string) => {
@@ -266,13 +279,17 @@ export function BesoinsFormationTab({
       variant: "destructive",
     }))) return;
 
-    const res = await deleteBesoinFormation(id);
-    if (res.error) {
-      toast({ title: "Erreur", description: String(res.error), variant: "destructive" });
-      return;
+    try {
+      const res = await deleteBesoinFormation(id);
+      if (res.error) {
+        toast({ title: "Erreur", description: String(res.error), variant: "destructive" });
+        return;
+      }
+      toast({ title: "Besoin supprimé", variant: "success" });
+      loadData();
+    } catch {
+      toast({ title: "Erreur", description: "Impossible de supprimer le besoin", variant: "destructive" });
     }
-    toast({ title: "Besoin supprimé", variant: "success" });
-    loadData();
   };
 
   const handleRenameStart = (besoin: Besoin) => {
@@ -282,14 +299,18 @@ export function BesoinsFormationTab({
 
   const handleRenameSave = async (id: string) => {
     if (!editIntitule.trim()) return;
-    const res = await updateBesoinFormation(id, { intitule: editIntitule.trim() });
-    if (res.error) {
-      toast({ title: "Erreur", description: String(res.error), variant: "destructive" });
-      return;
+    try {
+      const res = await updateBesoinFormation(id, { intitule: editIntitule.trim() });
+      if (res.error) {
+        toast({ title: "Erreur", description: String(res.error), variant: "destructive" });
+        return;
+      }
+      setEditingId(null);
+      toast({ title: "Intitulé modifié", variant: "success" });
+      loadData();
+    } catch {
+      toast({ title: "Erreur", description: "Impossible de renommer le besoin", variant: "destructive" });
     }
-    setEditingId(null);
-    toast({ title: "Intitulé modifié", variant: "success" });
-    loadData();
   };
 
   const handleRequalify = async (besoin: Besoin) => {
@@ -304,31 +325,35 @@ export function BesoinsFormationTab({
       confirmLabel: "Confirmer",
     }))) return;
 
-    // Auto-create plan if needed for plan type
-    let planId: string | undefined;
-    if (newType === "plan") {
-      const existingPlan = plans.find((p) => p.annee === besoin.annee_cible);
-      if (existingPlan) {
-        planId = existingPlan.id;
-      } else {
-        const planRes = await createPlanFormation({
-          entreprise_id: entrepriseId,
-          annee: besoin.annee_cible,
-          budget_total: 0,
-        });
-        if (planRes.data) {
-          planId = planRes.data.id;
+    try {
+      // Auto-create plan if needed for plan type
+      let planId: string | undefined;
+      if (newType === "plan") {
+        const existingPlan = plans.find((p) => p.annee === besoin.annee_cible);
+        if (existingPlan) {
+          planId = existingPlan.id;
+        } else {
+          const planRes = await createPlanFormation({
+            entreprise_id: entrepriseId,
+            annee: besoin.annee_cible,
+            budget_total: 0,
+          });
+          if (planRes.data) {
+            planId = planRes.data.id;
+          }
         }
       }
-    }
 
-    const res = await requalifyBesoin(besoin.id, newType, planId);
-    if (res.error) {
-      toast({ title: "Erreur", description: String(res.error), variant: "destructive" });
-      return;
+      const res = await requalifyBesoin(besoin.id, newType, planId);
+      if (res.error) {
+        toast({ title: "Erreur", description: String(res.error), variant: "destructive" });
+        return;
+      }
+      toast({ title: `Besoin requalifié en "${label}"`, variant: "success" });
+      loadData();
+    } catch {
+      toast({ title: "Erreur", description: "Impossible de requalifier le besoin", variant: "destructive" });
     }
-    toast({ title: `Besoin requalifié en "${label}"`, variant: "success" });
-    loadData();
   };
 
   const anneeOptions = [currentYear - 1, currentYear, currentYear + 1];
@@ -341,9 +366,16 @@ export function BesoinsFormationTab({
     );
   }
 
-  // Group besoins by type for display
-  const planBesoins = besoins.filter((b) => b.type_besoin === "plan");
-  const ponctuelBesoins = besoins.filter((b) => b.type_besoin === "ponctuel");
+  if (error) {
+    return (
+      <div className="flex flex-col items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 py-12">
+        <p className="text-sm text-destructive">{error}</p>
+        <Button variant="outline" size="sm" onClick={loadData} className="text-xs">
+          Réessayer
+        </Button>
+      </div>
+    );
+  }
 
   // Relevant plans for the year filter
   const relevantPlans = anneeFilter
@@ -930,7 +962,6 @@ function BesoinCard({
   onNavigateSession: (sessionId: string) => void;
 }) {
   const prio = PRIORITE_CONFIG[b.priorite] ?? PRIORITE_CONFIG.moyenne;
-  const stat = STATUT_CONFIG[b.statut] ?? STATUT_CONFIG.a_etudier;
   const typeConf = TYPE_CONFIG[b.type_besoin] ?? TYPE_CONFIG.ponctuel;
   const TypeIcon = typeConf.icon;
   const isEditing = editingId === b.id;

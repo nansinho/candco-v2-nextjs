@@ -207,21 +207,25 @@ export async function inviteToExtranet(input: InviteInput) {
       return { error: `Erreur mise à jour fiche : ${entityError.message}` };
     }
 
-    // 4. Generate a login link for the invited user
+    // 4. Generate a custom invite token (valid 24h) — replaces short-lived Supabase magic links
     let loginLink: string | null = null;
+    const inviteToken = randomUUID();
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-    const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
-      type: "magiclink",
-      email,
-    });
+    const { error: tokenError } = await admin
+      .from("extranet_acces")
+      .update({
+        invite_token: inviteToken,
+        invite_token_expires_at: expiresAt.toISOString(),
+      })
+      .eq("entite_type", entiteType)
+      .eq("entite_id", entiteId);
 
-    if (linkError) {
-      console.error("[extranet] generateLink error:", linkError.message);
-      // Not a blocking error — the account is created, just no link
-    } else if (linkData?.properties?.hashed_token) {
-      // Build link pointing to our app's callback route (not Supabase)
+    if (tokenError) {
+      console.error("[extranet] update invite_token error:", tokenError.message);
+    } else {
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://solution.candco.fr";
-      loginLink = `${appUrl}/auth/callback?token_hash=${encodeURIComponent(linkData.properties.hashed_token)}&type=magiclink`;
+      loginLink = `${appUrl}/auth/extranet-invite?token=${encodeURIComponent(inviteToken)}`;
     }
 
     // 5. Send invitation email via Resend
@@ -337,27 +341,27 @@ export async function resendExtranetInvitation(params: {
     const organisationId = await getOrganisationIdFromEntity(entiteType, entiteId);
     if (!organisationId) return { error: "Entité introuvable" };
 
-    // Generate a new magic link
+    // Generate a new custom invite token (valid 24h)
     let loginLink: string | null = null;
-    const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
-      type: "magiclink",
-      email,
-    });
+    const inviteToken = randomUUID();
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-    if (linkError) {
-      console.error("[extranet] resend generateLink error:", linkError.message);
-    } else if (linkData?.properties?.hashed_token) {
-      // Build link pointing to our app's callback route (not Supabase)
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://solution.candco.fr";
-      loginLink = `${appUrl}/auth/callback?token_hash=${encodeURIComponent(linkData.properties.hashed_token)}&type=magiclink`;
-    }
-
-    // Update invite_le timestamp
-    await admin
+    const { error: tokenError } = await admin
       .from("extranet_acces")
-      .update({ invite_le: new Date().toISOString() })
+      .update({
+        invite_token: inviteToken,
+        invite_token_expires_at: expiresAt.toISOString(),
+        invite_le: new Date().toISOString(),
+      })
       .eq("entite_type", entiteType)
       .eq("entite_id", entiteId);
+
+    if (tokenError) {
+      console.error("[extranet] resend update invite_token error:", tokenError.message);
+    } else {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://solution.candco.fr";
+      loginLink = `${appUrl}/auth/extranet-invite?token=${encodeURIComponent(inviteToken)}`;
+    }
 
     // Send email
     if (loginLink) {
