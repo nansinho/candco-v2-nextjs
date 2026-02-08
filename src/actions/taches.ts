@@ -1,7 +1,7 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
 import { getOrganisationId } from "@/lib/auth-helpers";
+import { logHistorique } from "@/lib/historique";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -88,7 +88,7 @@ export async function createTache(input: CreateTacheInput) {
     return { error: { _form: [result.error] } };
   }
 
-  const { organisationId, supabase } = result;
+  const { organisationId, userId, role, supabase } = result;
   const cleanedData = cleanEmptyStrings(parsed.data);
 
   const { data, error } = await supabase
@@ -104,6 +104,19 @@ export async function createTache(input: CreateTacheInput) {
     return { error: { _form: [error.message] } };
   }
 
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "tache",
+    action: "created",
+    entiteType: "tache",
+    entiteId: data.id,
+    entiteLabel: data.titre,
+    entrepriseId: parsed.data.entite_type === "entreprise" ? parsed.data.entite_id ?? null : null,
+    description: `Tâche "${data.titre}" créée`,
+  });
+
   return { data };
 }
 
@@ -113,7 +126,12 @@ export async function updateTache(id: string, input: UpdateTacheInput) {
     return { error: parsed.error.flatten().fieldErrors };
   }
 
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) {
+    return { error: { _form: [result.error] } };
+  }
+  const { organisationId, userId, role, supabase } = result;
+
   const cleanedData = cleanEmptyStrings(parsed.data);
 
   // If completing, set completed_at
@@ -137,17 +155,53 @@ export async function updateTache(id: string, input: UpdateTacheInput) {
     return { error: { _form: [error.message] } };
   }
 
+  const action = parsed.data.statut === "terminee" ? "completed" as const : "updated" as const;
+  const description = parsed.data.statut === "terminee"
+    ? `Tâche "${data.titre}" terminée`
+    : `Tâche "${data.titre}" modifiée`;
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "tache",
+    action,
+    entiteType: "tache",
+    entiteId: id,
+    entiteLabel: data.titre,
+    entrepriseId: data.entite_type === "entreprise" ? data.entite_id : null,
+    description,
+  });
+
   return { data };
 }
 
 export async function deleteTache(id: string) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role, admin } = result;
 
-  const { error } = await supabase.from("taches").delete().eq("id", id);
+  // Fetch title before deletion
+  const { data: tache } = await admin.from("taches").select("titre, entite_type, entite_id").eq("id", id).single();
+
+  const { error } = await admin.from("taches").delete().eq("id", id);
 
   if (error) {
     return { error: error.message };
   }
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "tache",
+    action: "deleted",
+    entiteType: "tache",
+    entiteId: id,
+    entiteLabel: tache?.titre ?? null,
+    entrepriseId: tache?.entite_type === "entreprise" ? tache.entite_id : null,
+    description: `Tâche "${tache?.titre ?? id}" supprimée`,
+  });
 
   return { success: true };
 }

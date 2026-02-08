@@ -5,6 +5,25 @@ import { getOrganisationId } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { QueryFilter } from "@/lib/utils";
+import { logHistorique, logHistoriqueBatch, computeChanges } from "@/lib/historique";
+
+const APPRENANT_FIELD_LABELS: Record<string, string> = {
+  civilite: "Civilité",
+  prenom: "Prénom",
+  nom: "Nom",
+  nom_naissance: "Nom de naissance",
+  email: "Email",
+  telephone: "Téléphone",
+  date_naissance: "Date de naissance",
+  fonction: "Fonction",
+  lieu_activite: "Lieu d'activité",
+  adresse_rue: "Adresse",
+  adresse_complement: "Complément adresse",
+  adresse_cp: "Code postal",
+  adresse_ville: "Ville",
+  bpf_categorie_id: "Catégorie BPF",
+  numero_compte_comptable: "Compte comptable",
+};
 
 const CreateApprenantSchema = z.object({
   civilite: z.string().optional(),
@@ -32,7 +51,7 @@ export async function createApprenant(input: CreateApprenantInput) {
     return { error: { _form: [result.error] } };
   }
 
-  const { organisationId, supabase } = result;
+  const { organisationId, userId, role, supabase } = result;
 
   // Generate display number
   const { data: numero } = await supabase.rpc("next_numero", {
@@ -54,6 +73,19 @@ export async function createApprenant(input: CreateApprenantInput) {
   if (error) {
     return { error: { _form: [error.message] } };
   }
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "apprenant",
+    action: "created",
+    entiteType: "apprenant",
+    entiteId: data.id,
+    entiteLabel: `${data.numero_affichage} — ${data.prenom} ${data.nom}`,
+    description: `Apprenant "${data.prenom} ${data.nom}" créé (${data.numero_affichage})`,
+    objetHref: `/apprenants/${data.id}`,
+  });
 
   revalidatePath("/apprenants");
   return { data };
@@ -189,14 +221,26 @@ export async function updateApprenant(id: string, input: UpdateApprenantInput) {
   if ("error" in result) {
     return { error: { _form: [result.error] } };
   }
-  const { organisationId, supabase } = result;
+  const { organisationId, userId, role, supabase, admin } = result;
+
+  // Fetch old data for change tracking
+  const { data: oldData } = await admin
+    .from("apprenants")
+    .select("*")
+    .eq("id", id)
+    .eq("organisation_id", organisationId)
+    .single();
+
+  const cleanedData = {
+    ...parsed.data,
+    email: parsed.data.email || null,
+    bpf_categorie_id: parsed.data.bpf_categorie_id || null,
+  };
 
   const { data, error } = await supabase
     .from("apprenants")
     .update({
-      ...parsed.data,
-      email: parsed.data.email || null,
-      bpf_categorie_id: parsed.data.bpf_categorie_id || null,
+      ...cleanedData,
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)
@@ -208,6 +252,28 @@ export async function updateApprenant(id: string, input: UpdateApprenantInput) {
     return { error: { _form: [error.message] } };
   }
 
+  const metadata = oldData
+    ? computeChanges(oldData as Record<string, unknown>, cleanedData as Record<string, unknown>, APPRENANT_FIELD_LABELS)
+    : {};
+  const changedFields = (metadata as { changed_fields?: string[] }).changed_fields;
+  const changedSummary = changedFields && changedFields.length > 0
+    ? ` (${changedFields.join(", ")})`
+    : "";
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "apprenant",
+    action: "updated",
+    entiteType: "apprenant",
+    entiteId: id,
+    entiteLabel: `${data.numero_affichage} — ${data.prenom} ${data.nom}`,
+    description: `Apprenant "${data.prenom} ${data.nom}" modifié${changedSummary}`,
+    objetHref: `/apprenants/${id}`,
+    metadata,
+  });
+
   revalidatePath("/apprenants");
   revalidatePath(`/apprenants/${id}`);
   return { data };
@@ -216,7 +282,14 @@ export async function updateApprenant(id: string, input: UpdateApprenantInput) {
 export async function archiveApprenant(id: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { organisationId, supabase } = result;
+  const { organisationId, userId, role, supabase, admin } = result;
+
+  // Fetch name for logging
+  const { data: app } = await admin
+    .from("apprenants")
+    .select("numero_affichage, prenom, nom")
+    .eq("id", id)
+    .single();
 
   const { error } = await supabase
     .from("apprenants")
@@ -228,6 +301,19 @@ export async function archiveApprenant(id: string) {
     return { error: error.message };
   }
 
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "apprenant",
+    action: "archived",
+    entiteType: "apprenant",
+    entiteId: id,
+    entiteLabel: app ? `${app.numero_affichage} — ${app.prenom} ${app.nom}` : null,
+    description: `Apprenant "${app ? `${app.prenom} ${app.nom}` : id}" archivé`,
+    objetHref: `/apprenants/${id}`,
+  });
+
   revalidatePath("/apprenants");
   return { success: true };
 }
@@ -235,7 +321,14 @@ export async function archiveApprenant(id: string) {
 export async function unarchiveApprenant(id: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { organisationId, supabase } = result;
+  const { organisationId, userId, role, supabase, admin } = result;
+
+  // Fetch name for logging
+  const { data: app } = await admin
+    .from("apprenants")
+    .select("numero_affichage, prenom, nom")
+    .eq("id", id)
+    .single();
 
   const { error } = await supabase
     .from("apprenants")
@@ -247,6 +340,19 @@ export async function unarchiveApprenant(id: string) {
     return { error: error.message };
   }
 
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "apprenant",
+    action: "unarchived",
+    entiteType: "apprenant",
+    entiteId: id,
+    entiteLabel: app ? `${app.numero_affichage} — ${app.prenom} ${app.nom}` : null,
+    description: `Apprenant "${app ? `${app.prenom} ${app.nom}` : id}" restauré`,
+    objetHref: `/apprenants/${id}`,
+  });
+
   revalidatePath("/apprenants");
   return { success: true };
 }
@@ -254,7 +360,14 @@ export async function unarchiveApprenant(id: string) {
 export async function deleteApprenants(ids: string[]) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { organisationId, supabase } = result;
+  const { organisationId, userId, role, supabase, admin } = result;
+
+  // Fetch names before deletion for logging
+  const { data: apps } = await admin
+    .from("apprenants")
+    .select("id, numero_affichage, prenom, nom")
+    .in("id", ids)
+    .eq("organisation_id", organisationId);
 
   const { error } = await supabase
     .from("apprenants")
@@ -264,6 +377,22 @@ export async function deleteApprenants(ids: string[]) {
 
   if (error) {
     return { error: error.message };
+  }
+
+  if (apps && apps.length > 0) {
+    await logHistoriqueBatch(
+      apps.map((app) => ({
+        organisationId,
+        userId,
+        userRole: role,
+        module: "apprenant" as const,
+        action: "deleted" as const,
+        entiteType: "apprenant",
+        entiteId: app.id,
+        entiteLabel: `${app.numero_affichage} — ${app.prenom} ${app.nom}`,
+        description: `Apprenant "${app.prenom} ${app.nom}" supprimé`,
+      })),
+    );
   }
 
   revalidatePath("/apprenants");
@@ -312,7 +441,7 @@ export async function importApprenants(
     return { success: 0, errors: [String(authResult.error)] };
   }
 
-  const { organisationId, supabase } = authResult;
+  const { organisationId, userId, role, supabase } = authResult;
   let successCount = 0;
   const importErrors: string[] = [];
 
@@ -474,6 +603,20 @@ export async function importApprenants(
     successCount++;
   }
 
+  if (successCount > 0) {
+    await logHistorique({
+      organisationId,
+      userId,
+      userRole: role,
+      module: "apprenant",
+      action: "imported",
+      entiteType: "apprenant",
+      entiteId: organisationId,
+      description: `Import de ${successCount} apprenant${successCount > 1 ? "s" : ""}${importErrors.length > 0 ? ` (${importErrors.length} erreur${importErrors.length > 1 ? "s" : ""})` : ""}`,
+      metadata: { success: successCount, errors_count: importErrors.length },
+    });
+  }
+
   revalidatePath("/apprenants");
   revalidatePath("/entreprises");
   return { success: successCount, errors: importErrors };
@@ -482,7 +625,9 @@ export async function importApprenants(
 // ─── Entreprise linking from apprenant side ─────────────
 
 export async function linkEntrepriseToApprenant(apprenantId: string, entrepriseId: string) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role, supabase, admin } = result;
 
   const { error } = await supabase
     .from("apprenant_entreprises")
@@ -495,12 +640,40 @@ export async function linkEntrepriseToApprenant(apprenantId: string, entrepriseI
     return { error: error.message };
   }
 
+  // Fetch labels for logging
+  const [{ data: ent }, { data: app }] = await Promise.all([
+    admin.from("entreprises").select("numero_affichage, nom").eq("id", entrepriseId).single(),
+    admin.from("apprenants").select("numero_affichage, prenom, nom").eq("id", apprenantId).single(),
+  ]);
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "apprenant",
+    action: "linked",
+    entiteType: "apprenant",
+    entiteId: apprenantId,
+    entiteLabel: app ? `${app.numero_affichage} — ${app.prenom} ${app.nom}` : null,
+    entrepriseId,
+    description: `Apprenant ${app ? `"${app.prenom} ${app.nom}"` : ""} rattaché à l'entreprise "${ent?.nom ?? ""}"`,
+    objetHref: `/apprenants/${apprenantId}`,
+  });
+
   revalidatePath(`/apprenants/${apprenantId}`);
   return { success: true };
 }
 
 export async function unlinkEntrepriseFromApprenant(apprenantId: string, entrepriseId: string) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role, supabase, admin } = result;
+
+  // Fetch labels before unlinking
+  const [{ data: ent }, { data: app }] = await Promise.all([
+    admin.from("entreprises").select("numero_affichage, nom").eq("id", entrepriseId).single(),
+    admin.from("apprenants").select("numero_affichage, prenom, nom").eq("id", apprenantId).single(),
+  ]);
 
   const { error } = await supabase
     .from("apprenant_entreprises")
@@ -511,6 +684,20 @@ export async function unlinkEntrepriseFromApprenant(apprenantId: string, entrepr
   if (error) {
     return { error: error.message };
   }
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "apprenant",
+    action: "unlinked",
+    entiteType: "apprenant",
+    entiteId: apprenantId,
+    entiteLabel: app ? `${app.numero_affichage} — ${app.prenom} ${app.nom}` : null,
+    entrepriseId,
+    description: `Apprenant ${app ? `"${app.prenom} ${app.nom}"` : ""} détaché de l'entreprise "${ent?.nom ?? ""}"`,
+    objetHref: `/apprenants/${apprenantId}`,
+  });
 
   revalidatePath(`/apprenants/${apprenantId}`);
   return { success: true };

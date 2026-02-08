@@ -4,6 +4,7 @@ import { getOrganisationId } from "@/lib/auth-helpers";
 import { sendEmail } from "@/lib/emails/send-email";
 import { emailLibreTemplate } from "@/lib/emails/templates";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { logHistorique } from "@/lib/historique";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -121,7 +122,7 @@ export async function sendTargetedEmail(input: SendTargetedEmailInput): Promise<
     return { success: false, sent: 0, failed: 0, error: result.error };
   }
 
-  const { organisationId, admin } = result;
+  const { organisationId, userId, role, admin } = result;
 
   // Get org info for template
   const { data: org } = await admin
@@ -267,6 +268,26 @@ export async function sendTargetedEmail(input: SendTargetedEmailInput): Promise<
       }
     }
   }
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "email",
+    action: "sent",
+    entiteType: "email",
+    entiteId: d.entrepriseId,
+    entiteLabel: d.subject,
+    entrepriseId: d.entrepriseId,
+    description: `Email "${d.subject}" envoyé à ${uniqueEmails.length} destinataire(s) (${sent} envoyé(s), ${failed} en erreur)`,
+    objetHref: `/entreprises/${d.entrepriseId}`,
+    metadata: {
+      recipient_count: uniqueEmails.length,
+      sent,
+      failed,
+      filter_criteria: d.filterCriteria,
+    },
+  });
 
   revalidatePath(`/entreprises/${d.entrepriseId}`);
 

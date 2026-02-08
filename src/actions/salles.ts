@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getOrganisationId } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { logHistorique, logHistoriqueBatch } from "@/lib/historique";
 
 const SalleSchema = z.object({
   nom: z.string().min(1, "Le nom est requis"),
@@ -25,7 +26,7 @@ export async function createSalle(input: SalleInput) {
     return { error: { _form: [result.error] } };
   }
 
-  const { organisationId, supabase } = result;
+  const { organisationId, userId, role, supabase } = result;
 
   const { data, error } = await supabase
     .from("salles")
@@ -42,6 +43,19 @@ export async function createSalle(input: SalleInput) {
   if (error) {
     return { error: { _form: [error.message] } };
   }
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "salle",
+    action: "created",
+    entiteType: "salle",
+    entiteId: data.id,
+    entiteLabel: data.nom,
+    description: `Salle "${data.nom}" créée`,
+    objetHref: "/salles",
+  });
 
   revalidatePath("/salles");
   return { data };
@@ -109,7 +123,7 @@ export async function updateSalle(id: string, input: SalleInput) {
   if ("error" in orgResult) {
     return { error: { _form: [orgResult.error] } };
   }
-  const { organisationId } = orgResult;
+  const { organisationId, userId, role } = orgResult;
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -129,6 +143,19 @@ export async function updateSalle(id: string, input: SalleInput) {
     return { error: { _form: [error.message] } };
   }
 
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "salle",
+    action: "updated",
+    entiteType: "salle",
+    entiteId: id,
+    entiteLabel: data.nom,
+    description: `Salle "${data.nom}" modifiée`,
+    objetHref: "/salles",
+  });
+
   revalidatePath("/salles");
   return { data };
 }
@@ -136,7 +163,10 @@ export async function updateSalle(id: string, input: SalleInput) {
 export async function deleteSalles(ids: string[]) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { organisationId, supabase } = result;
+  const { organisationId, userId, role, admin, supabase } = result;
+
+  // Fetch names before soft-delete
+  const { data: salles } = await admin.from("salles").select("id, nom").in("id", ids);
 
   // Soft delete by setting actif = false
   const { error } = await supabase
@@ -148,6 +178,20 @@ export async function deleteSalles(ids: string[]) {
   if (error) {
     return { error: error.message };
   }
+
+  await logHistoriqueBatch(
+    (salles ?? []).map((s) => ({
+      organisationId,
+      userId,
+      userRole: role,
+      module: "salle" as const,
+      action: "deleted" as const,
+      entiteType: "salle",
+      entiteId: s.id,
+      entiteLabel: s.nom,
+      description: `Salle "${s.nom}" désactivée`,
+    })),
+  );
 
   revalidatePath("/salles");
   return { success: true };

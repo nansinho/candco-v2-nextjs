@@ -1,6 +1,7 @@
 "use server";
 
 import { getOrganisationId } from "@/lib/auth-helpers";
+import { logHistorique } from "@/lib/historique";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -114,7 +115,7 @@ export async function createAgence(entrepriseId: string, input: z.infer<typeof A
     const result = await getOrganisationId();
     if ("error" in result) return { error: { _form: [result.error] } };
 
-    const { admin } = result;
+    const { admin, organisationId, userId, role } = result;
 
     const d = parsed.data;
     const { data, error } = await admin
@@ -144,6 +145,20 @@ export async function createAgence(entrepriseId: string, input: z.infer<typeof A
       return { error: { _form: [msg] } };
     }
 
+    await logHistorique({
+      organisationId,
+      userId,
+      userRole: role,
+      module: "organisation",
+      action: "created",
+      entiteType: "agence",
+      entiteId: data.id,
+      entiteLabel: data.nom,
+      entrepriseId,
+      description: `Agence "${data.nom}" créée${data.est_siege ? " (siège social)" : ""}`,
+      objetHref: `/entreprises/${entrepriseId}`,
+    });
+
     revalidatePath(`/entreprises/${entrepriseId}`);
     return { data };
   } catch (err) {
@@ -160,7 +175,7 @@ export async function updateAgence(agenceId: string, entrepriseId: string, input
     const result = await getOrganisationId();
     if ("error" in result) return { error: { _form: [result.error] } };
 
-    const { admin } = result;
+    const { admin, organisationId, userId, role } = result;
 
     const d = parsed.data;
     const { data, error } = await admin
@@ -185,6 +200,20 @@ export async function updateAgence(agenceId: string, entrepriseId: string, input
       return { error: { _form: [error.message] } };
     }
 
+    await logHistorique({
+      organisationId,
+      userId,
+      userRole: role,
+      module: "organisation",
+      action: "updated",
+      entiteType: "agence",
+      entiteId: agenceId,
+      entiteLabel: data.nom,
+      entrepriseId,
+      description: `Agence "${data.nom}" modifiée`,
+      objetHref: `/entreprises/${entrepriseId}`,
+    });
+
     revalidatePath(`/entreprises/${entrepriseId}`);
     return { data };
   } catch (err) {
@@ -198,7 +227,10 @@ export async function deleteAgence(agenceId: string, entrepriseId: string) {
     const result = await getOrganisationId();
     if ("error" in result) return { error: result.error };
 
-    const { admin } = result;
+    const { admin, organisationId, userId, role } = result;
+
+    // Fetch name before delete
+    const { data: agence } = await admin.from("entreprise_agences").select("nom").eq("id", agenceId).single();
 
     const { error } = await admin
       .from("entreprise_agences")
@@ -209,6 +241,20 @@ export async function deleteAgence(agenceId: string, entrepriseId: string) {
       console.error("[deleteAgence] Supabase error:", error.message, error.details, error.hint);
       return { error: error.message };
     }
+
+    await logHistorique({
+      organisationId,
+      userId,
+      userRole: role,
+      module: "organisation",
+      action: "deleted",
+      entiteType: "agence",
+      entiteId: agenceId,
+      entiteLabel: agence?.nom ?? null,
+      entrepriseId,
+      description: `Agence "${agence?.nom ?? agenceId}" supprimée`,
+      objetHref: `/entreprises/${entrepriseId}`,
+    });
 
     revalidatePath(`/entreprises/${entrepriseId}`);
     return { success: true };
@@ -250,7 +296,7 @@ export async function createPole(entrepriseId: string, input: z.infer<typeof Pol
     const result = await getOrganisationId();
     if ("error" in result) return { error: { _form: [result.error] } };
 
-    const { admin } = result;
+    const { admin, organisationId, userId, role } = result;
 
     const d = parsed.data;
     const { data, error } = await admin
@@ -269,6 +315,20 @@ export async function createPole(entrepriseId: string, input: z.infer<typeof Pol
       return { error: { _form: [error.message] } };
     }
 
+    await logHistorique({
+      organisationId,
+      userId,
+      userRole: role,
+      module: "organisation",
+      action: "created",
+      entiteType: "pole",
+      entiteId: data.id,
+      entiteLabel: data.nom,
+      entrepriseId,
+      description: `Pôle "${data.nom}" créé`,
+      objetHref: `/entreprises/${entrepriseId}`,
+    });
+
     revalidatePath(`/entreprises/${entrepriseId}`);
     return { data };
   } catch (err) {
@@ -285,7 +345,7 @@ export async function updatePole(poleId: string, entrepriseId: string, input: z.
     const result = await getOrganisationId();
     if ("error" in result) return { error: { _form: [result.error] } };
 
-    const { admin } = result;
+    const { admin, organisationId, userId, role } = result;
 
     const d = parsed.data;
     const { data, error } = await admin
@@ -304,6 +364,20 @@ export async function updatePole(poleId: string, entrepriseId: string, input: z.
       return { error: { _form: [error.message] } };
     }
 
+    await logHistorique({
+      organisationId,
+      userId,
+      userRole: role,
+      module: "organisation",
+      action: "updated",
+      entiteType: "pole",
+      entiteId: poleId,
+      entiteLabel: data.nom,
+      entrepriseId,
+      description: `Pôle "${data.nom}" modifié`,
+      objetHref: `/entreprises/${entrepriseId}`,
+    });
+
     revalidatePath(`/entreprises/${entrepriseId}`);
     return { data };
   } catch (err) {
@@ -317,7 +391,10 @@ export async function deletePole(poleId: string, entrepriseId: string) {
     const result = await getOrganisationId();
     if ("error" in result) return { error: result.error };
 
-    const { admin } = result;
+    const { admin, organisationId, userId, role } = result;
+
+    // Fetch name before delete
+    const { data: pole } = await admin.from("entreprise_poles").select("nom").eq("id", poleId).single();
 
     const { error } = await admin
       .from("entreprise_poles")
@@ -328,6 +405,20 @@ export async function deletePole(poleId: string, entrepriseId: string) {
       console.error("[deletePole] Supabase error:", error.message, error.details, error.hint);
       return { error: error.message };
     }
+
+    await logHistorique({
+      organisationId,
+      userId,
+      userRole: role,
+      module: "organisation",
+      action: "deleted",
+      entiteType: "pole",
+      entiteId: poleId,
+      entiteLabel: pole?.nom ?? null,
+      entrepriseId,
+      description: `Pôle "${pole?.nom ?? poleId}" supprimé`,
+      objetHref: `/entreprises/${entrepriseId}`,
+    });
 
     revalidatePath(`/entreprises/${entrepriseId}`);
     return { success: true };
@@ -396,7 +487,7 @@ export async function createMembre(entrepriseId: string, input: z.infer<typeof M
     const result = await getOrganisationId();
     if ("error" in result) return { error: { _form: [result.error] } };
 
-    const { admin } = result;
+    const { admin, organisationId, userId, role } = result;
 
     const { data, error } = await admin
       .from("entreprise_membres")
@@ -431,6 +522,30 @@ export async function createMembre(entrepriseId: string, input: z.infer<typeof M
       }
     }
 
+    // Fetch member name for logging
+    let membreLabel = "Membre";
+    if (d.apprenant_id) {
+      const { data: app } = await admin.from("apprenants").select("prenom, nom").eq("id", d.apprenant_id).single();
+      if (app) membreLabel = `${app.prenom} ${app.nom}`;
+    } else if (d.contact_client_id) {
+      const { data: ctc } = await admin.from("contacts_clients").select("prenom, nom").eq("id", d.contact_client_id).single();
+      if (ctc) membreLabel = `${ctc.prenom} ${ctc.nom}`;
+    }
+
+    await logHistorique({
+      organisationId,
+      userId,
+      userRole: role,
+      module: "organisation",
+      action: "created",
+      entiteType: "membre",
+      entiteId: data.id,
+      entiteLabel: membreLabel,
+      entrepriseId,
+      description: `Membre "${membreLabel}" ajouté (rôle : ${(d.roles.length > 0 ? d.roles : ["employe"]).join(", ")})`,
+      objetHref: `/entreprises/${entrepriseId}`,
+    });
+
     revalidatePath(`/entreprises/${entrepriseId}`);
     return { data };
   } catch (err) {
@@ -449,7 +564,7 @@ export async function updateMembre(membreId: string, entrepriseId: string, input
     const result = await getOrganisationId();
     if ("error" in result) return { error: { _form: [result.error] } };
 
-    const { admin } = result;
+    const { admin, organisationId, userId, role } = result;
 
     const { data, error } = await admin
       .from("entreprise_membres")
@@ -484,6 +599,19 @@ export async function updateMembre(membreId: string, entrepriseId: string, input
       }
     }
 
+    await logHistorique({
+      organisationId,
+      userId,
+      userRole: role,
+      module: "organisation",
+      action: "updated",
+      entiteType: "membre",
+      entiteId: membreId,
+      entrepriseId,
+      description: `Membre modifié (rôles : ${(d.roles.length > 0 ? d.roles : ["employe"]).join(", ")})`,
+      objetHref: `/entreprises/${entrepriseId}`,
+    });
+
     revalidatePath(`/entreprises/${entrepriseId}`);
     return { data };
   } catch (err) {
@@ -497,7 +625,22 @@ export async function deleteMembre(membreId: string, entrepriseId: string) {
     const result = await getOrganisationId();
     if ("error" in result) return { error: result.error };
 
-    const { admin } = result;
+    const { admin, organisationId, userId, role } = result;
+
+    // Fetch member info before delete
+    const { data: membre } = await admin
+      .from("entreprise_membres")
+      .select("apprenants(prenom, nom), contacts_clients(prenom, nom)")
+      .eq("id", membreId)
+      .single();
+
+    let membreLabel = "Membre";
+    if (membre) {
+      const app = (membre as unknown as Record<string, unknown>).apprenants as { prenom: string; nom: string } | null;
+      const ctc = (membre as unknown as Record<string, unknown>).contacts_clients as { prenom: string; nom: string } | null;
+      if (app) membreLabel = `${app.prenom} ${app.nom}`;
+      else if (ctc) membreLabel = `${ctc.prenom} ${ctc.nom}`;
+    }
 
     const { error } = await admin
       .from("entreprise_membres")
@@ -508,6 +651,20 @@ export async function deleteMembre(membreId: string, entrepriseId: string) {
       console.error("[deleteMembre] Supabase error:", error.message, error.details, error.hint);
       return { error: error.message };
     }
+
+    await logHistorique({
+      organisationId,
+      userId,
+      userRole: role,
+      module: "organisation",
+      action: "deleted",
+      entiteType: "membre",
+      entiteId: membreId,
+      entiteLabel: membreLabel,
+      entrepriseId,
+      description: `Membre "${membreLabel}" supprimé`,
+      objetHref: `/entreprises/${entrepriseId}`,
+    });
 
     revalidatePath(`/entreprises/${entrepriseId}`);
     return { success: true };
@@ -533,7 +690,7 @@ export async function quickCreateApprenant(input: z.infer<typeof QuickApprenantS
   const result = await getOrganisationId();
   if ("error" in result) return { data: null, error: { _form: [result.error] } };
 
-  const { organisationId, admin } = result;
+  const { organisationId, userId, role, admin } = result;
 
   const { data: numero } = await admin.rpc("next_numero", {
     p_organisation_id: organisationId,
@@ -557,6 +714,19 @@ export async function quickCreateApprenant(input: z.infer<typeof QuickApprenantS
     console.error("[quickCreateApprenant] Supabase error:", error.message);
     return { data: null, error: { _form: [error.message] } };
   }
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "apprenant",
+    action: "created",
+    entiteType: "apprenant",
+    entiteId: data.id,
+    entiteLabel: `${data.prenom} ${data.nom}`,
+    description: `Apprenant "${data.prenom} ${data.nom}" créé (création rapide)`,
+    objetHref: `/apprenants/${data.id}`,
+  });
 
   revalidatePath("/apprenants");
   return { data };

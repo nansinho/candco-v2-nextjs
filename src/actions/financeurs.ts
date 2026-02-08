@@ -5,6 +5,7 @@ import { getOrganisationId } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { QueryFilter } from "@/lib/utils";
+import { logHistorique, logHistoriqueBatch } from "@/lib/historique";
 
 const FINANCEUR_TYPES = [
   "OPCO",
@@ -41,7 +42,7 @@ export async function createFinanceur(input: FinanceurInput) {
     return { error: { _form: [result.error] } };
   }
 
-  const { organisationId, supabase } = result;
+  const { organisationId, userId, role, supabase } = result;
 
   // Generate display number
   const { data: numero } = await supabase.rpc("next_numero", {
@@ -71,6 +72,19 @@ export async function createFinanceur(input: FinanceurInput) {
   if (error) {
     return { error: { _form: [error.message] } };
   }
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "financeur",
+    action: "created",
+    entiteType: "financeur",
+    entiteId: data.id,
+    entiteLabel: `${data.numero_affichage} — ${data.nom}`,
+    description: `Financeur "${data.nom}" créé (${data.numero_affichage})`,
+    objetHref: `/financeurs/${data.id}`,
+  });
 
   revalidatePath("/financeurs");
   return { data };
@@ -161,7 +175,7 @@ export async function updateFinanceur(id: string, input: FinanceurInput) {
   if ("error" in orgResult) {
     return { error: { _form: [orgResult.error] } };
   }
-  const { organisationId } = orgResult;
+  const { organisationId, userId, role } = orgResult;
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -187,6 +201,19 @@ export async function updateFinanceur(id: string, input: FinanceurInput) {
     return { error: { _form: [error.message] } };
   }
 
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "financeur",
+    action: "updated",
+    entiteType: "financeur",
+    entiteId: data.id,
+    entiteLabel: `${data.numero_affichage} — ${data.nom}`,
+    description: `Financeur "${data.nom}" modifié (${data.numero_affichage})`,
+    objetHref: `/financeurs/${data.id}`,
+  });
+
   revalidatePath("/financeurs");
   revalidatePath(`/financeurs/${id}`);
   return { data };
@@ -195,7 +222,14 @@ export async function updateFinanceur(id: string, input: FinanceurInput) {
 export async function deleteFinanceurs(ids: string[]) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { organisationId, supabase } = result;
+  const { organisationId, userId, role, admin, supabase } = result;
+
+  // Fetch names before deletion for history logging
+  const { data: financeurs } = await admin
+    .from("financeurs")
+    .select("id, nom, numero_affichage")
+    .in("id", ids)
+    .eq("organisation_id", organisationId);
 
   const { error } = await supabase
     .from("financeurs")
@@ -207,6 +241,22 @@ export async function deleteFinanceurs(ids: string[]) {
     return { error: error.message };
   }
 
+  if (financeurs && financeurs.length > 0) {
+    await logHistoriqueBatch(
+      financeurs.map((f) => ({
+        organisationId,
+        userId,
+        userRole: role,
+        module: "financeur" as const,
+        action: "deleted" as const,
+        entiteType: "financeur",
+        entiteId: f.id,
+        entiteLabel: `${f.numero_affichage} — ${f.nom}`,
+        description: `Financeur "${f.nom}" supprimé (${f.numero_affichage})`,
+      })),
+    );
+  }
+
   revalidatePath("/financeurs");
   return { success: true };
 }
@@ -214,7 +264,15 @@ export async function deleteFinanceurs(ids: string[]) {
 export async function archiveFinanceur(id: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { organisationId, supabase } = result;
+  const { organisationId, userId, role, admin, supabase } = result;
+
+  // Fetch name before archiving for history logging
+  const { data: financeur } = await admin
+    .from("financeurs")
+    .select("nom, numero_affichage")
+    .eq("id", id)
+    .eq("organisation_id", organisationId)
+    .single();
 
   const { error } = await supabase
     .from("financeurs")
@@ -226,6 +284,21 @@ export async function archiveFinanceur(id: string) {
     return { error: error.message };
   }
 
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "financeur",
+    action: "archived",
+    entiteType: "financeur",
+    entiteId: id,
+    entiteLabel: financeur ? `${financeur.numero_affichage} — ${financeur.nom}` : id,
+    description: financeur
+      ? `Financeur "${financeur.nom}" archivé (${financeur.numero_affichage})`
+      : `Financeur archivé (${id})`,
+    objetHref: `/financeurs/${id}`,
+  });
+
   revalidatePath("/financeurs");
   return { success: true };
 }
@@ -233,7 +306,15 @@ export async function archiveFinanceur(id: string) {
 export async function unarchiveFinanceur(id: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { organisationId, supabase } = result;
+  const { organisationId, userId, role, admin, supabase } = result;
+
+  // Fetch name before unarchiving for history logging
+  const { data: financeur } = await admin
+    .from("financeurs")
+    .select("nom, numero_affichage")
+    .eq("id", id)
+    .eq("organisation_id", organisationId)
+    .single();
 
   const { error } = await supabase
     .from("financeurs")
@@ -244,6 +325,21 @@ export async function unarchiveFinanceur(id: string) {
   if (error) {
     return { error: error.message };
   }
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "financeur",
+    action: "unarchived",
+    entiteType: "financeur",
+    entiteId: id,
+    entiteLabel: financeur ? `${financeur.numero_affichage} — ${financeur.nom}` : id,
+    description: financeur
+      ? `Financeur "${financeur.nom}" désarchivé (${financeur.numero_affichage})`
+      : `Financeur désarchivé (${id})`,
+    objetHref: `/financeurs/${id}`,
+  });
 
   revalidatePath("/financeurs");
   return { success: true };
@@ -271,7 +367,7 @@ export async function importFinanceurs(
     return { success: 0, errors: [String(authResult.error)] };
   }
 
-  const { organisationId, supabase } = authResult;
+  const { organisationId, userId, role, supabase } = authResult;
   let successCount = 0;
   const importErrors: string[] = [];
 
@@ -363,6 +459,21 @@ export async function importFinanceurs(
     }
 
     successCount++;
+  }
+
+  if (successCount > 0) {
+    await logHistorique({
+      organisationId,
+      userId,
+      userRole: role,
+      module: "financeur",
+      action: "imported",
+      entiteType: "financeur",
+      entiteId: organisationId,
+      entiteLabel: `Import de ${successCount} financeur(s)`,
+      description: `${successCount} financeur(s) importé(s)${importErrors.length > 0 ? `, ${importErrors.length} erreur(s)` : ""}`,
+      metadata: { successCount, errorCount: importErrors.length },
+    });
   }
 
   revalidatePath("/financeurs");

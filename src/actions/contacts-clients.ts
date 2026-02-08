@@ -5,6 +5,7 @@ import { getOrganisationId } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { QueryFilter } from "@/lib/utils";
+import { logHistorique, logHistoriqueBatch } from "@/lib/historique";
 
 // ─── Schemas ─────────────────────────────────────────────
 
@@ -150,7 +151,7 @@ export async function createContactClient(input: CreateContactClientInput) {
     return { error: { _form: [result.error] } };
   }
 
-  const { organisationId, supabase } = result;
+  const { organisationId, userId, role, supabase } = result;
 
   // Generate display number
   const { data: numero } = await supabase.rpc("next_numero", {
@@ -174,6 +175,19 @@ export async function createContactClient(input: CreateContactClientInput) {
     return { error: { _form: [error.message] } };
   }
 
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "contact_client",
+    action: "created",
+    entiteType: "contact_client",
+    entiteId: data.id,
+    entiteLabel: `${data.numero_affichage} — ${data.prenom} ${data.nom}`,
+    description: `Contact "${data.prenom} ${data.nom}" créé (${data.numero_affichage})`,
+    objetHref: `/contacts-clients/${data.id}`,
+  });
+
   revalidatePath("/contacts-clients");
   return { data };
 }
@@ -188,7 +202,7 @@ export async function updateContactClient(id: string, input: UpdateContactClient
   if ("error" in result) {
     return { error: { _form: [result.error] } };
   }
-  const { organisationId, supabase } = result;
+  const { organisationId, userId, role, supabase } = result;
 
   const cleanedData = cleanEmptyStrings(parsed.data);
 
@@ -207,6 +221,19 @@ export async function updateContactClient(id: string, input: UpdateContactClient
     return { error: { _form: [error.message] } };
   }
 
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "contact_client",
+    action: "updated",
+    entiteType: "contact_client",
+    entiteId: id,
+    entiteLabel: `${data.numero_affichage} — ${data.prenom} ${data.nom}`,
+    description: `Contact "${data.prenom} ${data.nom}" modifié (${data.numero_affichage})`,
+    objetHref: `/contacts-clients/${id}`,
+  });
+
   revalidatePath("/contacts-clients");
   revalidatePath(`/contacts-clients/${id}`);
   return { data };
@@ -215,7 +242,14 @@ export async function updateContactClient(id: string, input: UpdateContactClient
 export async function deleteContactsClients(ids: string[]) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { organisationId, supabase } = result;
+  const { organisationId, userId, role, supabase, admin } = result;
+
+  // Fetch names before deletion for logging
+  const { data: contacts } = await admin
+    .from("contacts_clients")
+    .select("id, numero_affichage, prenom, nom")
+    .in("id", ids)
+    .eq("organisation_id", organisationId);
 
   const { error } = await supabase
     .from("contacts_clients")
@@ -227,6 +261,22 @@ export async function deleteContactsClients(ids: string[]) {
     return { error: error.message };
   }
 
+  if (contacts && contacts.length > 0) {
+    await logHistoriqueBatch(
+      contacts.map((c) => ({
+        organisationId,
+        userId,
+        userRole: role,
+        module: "contact_client" as const,
+        action: "deleted" as const,
+        entiteType: "contact_client",
+        entiteId: c.id,
+        entiteLabel: `${c.numero_affichage} — ${c.prenom} ${c.nom}`,
+        description: `Contact "${c.prenom} ${c.nom}" supprimé`,
+      })),
+    );
+  }
+
   revalidatePath("/contacts-clients");
   return { success: true };
 }
@@ -234,7 +284,14 @@ export async function deleteContactsClients(ids: string[]) {
 export async function archiveContactClient(id: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { organisationId, supabase } = result;
+  const { organisationId, userId, role, supabase, admin } = result;
+
+  // Fetch name for logging
+  const { data: contact } = await admin
+    .from("contacts_clients")
+    .select("numero_affichage, prenom, nom")
+    .eq("id", id)
+    .single();
 
   const { error } = await supabase
     .from("contacts_clients")
@@ -246,6 +303,19 @@ export async function archiveContactClient(id: string) {
     return { error: error.message };
   }
 
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "contact_client",
+    action: "archived",
+    entiteType: "contact_client",
+    entiteId: id,
+    entiteLabel: contact ? `${contact.numero_affichage} — ${contact.prenom} ${contact.nom}` : null,
+    description: `Contact "${contact ? `${contact.prenom} ${contact.nom}` : id}" archivé`,
+    objetHref: `/contacts-clients/${id}`,
+  });
+
   revalidatePath("/contacts-clients");
   return { success: true };
 }
@@ -253,7 +323,14 @@ export async function archiveContactClient(id: string) {
 export async function unarchiveContactClient(id: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { organisationId, supabase } = result;
+  const { organisationId, userId, role, supabase, admin } = result;
+
+  // Fetch name for logging
+  const { data: contact } = await admin
+    .from("contacts_clients")
+    .select("numero_affichage, prenom, nom")
+    .eq("id", id)
+    .single();
 
   const { error } = await supabase
     .from("contacts_clients")
@@ -264,6 +341,19 @@ export async function unarchiveContactClient(id: string) {
   if (error) {
     return { error: error.message };
   }
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "contact_client",
+    action: "unarchived",
+    entiteType: "contact_client",
+    entiteId: id,
+    entiteLabel: contact ? `${contact.numero_affichage} — ${contact.prenom} ${contact.nom}` : null,
+    description: `Contact "${contact ? `${contact.prenom} ${contact.nom}` : id}" restauré`,
+    objetHref: `/contacts-clients/${id}`,
+  });
 
   revalidatePath("/contacts-clients");
   return { success: true };
@@ -291,23 +381,71 @@ export async function getContactEntreprises(contactId: string) {
 }
 
 export async function linkEntrepriseToContact(contactId: string, entrepriseId: string) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role, supabase, admin } = result;
+
   const { error } = await supabase
     .from("contact_entreprises")
     .insert({ contact_client_id: contactId, entreprise_id: entrepriseId });
   if (error) return { error: error.message };
+
+  // Fetch labels for logging
+  const [{ data: contact }, { data: ent }] = await Promise.all([
+    admin.from("contacts_clients").select("numero_affichage, prenom, nom").eq("id", contactId).single(),
+    admin.from("entreprises").select("numero_affichage, nom").eq("id", entrepriseId).single(),
+  ]);
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "contact_client",
+    action: "linked",
+    entiteType: "contact_client",
+    entiteId: contactId,
+    entiteLabel: contact ? `${contact.numero_affichage} — ${contact.prenom} ${contact.nom}` : null,
+    entrepriseId,
+    description: `Contact rattaché à l'entreprise "${ent?.nom ?? ""}"`,
+    objetHref: `/contacts-clients/${contactId}`,
+  });
+
   revalidatePath(`/contacts-clients/${contactId}`);
   return { success: true };
 }
 
 export async function unlinkEntrepriseFromContact(contactId: string, entrepriseId: string) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role, supabase, admin } = result;
+
+  // Fetch labels before unlinking
+  const [{ data: contact }, { data: ent }] = await Promise.all([
+    admin.from("contacts_clients").select("numero_affichage, prenom, nom").eq("id", contactId).single(),
+    admin.from("entreprises").select("numero_affichage, nom").eq("id", entrepriseId).single(),
+  ]);
+
   const { error } = await supabase
     .from("contact_entreprises")
     .delete()
     .eq("contact_client_id", contactId)
     .eq("entreprise_id", entrepriseId);
   if (error) return { error: error.message };
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "contact_client",
+    action: "unlinked",
+    entiteType: "contact_client",
+    entiteId: contactId,
+    entiteLabel: contact ? `${contact.numero_affichage} — ${contact.prenom} ${contact.nom}` : null,
+    entrepriseId,
+    description: `Contact détaché de l'entreprise "${ent?.nom ?? ""}"`,
+    objetHref: `/contacts-clients/${contactId}`,
+  });
+
   revalidatePath(`/contacts-clients/${contactId}`);
   return { success: true };
 }
@@ -325,7 +463,7 @@ export async function importContactsClients(
     return { success: 0, errors: [String(authResult.error)] };
   }
 
-  const { organisationId, supabase } = authResult;
+  const { organisationId, userId, role, supabase } = authResult;
   let successCount = 0;
   const importErrors: string[] = [];
 
@@ -444,6 +582,20 @@ export async function importContactsClients(
     }
 
     successCount++;
+  }
+
+  if (successCount > 0) {
+    await logHistorique({
+      organisationId,
+      userId,
+      userRole: role,
+      module: "contact_client",
+      action: "imported",
+      entiteType: "contact_client",
+      entiteId: organisationId,
+      description: `Import de ${successCount} contact${successCount > 1 ? "s" : ""} client${successCount > 1 ? "s" : ""}${importErrors.length > 0 ? ` (${importErrors.length} erreur${importErrors.length > 1 ? "s" : ""})` : ""}`,
+      metadata: { success: successCount, errors_count: importErrors.length },
+    });
   }
 
   revalidatePath("/contacts-clients");
