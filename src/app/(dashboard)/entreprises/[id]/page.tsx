@@ -1,4 +1,5 @@
 import { getEntreprise, getBpfCategoriesEntreprise } from "@/actions/entreprises";
+import { getAgences } from "@/actions/entreprise-organisation";
 import { notFound } from "next/navigation";
 import { EntrepriseDetail } from "./entreprise-detail";
 
@@ -9,9 +10,10 @@ interface PageProps {
 export default async function EntrepriseDetailPage({ params }: PageProps) {
   const { id } = await params;
 
-  const [entrepriseResult, bpfResult] = await Promise.all([
+  const [entrepriseResult, bpfResult, agencesResult] = await Promise.all([
     getEntreprise(id),
     getBpfCategoriesEntreprise(),
+    getAgences(id),
   ]);
 
   if (!entrepriseResult.data) {
@@ -22,6 +24,7 @@ export default async function EntrepriseDetailPage({ params }: PageProps) {
     <EntrepriseDetail
       entreprise={entrepriseResult.data}
       bpfCategories={bpfResult.data ?? []}
+      agences={(agencesResult.data ?? []).map((a) => ({ id: a.id, nom: a.nom }))}
     />
   );
 }

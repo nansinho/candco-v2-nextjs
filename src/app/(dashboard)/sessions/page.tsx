@@ -38,6 +38,7 @@ interface SessionRow {
   date_debut: string | null;
   date_fin: string | null;
   places_max: number | null;
+  archived_at: string | null;
   created_at: string;
   produits_formation: { intitule: string } | null;
   session_formateurs: { formateur_id: string; formateurs: { prenom: string; nom: string } | null }[];
@@ -47,13 +48,12 @@ interface SessionRow {
 
 // ─── Helpers ─────────────────────────────────────────────
 
-const STATUT_MAP: Record<string, { label: string; className: string }> = {
-  en_projet: { label: "En projet", className: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
-  validee: { label: "Validée", className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
-  en_cours: { label: "En cours", className: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
-  terminee: { label: "Terminée", className: "bg-muted/50 text-muted-foreground/60 border-border/40" },
-  annulee: { label: "Annulée", className: "bg-destructive/10 text-destructive border-destructive/20" },
-};
+// Statut config imported from shared component
+import {
+  SessionStatusBadge,
+  SESSION_STATUT_CONFIG,
+  SESSION_STATUT_OPTIONS,
+} from "@/components/shared/session-status-badge";
 
 // ─── Columns ─────────────────────────────────────────────
 
@@ -73,18 +73,11 @@ const columns: Column<SessionRow>[] = [
     key: "statut",
     label: "Statut",
     filterType: "select",
-    filterOptions: [
-      { label: "En projet", value: "en_projet" },
-      { label: "Validée", value: "validee" },
-      { label: "En cours", value: "en_cours" },
-      { label: "Terminée", value: "terminee" },
-      { label: "Annulée", value: "annulee" },
-    ],
+    filterOptions: SESSION_STATUT_OPTIONS,
     minWidth: 110,
-    render: (item) => {
-      const s = STATUT_MAP[item.statut] ?? { label: item.statut, className: "" };
-      return <Badge className={`text-[11px] font-normal ${s.className}`}>{s.label}</Badge>;
-    },
+    render: (item) => (
+      <SessionStatusBadge statut={item.statut} archived={!!item.archived_at} />
+    ),
   },
   {
     key: "nom",
@@ -316,7 +309,7 @@ function CreateSessionForm({
   const [errors, setErrors] = React.useState<Record<string, string[] | undefined>>({});
   const [form, setForm] = React.useState<CreateSessionInput>({
     nom: "",
-    statut: "en_projet",
+    statut: "en_creation",
     date_debut: "",
     date_fin: "",
     emargement_auto: false,

@@ -25,6 +25,11 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/alert-dialog";
 import { TachesActivitesTab } from "@/components/shared/taches-activites";
+import {
+  SessionStatusBadge,
+  SESSION_STATUT_OPTIONS,
+  getNextStatuses,
+} from "@/components/shared/session-status-badge";
 import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -33,6 +38,7 @@ import {
   updateSession,
   archiveSession,
   unarchiveSession,
+  updateSessionStatut,
   addSessionFormateur,
   removeSessionFormateur,
   addCommanditaire,
@@ -160,14 +166,6 @@ interface FinanceurOption {
   type: string | null;
 }
 
-const STATUT_MAP: Record<string, { label: string; className: string }> = {
-  en_projet: { label: "En projet", className: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
-  validee: { label: "Validée", className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
-  en_cours: { label: "En cours", className: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
-  terminee: { label: "Terminée", className: "bg-muted/50 text-muted-foreground/60 border-border/40" },
-  annulee: { label: "Annulée", className: "bg-destructive/10 text-destructive border-destructive/20" },
-};
-
 const WORKFLOW_STEPS = ["analyse", "convention", "signature", "facturation", "termine"];
 const WORKFLOW_LABELS: Record<string, string> = {
   analyse: "Analyse",
@@ -227,7 +225,7 @@ export function SessionDetail({
     const fd = new FormData(e.currentTarget);
     const input: UpdateSessionInput = {
       nom: fd.get("nom") as string,
-      statut: (fd.get("statut") as UpdateSessionInput["statut"]) || "en_projet",
+      statut: (fd.get("statut") as UpdateSessionInput["statut"]) || "en_creation",
       date_debut: (fd.get("date_debut") as string) || "",
       date_fin: (fd.get("date_fin") as string) || "",
       places_min: fd.get("places_min") ? Number(fd.get("places_min")) : undefined,
@@ -264,7 +262,6 @@ export function SessionDetail({
   };
 
   const isArchived = !!session.archived_at;
-  const statut = STATUT_MAP[session.statut] ?? { label: session.statut, className: "" };
 
   // Filter out already-assigned formateurs
   const availableFormateurs = allFormateurs.filter(
@@ -300,9 +297,7 @@ export function SessionDetail({
               <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[11px] font-mono shrink-0">
                 {session.numero_affichage}
               </Badge>
-              <Badge className={`text-[11px] font-normal shrink-0 ${statut.className}`}>
-                {statut.label}
-              </Badge>
+              <SessionStatusBadge statut={session.statut} archived={isArchived} />
             </div>
             {session.produits_formation && (
               <p className="mt-0.5 text-xs text-muted-foreground truncate">
@@ -413,11 +408,9 @@ export function SessionDetail({
                     <div className="space-y-2">
                       <Label htmlFor="statut" className="text-[13px]">Statut</Label>
                       <select id="statut" name="statut" defaultValue={session.statut} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground">
-                        <option value="en_projet">En projet</option>
-                        <option value="validee">Validée</option>
-                        <option value="en_cours">En cours</option>
-                        <option value="terminee">Terminée</option>
-                        <option value="annulee">Annulée</option>
+                        {SESSION_STATUT_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
                       </select>
                     </div>
                   </div>
