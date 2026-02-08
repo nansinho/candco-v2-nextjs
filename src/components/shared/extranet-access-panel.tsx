@@ -264,7 +264,7 @@ export function ExtranetAccessPanel({
             </span>
           </div>
           <p className="text-[10px] text-muted-foreground">
-            Partagez ce lien avec la personne pour qu&apos;elle puisse se connecter :
+            Partagez ce lien avec la personne pour qu&apos;elle puisse se connecter (valide 24h) :
           </p>
           <div className="flex gap-1.5">
             <input

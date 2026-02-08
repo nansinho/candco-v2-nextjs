@@ -107,6 +107,7 @@ export function invitationExtranetTemplate(params: {
         <a href="${params.lien}" style="color:#fff;text-decoration:none;font-weight:600;font-size:14px;">Accéder à mon espace</a>
       </td></tr>
     </table>
+    <p style="margin:0 0 8px;color:#a0a0a0;font-size:12px;">Ce lien est valable pendant <strong>24 heures</strong>. Passé ce délai, demandez un nouveau lien à votre administrateur.</p>
     <p style="margin:0;color:#a0a0a0;font-size:12px;">Si le bouton ne fonctionne pas, copiez ce lien : <br><a href="${params.lien}" style="color:#F97316;word-break:break-all;">${params.lien}</a></p>`,
     params.orgName
   );
