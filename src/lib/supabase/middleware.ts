@@ -52,9 +52,12 @@ export async function updateSession(request: NextRequest) {
   // Redirect authenticated users away from auth pages
   if (user && (pathname === "/login" || pathname === "/register")) {
     const redirectPath = await getRedirectPath(supabase, user.id);
-    const url = request.nextUrl.clone();
-    url.pathname = redirectPath;
-    return NextResponse.redirect(url);
+    // Only redirect if we have a real destination (not /login → avoids infinite loop)
+    if (redirectPath !== "/login") {
+      const url = request.nextUrl.clone();
+      url.pathname = redirectPath;
+      return NextResponse.redirect(url);
+    }
   }
 
   // For authenticated users on root "/", redirect to their appropriate space
