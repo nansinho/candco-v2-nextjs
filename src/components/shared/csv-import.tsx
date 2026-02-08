@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Upload, FileText, Loader2, AlertCircle, CheckCircle2, FileSpreadsheet } from "lucide-react";
+import { Upload, FileText, Loader2, AlertCircle, CheckCircle2, FileSpreadsheet, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -31,6 +31,8 @@ interface CsvImportProps {
   columns: ImportColumn[];
   onImport: (rows: Record<string, string>[]) => Promise<{ success: number; errors: string[] }>;
   templateFilename: string;
+  /** If provided, PDF files trigger AI import instead of CSV parsing */
+  onPdfImport?: (file: File) => Promise<void>;
 }
 
 // ─── Helpers ─────────────────────────────────────────────
@@ -286,6 +288,7 @@ export function CsvImport({
   columns,
   onImport,
   templateFilename,
+  onPdfImport,
 }: CsvImportProps) {
   const [file, setFile] = React.useState<File | null>(null);
   const [preview, setPreview] = React.useState<Record<string, string>[]>([]);
@@ -294,6 +297,8 @@ export function CsvImport({
   const [isImporting, setIsImporting] = React.useState(false);
   const [result, setResult] = React.useState<{ success: number; errors: string[] } | null>(null);
   const [parseError, setParseError] = React.useState<string | null>(null);
+  const [isPdfMode, setIsPdfMode] = React.useState(false);
+  const [isPdfImporting, setIsPdfImporting] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const reset = () => {
@@ -304,13 +309,33 @@ export function CsvImport({
     setResult(null);
     setParseError(null);
     setIsImporting(false);
+    setIsPdfMode(false);
+    setIsPdfImporting(false);
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
 
+    // Detect PDF → AI import
+    if (/\.pdf$/i.test(f.name) && onPdfImport) {
+      setFile(f);
+      setIsPdfMode(true);
+      setIsPdfImporting(true);
+      setResult(null);
+      setParseError(null);
+      try {
+        await onPdfImport(f);
+      } catch {
+        setParseError("Erreur lors de l'import IA du PDF.");
+      } finally {
+        setIsPdfImporting(false);
+      }
+      return;
+    }
+
     setFile(f);
+    setIsPdfMode(false);
     setResult(null);
     setParseError(null);
 
@@ -399,10 +424,16 @@ export function CsvImport({
             <FileText className="h-4 w-4 text-muted-foreground/60 shrink-0 mt-0.5" />
             <div className="flex-1 space-y-1">
               <p className="text-xs text-muted-foreground">
-                <strong>Formats acceptés :</strong> CSV, XLS, XLSX, JSON
+                <strong>Formats acceptés :</strong> CSV, XLS, XLSX, JSON{onPdfImport ? ", PDF" : ""}
               </p>
+              {onPdfImport && (
+                <p className="text-[11px] text-primary/80">
+                  <Sparkles className="inline h-3 w-3 mr-0.5" />
+                  <strong>PDF :</strong> L&apos;IA analyse le document et cree automatiquement le produit complet.
+                </p>
+              )}
               <p className="text-[11px] text-muted-foreground/60">
-                Colonnes reconnues : {columns.map((c) => `${c.label}${c.required ? "*" : ""}`).join(", ")}
+                Colonnes CSV reconnues : {columns.map((c) => `${c.label}${c.required ? "*" : ""}`).join(", ")}
               </p>
               <p className="text-[11px] text-muted-foreground/40">
                 Les noms de colonnes SmartOF sont reconnus automatiquement.
@@ -424,7 +455,7 @@ export function CsvImport({
             <input
               ref={fileInputRef}
               type="file"
-              accept=".csv,.txt,.xls,.xlsx,.json"
+              accept=".csv,.txt,.xls,.xlsx,.json,.pdf"
               onChange={handleFileChange}
               className="hidden"
             />
@@ -453,13 +484,24 @@ export function CsvImport({
                   <>
                     <Upload className="h-5 w-5 text-muted-foreground/60" />
                     <span className="text-xs text-muted-foreground">
-                      Cliquez pour choisir un fichier CSV, Excel ou JSON
+                      Cliquez pour choisir un fichier {onPdfImport ? "(CSV, Excel, JSON ou PDF)" : "(CSV, Excel ou JSON)"}
                     </span>
                   </>
                 )}
               </div>
             </Button>
           </div>
+
+          {/* PDF AI Import in progress */}
+          {isPdfMode && isPdfImporting && (
+            <div className="flex flex-col items-center gap-3 py-6">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">Analyse IA du PDF en cours...</p>
+              <p className="text-[11px] text-muted-foreground/60">
+                Extraction de l&apos;intitule, description, duree, objectifs, programme, tarifs, modalites...
+              </p>
+            </div>
+          )}
 
           {/* Erreur de parsing */}
           {parseError && (
