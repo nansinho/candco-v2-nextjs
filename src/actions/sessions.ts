@@ -12,7 +12,7 @@ import { sendInscriptionEmail } from "@/actions/emails";
 const CreateSessionSchema = z.object({
   nom: z.string().min(1, "Le nom est requis"),
   produit_id: z.string().uuid().optional().or(z.literal("")),
-  statut: z.enum(["en_projet", "validee", "en_cours", "terminee", "annulee"]).default("en_projet"),
+  statut: z.enum(["en_creation", "validee", "a_facturer", "terminee"]).default("en_creation"),
   date_debut: z.string().optional().or(z.literal("")),
   date_fin: z.string().optional().or(z.literal("")),
   places_min: z.coerce.number().int().nonnegative().optional(),
@@ -540,7 +540,7 @@ export async function searchSessionsForInscription(search: string) {
     .select("id, nom, numero_affichage, statut, date_debut, date_fin, places_max, inscriptions(id)")
     .eq("organisation_id", organisationId)
     .is("archived_at", null)
-    .in("statut", ["en_projet", "validee", "en_cours"])
+    .in("statut", ["en_creation", "validee", "a_facturer"])
     .order("date_debut", { ascending: true })
     .limit(15);
 
@@ -643,4 +643,87 @@ export async function getSessionFinancials(sessionId: string) {
     cout: Math.round(totalCost * 100) / 100,
     rentabilite: Math.round((totalBudget - totalCost) * 100) / 100,
   };
+}
+
+// ─── Session Status Update (workflow) ────────────────────
+
+const STATUT_TRANSITIONS: Record<string, string[]> = {
+  en_creation: ["validee"],
+  validee: ["en_creation", "a_facturer"],
+  a_facturer: ["validee", "terminee"],
+  terminee: [],
+};
+
+export async function updateSessionStatut(sessionId: string, newStatut: string) {
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, supabase } = result;
+
+  // Get current statut
+  const { data: session } = await supabase
+    .from("sessions")
+    .select("statut")
+    .eq("id", sessionId)
+    .eq("organisation_id", organisationId)
+    .single();
+
+  if (!session) return { error: "Session non trouvée" };
+
+  const allowed = STATUT_TRANSITIONS[session.statut] ?? [];
+  if (!allowed.includes(newStatut)) {
+    return { error: `Transition de "${session.statut}" vers "${newStatut}" non autorisée` };
+  }
+
+  const { error } = await supabase
+    .from("sessions")
+    .update({ statut: newStatut })
+    .eq("id", sessionId)
+    .eq("organisation_id", organisationId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/sessions");
+  revalidatePath(`/sessions/${sessionId}`);
+  revalidatePath("/entreprises");
+  return { success: true };
+}
+
+// ─── Enterprise Sessions (for Entreprise detail tab) ─────
+
+export async function getEntrepriseSessions(entrepriseId: string) {
+  const result = await getOrganisationId();
+  if ("error" in result) return { data: [] };
+  const { admin, organisationId } = result;
+
+  // Get sessions where this entreprise is a commanditaire
+  const { data: commanditaires } = await admin
+    .from("session_commanditaires")
+    .select("session_id")
+    .eq("entreprise_id", entrepriseId);
+
+  if (!commanditaires || commanditaires.length === 0) return { data: [] };
+
+  const sessionIds = [...new Set(commanditaires.map((c) => c.session_id))];
+
+  const { data, error } = await admin
+    .from("sessions")
+    .select(`
+      id,
+      numero_affichage,
+      nom,
+      statut,
+      date_debut,
+      date_fin,
+      archived_at,
+      produits_formation(intitule),
+      inscriptions(id),
+      session_formateurs(formateurs(prenom, nom))
+    `)
+    .in("id", sessionIds)
+    .eq("organisation_id", organisationId)
+    .order("date_debut", { ascending: false, nullsFirst: false });
+
+  if (error) return { data: [] };
+
+  return { data: data ?? [] };
 }

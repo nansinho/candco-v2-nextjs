@@ -51,6 +51,8 @@ import { createContactClient, type CreateContactClientInput } from "@/actions/co
 import { TachesActivitesTab } from "@/components/shared/taches-activites";
 import { FonctionSelect } from "@/components/shared/fonction-select";
 import { OrganisationTab } from "@/components/entreprise/organisation-tab";
+import { EntrepriseSessionsTab } from "@/components/entreprise/sessions-tab";
+import { BesoinsFormationTab } from "@/components/entreprise/besoins-formation-tab";
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -90,9 +92,11 @@ interface BpfCategorie {
 export function EntrepriseDetail({
   entreprise: initialEntreprise,
   bpfCategories,
+  agences = [],
 }: {
   entreprise: Record<string, unknown>;
   bpfCategories: BpfCategorie[];
+  agences?: { id: string; nom: string }[];
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -202,9 +206,6 @@ export function EntrepriseDetail({
           <TabsTrigger value="general" className="text-xs">
             Informations générales
           </TabsTrigger>
-          <TabsTrigger value="facturation" className="text-xs">
-            Facturation
-          </TabsTrigger>
           <TabsTrigger value="contacts" className="text-xs">
             Contacts
           </TabsTrigger>
@@ -214,8 +215,8 @@ export function EntrepriseDetail({
           <TabsTrigger value="organisation" className="text-xs">
             Organisation
           </TabsTrigger>
-          <TabsTrigger value="taches" className="text-xs">
-            Tâches et activités
+          <TabsTrigger value="suivi" className="text-xs">
+            Suivi &amp; Formation
           </TabsTrigger>
         </TabsList>
 
@@ -223,13 +224,6 @@ export function EntrepriseDetail({
           <GeneralInfoTab
             entreprise={entreprise}
             bpfCategories={bpfCategories}
-            onUpdate={setEntreprise}
-          />
-        </TabsContent>
-
-        <TabsContent value="facturation" className="mt-6">
-          <FacturationTab
-            entreprise={entreprise}
             onUpdate={setEntreprise}
           />
         </TabsContent>
@@ -246,8 +240,8 @@ export function EntrepriseDetail({
           <OrganisationTab entrepriseId={entreprise.id} />
         </TabsContent>
 
-        <TabsContent value="taches" className="mt-6">
-          <TachesActivitesTab entiteType="entreprise" entiteId={entreprise.id} />
+        <TabsContent value="suivi" className="mt-6">
+          <SuiviFormationTab entrepriseId={entreprise.id} agences={agences} />
         </TabsContent>
       </Tabs>
       <ConfirmDialog />
@@ -273,6 +267,12 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
   const [adresseRue, setAdresseRue] = React.useState(entreprise.adresse_rue ?? "");
   const [adresseCp, setAdresseCp] = React.useState(entreprise.adresse_cp ?? "");
   const [adresseVille, setAdresseVille] = React.useState(entreprise.adresse_ville ?? "");
+  const [factRue, setFactRue] = React.useState(entreprise.facturation_rue ?? "");
+  const [factCp, setFactCp] = React.useState(entreprise.facturation_cp ?? "");
+  const [factVille, setFactVille] = React.useState(entreprise.facturation_ville ?? "");
+  const [showFacturation, setShowFacturation] = React.useState(
+    !!(entreprise.facturation_raison_sociale || entreprise.facturation_rue)
+  );
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -292,6 +292,11 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
       bpf_categorie_id: formData.get("bpf_categorie_id") as string,
       numero_compte_comptable: formData.get("numero_compte_comptable") as string,
       est_siege: formData.get("est_siege") === "on",
+      facturation_raison_sociale: formData.get("facturation_raison_sociale") as string,
+      facturation_rue: formData.get("facturation_rue") as string,
+      facturation_complement: formData.get("facturation_complement") as string,
+      facturation_cp: formData.get("facturation_cp") as string,
+      facturation_ville: formData.get("facturation_ville") as string,
     };
 
     const result = await updateEntreprise(entreprise.id, input);
@@ -434,6 +439,73 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
           </div>
         </section>
 
+        {/* Adresse de facturation (collapsible) */}
+        <section className="rounded-lg border border-border/60 bg-card">
+          <button
+            type="button"
+            onClick={() => setShowFacturation(!showFacturation)}
+            className="flex w-full items-center justify-between p-5"
+          >
+            <h3 className="text-sm font-semibold">Adresse de facturation</h3>
+            <span className="text-xs text-muted-foreground/60">
+              {showFacturation ? "▾ Masquer" : "▸ Afficher"}
+            </span>
+          </button>
+          {showFacturation && (
+            <div className="border-t border-border/60 p-5 space-y-4">
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-[11px] border-border/60"
+                  onClick={() => {
+                    const raisonSocialeEl = document.getElementById("facturation_raison_sociale") as HTMLInputElement;
+                    const complementEl = document.getElementById("facturation_complement") as HTMLInputElement;
+                    if (raisonSocialeEl) raisonSocialeEl.value = entreprise.nom;
+                    if (complementEl) complementEl.value = entreprise.adresse_complement ?? "";
+                    setFactRue(entreprise.adresse_rue ?? "");
+                    setFactCp(entreprise.adresse_cp ?? "");
+                    setFactVille(entreprise.adresse_ville ?? "");
+                  }}
+                >
+                  <Copy className="mr-1.5 h-3 w-3" />
+                  Copier depuis l&apos;entreprise
+                </Button>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="facturation_raison_sociale" className="text-[13px]">Raison sociale</Label>
+                <Input id="facturation_raison_sociale" name="facturation_raison_sociale" defaultValue={entreprise.facturation_raison_sociale ?? ""} placeholder="Raison sociale de facturation" className="h-9 text-[13px] border-border/60" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="facturation_rue" className="text-[13px]">Rue</Label>
+                <AddressAutocomplete
+                  id="facturation_rue"
+                  name="facturation_rue"
+                  value={factRue}
+                  onChange={(val) => setFactRue(val)}
+                  onSelect={(r) => { setFactRue(r.rue); setFactCp(r.cp); setFactVille(r.ville); }}
+                  placeholder="Rechercher une adresse..."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="facturation_complement" className="text-[13px]">Complément</Label>
+                <Input id="facturation_complement" name="facturation_complement" defaultValue={entreprise.facturation_complement ?? ""} placeholder="Bâtiment, étage, etc." className="h-9 text-[13px] border-border/60" />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="facturation_cp" className="text-[13px]">Code postal</Label>
+                  <Input id="facturation_cp" name="facturation_cp" value={factCp} onChange={(e) => setFactCp(e.target.value)} placeholder="75001" className="h-9 text-[13px] border-border/60" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="facturation_ville" className="text-[13px]">Ville</Label>
+                  <Input id="facturation_ville" name="facturation_ville" value={factVille} onChange={(e) => setFactVille(e.target.value)} placeholder="Paris" className="h-9 text-[13px] border-border/60" />
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
+
         {/* Submit */}
         <div className="flex justify-end">
           <Button type="submit" size="sm" disabled={isSaving} className="h-8 text-xs">
@@ -449,112 +521,58 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
   );
 }
 
-// ─── Facturation Tab ─────────────────────────────────────
+// ─── Suivi & Formation Tab (3 sub-tabs) ──────────────────
 
-function FacturationTab({ entreprise, onUpdate }: { entreprise: EntrepriseData; onUpdate: (data: EntrepriseData) => void }) {
-  const { toast } = useToast();
-  const [isSaving, setIsSaving] = React.useState(false);
-  const [errors, setErrors] = React.useState<Record<string, string[]>>({});
-  const formRef = React.useRef<HTMLFormElement>(null);
-
-  const [factRue, setFactRue] = React.useState(entreprise.facturation_rue ?? "");
-  const [factCp, setFactCp] = React.useState(entreprise.facturation_cp ?? "");
-  const [factVille, setFactVille] = React.useState(entreprise.facturation_ville ?? "");
-
-  function handleCopyFromEntreprise() {
-    if (!formRef.current) return;
-    const form = formRef.current;
-    const raisonSocialeInput = form.elements.namedItem("facturation_raison_sociale") as HTMLInputElement;
-    const complementInput = form.elements.namedItem("facturation_complement") as HTMLInputElement;
-    if (raisonSocialeInput) raisonSocialeInput.value = entreprise.nom;
-    if (complementInput) complementInput.value = entreprise.adresse_complement ?? "";
-    setFactRue(entreprise.adresse_rue ?? "");
-    setFactCp(entreprise.adresse_cp ?? "");
-    setFactVille(entreprise.adresse_ville ?? "");
-    toast({ title: "Adresse copiée", description: "Les informations de l'entreprise ont été copiées." });
-  }
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setIsSaving(true);
-    setErrors({});
-    const formData = new FormData(e.currentTarget);
-    const input = {
-      facturation_raison_sociale: formData.get("facturation_raison_sociale") as string,
-      facturation_rue: formData.get("facturation_rue") as string,
-      facturation_complement: formData.get("facturation_complement") as string,
-      facturation_cp: formData.get("facturation_cp") as string,
-      facturation_ville: formData.get("facturation_ville") as string,
-    };
-    const result = await updateEntreprise(entreprise.id, input);
-    if (result.error) {
-      if (typeof result.error === "object" && "_form" in result.error) {
-        setErrors({ _form: result.error._form as string[] });
-        toast({ title: "Erreur", description: (result.error._form as string[])[0], variant: "destructive" });
-      } else {
-        setErrors(result.error as Record<string, string[]>);
-      }
-      setIsSaving(false);
-      return;
-    }
-    if (result.data) onUpdate(result.data as unknown as EntrepriseData);
-    toast({ title: "Modifications enregistrées", description: "Les informations de facturation ont été mises à jour.", variant: "success" });
-    setIsSaving(false);
-  }
+function SuiviFormationTab({ entrepriseId, agences }: { entrepriseId: string; agences: { id: string; nom: string }[] }) {
+  const [subTab, setSubTab] = React.useState<"sessions" | "besoins" | "historique">("sessions");
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit}>
-      <div className="space-y-6">
-        {errors._form && (
-          <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{errors._form[0]}</div>
-        )}
-        <section className="rounded-lg border border-border/60 bg-card p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-sm font-semibold">Adresse de facturation</h3>
-            <Button type="button" variant="outline" size="sm" className="h-7 text-[11px] border-border/60" onClick={handleCopyFromEntreprise}>
-              <Copy className="mr-1.5 h-3 w-3" />
-              Remplir avec les informations de l&apos;entreprise
-            </Button>
-          </div>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="facturation_raison_sociale" className="text-[13px]">Raison sociale</Label>
-              <Input id="facturation_raison_sociale" name="facturation_raison_sociale" defaultValue={entreprise.facturation_raison_sociale ?? ""} placeholder="Raison sociale de facturation" className="h-9 text-[13px] border-border/60" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="facturation_rue" className="text-[13px]">Rue</Label>
-              <AddressAutocomplete
-                id="facturation_rue"
-                name="facturation_rue"
-                value={factRue}
-                onChange={(val) => setFactRue(val)}
-                onSelect={(r) => { setFactRue(r.rue); setFactCp(r.cp); setFactVille(r.ville); }}
-                placeholder="Rechercher une adresse..."
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="facturation_complement" className="text-[13px]">Complément d&apos;adresse</Label>
-              <Input id="facturation_complement" name="facturation_complement" defaultValue={entreprise.facturation_complement ?? ""} placeholder="Bâtiment, étage, etc." className="h-9 text-[13px] border-border/60" />
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="facturation_cp" className="text-[13px]">Code postal</Label>
-                <Input id="facturation_cp" name="facturation_cp" value={factCp} onChange={(e) => setFactCp(e.target.value)} placeholder="75001" className="h-9 text-[13px] border-border/60" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="facturation_ville" className="text-[13px]">Ville</Label>
-                <Input id="facturation_ville" name="facturation_ville" value={factVille} onChange={(e) => setFactVille(e.target.value)} placeholder="Paris" className="h-9 text-[13px] border-border/60" />
-              </div>
-            </div>
-          </div>
-        </section>
-        <div className="flex justify-end">
-          <Button type="submit" size="sm" disabled={isSaving} className="h-8 text-xs">
-            {isSaving ? <><Loader2 className="mr-1.5 h-3 w-3 animate-spin" />Enregistrement...</> : <><Save className="mr-1.5 h-3 w-3" />Enregistrer</>}
-          </Button>
-        </div>
+    <div className="space-y-4">
+      {/* Sub-tab pills */}
+      <div className="flex items-center gap-1 rounded-lg bg-muted/30 p-1 w-fit">
+        <button
+          onClick={() => setSubTab("sessions")}
+          className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+            subTab === "sessions"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Sessions
+        </button>
+        <button
+          onClick={() => setSubTab("besoins")}
+          className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+            subTab === "besoins"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Besoin de formation
+        </button>
+        <button
+          onClick={() => setSubTab("historique")}
+          className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+            subTab === "historique"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Historique
+        </button>
       </div>
-    </form>
+
+      {/* Sub-tab content */}
+      {subTab === "sessions" && (
+        <EntrepriseSessionsTab entrepriseId={entrepriseId} />
+      )}
+      {subTab === "besoins" && (
+        <BesoinsFormationTab entrepriseId={entrepriseId} agences={agences} />
+      )}
+      {subTab === "historique" && (
+        <TachesActivitesTab entiteType="entreprise" entiteId={entrepriseId} />
+      )}
+    </div>
   );
 }
 
