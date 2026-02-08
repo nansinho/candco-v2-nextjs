@@ -29,6 +29,7 @@ import {
   Sun,
   Moon,
   X,
+  LayoutDashboard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/theme-provider";
@@ -135,6 +136,29 @@ export function Sidebar({
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-3">
+        {/* Tableau de bord */}
+        <div className="px-2 mb-3">
+          <Link
+            href="/"
+            className={cn(
+              "group relative flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-sm transition-all duration-150",
+              pathname === "/"
+                ? "bg-primary/10 text-primary font-medium"
+                : "text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground/80"
+            )}
+            title={collapsed ? "Tableau de bord" : undefined}
+          >
+            {pathname === "/" && (
+              <div className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-primary" />
+            )}
+            <LayoutDashboard className={cn(
+              "h-4 w-4 shrink-0 transition-colors",
+              pathname === "/" ? "text-primary" : "text-sidebar-foreground/35 group-hover:text-sidebar-foreground/60"
+            )} />
+            {!collapsed && <span>Tableau de bord</span>}
+          </Link>
+        </div>
+
         {NAV_SECTIONS.map((section, idx) => (
           <div key={section.title} className={cn(idx > 0 && "mt-3")}>
             {!collapsed && (
