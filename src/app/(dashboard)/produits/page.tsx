@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { BookOpen, Loader2, Globe, Clock } from "lucide-react";
+import { BookOpen, Loader2, Globe, Clock, Sparkles, FileUp } from "lucide-react";
 import { DataTable, type Column, type ActiveFilter } from "@/components/data-table/DataTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +17,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toast";
-import { getProduits, createProduit, archiveProduit, unarchiveProduit, deleteProduits, importProduits, type CreateProduitInput } from "@/actions/produits";
+import { getProduits, createProduit, createProduitFromPDF, archiveProduit, unarchiveProduit, deleteProduits, importProduits, type CreateProduitInput } from "@/actions/produits";
 import { CsvImport, type ImportColumn } from "@/components/shared/csv-import";
 import { formatDate } from "@/lib/utils";
 
@@ -217,6 +217,9 @@ export default function ProduitsPage() {
   const [showArchived, setShowArchived] = React.useState(false);
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [importOpen, setImportOpen] = React.useState(false);
+  const [pdfImportOpen, setPdfImportOpen] = React.useState(false);
+  const [isImportingPdf, setIsImportingPdf] = React.useState(false);
+  const pdfInputRef = React.useRef<HTMLInputElement>(null);
   const [sortBy, setSortBy] = React.useState("created_at");
   const [sortDir, setSortDir] = React.useState<"asc" | "desc">("desc");
   const [filters, setFilters] = React.useState<ActiveFilter[]>([]);
@@ -251,6 +254,59 @@ export default function ProduitsPage() {
     });
   };
 
+  const handlePdfImport = async (file: File) => {
+    setIsImportingPdf(true);
+    setPdfImportOpen(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/ai/extract-programme", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        toast({ title: "Erreur", description: result.error, variant: "destructive" });
+        setIsImportingPdf(false);
+        setPdfImportOpen(false);
+        return;
+      }
+
+      // Create the full product from extracted data
+      const createResult = await createProduitFromPDF(result.data);
+
+      if (createResult.error) {
+        toast({ title: "Erreur", description: typeof createResult.error === "string" ? createResult.error : "Erreur lors de la creation", variant: "destructive" });
+        setIsImportingPdf(false);
+        setPdfImportOpen(false);
+        return;
+      }
+
+      toast({
+        title: "Produit cree depuis le PDF",
+        description: `"${createResult.data?.intitule}" a ete cree avec toutes les informations extraites.`,
+        variant: "success",
+      });
+
+      setIsImportingPdf(false);
+      setPdfImportOpen(false);
+
+      // Navigate to the created product
+      if (createResult.data?.id) {
+        router.push(`/produits/${createResult.data.id}`);
+      } else {
+        fetchData();
+      }
+    } catch {
+      toast({ title: "Erreur", description: "Impossible d'importer le PDF.", variant: "destructive" });
+      setIsImportingPdf(false);
+      setPdfImportOpen(false);
+    }
+  };
+
   const handleSortChange = (key: string, dir: "asc" | "desc") => {
     setSortBy(key);
     setSortDir(dir);
@@ -269,6 +325,17 @@ export default function ProduitsPage() {
         onPageChange={setPage}
         searchValue={search}
         onSearchChange={setSearch}
+        headerExtra={
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs border-border/60 gap-1.5"
+            onClick={() => setPdfImportOpen(true)}
+          >
+            <Sparkles className="h-3 w-3 text-primary" />
+            <span className="hidden sm:inline">Import PDF (IA)</span>
+          </Button>
+        }
         onImport={() => setImportOpen(true)}
         onAdd={() => setDialogOpen(true)}
         addLabel="Ajouter un produit"
@@ -316,6 +383,55 @@ export default function ProduitsPage() {
             onSuccess={handleCreateSuccess}
             onCancel={() => setDialogOpen(false)}
           />
+        </DialogContent>
+      </Dialog>
+
+      {/* PDF AI Import Dialog */}
+      <Dialog open={pdfImportOpen} onOpenChange={(open) => { if (!isImportingPdf) setPdfImportOpen(open); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              Import PDF intelligent
+            </DialogTitle>
+            <DialogDescription>
+              Uploadez un programme de formation en PDF. L&apos;IA analysera le document et creera automatiquement le produit avec toutes les informations extraites.
+            </DialogDescription>
+          </DialogHeader>
+          {isImportingPdf ? (
+            <div className="flex flex-col items-center gap-3 py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">Analyse du PDF en cours...</p>
+              <p className="text-[11px] text-muted-foreground/60">Extraction des informations par l&apos;IA, cela peut prendre quelques secondes.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div
+                className="flex flex-col items-center gap-3 rounded-lg border-2 border-dashed border-border/60 p-8 cursor-pointer hover:border-primary/40 transition-colors"
+                onClick={() => pdfInputRef.current?.click()}
+              >
+                <FileUp className="h-8 w-8 text-muted-foreground/40" />
+                <div className="text-center">
+                  <p className="text-sm font-medium">Cliquez pour selectionner un PDF</p>
+                  <p className="text-[11px] text-muted-foreground/60 mt-1">Programme de formation, max 10 Mo</p>
+                </div>
+              </div>
+              <input
+                ref={pdfInputRef}
+                type="file"
+                accept=".pdf"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handlePdfImport(file);
+                  if (pdfInputRef.current) pdfInputRef.current.value = "";
+                }}
+              />
+              <p className="text-[11px] text-muted-foreground/60 text-center">
+                Coute 1 credit IA. L&apos;IA extrait : intitule, description, duree, objectifs, programme, tarifs, modalites, public vise, prerequis...
+              </p>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

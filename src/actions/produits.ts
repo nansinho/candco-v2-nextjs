@@ -170,6 +170,148 @@ export async function createProduit(input: CreateProduitInput) {
   return { data };
 }
 
+// ─── Create full product from PDF AI extraction ──────────
+
+interface PDFExtractedData {
+  intitule?: string;
+  sous_titre?: string | null;
+  description?: string | null;
+  domaine?: string | null;
+  type_action?: string | null;
+  modalite?: string | null;
+  formule?: string | null;
+  duree_heures?: number | null;
+  duree_jours?: number | null;
+  objectifs?: string[];
+  public_vise?: string | null;
+  prerequis?: string | null;
+  nombre_participants_min?: number | null;
+  nombre_participants_max?: number | null;
+  certification?: string | null;
+  delai_acces?: string | null;
+  lieu?: string | null;
+  tarif_inter_ht?: number | null;
+  tarif_intra_ht?: number | null;
+  modules?: { titre: string; contenu: string; duree?: string | null }[];
+  modalites_evaluation?: string | null;
+  modalites_pedagogiques?: string | null;
+  moyens_pedagogiques?: string | null;
+  accessibilite?: string | null;
+}
+
+export async function createProduitFromPDF(extracted: PDFExtractedData) {
+  if (!extracted.intitule) {
+    return { error: "L'intitule est requis" };
+  }
+
+  const result = await getOrganisationId();
+  if ("error" in result) {
+    return { error: result.error };
+  }
+
+  const { organisationId, supabase } = result;
+
+  // Generate display number
+  const { data: numero } = await supabase.rpc("next_numero", {
+    p_organisation_id: organisationId,
+    p_entite: "PROD",
+  });
+
+  // Build description with extra info that doesn't have dedicated columns
+  const descParts: string[] = [];
+  if (extracted.description) descParts.push(extracted.description);
+  if (extracted.public_vise) descParts.push(`\n\n**Public visé :** ${extracted.public_vise}`);
+  if (extracted.prerequis) descParts.push(`\n\n**Prérequis :** ${extracted.prerequis}`);
+  if (extracted.certification) descParts.push(`\n\n**Certification :** ${extracted.certification}`);
+  if (extracted.delai_acces) descParts.push(`\n\n**Délai d'accès :** ${extracted.delai_acces}`);
+  if (extracted.modalites_evaluation) descParts.push(`\n\n**Modalités d'évaluation :** ${extracted.modalites_evaluation}`);
+  if (extracted.modalites_pedagogiques) descParts.push(`\n\n**Modalités pédagogiques :** ${extracted.modalites_pedagogiques}`);
+  if (extracted.moyens_pedagogiques) descParts.push(`\n\n**Moyens pédagogiques :** ${extracted.moyens_pedagogiques}`);
+  if (extracted.accessibilite) descParts.push(`\n\n**Accessibilité :** ${extracted.accessibilite}`);
+
+  // Validate enum values
+  const validTypeAction = ["action_formation", "bilan_competences", "vae", "apprentissage"];
+  const validModalite = ["presentiel", "distanciel", "mixte", "afest"];
+  const validFormule = ["inter", "intra", "individuel"];
+
+  // Create the product
+  const { data: produit, error: produitError } = await supabase
+    .from("produits_formation")
+    .insert({
+      organisation_id: organisationId,
+      numero_affichage: numero,
+      intitule: extracted.intitule,
+      sous_titre: extracted.sous_titre || null,
+      description: descParts.join("") || null,
+      domaine: extracted.domaine || null,
+      type_action: validTypeAction.includes(extracted.type_action || "") ? extracted.type_action : null,
+      modalite: validModalite.includes(extracted.modalite || "") ? extracted.modalite : null,
+      formule: validFormule.includes(extracted.formule || "") ? extracted.formule : null,
+      duree_heures: extracted.duree_heures || null,
+      duree_jours: extracted.duree_jours || null,
+    })
+    .select()
+    .single();
+
+  if (produitError || !produit) {
+    return { error: produitError?.message || "Erreur lors de la creation du produit" };
+  }
+
+  const produitId = produit.id;
+
+  // Insert objectifs
+  if (extracted.objectifs && extracted.objectifs.length > 0) {
+    const objectifsData = extracted.objectifs.map((obj, i) => ({
+      produit_id: produitId,
+      objectif: obj,
+      ordre: i + 1,
+    }));
+    await supabase.from("produit_objectifs").insert(objectifsData);
+  }
+
+  // Insert programme modules
+  if (extracted.modules && extracted.modules.length > 0) {
+    const modulesData = extracted.modules.map((mod, i) => ({
+      produit_id: produitId,
+      titre: mod.titre,
+      contenu: mod.contenu || null,
+      duree: mod.duree || null,
+      ordre: i + 1,
+    }));
+    await supabase.from("produit_programme").insert(modulesData);
+  }
+
+  // Insert tarifs
+  const tarifs: { produit_id: string; nom: string; prix_ht: number; unite: string; is_default: boolean }[] = [];
+  if (extracted.tarif_intra_ht) {
+    tarifs.push({
+      produit_id: produitId,
+      nom: "Intra-entreprise",
+      prix_ht: extracted.tarif_intra_ht,
+      unite: "forfait",
+      is_default: true,
+    });
+  }
+  if (extracted.tarif_inter_ht) {
+    tarifs.push({
+      produit_id: produitId,
+      nom: "Inter-entreprise",
+      prix_ht: extracted.tarif_inter_ht,
+      unite: "stagiaire",
+      is_default: !extracted.tarif_intra_ht,
+    });
+  }
+  if (tarifs.length > 0) {
+    await supabase.from("produit_tarifs").insert(tarifs);
+  }
+
+  // Recalculate completion
+  await recalculateCompletion(produitId, supabase);
+
+  revalidatePath("/produits");
+  return { data: produit };
+}
+
 export async function getProduits(
   page: number = 1,
   search: string = "",
