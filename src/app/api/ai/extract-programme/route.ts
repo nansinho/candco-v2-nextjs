@@ -91,8 +91,8 @@ export async function POST(request: NextRequest) {
 
     // Extract text from PDF using pdf-parse
     const arrayBuffer = await file.arrayBuffer();
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const pdfParse = require("pdf-parse") as (buf: Buffer) => Promise<{ text: string }>;
+    // @ts-expect-error - pdf-parse v2 ESM types don't expose default correctly
+    const pdfParse: (buf: Buffer) => Promise<{ text: string }> = (await import("pdf-parse")).default;
     const pdfData = await pdfParse(Buffer.from(arrayBuffer));
     const text = pdfData.text;
 
