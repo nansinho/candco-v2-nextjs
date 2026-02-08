@@ -253,6 +253,7 @@ export function HistoriqueTab({ entrepriseId }: HistoriqueTabProps) {
   const [totalCount, setTotalCount] = React.useState(0);
   const [page, setPage] = React.useState(1);
   const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
   const [showFilters, setShowFilters] = React.useState(false);
   const [expandedMetadata, setExpandedMetadata] = React.useState<Set<string>>(new Set());
 
@@ -267,19 +268,25 @@ export function HistoriqueTab({ entrepriseId }: HistoriqueTabProps) {
 
   const fetchData = React.useCallback(async () => {
     setLoading(true);
-    const filters: HistoriqueFilters = {};
-    if (filterModule) filters.module = filterModule as HistoriqueModule;
-    if (filterAction) filters.action = filterAction as HistoriqueAction;
-    if (filterOrigine) filters.origine = filterOrigine as HistoriqueOrigine;
-    if (filterDateDebut) filters.date_debut = filterDateDebut;
-    if (filterDateFin) filters.date_fin = filterDateFin;
+    setError(null);
+    try {
+      const filters: HistoriqueFilters = {};
+      if (filterModule) filters.module = filterModule as HistoriqueModule;
+      if (filterAction) filters.action = filterAction as HistoriqueAction;
+      if (filterOrigine) filters.origine = filterOrigine as HistoriqueOrigine;
+      if (filterDateDebut) filters.date_debut = filterDateDebut;
+      if (filterDateFin) filters.date_fin = filterDateFin;
 
-    const result = await getEntrepriseHistorique(entrepriseId, filters, page);
-    if (!result.error) {
-      setEvents(result.data);
-      setTotalCount(result.count);
+      const result = await getEntrepriseHistorique(entrepriseId, filters, page);
+      if (!result.error) {
+        setEvents(result.data);
+        setTotalCount(result.count);
+      }
+    } catch {
+      setError("Impossible de charger l'historique");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [entrepriseId, page, filterModule, filterAction, filterOrigine, filterDateDebut, filterDateFin]);
 
   React.useEffect(() => {
@@ -445,6 +452,13 @@ export function HistoriqueTab({ entrepriseId }: HistoriqueTabProps) {
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      ) : error ? (
+        <div className="flex flex-col items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 py-12">
+          <p className="text-sm text-destructive">{error}</p>
+          <Button variant="outline" size="sm" onClick={fetchData} className="text-xs">
+            Réessayer
+          </Button>
         </div>
       ) : events.length === 0 ? (
         <div className="rounded-lg border border-border/60 bg-card p-8 text-center">

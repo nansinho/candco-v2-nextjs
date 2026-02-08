@@ -39,13 +39,20 @@ export function EntrepriseSessionsTab({ entrepriseId }: { entrepriseId: string }
   const { toast } = useToast();
   const [sessions, setSessions] = React.useState<EntrepriseSession[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
   const [filter, setFilter] = React.useState<TimeFilter>("toutes");
 
   const loadSessions = React.useCallback(async () => {
     setLoading(true);
-    const { data } = await getEntrepriseSessions(entrepriseId);
-    setSessions(data as unknown as EntrepriseSession[]);
-    setLoading(false);
+    setError(null);
+    try {
+      const result = await getEntrepriseSessions(entrepriseId);
+      setSessions((result.data ?? []) as unknown as EntrepriseSession[]);
+    } catch {
+      setError("Impossible de charger les sessions");
+    } finally {
+      setLoading(false);
+    }
   }, [entrepriseId]);
 
   React.useEffect(() => {
@@ -87,13 +94,17 @@ export function EntrepriseSessionsTab({ entrepriseId }: { entrepriseId: string }
   }, [sessions, today]);
 
   const handleStatusChange = async (sessionId: string, newStatut: string) => {
-    const res = await updateSessionStatut(sessionId, newStatut);
-    if (res.error) {
-      toast({ title: "Erreur", description: String(res.error), variant: "destructive" });
-      return;
+    try {
+      const res = await updateSessionStatut(sessionId, newStatut);
+      if (res.error) {
+        toast({ title: "Erreur", description: String(res.error), variant: "destructive" });
+        return;
+      }
+      toast({ title: "Statut mis à jour", variant: "success" });
+      loadSessions();
+    } catch {
+      toast({ title: "Erreur", description: "Impossible de mettre à jour le statut", variant: "destructive" });
     }
-    toast({ title: "Statut mis à jour", variant: "success" });
-    loadSessions();
   };
 
   const filters: { key: TimeFilter; label: string }[] = [
@@ -108,6 +119,17 @@ export function EntrepriseSessionsTab({ entrepriseId }: { entrepriseId: string }
     return (
       <div className="flex items-center justify-center py-16">
         <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 py-12">
+        <p className="text-sm text-destructive">{error}</p>
+        <Button variant="outline" size="sm" onClick={loadSessions} className="text-xs">
+          Réessayer
+        </Button>
       </div>
     );
   }

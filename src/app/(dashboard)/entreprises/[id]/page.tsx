@@ -10,11 +10,19 @@ interface PageProps {
 export default async function EntrepriseDetailPage({ params }: PageProps) {
   const { id } = await params;
 
-  const [entrepriseResult, bpfResult, agencesResult] = await Promise.all([
-    getEntreprise(id),
-    getBpfCategoriesEntreprise(),
-    getAgences(id),
-  ]);
+  let entrepriseResult;
+  let bpfResult;
+  let agencesResult;
+
+  try {
+    [entrepriseResult, bpfResult, agencesResult] = await Promise.all([
+      getEntreprise(id),
+      getBpfCategoriesEntreprise(),
+      getAgences(id),
+    ]);
+  } catch {
+    notFound();
+  }
 
   if (!entrepriseResult.data) {
     notFound();

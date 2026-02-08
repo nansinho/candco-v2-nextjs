@@ -81,6 +81,7 @@ export function BesoinsFormationTab({
 
   const [besoins, setBesoins] = React.useState<Besoin[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
   const [showForm, setShowForm] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
 
@@ -89,9 +90,15 @@ export function BesoinsFormationTab({
 
   const loadBesoins = React.useCallback(async () => {
     setLoading(true);
-    const { data } = await getBesoinsFormation(entrepriseId, anneeFilter ?? undefined);
-    setBesoins(data as Besoin[]);
-    setLoading(false);
+    setError(null);
+    try {
+      const result = await getBesoinsFormation(entrepriseId, anneeFilter ?? undefined);
+      setBesoins((result.data ?? []) as Besoin[]);
+    } catch {
+      setError("Impossible de charger les besoins de formation");
+    } finally {
+      setLoading(false);
+    }
   }, [entrepriseId, anneeFilter]);
 
   React.useEffect(() => {
@@ -115,27 +122,34 @@ export function BesoinsFormationTab({
       notes: (fd.get("notes") as string) || "",
     };
 
-    const res = await createBesoinFormation(input);
-    setSaving(false);
-
-    if (res.error) {
+    try {
+      const res = await createBesoinFormation(input);
+      if (res.error) {
+        toast({ title: "Erreur", description: "Impossible de créer le besoin.", variant: "destructive" });
+        return;
+      }
+      toast({ title: "Besoin créé", variant: "success" });
+      setShowForm(false);
+      loadBesoins();
+    } catch {
       toast({ title: "Erreur", description: "Impossible de créer le besoin.", variant: "destructive" });
-      return;
+    } finally {
+      setSaving(false);
     }
-
-    toast({ title: "Besoin créé", variant: "success" });
-    setShowForm(false);
-    loadBesoins();
   };
 
   const handleStatutChange = async (id: string, newStatut: string) => {
-    const res = await updateBesoinFormation(id, { statut: newStatut as "a_etudier" | "valide" | "planifie" | "realise" });
-    if (res.error) {
-      toast({ title: "Erreur", description: String(res.error), variant: "destructive" });
-      return;
+    try {
+      const res = await updateBesoinFormation(id, { statut: newStatut as "a_etudier" | "valide" | "planifie" | "realise" });
+      if (res.error) {
+        toast({ title: "Erreur", description: String(res.error), variant: "destructive" });
+        return;
+      }
+      toast({ title: "Statut mis à jour", variant: "success" });
+      loadBesoins();
+    } catch {
+      toast({ title: "Erreur", description: "Impossible de mettre à jour le statut", variant: "destructive" });
     }
-    toast({ title: "Statut mis à jour", variant: "success" });
-    loadBesoins();
   };
 
   const handleDelete = async (id: string) => {
@@ -146,13 +160,17 @@ export function BesoinsFormationTab({
       variant: "destructive",
     }))) return;
 
-    const res = await deleteBesoinFormation(id);
-    if (res.error) {
-      toast({ title: "Erreur", description: String(res.error), variant: "destructive" });
-      return;
+    try {
+      const res = await deleteBesoinFormation(id);
+      if (res.error) {
+        toast({ title: "Erreur", description: String(res.error), variant: "destructive" });
+        return;
+      }
+      toast({ title: "Besoin supprimé", variant: "success" });
+      loadBesoins();
+    } catch {
+      toast({ title: "Erreur", description: "Impossible de supprimer le besoin", variant: "destructive" });
     }
-    toast({ title: "Besoin supprimé", variant: "success" });
-    loadBesoins();
   };
 
   const anneeOptions = [currentYear - 1, currentYear, currentYear + 1];
@@ -161,6 +179,17 @@ export function BesoinsFormationTab({
     return (
       <div className="flex items-center justify-center py-16">
         <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 py-12">
+        <p className="text-sm text-destructive">{error}</p>
+        <Button variant="outline" size="sm" onClick={loadBesoins} className="text-xs">
+          Réessayer
+        </Button>
       </div>
     );
   }
