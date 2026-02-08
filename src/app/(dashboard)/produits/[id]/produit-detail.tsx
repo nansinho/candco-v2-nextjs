@@ -163,6 +163,17 @@ function SectionTitle({ children, icon }: { children: React.ReactNode; icon?: Re
   );
 }
 
+function TabBadge({ missing }: { missing: number }) {
+  if (missing === 0) {
+    return <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />;
+  }
+  return (
+    <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive/10 px-1 text-[10px] font-medium text-destructive">
+      {missing}
+    </span>
+  );
+}
+
 const UNITE_LABELS: Record<string, string> = {
   stagiaire: "/ stagiaire",
   groupe: "/ groupe",
@@ -292,9 +303,13 @@ export function ProduitDetail({
   const formRef = React.useRef<HTMLFormElement>(null);
 
   // Count missing fields for tab badges
-  const missingGeneral = [produit.intitule, produit.description, produit.domaine].filter((v) => !v).length;
+  const missingGeneral = [produit.intitule, produit.description, produit.domaine, produit.type_action, produit.modalite, produit.formule].filter((v) => !v).length;
   const missingPratique = [produit.duree_heures, produit.certification, produit.delai_acces, produit.lieu_format].filter((v) => !v).length
     + (initialTarifs.length === 0 ? 1 : 0) + (initialPrerequis.length === 0 ? 1 : 0) + (initialPublicVise.length === 0 ? 1 : 0);
+  const missingObjectifs = (initialObjectifs.length === 0 ? 1 : 0) + (initialCompetences.length === 0 ? 1 : 0);
+  const missingProgramme = initialProgramme.length === 0 ? 1 : 0;
+  const missingModalites = [produit.modalites_pedagogiques, produit.moyens_pedagogiques, produit.modalites_evaluation].filter((v) => !v).length;
+  const totalMissing = missingGeneral + missingPratique + missingObjectifs + missingProgramme + missingModalites;
 
   // ─── Form submit (saves all fields across tabs) ─────────
 
@@ -433,9 +448,13 @@ export function ProduitDetail({
                     {produit.completion_pct}%
                   </span>
                 </div>
-                {missingGeneral + missingPratique > 0 && (
+                {totalMissing > 0 ? (
                   <span className="text-[11px] text-muted-foreground">
-                    {missingGeneral + missingPratique} manquants
+                    {totalMissing} manquant{totalMissing > 1 ? "s" : ""}
+                  </span>
+                ) : (
+                  <span className="text-[11px] text-emerald-500 flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" /> Complet
                   </span>
                 )}
               </div>
@@ -485,34 +504,27 @@ export function ProduitDetail({
                 <TabsTrigger value="general" className="text-xs gap-1.5">
                   <BookOpen className="h-3 w-3" />
                   Général
-                  {missingGeneral > 0 && (
-                    <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-destructive/10 text-[10px] font-medium text-destructive">{missingGeneral}</span>
-                  )}
+                  <TabBadge missing={missingGeneral} />
                 </TabsTrigger>
                 <TabsTrigger value="pratique" className="text-xs gap-1.5">
                   <Clock className="h-3 w-3" />
                   Pratique
-                  {missingPratique > 0 && (
-                    <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-destructive/10 text-[10px] font-medium text-destructive">{missingPratique}</span>
-                  )}
+                  <TabBadge missing={missingPratique} />
                 </TabsTrigger>
                 <TabsTrigger value="objectifs" className="text-xs gap-1.5">
                   <Award className="h-3 w-3" />
                   Objectifs
-                  {initialObjectifs.length > 0 && (
-                    <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary/10 text-[10px] font-medium text-primary">{initialObjectifs.length}</span>
-                  )}
+                  <TabBadge missing={missingObjectifs} />
                 </TabsTrigger>
                 <TabsTrigger value="programme" className="text-xs gap-1.5">
                   <GripVertical className="h-3 w-3" />
                   Programme
-                  {initialProgramme.length > 0 && (
-                    <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary/10 text-[10px] font-medium text-primary">{initialProgramme.length}</span>
-                  )}
+                  <TabBadge missing={missingProgramme} />
                 </TabsTrigger>
                 <TabsTrigger value="modalites" className="text-xs gap-1.5">
                   <BarChart3 className="h-3 w-3" />
                   Modalités
+                  <TabBadge missing={missingModalites} />
                 </TabsTrigger>
                 <TabsTrigger value="taches" className="text-xs">
                   Tâches

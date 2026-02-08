@@ -34,7 +34,7 @@ Tu dois retourner un JSON valide avec la structure suivante :
   "modules": [
     {
       "titre": "Titre du module/section/sequence",
-      "contenu": "Contenu detaille du module avec TOUT le texte disponible. Inclure les sous-points, les details, les exemples. Ne pas resumer, garder le maximum de details.",
+      "contenu": "Contenu COMPLET et EXHAUSTIF — voir regles ci-dessous",
       "duree": "Duree du module (ex: 2h, 1 jour)" ou null
     }
   ],
@@ -47,7 +47,34 @@ Tu dois retourner un JSON valide avec la structure suivante :
   "equipe_pedagogique": "Description de l'equipe pedagogique (ex: Formation animee par un formateur specialise en orthoplastie)" ou null
 }
 
-Regles STRICTES :
+=== REGLES CRITIQUES POUR LES MODULES / PROGRAMME ===
+
+C'est LE POINT LE PLUS IMPORTANT. Le programme de formation est la piece maitresse du document.
+Tu DOIS extraire CHAQUE seance, lecon, sous-section dans le champ "contenu" de chaque module.
+
+Exemple — si le PDF contient :
+  "Sequence 1 - Introduction
+   Seance 1.1 : Definition du thermoformage et applications
+   Seance 1.2 : Interets cliniques, economiques
+   Seance 1.3 : Place du thermoformage dans la prise en charge"
+
+Alors le module doit etre :
+{
+  "titre": "Sequence 1 – Introduction",
+  "contenu": "Seance 1.1 : Definition du thermoformage et applications en podologie.\\nSeance 1.2 : Interets cliniques, economiques et organisationnels.\\nSeance 1.3 : Place du thermoformage dans la prise en charge fonctionnelle.",
+  "duree": null
+}
+
+Regles pour les modules :
+- CHAQUE sous-section (Seance X.Y, Lecon X.Y, Point X.Y, Chapitre X.Y, etc.) doit etre incluse dans le "contenu"
+- Separe les sous-sections par des \\n (retour a la ligne)
+- NE RESUME PAS. Copie le texte INTEGRALEMENT depuis le PDF
+- Si un module a des sous-points, des bullet points, des listes — inclus TOUT
+- Si le PDF a 20 lignes de contenu pour un module, le "contenu" doit avoir 20 lignes
+- Les modules doivent etre dans l'ordre exact du document
+- Si les durees sont indiquees par module, extrait-les
+
+=== AUTRES REGLES STRICTES ===
 - Extrais le MAXIMUM d'informations du document. Chaque champ NULL est un champ manque.
 - Si une information n'est pas presente dans le PDF, mets null (pas de chaine vide)
 - Pour duree_heures et duree_jours, extrais les nombres. Ex: "14h (2 jours)" -> duree_heures: 14, duree_jours: 2
@@ -57,8 +84,6 @@ Regles STRICTES :
 - public_vise est une LISTE de profils cibles (separe chaque profil en un element distinct)
 - prerequis est une LISTE (separe chaque prerequis en un element distinct)
 - financement est une LISTE de modes de financement possibles
-- Les modules doivent etre dans l'ordre du document
-- Le contenu de chaque module doit etre TRES detaille - inclure TOUT le texte du PDF pour ce module
 - type_action, modalite, formule doivent correspondre EXACTEMENT aux valeurs listees ci-dessus
 - Retourne UNIQUEMENT le JSON valide, sans texte ni markdown autour
 - Si le document n'est pas un programme de formation, retourne quand meme un JSON avec ce que tu peux extraire
@@ -139,7 +164,7 @@ export async function POST(request: NextRequest) {
           },
           {
             type: "text",
-            text: "Analyse ce programme de formation et retourne le JSON complet avec TOUTES les informations que tu peux trouver. Ne laisse aucun champ vide si l'information est disponible dans le document.",
+            text: "Analyse ce programme de formation et retourne le JSON complet avec TOUTES les informations.\n\nATTENTION SPECIALE au programme/modules : extrait CHAQUE seance, lecon et sous-section dans le champ 'contenu' de chaque module. Ne te contente PAS du titre de la sequence — inclus TOUS les sous-points (Seance X.1, X.2, X.3, etc.) avec leur texte complet. C'est CRITIQUE.",
           },
         ],
       },
