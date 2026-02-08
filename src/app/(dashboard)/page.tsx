@@ -128,8 +128,8 @@ export default async function DashboardPage() {
     <div className="space-y-6 sm:space-y-8">
       {/* Welcome */}
       <div>
-        <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Tableau de bord</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Tableau de bord</h1>
+        <p className="mt-1.5 text-muted-foreground">
           Bienvenue sur votre espace C&CO Formation
         </p>
       </div>

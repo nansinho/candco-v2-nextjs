@@ -97,10 +97,15 @@ html.light {
   --color-sidebar-muted: #737373;
 }
 
+html {
+  font-size: 16.5px;
+}
+
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);
   font-family: var(--font-sans);
+  font-size: 0.875rem;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

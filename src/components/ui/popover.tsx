@@ -111,6 +111,29 @@ const PopoverContent = React.forwardRef<
         left = rect.left + window.scrollX;
       }
 
+      // Clamp to viewport: prevent overflow on the right
+      const contentEl = contentRef.current;
+      if (contentEl) {
+        const contentWidth = contentEl.offsetWidth;
+        const viewportW = window.innerWidth;
+        if (align === "end") {
+          // For end-aligned, the right edge of content = left, so left edge = left - contentWidth
+          const rightEdge = left;
+          if (rightEdge > viewportW - 8) {
+            left = viewportW - 8;
+          }
+          const leftEdge = left - contentWidth;
+          if (leftEdge < 8) {
+            left = contentWidth + 8;
+          }
+        } else {
+          if (left + contentWidth > viewportW - 8) {
+            left = viewportW - contentWidth - 8;
+          }
+          if (left < 8) left = 8;
+        }
+      }
+
       setPos({ top, left });
     }
 
