@@ -17,6 +17,14 @@ const ERROR_MESSAGES: Record<string, string> = {
 };
 
 export default function LoginPage() {
+  return (
+    <React.Suspense fallback={<Card><CardHeader className="text-center"><div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-lg font-bold text-primary-foreground">C&CO</div><CardTitle className="text-xl">Connexion</CardTitle></CardHeader></Card>}>
+      <LoginPageContent />
+    </React.Suspense>
+  );
+}
+
+function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const urlError = searchParams.get("error");
