@@ -592,9 +592,12 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
 
   const fetchData = React.useCallback(async () => {
     setIsLoading(true);
-    const result = await getEntrepriseUnifiedContacts(entrepriseId);
-    setItems(result.data);
-    setIsLoading(false);
+    try {
+      const result = await getEntrepriseUnifiedContacts(entrepriseId);
+      setItems(result.data);
+    } finally {
+      setIsLoading(false);
+    }
   }, [entrepriseId]);
 
   React.useEffect(() => { fetchData(); }, [fetchData]);
@@ -892,9 +895,12 @@ function ApprenantsTab({ entrepriseId }: { entrepriseId: string }) {
 
   const fetchApprenants = React.useCallback(async () => {
     setIsLoading(true);
-    const result = await getEntrepriseApprenants(entrepriseId);
-    setApprenants(result.data);
-    setIsLoading(false);
+    try {
+      const result = await getEntrepriseApprenants(entrepriseId);
+      setApprenants(result.data);
+    } finally {
+      setIsLoading(false);
+    }
   }, [entrepriseId]);
 
   React.useEffect(() => { fetchApprenants(); }, [fetchApprenants]);

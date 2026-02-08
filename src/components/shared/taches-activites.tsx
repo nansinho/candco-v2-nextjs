@@ -120,16 +120,26 @@ export function TachesActivitesTab({ entiteType, entiteId }: TachesActivitesTabP
   // ── Fetch ──
   const fetchTaches = React.useCallback(async () => {
     setTachesLoading(true);
-    const result = await getTaches(entiteType, entiteId);
-    setTaches(result.data as Tache[]);
-    setTachesLoading(false);
+    try {
+      const result = await getTaches(entiteType, entiteId);
+      setTaches((result.data ?? []) as Tache[]);
+    } catch {
+      setTaches([]);
+    } finally {
+      setTachesLoading(false);
+    }
   }, [entiteType, entiteId]);
 
   const fetchActivites = React.useCallback(async () => {
     setActivitesLoading(true);
-    const result = await getActivites(entiteType, entiteId);
-    setActivites(result.data as Activite[]);
-    setActivitesLoading(false);
+    try {
+      const result = await getActivites(entiteType, entiteId);
+      setActivites((result.data ?? []) as Activite[]);
+    } catch {
+      setActivites([]);
+    } finally {
+      setActivitesLoading(false);
+    }
   }, [entiteType, entiteId]);
 
   React.useEffect(() => {

@@ -110,15 +110,20 @@ export function OrganisationTab({ entrepriseId }: OrganisationTabProps) {
 
   const fetchAll = React.useCallback(async () => {
     setIsLoading(true);
-    const [agencesResult, polesResult, membresResult] = await Promise.all([
-      getAgences(entrepriseId),
-      getPoles(entrepriseId),
-      getMembres(entrepriseId),
-    ]);
-    setAgences(agencesResult.data);
-    setPoles(polesResult.data as (Pole & { agence_nom?: string })[]);
-    setMembres(membresResult.data);
-    setIsLoading(false);
+    try {
+      const [agencesResult, polesResult, membresResult] = await Promise.all([
+        getAgences(entrepriseId),
+        getPoles(entrepriseId),
+        getMembres(entrepriseId),
+      ]);
+      setAgences(agencesResult.data);
+      setPoles(polesResult.data as (Pole & { agence_nom?: string })[]);
+      setMembres(membresResult.data);
+    } catch {
+      // silently handle
+    } finally {
+      setIsLoading(false);
+    }
   }, [entrepriseId]);
 
   React.useEffect(() => {

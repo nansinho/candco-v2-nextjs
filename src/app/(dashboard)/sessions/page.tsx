@@ -210,10 +210,13 @@ export default function SessionsPage() {
 
   const fetchData = React.useCallback(async () => {
     setIsLoading(true);
-    const result = await getSessions(page, debouncedSearch, showArchived, sortBy, sortDir, filters);
-    setData(result.data as SessionRow[]);
-    setTotalCount(result.count);
-    setIsLoading(false);
+    try {
+      const result = await getSessions(page, debouncedSearch, showArchived, sortBy, sortDir, filters);
+      setData(result.data as SessionRow[]);
+      setTotalCount(result.count);
+    } finally {
+      setIsLoading(false);
+    }
   }, [page, debouncedSearch, showArchived, sortBy, sortDir, filters]);
 
   React.useEffect(() => {

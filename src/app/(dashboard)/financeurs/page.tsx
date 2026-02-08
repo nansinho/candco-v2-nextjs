@@ -207,10 +207,13 @@ export default function FinanceursPage() {
   // Fetch data
   const fetchData = React.useCallback(async () => {
     setIsLoading(true);
-    const result = await getFinanceurs(page, debouncedSearch, showArchived, sortBy, sortDir, filters);
-    setData(result.data as Financeur[]);
-    setTotalCount(result.count);
-    setIsLoading(false);
+    try {
+      const result = await getFinanceurs(page, debouncedSearch, showArchived, sortBy, sortDir, filters);
+      setData(result.data as Financeur[]);
+      setTotalCount(result.count);
+    } finally {
+      setIsLoading(false);
+    }
   }, [page, debouncedSearch, showArchived, sortBy, sortDir, filters]);
 
   React.useEffect(() => {

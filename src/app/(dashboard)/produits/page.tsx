@@ -226,10 +226,13 @@ export default function ProduitsPage() {
 
   const fetchData = React.useCallback(async () => {
     setIsLoading(true);
-    const result = await getProduits(page, debouncedSearch, showArchived, sortBy, sortDir, filters);
-    setData(result.data as Produit[]);
-    setTotalCount(result.count);
-    setIsLoading(false);
+    try {
+      const result = await getProduits(page, debouncedSearch, showArchived, sortBy, sortDir, filters);
+      setData(result.data as Produit[]);
+      setTotalCount(result.count);
+    } finally {
+      setIsLoading(false);
+    }
   }, [page, debouncedSearch, showArchived, sortBy, sortDir, filters]);
 
   React.useEffect(() => {

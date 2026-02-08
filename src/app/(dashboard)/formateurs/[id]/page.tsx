@@ -68,29 +68,32 @@ export default function FormateurDetailPage() {
   React.useEffect(() => {
     async function load() {
       setIsLoading(true);
-      const result = await getFormateur(id);
-      if (result.data) {
-        const f = result.data as FormateurData;
-        setFormateur(f);
-        setForm({
-          civilite: f.civilite ?? "",
-          prenom: f.prenom,
-          nom: f.nom,
-          email: f.email ?? "",
-          telephone: f.telephone ?? "",
-          adresse_rue: f.adresse_rue ?? "",
-          adresse_complement: f.adresse_complement ?? "",
-          adresse_cp: f.adresse_cp ?? "",
-          adresse_ville: f.adresse_ville ?? "",
-          statut_bpf: (f.statut_bpf as "interne" | "externe") ?? "externe",
-          nda: f.nda ?? "",
-          siret: f.siret ?? "",
-          tarif_journalier: f.tarif_journalier ?? undefined,
-          taux_tva: f.taux_tva ?? undefined,
-          heures_par_jour: f.heures_par_jour ?? undefined,
-        });
+      try {
+        const result = await getFormateur(id);
+        if (result.data) {
+          const f = result.data as FormateurData;
+          setFormateur(f);
+          setForm({
+            civilite: f.civilite ?? "",
+            prenom: f.prenom,
+            nom: f.nom,
+            email: f.email ?? "",
+            telephone: f.telephone ?? "",
+            adresse_rue: f.adresse_rue ?? "",
+            adresse_complement: f.adresse_complement ?? "",
+            adresse_cp: f.adresse_cp ?? "",
+            adresse_ville: f.adresse_ville ?? "",
+            statut_bpf: (f.statut_bpf as "interne" | "externe") ?? "externe",
+            nda: f.nda ?? "",
+            siret: f.siret ?? "",
+            tarif_journalier: f.tarif_journalier ?? undefined,
+            taux_tva: f.taux_tva ?? undefined,
+            heures_par_jour: f.heures_par_jour ?? undefined,
+          });
+        }
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     }
     load();
   }, [id]);
