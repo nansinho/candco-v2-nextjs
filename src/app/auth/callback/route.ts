@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Check extranet_acces for role-based routing
-  const { data: acces } = await admin
+  const { data: acces, error: accesError } = await admin
     .from("extranet_acces")
     .select("id, role, statut")
     .eq("user_id", userId)
@@ -71,6 +71,17 @@ export async function GET(request: NextRequest) {
     .single();
 
   if (!acces) {
+    // Log for debugging — check if there's a record with different status
+    const { data: anyAcces } = await admin
+      .from("extranet_acces")
+      .select("id, role, statut, user_id")
+      .eq("user_id", userId)
+      .limit(1)
+      .single();
+    console.error("[auth/callback] no valid acces found for user:", userId, "query error:", accesError?.message, "existing record:", anyAcces);
+
+    // Sign out to prevent redirect loop (middleware sees authenticated user on /login)
+    await supabase.auth.signOut();
     return NextResponse.redirect(
       new URL("/login?error=no_access", baseUrl)
     );
