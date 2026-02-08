@@ -39,6 +39,7 @@ export async function updateSession(request: NextRequest) {
   const isPublicRoute =
     pathname.startsWith("/login") ||
     pathname.startsWith("/register") ||
+    pathname.startsWith("/auth/callback") ||
     pathname.startsWith("/api/webhooks");
 
   // Redirect unauthenticated users to login

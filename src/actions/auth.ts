@@ -2,6 +2,8 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { sendEmail } from "@/lib/emails/send-email";
+import { magicLinkLoginTemplate } from "@/lib/emails/templates";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
@@ -86,4 +88,123 @@ export async function register(input: RegisterInput) {
   }
 
   redirect("/");
+}
+
+// ─── Set password (first-time extranet users) ──────────
+
+const SetPasswordSchema = z.object({
+  password: z.string().min(8, "Minimum 8 caractères"),
+  next: z.string().optional(),
+});
+
+export type SetPasswordInput = z.infer<typeof SetPasswordSchema>;
+
+export async function setPassword(input: SetPasswordInput) {
+  const parsed = SetPasswordSchema.safeParse(input);
+  if (!parsed.success) {
+    const firstError = Object.values(parsed.error.flatten().fieldErrors)[0];
+    return { error: firstError?.[0] || "Données invalides" };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Non authentifié" };
+  }
+
+  // Update the user's password
+  const { error } = await supabase.auth.updateUser({
+    password: parsed.data.password,
+  });
+
+  if (error) {
+    return { error: `Erreur : ${error.message}` };
+  }
+
+  // Activate extranet access if still "invite"
+  const admin = createAdminClient();
+  await admin
+    .from("extranet_acces")
+    .update({
+      statut: "actif",
+      active_le: new Date().toISOString(),
+    })
+    .eq("user_id", user.id)
+    .in("statut", ["invite", "en_attente"]);
+
+  redirect(parsed.data.next || "/");
+}
+
+// ─── Send magic link for login ──────────────────────────
+
+export async function sendMagicLink(email: string) {
+  const parsed = z.string().email().safeParse(email);
+  if (!parsed.success) {
+    return { error: "Email invalide" };
+  }
+
+  const admin = createAdminClient();
+
+  // Generate magic link — will fail if user doesn't exist
+  const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
+    type: "magiclink",
+    email: parsed.data,
+  });
+
+  if (linkError) {
+    // Don't reveal whether the email exists (prevent enumeration)
+    return { success: true };
+  }
+
+  if (linkData?.properties?.hashed_token) {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://solution.candco.fr";
+    const loginLink = `${appUrl}/auth/callback?token_hash=${encodeURIComponent(linkData.properties.hashed_token)}&type=magiclink`;
+
+    // Look up the user's organisation for email logging
+    const userId = linkData.user?.id;
+    let organisationId = "00000000-0000-0000-0000-000000000000";
+
+    if (userId) {
+      // Check utilisateurs first
+      const { data: utilisateur } = await admin
+        .from("utilisateurs")
+        .select("organisation_id")
+        .eq("id", userId)
+        .single();
+
+      if (utilisateur?.organisation_id) {
+        organisationId = utilisateur.organisation_id;
+      } else {
+        // Check extranet_acces
+        const { data: acces } = await admin
+          .from("extranet_acces")
+          .select("organisation_id")
+          .eq("user_id", userId)
+          .limit(1)
+          .single();
+
+        if (acces?.organisation_id) {
+          organisationId = acces.organisation_id;
+        }
+      }
+    }
+
+    const html = magicLinkLoginTemplate({ lien: loginLink });
+
+    await sendEmail({
+      organisationId,
+      to: parsed.data,
+      subject: "C&CO Formation — Votre lien de connexion",
+      html,
+      template: "magic_link_login",
+    }).catch((err) => {
+      console.error("[auth] sendMagicLink sendEmail error:", err);
+    });
+  }
+
+  // Always return success to prevent email enumeration
+  return { success: true };
 }
