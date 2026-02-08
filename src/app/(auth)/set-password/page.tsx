@@ -16,6 +16,14 @@ import { Label } from "@/components/ui/label";
 import { setPassword } from "@/actions/auth";
 
 export default function SetPasswordPage() {
+  return (
+    <React.Suspense fallback={<Card><CardHeader className="text-center"><div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-lg font-bold text-primary-foreground">C&CO</div><CardTitle className="text-xl">Définir votre mot de passe</CardTitle></CardHeader></Card>}>
+      <SetPasswordPageContent />
+    </React.Suspense>
+  );
+}
+
+function SetPasswordPageContent() {
   const searchParams = useSearchParams();
   const next = searchParams.get("next") || "/";
 
