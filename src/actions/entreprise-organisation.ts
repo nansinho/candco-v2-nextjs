@@ -719,12 +719,12 @@ export async function quickCreateApprenant(input: z.infer<typeof QuickApprenantS
     organisationId,
     userId,
     userRole: role,
-    module: "apprenant",
+    module: "organisation",
     action: "created",
     entiteType: "apprenant",
     entiteId: data.id,
     entiteLabel: `${data.prenom} ${data.nom}`,
-    description: `Apprenant "${data.prenom} ${data.nom}" créé (création rapide)`,
+    description: `Apprenant "${data.prenom} ${data.nom}" créé rapidement depuis le dialogue membre`,
     objetHref: `/apprenants/${data.id}`,
   });
 
