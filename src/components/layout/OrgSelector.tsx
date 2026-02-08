@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Building2, ChevronDown, Shield } from "lucide-react";
+import { Building2, ChevronDown, Loader2, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { switchOrganisation } from "@/lib/auth-helpers";
 
@@ -26,6 +26,7 @@ export function OrgSelector({
 }: OrgSelectorProps) {
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
+  const [switching, setSwitching] = React.useState(false);
   const ref = React.useRef<HTMLDivElement>(null);
 
   // Close dropdown on outside click
@@ -44,10 +45,17 @@ export function OrgSelector({
       setOpen(false);
       return;
     }
+    setSwitching(true);
     setOpen(false);
-    const result = await switchOrganisation(orgId);
-    if (!("error" in result)) {
-      window.location.href = "/";
+    try {
+      const result = await switchOrganisation(orgId);
+      if (!("error" in result)) {
+        window.location.href = "/";
+      } else {
+        setSwitching(false);
+      }
+    } catch {
+      setSwitching(false);
     }
   }
 
@@ -67,25 +75,31 @@ export function OrgSelector({
   }
 
   return (
-    <div ref={ref} className="relative px-3 py-3">
+    <div ref={ref} className="relative z-10 px-3 py-3">
       <button
-        onClick={() => setOpen(!open)}
+        onClick={() => !switching && setOpen(!open)}
+        disabled={switching}
         className={cn(
           "flex w-full items-center gap-2 rounded-md border border-border/50 px-3 py-2",
           "bg-card/50 hover:bg-card transition-colors text-left",
-          "text-sm"
+          "text-sm",
+          switching && "opacity-70 cursor-wait"
         )}
       >
         <Building2 className="h-4 w-4 shrink-0 text-primary" />
         <span className="truncate flex-1 font-medium">
           {currentOrganisation?.nom || "Organisation"}
         </span>
-        <ChevronDown
-          className={cn(
-            "h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform",
-            open && "rotate-180"
-          )}
-        />
+        {switching ? (
+          <Loader2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground animate-spin" />
+        ) : (
+          <ChevronDown
+            className={cn(
+              "h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform",
+              open && "rotate-180"
+            )}
+          />
+        )}
       </button>
 
       {open && (
