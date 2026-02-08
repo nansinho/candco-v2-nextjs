@@ -81,13 +81,13 @@ function TabsContent({
   ...props
 }: React.HTMLAttributes<HTMLDivElement> & { value: string }) {
   const { value: selectedValue } = React.useContext(TabsContext);
-
-  if (selectedValue !== value) return null;
+  const isSelected = selectedValue === value;
 
   return (
     <div
       role="tabpanel"
       className={cn("mt-2 ring-offset-background focus-visible:outline-none", className)}
+      style={isSelected ? undefined : { display: "none" }}
       {...props}
     />
   );

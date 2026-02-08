@@ -212,6 +212,12 @@ function TabBadge({ missing }: { missing: number }) {
   );
 }
 
+/** Add line breaks before numbered entries (e.g. "Séance 1.2 :", "Module 3 :") when content has none */
+function formatContenu(contenu: string): string {
+  if (contenu.includes("\n")) return contenu;
+  return contenu.replace(/\.\s+(?=S[ée]ance\s+\d|Module\s+\d|Partie\s+\d|Chapitre\s+\d)/gi, ".\n");
+}
+
 const UNITE_LABELS: Record<string, string> = {
   stagiaire: "/ stagiaire",
   groupe: "/ groupe",
@@ -1915,7 +1921,7 @@ function ProgrammeTab({
                       <>
                         {m.contenu ? (
                           <p className="text-sm text-muted-foreground whitespace-pre-wrap pt-3 leading-relaxed">
-                            {m.contenu}
+                            {formatContenu(m.contenu)}
                           </p>
                         ) : (
                           <p className="text-sm text-muted-foreground/40 italic pt-3">Aucun contenu détaillé</p>
