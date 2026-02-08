@@ -23,6 +23,10 @@ export default async function ProduitDetailPage({ params }: PageProps) {
       tarifs={result.tarifs}
       objectifs={result.objectifs}
       programme={result.programme}
+      prerequis={result.prerequis}
+      publicVise={result.publicVise}
+      competences={result.competences}
+      financement={result.financement}
       bpfSpecialites={bpfResult.data}
     />
   );
