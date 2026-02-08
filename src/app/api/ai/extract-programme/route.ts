@@ -91,8 +91,9 @@ export async function POST(request: NextRequest) {
 
     // Extract text from PDF using pdf-parse
     const arrayBuffer = await file.arrayBuffer();
-    const pdfParse = (await import("pdf-parse")).default;
-    const pdfData = await pdfParse(Buffer.from(arrayBuffer));
+    const pdfParseModule = await import("pdf-parse");
+    const pdfParse = (pdfParseModule as unknown as { default: typeof pdfParseModule }).default ?? pdfParseModule;
+    const pdfData = await (pdfParse as (buf: Buffer) => Promise<{ text: string }>)(Buffer.from(arrayBuffer));
     const text = pdfData.text;
 
     if (!text || text.trim().length < 50) {
