@@ -87,7 +87,7 @@ const DialogContent = React.forwardRef<
       <div
         ref={ref}
         className={cn(
-          "fixed left-[50%] top-[50%] z-50 grid w-[calc(100%-2rem)] max-w-lg max-h-[90vh] translate-x-[-50%] translate-y-[-50%] gap-4 border border-border bg-card p-6 shadow-lg duration-200 sm:rounded-lg overflow-y-auto",
+          "fixed inset-0 z-50 m-auto flex h-fit w-[calc(100%-2rem)] max-w-lg max-h-[90vh] flex-col gap-4 border border-border bg-card p-6 shadow-lg duration-200 sm:rounded-lg overflow-y-auto",
           className
         )}
         onClick={(e) => e.stopPropagation()}
@@ -119,7 +119,7 @@ const DialogTitle = React.forwardRef<
   HTMLHeadingElement,
   React.HTMLAttributes<HTMLHeadingElement>
 >(({ className, ...props }, ref) => (
-  <h2 ref={ref} className={cn("text-lg font-semibold leading-none tracking-tight", className)} {...props} />
+  <h2 ref={ref} className={cn("text-lg font-semibold leading-tight tracking-tight", className)} {...props} />
 ));
 DialogTitle.displayName = "DialogTitle";
 

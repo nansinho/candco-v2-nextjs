@@ -409,47 +409,18 @@ export function CsvImport({
         onOpenChange(o);
       }}
     >
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Upload className="h-5 w-5 text-primary" />
+          <DialogTitle className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+              <Upload className="h-4 w-4 text-primary" />
+            </div>
             {title}
           </DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+          <DialogDescription className="sr-only">{description}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Colonnes attendues + template */}
-          <div className="flex items-start gap-2 rounded-md bg-muted/30 px-3 py-2 border border-border/30">
-            <FileText className="h-4 w-4 text-muted-foreground/60 shrink-0 mt-0.5" />
-            <div className="flex-1 space-y-1">
-              <p className="text-xs text-muted-foreground">
-                <strong>Formats acceptés :</strong> CSV, XLS, XLSX, JSON{onPdfImport ? ", PDF" : ""}
-              </p>
-              {onPdfImport && (
-                <p className="text-[11px] text-primary/80">
-                  <Sparkles className="inline h-3 w-3 mr-0.5" />
-                  <strong>PDF :</strong> L&apos;IA analyse le document et cree automatiquement le produit complet.
-                </p>
-              )}
-              <p className="text-[11px] text-muted-foreground/60">
-                Colonnes CSV reconnues : {columns.map((c) => `${c.label}${c.required ? "*" : ""}`).join(", ")}
-              </p>
-              <p className="text-[11px] text-muted-foreground/40">
-                Les noms de colonnes SmartOF sont reconnus automatiquement.
-              </p>
-            </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={handleDownloadTemplate}
-              className="h-7 text-[11px] text-primary shrink-0"
-            >
-              Template CSV
-            </Button>
-          </div>
-
           {/* Sélection fichier */}
           <div className="flex flex-col items-center gap-3">
             <input
@@ -459,37 +430,59 @@ export function CsvImport({
               onChange={handleFileChange}
               className="hidden"
             />
-            <Button
+            <button
               type="button"
-              variant="outline"
               onClick={() => fileInputRef.current?.click()}
-              className="w-full h-20 border-dashed border-2 border-border/40 hover:border-primary/30"
+              className="w-full rounded-xl border-2 border-dashed border-border/50 bg-muted/20 px-6 py-8 transition-all hover:border-primary/40 hover:bg-muted/30 cursor-pointer"
             >
-              <div className="flex flex-col items-center gap-1">
+              <div className="flex flex-col items-center gap-2.5">
                 {file ? (
                   <>
                     {isExcel ? (
-                      <FileSpreadsheet className="h-5 w-5 text-emerald-500" />
+                      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500/10">
+                        <FileSpreadsheet className="h-5 w-5 text-emerald-500" />
+                      </div>
                     ) : isJson ? (
-                      <FileText className="h-5 w-5 text-amber-400" />
+                      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-400/10">
+                        <FileText className="h-5 w-5 text-amber-400" />
+                      </div>
                     ) : (
-                      <FileText className="h-5 w-5 text-blue-400" />
+                      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-400/10">
+                        <FileText className="h-5 w-5 text-blue-400" />
+                      </div>
                     )}
-                    <span className="text-xs text-foreground font-medium">{file.name}</span>
-                    <span className="text-[10px] text-muted-foreground/60">
-                      Cliquez pour changer de fichier
-                    </span>
+                    <div className="text-center">
+                      <p className="text-sm font-medium text-foreground">{file.name}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground/60">Cliquez pour changer</p>
+                    </div>
                   </>
                 ) : (
                   <>
-                    <Upload className="h-5 w-5 text-muted-foreground/60" />
-                    <span className="text-xs text-muted-foreground">
-                      Cliquez pour choisir un fichier {onPdfImport ? "(CSV, Excel, JSON ou PDF)" : "(CSV, Excel ou JSON)"}
-                    </span>
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-muted/50">
+                      <Upload className="h-5 w-5 text-muted-foreground/40" />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm text-muted-foreground">Glissez ou cliquez pour choisir un fichier</p>
+                      <p className="mt-1 text-xs text-muted-foreground/40">
+                        CSV, Excel, JSON{onPdfImport ? ", PDF" : ""}
+                      </p>
+                    </div>
                   </>
                 )}
               </div>
-            </Button>
+            </button>
+            <div className="flex w-full items-center justify-between px-1">
+              <p className="text-xs text-muted-foreground/40">
+                Colonnes SmartOF reconnues automatiquement
+              </p>
+              <button
+                type="button"
+                onClick={handleDownloadTemplate}
+                className="text-xs text-primary hover:underline"
+              >
+                Template CSV
+              </button>
+            </div>
           </div>
 
           {/* PDF AI Import in progress */}
@@ -624,30 +617,28 @@ export function CsvImport({
           )}
         </div>
 
-        <DialogFooter className="pt-2">
+        <DialogFooter className="pt-3 border-t border-border/40">
           <Button
             type="button"
             variant="outline"
-            size="sm"
             onClick={() => {
               reset();
               onOpenChange(false);
             }}
-            className="h-8 text-xs border-border/60"
+            className="h-9 text-sm border-border/60"
           >
             {result ? "Fermer" : "Annuler"}
           </Button>
           {!result && (
             <Button
               type="button"
-              size="sm"
               onClick={handleImport}
               disabled={!file || !!parseError || isImporting || totalRows === 0}
-              className="h-8 text-xs"
+              className="h-9 text-sm"
             >
               {isImporting ? (
                 <>
-                  <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
                   Import en cours...
                 </>
               ) : (

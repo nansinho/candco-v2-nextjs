@@ -11,14 +11,17 @@ export function NavigationProgress() {
   const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const intervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Navigation completed — finish the bar and scroll to top
   React.useEffect(() => {
     if (pathname !== prevPathname.current) {
-      // Navigation completed — finish the bar
       setProgress(100);
       setIsNavigating(true);
 
       if (timerRef.current) clearTimeout(timerRef.current);
       if (intervalRef.current) clearInterval(intervalRef.current);
+
+      // Scroll to top on navigation
+      window.scrollTo({ top: 0 });
 
       timerRef.current = setTimeout(() => {
         setIsNavigating(false);
@@ -38,7 +41,11 @@ export function NavigationProgress() {
       const href = anchor.getAttribute("href");
       if (!href || href.startsWith("#") || href.startsWith("http") || href.startsWith("mailto:") || href.startsWith("tel:")) return;
       if (anchor.getAttribute("target") === "_blank") return;
-      if (href === pathname) return;
+
+      // Normalize paths for comparison (strip trailing slashes)
+      const normalizedHref = href === "/" ? "/" : href.replace(/\/$/, "");
+      const normalizedPathname = pathname === "/" ? "/" : pathname.replace(/\/$/, "");
+      if (normalizedHref === normalizedPathname) return;
 
       // Start progress
       setIsNavigating(true);
@@ -51,7 +58,6 @@ export function NavigationProgress() {
             if (intervalRef.current) clearInterval(intervalRef.current);
             return 90;
           }
-          // Slow down as it progresses
           const increment = prev < 50 ? 8 : prev < 80 ? 3 : 1;
           return Math.min(prev + increment, 90);
         });
@@ -61,6 +67,28 @@ export function NavigationProgress() {
     document.addEventListener("click", handleClick, true);
     return () => document.removeEventListener("click", handleClick, true);
   }, [pathname]);
+
+  // Cleanup on unmount
+  React.useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, []);
+
+  // Safety: if progress is stuck at 90 for too long, finish it
+  React.useEffect(() => {
+    if (progress === 90) {
+      const safetyTimer = setTimeout(() => {
+        setProgress(100);
+        setTimeout(() => {
+          setIsNavigating(false);
+          setProgress(0);
+        }, 300);
+      }, 5000);
+      return () => clearTimeout(safetyTimer);
+    }
+  }, [progress]);
 
   if (!isNavigating && progress === 0) return null;
 

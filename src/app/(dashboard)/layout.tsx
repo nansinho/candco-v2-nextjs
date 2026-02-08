@@ -27,7 +27,7 @@ export default async function DashboardLayout({
             />
             <div className="flex flex-1 flex-col lg:pl-[240px] transition-all duration-300 min-w-0">
               <Header />
-              <main className="flex-1 px-4 py-4 sm:px-6 sm:py-6 lg:px-8 overflow-hidden">
+              <main className="flex-1 px-4 py-4 sm:px-6 sm:py-6 lg:px-8 overflow-x-hidden">
                 {children}
               </main>
             </div>
