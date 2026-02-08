@@ -165,6 +165,134 @@ export async function getFormateurProfile(formateurId: string) {
   return { data };
 }
 
+// ─── Rattachement entreprise (apprenant) ────────────────
+
+export interface RattachementAgence {
+  id: string;
+  nom: string;
+  adresse_rue: string | null;
+  adresse_complement: string | null;
+  adresse_cp: string | null;
+  adresse_ville: string | null;
+  email: string | null;
+  telephone: string | null;
+}
+
+export interface RattachementEntreprise {
+  id: string;
+  nom: string;
+  siret: string | null;
+  siege: {
+    nom: string;
+    adresse_rue: string | null;
+    adresse_complement: string | null;
+    adresse_cp: string | null;
+    adresse_ville: string | null;
+    email: string | null;
+    telephone: string | null;
+  } | null;
+  agences: RattachementAgence[];
+  rattache_siege: boolean;
+  fonction: string | null;
+  roles: string[];
+}
+
+/**
+ * Get the enterprises and agences an apprenant is attached to.
+ * Data is read-only — sourced from back-office.
+ */
+export async function getApprenantRattachement(
+  apprenantId: string
+): Promise<{ data: RattachementEntreprise[] }> {
+  const ctx = await getExtranetUserContext();
+  if (ctx.error || !ctx.data) return { data: [] };
+  if (ctx.data.entiteId !== apprenantId) return { data: [] };
+
+  const admin = createAdminClient();
+
+  // 1. Get linked entreprises via junction table
+  const { data: liens } = await admin
+    .from("apprenant_entreprises")
+    .select("entreprise_id, entreprises(id, nom, siret)")
+    .eq("apprenant_id", apprenantId);
+
+  if (!liens || liens.length === 0) return { data: [] };
+
+  const result: RattachementEntreprise[] = [];
+
+  for (const lien of liens) {
+    const ent = lien.entreprises as unknown as {
+      id: string;
+      nom: string;
+      siret: string | null;
+    } | null;
+    if (!ent) continue;
+
+    // 2. Get siège social (agence with est_siege=true)
+    const { data: siegeData } = await admin
+      .from("entreprise_agences")
+      .select(
+        "nom, adresse_rue, adresse_complement, adresse_cp, adresse_ville, email, telephone"
+      )
+      .eq("entreprise_id", ent.id)
+      .eq("est_siege", true)
+      .limit(1)
+      .maybeSingle();
+
+    // 3. Get membership record for this apprenant in this entreprise
+    const { data: membre } = await admin
+      .from("entreprise_membres")
+      .select("id, roles, fonction, rattache_siege")
+      .eq("entreprise_id", ent.id)
+      .eq("apprenant_id", apprenantId)
+      .limit(1)
+      .maybeSingle();
+
+    // 4. Get agences linked to this membership via membre_agences
+    let agences: RattachementAgence[] = [];
+    if (membre) {
+      const { data: membreAgences } = await admin
+        .from("membre_agences")
+        .select(
+          "entreprise_agences(id, nom, adresse_rue, adresse_complement, adresse_cp, adresse_ville, email, telephone)"
+        )
+        .eq("membre_id", membre.id);
+
+      if (membreAgences) {
+        agences = membreAgences
+          .map(
+            (ma) =>
+              ma.entreprise_agences as unknown as RattachementAgence | null
+          )
+          .filter((a): a is RattachementAgence => a != null);
+      }
+    }
+
+    result.push({
+      id: ent.id,
+      nom: ent.nom,
+      siret: ent.siret,
+      siege: siegeData
+        ? {
+            nom: siegeData.nom,
+            adresse_rue: siegeData.adresse_rue,
+            adresse_complement: siegeData.adresse_complement,
+            adresse_cp: siegeData.adresse_cp,
+            adresse_ville: siegeData.adresse_ville,
+            email: siegeData.email,
+            telephone: siegeData.telephone,
+          }
+        : null,
+      agences,
+      rattache_siege: membre?.rattache_siege ?? false,
+      fonction: membre?.fonction ?? null,
+      roles: (membre?.roles as string[]) ?? [],
+    });
+  }
+
+  return { data: result };
+}
+
 /**
  * Get apprenant profile data for the extranet.
  * Validates that the requesting user is the apprenant.
