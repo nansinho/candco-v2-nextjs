@@ -11,9 +11,9 @@ export const NAV_SECTIONS = [
     ],
   },
   {
-    title: "Bibliothèque",
+    title: "Catalogue",
     items: [
-      { label: "Produits de formation", href: "/produits", icon: "BookOpen" },
+      { label: "Catalogue de formation", href: "/produits", icon: "BookOpen" },
       { label: "Questionnaires", href: "/questionnaires", icon: "ClipboardList" },
     ],
   },

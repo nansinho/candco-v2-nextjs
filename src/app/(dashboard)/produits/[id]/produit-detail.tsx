@@ -33,6 +33,9 @@ import {
   X,
   BookMarked,
   ExternalLink,
+  Building,
+  Share2,
+  FileDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +44,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { TachesActivitesTab } from "@/components/shared/taches-activites";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { useBreadcrumb } from "@/components/layout/breadcrumb-context";
@@ -110,6 +114,9 @@ interface Produit {
   equipe_pedagogique: string | null;
   meta_titre: string | null;
   meta_description: string | null;
+  organise_par_nom: string | null;
+  organise_par_logo_url: string | null;
+  organise_par_actif: boolean;
   created_at: string;
   updated_at: string | null;
 }
@@ -383,6 +390,7 @@ export function ProduitDetail({
   useBreadcrumb(produit.id, produit.intitule);
   const [isPending, setIsPending] = React.useState(false);
   const [isArchiving, setIsArchiving] = React.useState(false);
+  const [previewOpen, setPreviewOpen] = React.useState(false);
   const [currentImageUrl, setCurrentImageUrl] = React.useState(produit.image_url);
   const [isUploadingImage, setIsUploadingImage] = React.useState(false);
   const imageInputRef = React.useRef<HTMLInputElement>(null);
@@ -444,6 +452,10 @@ export function ProduitDetail({
       // SEO
       meta_titre: (fd.get("meta_titre") as string) || undefined,
       meta_description: (fd.get("meta_description") as string) || undefined,
+      // Organisé par
+      organise_par_nom: (fd.get("organise_par_nom") as string) || undefined,
+      organise_par_logo_url: (fd.get("organise_par_logo_url") as string) || undefined,
+      organise_par_actif: fd.get("organise_par_actif") === "on",
     };
 
     const result = await updateProduit(produit.id, input);
@@ -455,15 +467,15 @@ export function ProduitDetail({
     }
 
     setIsPending(false);
-    toast({ title: "Produit mis à jour", variant: "success" });
+    toast({ title: "Formation mise à jour", variant: "success" });
     router.refresh();
   };
 
   const handleArchive = async () => {
-    if (!(await confirm({ title: "Archiver ce produit de formation ?", description: "Le produit sera masqué du catalogue mais pourra être restauré.", confirmLabel: "Archiver", variant: "destructive" }))) return;
+    if (!(await confirm({ title: "Archiver cette formation ?", description: "La formation sera masquée du catalogue mais pourra être restaurée.", confirmLabel: "Archiver", variant: "destructive" }))) return;
     setIsArchiving(true);
     await archiveProduit(produit.id);
-    toast({ title: "Produit archivé", variant: "success" });
+    toast({ title: "Formation archivée", variant: "success" });
     router.push("/produits");
   };
 
@@ -506,7 +518,7 @@ export function ProduitDetail({
       <div className="space-y-6">
         {isArchived && (
           <div className="flex items-center justify-between rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3">
-            <p className="text-sm text-amber-400">Ce produit est archivé.</p>
+            <p className="text-sm text-amber-400">Cette formation est archivée.</p>
             <Button size="sm" variant="outline" className="h-8 text-xs text-amber-400 border-amber-500/30 hover:bg-amber-500/10" onClick={handleUnarchive} type="button">
               <ArchiveRestore className="mr-1.5 h-3 w-3" />
               Restaurer
@@ -555,20 +567,18 @@ export function ProduitDetail({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => router.push("/produits")} type="button">
               <ArrowLeft className="mr-1.5 h-3 w-3" />
-              Retour
+              <span className="hidden sm:inline">Retour</span>
             </Button>
-            {produit.publie && produit.slug && (
-              <Button variant="outline" size="sm" className="h-8 text-xs" type="button">
-                <Eye className="mr-1.5 h-3 w-3" />
-                Aperçu
-              </Button>
-            )}
+            <Button variant="outline" size="sm" className="h-8 text-xs" type="button" onClick={() => setPreviewOpen(true)}>
+              <Eye className="mr-1.5 h-3 w-3" />
+              <span className="hidden sm:inline">Aperçu</span>
+            </Button>
             <Button variant="outline" size="sm" className="h-8 text-xs text-muted-foreground hover:text-destructive hover:border-destructive/50" onClick={handleArchive} disabled={isArchiving} type="button">
               {isArchiving ? <Loader2 className="mr-1.5 h-3 w-3 animate-spin" /> : <Archive className="mr-1.5 h-3 w-3" />}
-              Archiver
+              <span className="hidden sm:inline">Archiver</span>
             </Button>
             <Button type="submit" size="sm" className="h-8 text-xs" disabled={isPending}>
               {isPending ? (
@@ -587,11 +597,12 @@ export function ProduitDetail({
         </div>
 
         {/* ═══ Content: Tabs + Sidebar ═══ */}
-        <div className="flex gap-6">
+        <div className="flex flex-col lg:flex-row gap-6">
           {/* Main content */}
           <div className="flex-1 min-w-0">
             <Tabs defaultValue="general">
-              <TabsList className="bg-muted/50">
+              <div className="overflow-x-auto thin-scrollbar -mx-1 px-1">
+              <TabsList className="bg-muted/50 w-max sm:w-auto">
                 <TabsTrigger value="general" className="text-xs gap-1.5">
                   <BookOpen className="h-3 w-3" />
                   Général
@@ -627,13 +638,14 @@ export function ProduitDetail({
                   Tâches
                 </TabsTrigger>
               </TabsList>
+              </div>
 
               {/* ═══ Tab: Général ═══ */}
               <TabsContent value="general" className="mt-6 space-y-6">
                 <div className="rounded-lg border border-border/60 bg-card p-6 space-y-5">
                   <SectionTitle>Informations générales</SectionTitle>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <Label htmlFor="intitule" className="text-[13px]">Titre <span className="text-destructive">*</span></Label>
@@ -664,7 +676,7 @@ export function ProduitDetail({
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <Label htmlFor="domaine" className="text-[13px]">Pôle</Label>
@@ -682,7 +694,7 @@ export function ProduitDetail({
                   </div>
 
                   {/* Classification */}
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="type_action" className="text-[13px]">Type d&apos;action</Label>
                       <select id="type_action" name="type_action" defaultValue={produit.type_action ?? ""} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground">
@@ -718,7 +730,7 @@ export function ProduitDetail({
                 {/* BPF */}
                 <div className="rounded-lg border border-border/60 bg-card p-6 space-y-4">
                   <SectionTitle>BPF (Bilan Pédagogique et Financier)</SectionTitle>
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="bpf_specialite_id" className="text-[13px]">Spécialité</Label>
                       <select id="bpf_specialite_id" name="bpf_specialite_id" defaultValue={produit.bpf_specialite_id ?? ""} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground">
@@ -782,7 +794,7 @@ export function ProduitDetail({
                 <div className="rounded-lg border border-border/60 bg-card p-6 space-y-5">
                   <SectionTitle icon={<MapPin className="h-4 w-4 text-primary" />}>Informations pratiques</SectionTitle>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <Label className="text-[13px]">Nombre de participants</Label>
@@ -803,7 +815,7 @@ export function ProduitDetail({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <Label htmlFor="delai_acces" className="text-[13px]">Délai d&apos;accès</Label>
@@ -994,7 +1006,7 @@ export function ProduitDetail({
           </div>
 
           {/* ═══ Right Sidebar ═══ */}
-          <div className="w-72 shrink-0 space-y-5">
+          <div className="w-full lg:w-72 shrink-0 space-y-5">
             {/* Publication */}
             <div className="rounded-lg border border-border/60 bg-card p-5 space-y-4">
               <h3 className="text-sm font-semibold">Publication</h3>
@@ -1013,6 +1025,9 @@ export function ProduitDetail({
                 </label>
               </div>
             </div>
+
+            {/* Organisé par */}
+            <OrganiseParSection produit={produit} />
 
             {/* URL & Identifiants */}
             <div className="rounded-lg border border-border/60 bg-card p-5 space-y-4">
@@ -1093,7 +1108,471 @@ export function ProduitDetail({
         </div>
       </div>
       <ConfirmDialog />
+
+      {/* ═══ Formation Preview Dialog ═══ */}
+      <FormationPreview
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        produit={produit}
+        tarifs={initialTarifs}
+        objectifs={initialObjectifs}
+        programme={initialProgramme}
+        prerequis={initialPrerequis}
+        publicVise={initialPublicVise}
+        competences={initialCompetences}
+        financement={initialFinancement}
+      />
     </form>
+  );
+}
+
+// ─── Formation Preview Dialog ─────────────────────────────
+
+interface FormationPreviewProps {
+  open: boolean;
+  onClose: () => void;
+  produit: Produit;
+  tarifs: { id: string; nom: string | null; prix_ht: number; taux_tva: number; unite: string | null; is_default: boolean }[];
+  objectifs: { id: string; objectif: string; ordre: number }[];
+  programme: { id: string; titre: string; contenu: string | null; duree: string | null; ordre: number }[];
+  prerequis: { id: string; texte: string; ordre: number }[];
+  publicVise: { id: string; texte: string; ordre: number }[];
+  competences: { id: string; texte: string; ordre: number }[];
+  financement: { id: string; texte: string; ordre: number }[];
+}
+
+function FormationPreview({ open, onClose, produit, tarifs, objectifs, programme, prerequis, publicVise, competences, financement }: FormationPreviewProps) {
+  const printRef = React.useRef<HTMLDivElement>(null);
+
+  const handlePrint = () => {
+    if (!printRef.current) return;
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html><head><title>${produit.intitule}</title>
+      <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Inter, system-ui, sans-serif; color: #1a1a1a; background: white; padding: 40px; font-size: 14px; line-height: 1.6; }
+        h1 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+        h2 { font-size: 16px; font-weight: 600; margin-top: 28px; margin-bottom: 12px; color: #FF7C4C; display: flex; align-items: center; gap: 8px; }
+        h2::before { content: ''; display: block; width: 3px; height: 18px; background: #FF7C4C; border-radius: 2px; }
+        h3 { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+        p { margin-bottom: 8px; color: #444; }
+        .badge { display: inline-block; padding: 2px 10px; border-radius: 99px; font-size: 11px; font-weight: 500; background: #f3f4f6; color: #666; margin-right: 6px; }
+        .badge-primary { background: #FFF0EB; color: #FF7C4C; }
+        ul { padding-left: 20px; margin-bottom: 12px; }
+        li { margin-bottom: 4px; color: #444; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+        .card { border: 1px solid #e5e5e5; border-radius: 8px; padding: 16px; }
+        .meta { color: #888; font-size: 12px; }
+        .organisme { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+        .organisme img { height: 32px; width: auto; }
+        .programme-item { border-left: 2px solid #FF7C4C; padding-left: 12px; margin-bottom: 12px; }
+        .separator { border: none; border-top: 1px solid #e5e5e5; margin: 24px 0; }
+        @media print { body { padding: 20px; } }
+      </style></head><body>
+      ${printRef.current.innerHTML}
+      </body></html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
+  };
+
+  const handleShareEmail = () => {
+    const subject = encodeURIComponent(`Formation : ${produit.intitule}`);
+    const body = encodeURIComponent(`Découvrez notre formation "${produit.intitule}".\n\n${produit.description ? produit.description.replace(/<[^>]+>/g, '') : ''}\n\nDurée : ${produit.duree_heures ? `${produit.duree_heures}h` : 'Non défini'}${produit.duree_jours ? ` (${produit.duree_jours} jour${produit.duree_jours > 1 ? 's' : ''})` : ''}`);
+    window.open(`mailto:?subject=${subject}&body=${body}`);
+  };
+
+  if (!open) return null;
+
+  const typeActionLabel: Record<string, string> = {
+    action_formation: "Action de formation",
+    bilan_competences: "Bilan de compétences",
+    vae: "VAE",
+    apprentissage: "Apprentissage",
+  };
+
+  const modaliteLabel: Record<string, string> = {
+    presentiel: "Présentiel",
+    distanciel: "Distanciel",
+    mixte: "Mixte",
+    afest: "AFEST",
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0">
+        {/* Header actions */}
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-border bg-card px-6 py-3">
+          <DialogTitle className="text-sm font-semibold">Aperçu de la formation</DialogTitle>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={handleShareEmail} type="button">
+              <Share2 className="mr-1.5 h-3 w-3" />
+              Email
+            </Button>
+            <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={handlePrint} type="button">
+              <FileDown className="mr-1.5 h-3 w-3" />
+              PDF
+            </Button>
+          </div>
+        </div>
+
+        {/* Preview content */}
+        <div ref={printRef} className="p-6 sm:p-8 space-y-6">
+          {/* Hero */}
+          <div className="flex flex-col sm:flex-row gap-6">
+            {produit.image_url && (
+              <div className="w-full sm:w-48 h-32 sm:h-36 rounded-lg overflow-hidden shrink-0 bg-muted">
+                <img src={produit.image_url} alt={produit.intitule} className="w-full h-full object-cover" />
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <h1 style={{ fontSize: "22px", fontWeight: 700, lineHeight: 1.3 }}>{produit.intitule}</h1>
+              {produit.sous_titre && <p className="text-muted-foreground mt-1 text-sm">{produit.sous_titre}</p>}
+              <div className="flex flex-wrap items-center gap-2 mt-3">
+                {produit.domaine && (
+                  <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-medium text-primary">{produit.domaine}</span>
+                )}
+                {produit.categorie && (
+                  <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">{produit.categorie}</span>
+                )}
+                {produit.certification && (
+                  <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-500">Certifiante</span>
+                )}
+              </div>
+              {produit.organise_par_actif && produit.organise_par_nom && (
+                <div className="flex items-center gap-2 mt-3 text-xs text-muted-foreground">
+                  {produit.organise_par_logo_url && (
+                    <img src={produit.organise_par_logo_url} alt={produit.organise_par_nom} className="h-6 w-auto rounded bg-white" />
+                  )}
+                  <span>Organisé par <strong>{produit.organise_par_nom}</strong></span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Info cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {produit.type_action && (
+              <div className="rounded-lg border border-border/60 p-3">
+                <p className="text-[10px] text-muted-foreground">Type</p>
+                <p className="text-[12px] font-medium mt-0.5">{typeActionLabel[produit.type_action] ?? produit.type_action}</p>
+              </div>
+            )}
+            {produit.modalite && (
+              <div className="rounded-lg border border-border/60 p-3">
+                <p className="text-[10px] text-muted-foreground">Modalité</p>
+                <p className="text-[12px] font-medium mt-0.5">{modaliteLabel[produit.modalite] ?? produit.modalite}</p>
+              </div>
+            )}
+            {produit.duree_heures && (
+              <div className="rounded-lg border border-border/60 p-3">
+                <p className="text-[10px] text-muted-foreground">Durée</p>
+                <p className="text-[12px] font-medium mt-0.5">{produit.duree_heures}h{produit.duree_jours ? ` (${produit.duree_jours}j)` : ""}</p>
+              </div>
+            )}
+            {tarifs.length > 0 && (
+              <div className="rounded-lg border border-border/60 p-3">
+                <p className="text-[10px] text-muted-foreground">Tarif</p>
+                <p className="text-[12px] font-medium mt-0.5 text-primary">
+                  {tarifs[0].prix_ht.toLocaleString("fr-FR")} € HT
+                  {tarifs[0].unite ? ` / ${tarifs[0].unite}` : ""}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Description */}
+          {produit.description && (
+            <div>
+              <h2 style={{ fontSize: "15px", fontWeight: 600, color: "#FF7C4C", marginBottom: "8px" }}>Description</h2>
+              <div className="text-[13px] text-muted-foreground leading-relaxed" dangerouslySetInnerHTML={{ __html: produit.description }} />
+            </div>
+          )}
+
+          {/* Objectifs */}
+          {objectifs.length > 0 && (
+            <div>
+              <h2 style={{ fontSize: "15px", fontWeight: 600, color: "#FF7C4C", marginBottom: "8px" }}>Objectifs de la formation</h2>
+              <ul className="space-y-1.5">
+                {objectifs.map((o) => (
+                  <li key={o.id} className="flex items-start gap-2 text-[13px]">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5 shrink-0" />
+                    <span>{o.objectif}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Compétences */}
+          {competences.length > 0 && (
+            <div>
+              <h2 style={{ fontSize: "15px", fontWeight: 600, color: "#FF7C4C", marginBottom: "8px" }}>Compétences visées</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {competences.map((c) => (
+                  <div key={c.id} className="flex items-start gap-2 text-[13px] rounded-lg border border-border/40 p-3">
+                    <Award className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                    <span>{c.texte}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Public visé + Prérequis */}
+          {(publicVise.length > 0 || prerequis.length > 0) && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {publicVise.length > 0 && (
+                <div>
+                  <h2 style={{ fontSize: "15px", fontWeight: 600, color: "#FF7C4C", marginBottom: "8px" }}>Pour qui ?</h2>
+                  <ul className="space-y-1">
+                    {publicVise.map((p) => (
+                      <li key={p.id} className="text-[13px] text-muted-foreground flex items-start gap-2">
+                        <Users className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground/60" />
+                        {p.texte}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {prerequis.length > 0 && (
+                <div>
+                  <h2 style={{ fontSize: "15px", fontWeight: 600, color: "#FF7C4C", marginBottom: "8px" }}>Prérequis</h2>
+                  <ul className="space-y-1">
+                    {prerequis.map((p) => (
+                      <li key={p.id} className="text-[13px] text-muted-foreground flex items-start gap-2">
+                        <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0 text-emerald-500" />
+                        {p.texte}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Programme */}
+          {programme.length > 0 && (
+            <div>
+              <h2 style={{ fontSize: "15px", fontWeight: 600, color: "#FF7C4C", marginBottom: "8px" }}>Programme détaillé</h2>
+              <div className="space-y-3">
+                {programme.map((m, i) => (
+                  <div key={m.id} className="rounded-lg border border-border/60 p-4">
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary shrink-0">
+                        {i + 1}
+                      </span>
+                      <h3 className="text-[13px] font-semibold">{m.titre}</h3>
+                      {m.duree && <span className="text-[11px] text-muted-foreground/60 ml-auto">{m.duree}</span>}
+                    </div>
+                    {m.contenu && (
+                      <div className="mt-2 pl-8 text-[12px] text-muted-foreground leading-relaxed" dangerouslySetInnerHTML={{ __html: m.contenu }} />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Tarifs */}
+          {tarifs.length > 0 && (
+            <div>
+              <h2 style={{ fontSize: "15px", fontWeight: 600, color: "#FF7C4C", marginBottom: "8px" }}>Tarifs</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {tarifs.map((t) => (
+                  <div key={t.id} className="rounded-lg border border-border/60 p-4 flex items-center justify-between">
+                    <div>
+                      <p className="text-[12px] font-medium">{t.nom || "Tarif"}</p>
+                      {t.unite && <p className="text-[11px] text-muted-foreground">Par {t.unite}</p>}
+                    </div>
+                    <p className="text-lg font-bold text-primary">{t.prix_ht.toLocaleString("fr-FR")} € <span className="text-[11px] font-normal text-muted-foreground">HT</span></p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Financement */}
+          {financement.length > 0 && (
+            <div>
+              <h2 style={{ fontSize: "15px", fontWeight: 600, color: "#FF7C4C", marginBottom: "8px" }}>Options de financement</h2>
+              <div className="flex flex-wrap gap-2">
+                {financement.map((f) => (
+                  <span key={f.id} className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-[12px] font-medium">{f.texte}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Modalités */}
+          {(produit.modalites_pedagogiques || produit.moyens_pedagogiques || produit.modalites_evaluation) && (
+            <div>
+              <h2 style={{ fontSize: "15px", fontWeight: 600, color: "#FF7C4C", marginBottom: "8px" }}>Approche pédagogique</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {produit.modalites_pedagogiques && (
+                  <div className="rounded-lg border border-border/60 p-3">
+                    <p className="text-[11px] font-semibold mb-1">Méthodes</p>
+                    <p className="text-[12px] text-muted-foreground">{produit.modalites_pedagogiques}</p>
+                  </div>
+                )}
+                {produit.moyens_pedagogiques && (
+                  <div className="rounded-lg border border-border/60 p-3">
+                    <p className="text-[11px] font-semibold mb-1">Moyens</p>
+                    <p className="text-[12px] text-muted-foreground">{produit.moyens_pedagogiques}</p>
+                  </div>
+                )}
+                {produit.modalites_evaluation && (
+                  <div className="rounded-lg border border-border/60 p-3">
+                    <p className="text-[11px] font-semibold mb-1">Évaluation</p>
+                    <p className="text-[12px] text-muted-foreground">{produit.modalites_evaluation}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Accessibilité */}
+          {produit.accessibilite && (
+            <div>
+              <h2 style={{ fontSize: "15px", fontWeight: 600, color: "#FF7C4C", marginBottom: "8px" }}>Accessibilité</h2>
+              <p className="text-[13px] text-muted-foreground">{produit.accessibilite}</p>
+            </div>
+          )}
+
+          {/* Équipe */}
+          {produit.equipe_pedagogique && (
+            <div>
+              <h2 style={{ fontSize: "15px", fontWeight: 600, color: "#FF7C4C", marginBottom: "8px" }}>Équipe pédagogique</h2>
+              <p className="text-[13px] text-muted-foreground">{produit.equipe_pedagogique}</p>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Organisé par Section (right sidebar) ─────────────────
+
+function OrganiseParSection({ produit }: { produit: Produit }) {
+  const router = useRouter();
+  const { toast } = useToast();
+  const [currentLogoUrl, setCurrentLogoUrl] = React.useState(produit.organise_par_logo_url);
+  const [isUploadingLogo, setIsUploadingLogo] = React.useState(false);
+  const logoInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleLogoUpload = async (file: File) => {
+    if (file.size > 1 * 1024 * 1024) {
+      toast({ title: "Erreur", description: "Le logo ne doit pas dépasser 1 Mo.", variant: "destructive" });
+      return;
+    }
+    setIsUploadingLogo(true);
+    try {
+      const { createClient } = await import("@/lib/supabase/client");
+      const supabase = createClient();
+      const filename = `produits/${produit.id}/organisme-logo-${Date.now()}.${file.name.split(".").pop()}`;
+      const { error: uploadError } = await supabase.storage
+        .from("images")
+        .upload(filename, file, { contentType: file.type, upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from("images").getPublicUrl(filename);
+      setCurrentLogoUrl(urlData.publicUrl);
+      // Update the hidden input value
+      const hiddenInput = document.querySelector<HTMLInputElement>('input[name="organise_par_logo_url"]');
+      if (hiddenInput) hiddenInput.value = urlData.publicUrl;
+      toast({ title: "Logo mis à jour", variant: "success" });
+    } catch {
+      toast({ title: "Erreur", description: "Impossible d'uploader le logo.", variant: "destructive" });
+    } finally {
+      setIsUploadingLogo(false);
+      if (logoInputRef.current) logoInputRef.current.value = "";
+    }
+  };
+
+  return (
+    <div className="rounded-lg border border-border/60 bg-card p-5 space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold flex items-center gap-2">
+          <Building className="h-3.5 w-3.5 text-muted-foreground" />
+          Organisé par
+        </h3>
+        <label className="relative inline-flex items-center cursor-pointer">
+          <input type="checkbox" name="organise_par_actif" defaultChecked={produit.organise_par_actif} className="sr-only peer" />
+          <div className="w-9 h-5 bg-muted rounded-full peer peer-checked:bg-primary transition-colors after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
+        </label>
+      </div>
+      <p className="text-[11px] text-muted-foreground/60">
+        Afficher un organisme partenaire sur la fiche formation
+      </p>
+
+      <div className="space-y-3">
+        <div className="space-y-1.5">
+          <Label htmlFor="organise_par_nom" className="text-[11px] text-muted-foreground">Nom de l&apos;organisme</Label>
+          <Input
+            id="organise_par_nom"
+            name="organise_par_nom"
+            defaultValue={produit.organise_par_nom ?? ""}
+            placeholder="Ex: Savoir d'Enfance"
+            className="h-8 text-xs border-border/60"
+          />
+        </div>
+
+        {/* Logo upload */}
+        <div className="space-y-1.5">
+          <Label className="text-[11px] text-muted-foreground">Logo de l&apos;organisme</Label>
+          {currentLogoUrl ? (
+            <div className="flex items-center gap-3 rounded-lg border border-border/60 bg-muted/30 p-2">
+              <img src={currentLogoUrl} alt="Logo organisme" className="h-10 w-10 rounded-md object-contain bg-white" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] text-muted-foreground truncate">Logo configuré</p>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-7 text-[10px] shrink-0"
+                onClick={() => logoInputRef.current?.click()}
+                disabled={isUploadingLogo}
+              >
+                {isUploadingLogo ? <Loader2 className="h-3 w-3 animate-spin" /> : "Changer"}
+              </Button>
+            </div>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              className="h-16 text-xs border-dashed border-border/60 w-full flex-col gap-1.5"
+              onClick={() => logoInputRef.current?.click()}
+              disabled={isUploadingLogo}
+            >
+              {isUploadingLogo ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Building className="h-4 w-4 text-muted-foreground/40" />
+              )}
+              <span className="text-muted-foreground/60 text-[10px]">
+                {isUploadingLogo ? "Upload..." : "Uploader un logo"}
+              </span>
+            </Button>
+          )}
+          <input
+            ref={logoInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleLogoUpload(file);
+            }}
+          />
+          <input type="hidden" name="organise_par_logo_url" defaultValue={currentLogoUrl ?? ""} />
+          <p className="text-[10px] text-muted-foreground/40">PNG ou SVG transparent recommandé. Max 1 Mo.</p>
+        </div>
+      </div>
+    </div>
   );
 }
 

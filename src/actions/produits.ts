@@ -72,6 +72,10 @@ const UpdateProduitSchema = z.object({
   // SEO
   meta_titre: z.string().optional().or(z.literal("")),
   meta_description: z.string().optional().or(z.literal("")),
+  // Organisé par
+  organise_par_nom: z.string().optional().or(z.literal("")),
+  organise_par_logo_url: z.string().optional().or(z.literal("")),
+  organise_par_actif: z.boolean().optional(),
 });
 
 export type UpdateProduitInput = z.infer<typeof UpdateProduitSchema>;
@@ -702,6 +706,7 @@ export async function updateProduit(id: string, input: UpdateProduitInput) {
       "nombre_participants_max", "lieu_format", "modalites_evaluation",
       "modalites_pedagogiques", "moyens_pedagogiques", "accessibilite",
       "modalites_paiement", "equipe_pedagogique", "meta_titre", "meta_description",
+      "organise_par_nom", "organise_par_logo_url", "organise_par_actif",
     ];
     const coreData = { ...cleanedData, completion_pct };
     for (const key of extendedKeys) {
