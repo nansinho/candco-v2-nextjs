@@ -98,10 +98,11 @@ const SendTargetedEmailSchema = z.object({
   filterCriteria: z.object({
     mode: z.enum(["all", "filtered"]),
     agenceIds: z.array(z.string()).optional(),
-    roles: z.array(z.string()).optional(),
+    agenceNoms: z.array(z.string()).optional(),
     includesSiege: z.boolean().optional(),
   }),
-  useBcc: z.boolean().default(true),
+  useBcc: z.boolean().default(false),
+  excludedEmails: z.array(z.string().email()).optional(),
 });
 
 export type SendTargetedEmailInput = z.infer<typeof SendTargetedEmailSchema>;
@@ -223,8 +224,16 @@ export async function sendTargetedEmail(input: SendTargetedEmailInput): Promise<
       template: "email_cible_entreprise",
       erreur: erreur || null,
       metadata: {
+        type_envoi: d.filterCriteria.mode === "all" ? "global" : "ciblé",
+        perimetre: d.filterCriteria.mode === "all"
+          ? ["Tous les membres"]
+          : [
+              ...(d.filterCriteria.includesSiege ? ["Siège social"] : []),
+              ...(d.filterCriteria.agenceNoms ?? []),
+            ],
         filter_criteria: d.filterCriteria,
         recipient_count: uniqueEmails.length,
+        excluded_count: d.excludedEmails?.length ?? 0,
         bcc: true,
       },
     });
@@ -269,6 +278,13 @@ export async function sendTargetedEmail(input: SendTargetedEmailInput): Promise<
     }
   }
 
+  const perimetreLabel = d.filterCriteria.mode === "all"
+    ? "global"
+    : [
+        ...(d.filterCriteria.includesSiege ? ["Siège"] : []),
+        ...(d.filterCriteria.agenceNoms ?? []),
+      ].join(", ") || "ciblé";
+
   await logHistorique({
     organisationId,
     userId,
@@ -279,10 +295,14 @@ export async function sendTargetedEmail(input: SendTargetedEmailInput): Promise<
     entiteId: d.entrepriseId,
     entiteLabel: d.subject,
     entrepriseId: d.entrepriseId,
-    description: `Email "${d.subject}" envoyé à ${uniqueEmails.length} destinataire(s) (${sent} envoyé(s), ${failed} en erreur)`,
+    description: `Email "${d.subject}" envoyé à ${uniqueEmails.length} destinataire(s) — ${perimetreLabel}${d.useBcc ? " (CCI)" : ""} (${sent} envoyé(s), ${failed} en erreur)`,
     objetHref: `/entreprises/${d.entrepriseId}`,
     metadata: {
+      type_envoi: d.filterCriteria.mode === "all" ? "global" : "ciblé",
+      perimetre: perimetreLabel,
       recipient_count: uniqueEmails.length,
+      excluded_count: d.excludedEmails?.length ?? 0,
+      bcc: d.useBcc,
       sent,
       failed,
       filter_criteria: d.filterCriteria,
