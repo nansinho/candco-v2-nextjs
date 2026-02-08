@@ -51,6 +51,7 @@ import { createContactClient, type CreateContactClientInput } from "@/actions/co
 import { TachesActivitesTab } from "@/components/shared/taches-activites";
 import { FonctionSelect } from "@/components/shared/fonction-select";
 import { OrganisationTab } from "@/components/entreprise/organisation-tab";
+import { HistoriqueTab } from "@/components/entreprise/historique-tab";
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -214,6 +215,9 @@ export function EntrepriseDetail({
           <TabsTrigger value="organisation" className="text-xs">
             Organisation
           </TabsTrigger>
+          <TabsTrigger value="historique" className="text-xs">
+            Historique
+          </TabsTrigger>
           <TabsTrigger value="taches" className="text-xs">
             Tâches et activités
           </TabsTrigger>
@@ -244,6 +248,10 @@ export function EntrepriseDetail({
 
         <TabsContent value="organisation" className="mt-6">
           <OrganisationTab entrepriseId={entreprise.id} />
+        </TabsContent>
+
+        <TabsContent value="historique" className="mt-6">
+          <HistoriqueTab entrepriseId={entreprise.id} />
         </TabsContent>
 
         <TabsContent value="taches" className="mt-6">
