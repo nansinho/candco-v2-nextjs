@@ -28,6 +28,11 @@ import {
   BarChart3,
   GripVertical,
   Wallet,
+  Pencil,
+  Check,
+  X,
+  BookMarked,
+  ExternalLink,
   Building,
   Share2,
   FileDown,
@@ -51,14 +56,25 @@ import {
   addTarif,
   deleteTarif,
   addObjectif,
+  updateObjectif,
   deleteObjectif,
   addProgrammeModule,
+  updateProgrammeModule,
   deleteProgrammeModule,
   addListItem,
+  updateListItem,
   deleteListItem,
+  addOuvrage,
+  updateOuvrage,
+  deleteOuvrage,
+  addArticle,
+  updateArticle,
+  deleteArticle,
   type UpdateProduitInput,
   type TarifInput,
   type ProgrammeModuleInput,
+  type OuvrageInput,
+  type ArticleInput,
 } from "@/actions/produits";
 
 // ─── Types ───────────────────────────────────────────────
@@ -131,6 +147,25 @@ interface ProgrammeModule {
 interface ListItem {
   id: string;
   texte: string;
+  ordre: number;
+}
+
+interface Ouvrage {
+  id: string;
+  auteurs: string | null;
+  titre: string;
+  annee: string | null;
+  source_editeur: string | null;
+  ordre: number;
+}
+
+interface Article {
+  id: string;
+  auteurs: string | null;
+  titre: string;
+  source_revue: string | null;
+  annee: string | null;
+  doi: string | null;
   ordre: number;
 }
 
@@ -208,6 +243,8 @@ function DynamicList({
   const { toast } = useToast();
   const [newItem, setNewItem] = React.useState("");
   const [saving, setSaving] = React.useState(false);
+  const [editingId, setEditingId] = React.useState<string | null>(null);
+  const [editingValue, setEditingValue] = React.useState("");
 
   const handleAdd = async () => {
     if (!newItem.trim()) return;
@@ -227,6 +264,24 @@ function DynamicList({
     router.refresh();
   };
 
+  const handleStartEdit = (item: ListItem) => {
+    setEditingId(item.id);
+    setEditingValue(item.texte);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingId || !editingValue.trim()) return;
+    await updateListItem(editingId, produitId, table, editingValue.trim());
+    setEditingId(null);
+    setEditingValue("");
+    router.refresh();
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditingValue("");
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
@@ -237,15 +292,46 @@ function DynamicList({
 
       {items.map((item) => (
         <div key={item.id} className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 group">
-          <p className="text-[13px] flex-1 min-w-0 truncate">{item.texte}</p>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive shrink-0"
-            onClick={() => handleDelete(item.id)}
-          >
-            <Trash2 className="h-3 w-3" />
-          </Button>
+          {editingId === item.id ? (
+            <>
+              <Input
+                value={editingValue}
+                onChange={(e) => setEditingValue(e.target.value)}
+                className="h-7 text-sm border-border/60 flex-1"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") { e.preventDefault(); handleSaveEdit(); }
+                  if (e.key === "Escape") handleCancelEdit();
+                }}
+              />
+              <Button variant="ghost" size="icon" className="h-6 w-6 text-emerald-500 hover:text-emerald-400 shrink-0" onClick={handleSaveEdit}>
+                <Check className="h-3 w-3" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground shrink-0" onClick={handleCancelEdit}>
+                <X className="h-3 w-3" />
+              </Button>
+            </>
+          ) : (
+            <>
+              <p className="text-sm flex-1 min-w-0">{item.texte}</p>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground shrink-0"
+                onClick={() => handleStartEdit(item)}
+              >
+                <Pencil className="h-3 w-3" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive shrink-0"
+                onClick={() => handleDelete(item.id)}
+              >
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            </>
+          )}
         </div>
       ))}
 
@@ -254,7 +340,7 @@ function DynamicList({
           value={newItem}
           onChange={(e) => setNewItem(e.target.value)}
           placeholder={placeholder}
-          className="h-8 text-xs border-border/60 flex-1"
+          className="h-8 text-sm border-border/60 flex-1"
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();
@@ -282,6 +368,8 @@ export function ProduitDetail({
   publicVise: initialPublicVise,
   competences: initialCompetences,
   financement: initialFinancement,
+  ouvrages: initialOuvrages,
+  articles: initialArticles,
   bpfSpecialites,
 }: {
   produit: Produit;
@@ -292,6 +380,8 @@ export function ProduitDetail({
   publicVise: ListItem[];
   competences: ListItem[];
   financement: ListItem[];
+  ouvrages: Ouvrage[];
+  articles: Article[];
   bpfSpecialites: BpfSpecialite[];
 }) {
   const router = useRouter();
@@ -306,13 +396,18 @@ export function ProduitDetail({
   const imageInputRef = React.useRef<HTMLInputElement>(null);
   const formRef = React.useRef<HTMLFormElement>(null);
 
-  // Count missing fields for tab badges
+  // Whether biblio tab should show (only if there are ouvrages or articles)
+  const hasBiblio = initialOuvrages.length > 0 || initialArticles.length > 0;
+
+  // Count missing fields for tab badges (aligned with server-side calculation)
   const missingGeneral = [produit.intitule, produit.description, produit.domaine, produit.type_action, produit.modalite, produit.formule].filter((v) => !v).length;
   const missingPratique = [produit.duree_heures, produit.certification, produit.delai_acces, produit.lieu_format].filter((v) => !v).length
-    + (initialTarifs.length === 0 ? 1 : 0) + (initialPrerequis.length === 0 ? 1 : 0) + (initialPublicVise.length === 0 ? 1 : 0);
+    + (initialTarifs.length === 0 ? 1 : 0) + (initialPrerequis.length === 0 ? 1 : 0) + (initialPublicVise.length === 0 ? 1 : 0)
+    + (initialFinancement.length === 0 ? 1 : 0)
+    + ((!produit.nombre_participants_min && !produit.nombre_participants_max) ? 1 : 0);
   const missingObjectifs = (initialObjectifs.length === 0 ? 1 : 0) + (initialCompetences.length === 0 ? 1 : 0);
   const missingProgramme = initialProgramme.length === 0 ? 1 : 0;
-  const missingModalites = [produit.modalites_pedagogiques, produit.moyens_pedagogiques, produit.modalites_evaluation].filter((v) => !v).length;
+  const missingModalites = [produit.modalites_pedagogiques, produit.moyens_pedagogiques, produit.modalites_evaluation, produit.accessibilite, produit.equipe_pedagogique].filter((v) => !v).length;
   const totalMissing = missingGeneral + missingPratique + missingObjectifs + missingProgramme + missingModalites;
 
   // ─── Form submit (saves all fields across tabs) ─────────
@@ -533,6 +628,12 @@ export function ProduitDetail({
                   Modalités
                   <TabBadge missing={missingModalites} />
                 </TabsTrigger>
+                {hasBiblio && (
+                  <TabsTrigger value="biblio" className="text-xs gap-1.5">
+                    <BookMarked className="h-3 w-3" />
+                    Biblio
+                  </TabsTrigger>
+                )}
                 <TabsTrigger value="taches" className="text-xs">
                   Tâches
                 </TabsTrigger>
@@ -889,6 +990,13 @@ export function ProduitDetail({
                   </div>
                 </div>
               </TabsContent>
+
+              {/* ═══ Tab: Biblio ═══ */}
+              {hasBiblio && (
+                <TabsContent value="biblio" className="mt-6">
+                  <BiblioTab produitId={produit.id} ouvrages={initialOuvrages} articles={initialArticles} />
+                </TabsContent>
+              )}
 
               {/* ═══ Tab: Tâches ═══ */}
               <TabsContent value="taches" className="mt-6">
@@ -1608,6 +1716,9 @@ function ProgrammeTab({
   const [isAdding, setIsAdding] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [expandedModules, setExpandedModules] = React.useState<Set<string>>(new Set());
+  const [editingModuleId, setEditingModuleId] = React.useState<string | null>(null);
+  const [editingModule, setEditingModule] = React.useState<{ titre: string; contenu: string; duree: string }>({ titre: "", contenu: "", duree: "" });
+  const [savingEdit, setSavingEdit] = React.useState(false);
 
   const toggleModule = (id: string) => {
     setExpandedModules((prev) => {
@@ -1646,6 +1757,34 @@ function ProgrammeTab({
     router.refresh();
   };
 
+  const handleStartEdit = (m: ProgrammeModule) => {
+    setEditingModuleId(m.id);
+    setEditingModule({ titre: m.titre, contenu: m.contenu ?? "", duree: m.duree ?? "" });
+    setExpandedModules((prev) => new Set(prev).add(m.id));
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingModuleId || !editingModule.titre.trim()) return;
+    setSavingEdit(true);
+    const result = await updateProgrammeModule(editingModuleId, produitId, {
+      titre: editingModule.titre,
+      contenu: editingModule.contenu,
+      duree: editingModule.duree,
+    });
+    setSavingEdit(false);
+    if (result.error) {
+      toast({ title: "Erreur", variant: "destructive" });
+      return;
+    }
+    setEditingModuleId(null);
+    toast({ title: "Module mis à jour", variant: "success" });
+    router.refresh();
+  };
+
+  const handleCancelEdit = () => {
+    setEditingModuleId(null);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -1663,11 +1802,11 @@ function ProgrammeTab({
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1">
               <Label className="text-[11px]">Titre *</Label>
-              <Input name="module_titre" required placeholder="Séquence 1 : Introduction" className="h-8 text-xs border-border/60" />
+              <Input name="module_titre" required placeholder="Séquence 1 : Introduction" className="h-8 text-sm border-border/60" />
             </div>
             <div className="space-y-1">
               <Label className="text-[11px]">Durée</Label>
-              <Input name="module_duree" placeholder="2h" className="h-8 text-xs border-border/60" />
+              <Input name="module_duree" placeholder="2h" className="h-8 text-sm border-border/60" />
             </div>
             <div className="flex items-end gap-2">
               <Button type="submit" size="sm" className="h-8 text-xs" disabled={saving}>
@@ -1682,9 +1821,9 @@ function ProgrammeTab({
             <Label className="text-[11px]">Contenu</Label>
             <textarea
               name="module_contenu"
-              rows={3}
+              rows={4}
               placeholder="Décrivez le contenu de ce module..."
-              className="w-full rounded-md border border-input bg-muted px-3 py-2 text-xs text-foreground resize-y"
+              className="w-full rounded-md border border-input bg-muted px-3 py-2 text-sm text-foreground resize-y"
             />
           </div>
         </form>
@@ -1704,21 +1843,22 @@ function ProgrammeTab({
         <div className="space-y-2">
           {modules.map((m, idx) => {
             const isExpanded = expandedModules.has(m.id);
+            const isEditing = editingModuleId === m.id;
             return (
               <div key={m.id} className="rounded-lg border border-border/60 bg-card overflow-hidden group">
                 <button
                   type="button"
                   className="flex items-center gap-3 w-full px-4 py-3 text-left hover:bg-muted/20 transition-colors"
-                  onClick={() => toggleModule(m.id)}
+                  onClick={() => { if (!isEditing) toggleModule(m.id); }}
                 >
                   <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary shrink-0">
                     {idx + 1}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <h3 className="text-[13px] font-medium truncate">{m.titre}</h3>
+                      <h3 className="text-sm font-medium truncate">{m.titre}</h3>
                       {m.duree && (
-                        <span className="text-[11px] text-muted-foreground/60 shrink-0">({m.duree})</span>
+                        <span className="text-xs text-muted-foreground/60 shrink-0">({m.duree})</span>
                       )}
                     </div>
                   </div>
@@ -1729,29 +1869,69 @@ function ProgrammeTab({
                   )}
                 </button>
 
-                {isExpanded && m.contenu && (
+                {isExpanded && (
                   <div className="px-4 pb-3 pl-[52px] border-t border-border/40">
-                    <p className="text-xs text-muted-foreground/80 whitespace-pre-wrap pt-3">
-                      {m.contenu}
-                    </p>
-                    <div className="mt-3 flex justify-end">
-                      <Button variant="ghost" size="sm" className="h-7 text-[11px] text-muted-foreground hover:text-destructive" onClick={() => handleDelete(m.id)} type="button">
-                        <Trash2 className="mr-1 h-3 w-3" />
-                        Supprimer
-                      </Button>
-                    </div>
-                  </div>
-                )}
-
-                {isExpanded && !m.contenu && (
-                  <div className="px-4 pb-3 pl-[52px] border-t border-border/40">
-                    <p className="text-xs text-muted-foreground/40 italic pt-3">Aucun contenu détaillé</p>
-                    <div className="mt-3 flex justify-end">
-                      <Button variant="ghost" size="sm" className="h-7 text-[11px] text-muted-foreground hover:text-destructive" onClick={() => handleDelete(m.id)} type="button">
-                        <Trash2 className="mr-1 h-3 w-3" />
-                        Supprimer
-                      </Button>
-                    </div>
+                    {isEditing ? (
+                      <div className="space-y-3 pt-3">
+                        <div className="grid grid-cols-3 gap-3">
+                          <div className="col-span-2 space-y-1">
+                            <Label className="text-[11px]">Titre</Label>
+                            <Input
+                              value={editingModule.titre}
+                              onChange={(e) => setEditingModule((prev) => ({ ...prev, titre: e.target.value }))}
+                              className="h-8 text-sm border-border/60"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-[11px]">Durée</Label>
+                            <Input
+                              value={editingModule.duree}
+                              onChange={(e) => setEditingModule((prev) => ({ ...prev, duree: e.target.value }))}
+                              placeholder="2h"
+                              className="h-8 text-sm border-border/60"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[11px]">Contenu</Label>
+                          <textarea
+                            value={editingModule.contenu}
+                            onChange={(e) => setEditingModule((prev) => ({ ...prev, contenu: e.target.value }))}
+                            rows={6}
+                            className="w-full rounded-md border border-input bg-muted px-3 py-2 text-sm text-foreground resize-y leading-relaxed"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2 justify-end">
+                          <Button type="button" variant="outline" size="sm" className="h-7 text-[11px]" onClick={handleCancelEdit}>
+                            Annuler
+                          </Button>
+                          <Button type="button" size="sm" className="h-7 text-[11px]" onClick={handleSaveEdit} disabled={savingEdit || !editingModule.titre.trim()}>
+                            {savingEdit ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Check className="h-3 w-3 mr-1" />}
+                            Enregistrer
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        {m.contenu ? (
+                          <p className="text-sm text-muted-foreground whitespace-pre-wrap pt-3 leading-relaxed">
+                            {m.contenu}
+                          </p>
+                        ) : (
+                          <p className="text-sm text-muted-foreground/40 italic pt-3">Aucun contenu détaillé</p>
+                        )}
+                        <div className="mt-3 flex justify-end gap-1">
+                          <Button variant="ghost" size="sm" className="h-7 text-[11px] text-muted-foreground hover:text-foreground" onClick={() => handleStartEdit(m)} type="button">
+                            <Pencil className="mr-1 h-3 w-3" />
+                            Modifier
+                          </Button>
+                          <Button variant="ghost" size="sm" className="h-7 text-[11px] text-muted-foreground hover:text-destructive" onClick={() => handleDelete(m.id)} type="button">
+                            <Trash2 className="mr-1 h-3 w-3" />
+                            Supprimer
+                          </Button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
@@ -1777,6 +1957,8 @@ function ObjectifsTab({
   const { toast } = useToast();
   const [newObjectif, setNewObjectif] = React.useState("");
   const [saving, setSaving] = React.useState(false);
+  const [editingId, setEditingId] = React.useState<string | null>(null);
+  const [editingValue, setEditingValue] = React.useState("");
 
   const handleAdd = async () => {
     if (!newObjectif.trim()) return;
@@ -1796,6 +1978,24 @@ function ObjectifsTab({
     router.refresh();
   };
 
+  const handleStartEdit = (o: Objectif) => {
+    setEditingId(o.id);
+    setEditingValue(o.objectif);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingId || !editingValue.trim()) return;
+    await updateObjectif(editingId, produitId, editingValue.trim());
+    setEditingId(null);
+    setEditingValue("");
+    router.refresh();
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditingValue("");
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
@@ -1808,7 +2008,7 @@ function ObjectifsTab({
           value={newObjectif}
           onChange={(e) => setNewObjectif(e.target.value)}
           placeholder="Être capable de..."
-          className="h-9 text-[13px] border-border/60 flex-1"
+          className="h-9 text-sm border-border/60 flex-1"
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();
@@ -1830,14 +2030,416 @@ function ObjectifsTab({
           {objectifs.map((o, idx) => (
             <div key={o.id} className="flex items-center gap-3 px-4 py-2.5 group">
               <span className="text-[11px] font-mono text-muted-foreground/40 w-5 shrink-0">{idx + 1}.</span>
-              <p className="text-[13px] flex-1">{o.objectif}</p>
-              <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive shrink-0" onClick={() => handleDelete(o.id)} type="button">
-                <Trash2 className="h-3 w-3" />
-              </Button>
+              {editingId === o.id ? (
+                <>
+                  <Input
+                    value={editingValue}
+                    onChange={(e) => setEditingValue(e.target.value)}
+                    className="h-7 text-sm border-border/60 flex-1"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") { e.preventDefault(); handleSaveEdit(); }
+                      if (e.key === "Escape") handleCancelEdit();
+                    }}
+                  />
+                  <Button variant="ghost" size="icon" className="h-6 w-6 text-emerald-500 hover:text-emerald-400 shrink-0" onClick={handleSaveEdit} type="button">
+                    <Check className="h-3 w-3" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground shrink-0" onClick={handleCancelEdit} type="button">
+                    <X className="h-3 w-3" />
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm flex-1">{o.objectif}</p>
+                  <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground shrink-0" onClick={() => handleStartEdit(o)} type="button">
+                    <Pencil className="h-3 w-3" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive shrink-0" onClick={() => handleDelete(o.id)} type="button">
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </>
+              )}
             </div>
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Biblio Tab ─────────────────────────────────────────
+
+function BiblioTab({
+  produitId,
+  ouvrages,
+  articles,
+}: {
+  produitId: string;
+  ouvrages: Ouvrage[];
+  articles: Article[];
+}) {
+  const router = useRouter();
+  const { toast } = useToast();
+
+  // Ouvrages state
+  const [addingOuvrage, setAddingOuvrage] = React.useState(false);
+  const [savingOuvrage, setSavingOuvrage] = React.useState(false);
+  const [editingOuvrageId, setEditingOuvrageId] = React.useState<string | null>(null);
+  const [editingOuvrageData, setEditingOuvrageData] = React.useState<OuvrageInput>({ titre: "" });
+
+  // Articles state
+  const [addingArticle, setAddingArticle] = React.useState(false);
+  const [savingArticle, setSavingArticle] = React.useState(false);
+  const [editingArticleId, setEditingArticleId] = React.useState<string | null>(null);
+  const [editingArticleData, setEditingArticleData] = React.useState<ArticleInput>({ titre: "" });
+
+  // Ouvrages handlers
+  const handleAddOuvrage = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSavingOuvrage(true);
+    const fd = new FormData(e.currentTarget);
+    const input: OuvrageInput = {
+      auteurs: (fd.get("ouvrage_auteurs") as string) || undefined,
+      titre: fd.get("ouvrage_titre") as string,
+      annee: (fd.get("ouvrage_annee") as string) || undefined,
+      source_editeur: (fd.get("ouvrage_source") as string) || undefined,
+    };
+    const result = await addOuvrage(produitId, input);
+    setSavingOuvrage(false);
+    if (result.error) {
+      toast({ title: "Erreur", variant: "destructive" });
+      return;
+    }
+    setAddingOuvrage(false);
+    router.refresh();
+  };
+
+  const handleStartEditOuvrage = (o: Ouvrage) => {
+    setEditingOuvrageId(o.id);
+    setEditingOuvrageData({
+      auteurs: o.auteurs ?? "",
+      titre: o.titre,
+      annee: o.annee ?? "",
+      source_editeur: o.source_editeur ?? "",
+    });
+  };
+
+  const handleSaveEditOuvrage = async () => {
+    if (!editingOuvrageId || !editingOuvrageData.titre.trim()) return;
+    await updateOuvrage(editingOuvrageId, produitId, editingOuvrageData);
+    setEditingOuvrageId(null);
+    router.refresh();
+  };
+
+  const handleDeleteOuvrage = async (ouvrageId: string) => {
+    await deleteOuvrage(ouvrageId, produitId);
+    router.refresh();
+  };
+
+  // Articles handlers
+  const handleAddArticle = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSavingArticle(true);
+    const fd = new FormData(e.currentTarget);
+    const input: ArticleInput = {
+      auteurs: (fd.get("article_auteurs") as string) || undefined,
+      titre: fd.get("article_titre") as string,
+      source_revue: (fd.get("article_source") as string) || undefined,
+      annee: (fd.get("article_annee") as string) || undefined,
+      doi: (fd.get("article_doi") as string) || undefined,
+    };
+    const result = await addArticle(produitId, input);
+    setSavingArticle(false);
+    if (result.error) {
+      toast({ title: "Erreur", variant: "destructive" });
+      return;
+    }
+    setAddingArticle(false);
+    router.refresh();
+  };
+
+  const handleStartEditArticle = (a: Article) => {
+    setEditingArticleId(a.id);
+    setEditingArticleData({
+      auteurs: a.auteurs ?? "",
+      titre: a.titre,
+      source_revue: a.source_revue ?? "",
+      annee: a.annee ?? "",
+      doi: a.doi ?? "",
+    });
+  };
+
+  const handleSaveEditArticle = async () => {
+    if (!editingArticleId || !editingArticleData.titre.trim()) return;
+    await updateArticle(editingArticleId, produitId, editingArticleData);
+    setEditingArticleId(null);
+    router.refresh();
+  };
+
+  const handleDeleteArticle = async (articleId: string) => {
+    await deleteArticle(articleId, produitId);
+    router.refresh();
+  };
+
+  return (
+    <div className="space-y-8">
+      {/* Ouvrages et traités de référence */}
+      <div className="rounded-lg border border-border/60 bg-card p-6 space-y-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <SectionTitle icon={<BookOpen className="h-4 w-4 text-primary" />}>
+                Ouvrages et traités de référence
+              </SectionTitle>
+              <Badge variant="outline" className="text-[10px]">{ouvrages.length} référence{ouvrages.length > 1 ? "s" : ""}</Badge>
+            </div>
+            <p className="text-xs text-muted-foreground/60 mt-1">Livres et manuels de référence utilisés pour cette formation</p>
+          </div>
+          <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setAddingOuvrage(true)} type="button">
+            <Plus className="mr-1 h-3 w-3" />
+            Ajouter un ouvrage
+          </Button>
+        </div>
+
+        {addingOuvrage && (
+          <form onSubmit={handleAddOuvrage} className="rounded-lg border border-primary/20 bg-muted/30 p-4 space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-[11px]">Auteur(s)</Label>
+                <Input name="ouvrage_auteurs" placeholder="Elsevier Masson." className="h-8 text-sm border-border/60" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[11px]">Titre *</Label>
+                <Input name="ouvrage_titre" required placeholder="Titre de l'ouvrage" className="h-8 text-sm border-border/60" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-[11px]">Année</Label>
+                <Input name="ouvrage_annee" placeholder="2021" className="h-8 text-sm border-border/60" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[11px]">Source / Éditeur</Label>
+                <Input name="ouvrage_source" placeholder="Dans EMC Podologie, EM Consulte." className="h-8 text-sm border-border/60" />
+              </div>
+            </div>
+            <div className="flex items-center gap-2 justify-end">
+              <Button type="button" variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => setAddingOuvrage(false)}>Annuler</Button>
+              <Button type="submit" size="sm" className="h-7 text-[11px]" disabled={savingOuvrage}>
+                {savingOuvrage ? <Loader2 className="h-3 w-3 animate-spin" /> : "Ajouter"}
+              </Button>
+            </div>
+          </form>
+        )}
+
+        {ouvrages.map((o, idx) => (
+          <div key={o.id} className="rounded-lg border border-border/60 bg-muted/20 p-4 space-y-3 group">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-semibold text-muted-foreground">Ouvrage {idx + 1}</h4>
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => handleStartEditOuvrage(o)} type="button">
+                  <Pencil className="h-3 w-3" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteOuvrage(o.id)} type="button">
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+            {editingOuvrageId === o.id ? (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-[11px]">Auteur(s)</Label>
+                    <Input value={editingOuvrageData.auteurs ?? ""} onChange={(e) => setEditingOuvrageData((p) => ({ ...p, auteurs: e.target.value }))} className="h-8 text-sm border-border/60" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[11px]">Titre</Label>
+                    <Input value={editingOuvrageData.titre} onChange={(e) => setEditingOuvrageData((p) => ({ ...p, titre: e.target.value }))} className="h-8 text-sm border-border/60" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-[11px]">Année</Label>
+                    <Input value={editingOuvrageData.annee ?? ""} onChange={(e) => setEditingOuvrageData((p) => ({ ...p, annee: e.target.value }))} className="h-8 text-sm border-border/60" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[11px]">Source / Éditeur</Label>
+                    <Input value={editingOuvrageData.source_editeur ?? ""} onChange={(e) => setEditingOuvrageData((p) => ({ ...p, source_editeur: e.target.value }))} className="h-8 text-sm border-border/60" />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 justify-end">
+                  <Button type="button" variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => setEditingOuvrageId(null)}>Annuler</Button>
+                  <Button type="button" size="sm" className="h-7 text-[11px]" onClick={handleSaveEditOuvrage}>
+                    <Check className="h-3 w-3 mr-1" />
+                    Enregistrer
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-muted-foreground/60">Auteur(s)</Label>
+                  <p className="text-sm">{o.auteurs || <span className="text-muted-foreground/40 italic">—</span>}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-muted-foreground/60">Titre</Label>
+                  <p className="text-sm">{o.titre}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-muted-foreground/60">Année</Label>
+                  <p className="text-sm">{o.annee || <span className="text-muted-foreground/40 italic">—</span>}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-muted-foreground/60">Source / Éditeur</Label>
+                  <p className="text-sm">{o.source_editeur || <span className="text-muted-foreground/40 italic">—</span>}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Articles scientifiques */}
+      <div className="rounded-lg border border-border/60 bg-card p-6 space-y-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <SectionTitle icon={<BookMarked className="h-4 w-4 text-primary" />}>
+                Articles scientifiques
+              </SectionTitle>
+              <Badge variant="outline" className="text-[10px]">{articles.length} article{articles.length > 1 ? "s" : ""}</Badge>
+            </div>
+            <p className="text-xs text-muted-foreground/60 mt-1">Publications et articles de recherche</p>
+          </div>
+          <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setAddingArticle(true)} type="button">
+            <Plus className="mr-1 h-3 w-3" />
+            Ajouter un article
+          </Button>
+        </div>
+
+        {addingArticle && (
+          <form onSubmit={handleAddArticle} className="rounded-lg border border-primary/20 bg-muted/30 p-4 space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-[11px]">Auteur(s)</Label>
+                <Input name="article_auteurs" placeholder="Chevallier, T. L., Hodgins, H., ..." className="h-8 text-sm border-border/60" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[11px]">Titre de l&apos;article *</Label>
+                <Input name="article_titre" required placeholder="Titre de l'article" className="h-8 text-sm border-border/60" />
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-1">
+                <Label className="text-[11px]">Source / Revue</Label>
+                <Input name="article_source" placeholder="Clinical Biomechanics, 18(8), 679-687." className="h-8 text-sm border-border/60" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[11px]">Année</Label>
+                <Input name="article_annee" placeholder="2010" className="h-8 text-sm border-border/60" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[11px]">DOI</Label>
+                <Input name="article_doi" placeholder="https://doi.org/10.1016/..." className="h-8 text-sm border-border/60" />
+              </div>
+            </div>
+            <div className="flex items-center gap-2 justify-end">
+              <Button type="button" variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => setAddingArticle(false)}>Annuler</Button>
+              <Button type="submit" size="sm" className="h-7 text-[11px]" disabled={savingArticle}>
+                {savingArticle ? <Loader2 className="h-3 w-3 animate-spin" /> : "Ajouter"}
+              </Button>
+            </div>
+          </form>
+        )}
+
+        {articles.map((a, idx) => (
+          <div key={a.id} className="rounded-lg border border-border/60 bg-muted/20 p-4 space-y-3 group">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-semibold text-muted-foreground">Article {idx + 1}</h4>
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => handleStartEditArticle(a)} type="button">
+                  <Pencil className="h-3 w-3" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteArticle(a.id)} type="button">
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+            {editingArticleId === a.id ? (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-[11px]">Auteur(s)</Label>
+                    <Input value={editingArticleData.auteurs ?? ""} onChange={(e) => setEditingArticleData((p) => ({ ...p, auteurs: e.target.value }))} className="h-8 text-sm border-border/60" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[11px]">Titre de l&apos;article</Label>
+                    <Input value={editingArticleData.titre} onChange={(e) => setEditingArticleData((p) => ({ ...p, titre: e.target.value }))} className="h-8 text-sm border-border/60" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-[11px]">Source / Revue</Label>
+                    <Input value={editingArticleData.source_revue ?? ""} onChange={(e) => setEditingArticleData((p) => ({ ...p, source_revue: e.target.value }))} className="h-8 text-sm border-border/60" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[11px]">Année</Label>
+                    <Input value={editingArticleData.annee ?? ""} onChange={(e) => setEditingArticleData((p) => ({ ...p, annee: e.target.value }))} className="h-8 text-sm border-border/60" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[11px]">DOI</Label>
+                    <Input value={editingArticleData.doi ?? ""} onChange={(e) => setEditingArticleData((p) => ({ ...p, doi: e.target.value }))} className="h-8 text-sm border-border/60" />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 justify-end">
+                  <Button type="button" variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => setEditingArticleId(null)}>Annuler</Button>
+                  <Button type="button" size="sm" className="h-7 text-[11px]" onClick={handleSaveEditArticle}>
+                    <Check className="h-3 w-3 mr-1" />
+                    Enregistrer
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-muted-foreground/60">Auteur(s)</Label>
+                    <p className="text-sm">{a.auteurs || <span className="text-muted-foreground/40 italic">—</span>}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-muted-foreground/60">Titre de l&apos;article</Label>
+                    <p className="text-sm">{a.titre}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-muted-foreground/60">Source / Revue</Label>
+                    <p className="text-sm">{a.source_revue || <span className="text-muted-foreground/40 italic">—</span>}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-muted-foreground/60">Année</Label>
+                    <p className="text-sm">{a.annee || <span className="text-muted-foreground/40 italic">—</span>}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-muted-foreground/60">DOI</Label>
+                    {a.doi ? (
+                      <a href={a.doi.startsWith("http") ? a.doi : `https://doi.org/${a.doi}`} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1">
+                        {a.doi}
+                        <ExternalLink className="h-3 w-3 shrink-0" />
+                      </a>
+                    ) : (
+                      <p className="text-sm text-muted-foreground/40 italic">—</p>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

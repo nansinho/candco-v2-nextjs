@@ -112,6 +112,8 @@ function calculateCompletion(
     programme: number;
     prerequis: number;
     publicVise: number;
+    competences: number;
+    financement: number;
   },
 ): number {
   const fields = [
@@ -129,6 +131,8 @@ function calculateCompletion(
     "modalites_evaluation",
     "modalites_pedagogiques",
     "moyens_pedagogiques",
+    "accessibilite",
+    "equipe_pedagogique",
   ];
   let filled = 0;
   for (const f of fields) {
@@ -136,14 +140,21 @@ function calculateCompletion(
       filled++;
     }
   }
-  let total = fields.length;
+  // nombre_participants counts as filled if either min or max is set
+  const total_core = fields.length + 1; // +1 for nombre_participants
+  let total = total_core;
+  if (produit["nombre_participants_min"] || produit["nombre_participants_max"]) {
+    filled++;
+  }
   if (counts) {
-    total += 5; // tarifs, objectifs, programme, prerequis, publicVise
+    total += 7; // tarifs, objectifs, programme, prerequis, publicVise, competences, financement
     if (counts.tarifs > 0) filled++;
     if (counts.objectifs > 0) filled++;
     if (counts.programme > 0) filled++;
     if (counts.prerequis > 0) filled++;
     if (counts.publicVise > 0) filled++;
+    if (counts.competences > 0) filled++;
+    if (counts.financement > 0) filled++;
   }
   return Math.round((filled / total) * 100);
 }
@@ -157,12 +168,14 @@ async function recalculateCompletion(produitId: string, supabase: Awaited<Return
     .single();
   if (!produit) return;
 
-  const [tarifsRes, objectifsRes, programmeRes, prerequisRes, publicViseRes] = await Promise.all([
+  const [tarifsRes, objectifsRes, programmeRes, prerequisRes, publicViseRes, competencesRes, financementRes] = await Promise.all([
     supabase.from("produit_tarifs").select("id", { count: "exact", head: true }).eq("produit_id", produitId),
     supabase.from("produit_objectifs").select("id", { count: "exact", head: true }).eq("produit_id", produitId),
     supabase.from("produit_programme").select("id", { count: "exact", head: true }).eq("produit_id", produitId),
     supabase.from("produit_prerequis").select("id", { count: "exact", head: true }).eq("produit_id", produitId),
     supabase.from("produit_public_vise").select("id", { count: "exact", head: true }).eq("produit_id", produitId),
+    supabase.from("produit_competences").select("id", { count: "exact", head: true }).eq("produit_id", produitId),
+    supabase.from("produit_financement").select("id", { count: "exact", head: true }).eq("produit_id", produitId),
   ]);
 
   const pct = calculateCompletion(produit as Record<string, unknown>, {
@@ -171,6 +184,8 @@ async function recalculateCompletion(produitId: string, supabase: Awaited<Return
     programme: programmeRes.count ?? 0,
     prerequis: prerequisRes.count ?? 0,
     publicVise: publicViseRes.count ?? 0,
+    competences: competencesRes.count ?? 0,
+    financement: financementRes.count ?? 0,
   });
 
   await supabase
@@ -252,6 +267,8 @@ export interface PDFExtractedData {
   financement?: string[];
   modalites_paiement?: string | null;
   equipe_pedagogique?: string | null;
+  ouvrages?: { auteurs?: string; titre: string; annee?: string; source_editeur?: string }[];
+  articles?: { auteurs?: string; titre: string; source_revue?: string; annee?: string; doi?: string }[];
 }
 
 export async function createProduitFromPDF(extracted: PDFExtractedData) {
@@ -458,6 +475,32 @@ export async function createProduitFromPDF(extracted: PDFExtractedData) {
     }
   }
 
+  // Bibliography data (migration 00017) — insert if present
+  if (extracted.ouvrages && extracted.ouvrages.length > 0) {
+    const ouvragesData = extracted.ouvrages.map((o, i) => ({
+      produit_id: produitId,
+      auteurs: o.auteurs || null,
+      titre: o.titre,
+      annee: o.annee || null,
+      source_editeur: o.source_editeur || null,
+      ordre: i + 1,
+    }));
+    insertPromises.push(supabase.from("produit_ouvrages").insert(ouvragesData).select());
+  }
+
+  if (extracted.articles && extracted.articles.length > 0) {
+    const articlesData = extracted.articles.map((a, i) => ({
+      produit_id: produitId,
+      auteurs: a.auteurs || null,
+      titre: a.titre,
+      source_revue: a.source_revue || null,
+      annee: a.annee || null,
+      doi: a.doi || null,
+      ordre: i + 1,
+    }));
+    insertPromises.push(supabase.from("produit_articles").insert(articlesData).select());
+  }
+
   await Promise.all(insertPromises);
 
   // Recalculate completion
@@ -525,7 +568,7 @@ export async function getProduits(
 export async function getProduit(id: string) {
   const orgResult = await getOrganisationId();
   if ("error" in orgResult) {
-    return { data: null, tarifs: [], objectifs: [], programme: [], prerequis: [], publicVise: [], competences: [], financement: [], error: orgResult.error };
+    return { data: null, tarifs: [], objectifs: [], programme: [], prerequis: [], publicVise: [], competences: [], financement: [], ouvrages: [], articles: [], error: orgResult.error };
   }
   const { admin } = orgResult;
 
@@ -536,7 +579,7 @@ export async function getProduit(id: string) {
     .single();
 
   if (error) {
-    return { data: null, tarifs: [], objectifs: [], programme: [], prerequis: [], publicVise: [], competences: [], financement: [], error: error.message };
+    return { data: null, tarifs: [], objectifs: [], programme: [], prerequis: [], publicVise: [], competences: [], financement: [], ouvrages: [], articles: [], error: error.message };
   }
 
   // Fetch core related data (tables from migration 00002)
@@ -567,6 +610,21 @@ export async function getProduit(id: string) {
     console.warn("[getProduit] Extended tables not available (migration 00015 not applied)");
   }
 
+  // Fetch bibliography data (tables from migration 00017) — graceful fallback
+  let ouvrages: { id: string; auteurs: string | null; titre: string; annee: string | null; source_editeur: string | null; ordre: number }[] = [];
+  let articles: { id: string; auteurs: string | null; titre: string; source_revue: string | null; annee: string | null; doi: string | null; ordre: number }[] = [];
+
+  try {
+    const [ouvragesResult, articlesResult] = await Promise.all([
+      admin.from("produit_ouvrages").select("*").eq("produit_id", id).order("ordre", { ascending: true }),
+      admin.from("produit_articles").select("*").eq("produit_id", id).order("ordre", { ascending: true }),
+    ]);
+    ouvrages = (ouvragesResult.data ?? []) as typeof ouvrages;
+    articles = (articlesResult.data ?? []) as typeof articles;
+  } catch {
+    // Migration 00017 not applied yet
+  }
+
   return {
     data: produit,
     tarifs: tarifsResult.data ?? [],
@@ -576,6 +634,8 @@ export async function getProduit(id: string) {
     publicVise,
     competences,
     financement,
+    ouvrages,
+    articles,
   };
 }
 
@@ -603,13 +663,19 @@ export async function updateProduit(id: string, input: UpdateProduitInput) {
   // Try extended table counts (migration 00015)
   let prerequisCount = 0;
   let publicViseCount = 0;
+  let competencesCount = 0;
+  let financementCount = 0;
   try {
-    const [prerequisRes, publicViseRes] = await Promise.all([
+    const [prerequisRes, publicViseRes, competencesRes, financementRes] = await Promise.all([
       supabase.from("produit_prerequis").select("id", { count: "exact", head: true }).eq("produit_id", id),
       supabase.from("produit_public_vise").select("id", { count: "exact", head: true }).eq("produit_id", id),
+      supabase.from("produit_competences").select("id", { count: "exact", head: true }).eq("produit_id", id),
+      supabase.from("produit_financement").select("id", { count: "exact", head: true }).eq("produit_id", id),
     ]);
     prerequisCount = prerequisRes.count ?? 0;
     publicViseCount = publicViseRes.count ?? 0;
+    competencesCount = competencesRes.count ?? 0;
+    financementCount = financementRes.count ?? 0;
   } catch {
     // Migration not applied
   }
@@ -620,6 +686,8 @@ export async function updateProduit(id: string, input: UpdateProduitInput) {
     programme: programmeRes.count ?? 0,
     prerequis: prerequisCount,
     publicVise: publicViseCount,
+    competences: competencesCount,
+    financement: financementCount,
   });
 
   // Try full update with extended fields
@@ -1022,6 +1090,27 @@ export async function addListItem(
   return { data };
 }
 
+export async function updateListItem(
+  itemId: string,
+  produitId: string,
+  table: "produit_prerequis" | "produit_public_vise" | "produit_financement" | "produit_competences",
+  texte: string,
+) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from(table)
+    .update({ texte })
+    .eq("id", itemId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath(`/produits/${produitId}`);
+  return { success: true };
+}
+
 export async function deleteListItem(
   itemId: string,
   produitId: string,
@@ -1226,4 +1315,165 @@ export async function saveImportTemplate(
 
   if (error) return { error: error.message };
   return { data };
+}
+
+// ─── Bibliography: Ouvrages ──────────────────────────────
+
+export interface OuvrageInput {
+  auteurs?: string;
+  titre: string;
+  annee?: string;
+  source_editeur?: string;
+}
+
+export async function addOuvrage(produitId: string, input: OuvrageInput) {
+  const supabase = await createClient();
+
+  const { data: existing } = await supabase
+    .from("produit_ouvrages")
+    .select("ordre")
+    .eq("produit_id", produitId)
+    .order("ordre", { ascending: false })
+    .limit(1);
+
+  const nextOrdre = existing && existing.length > 0 ? ((existing[0] as { ordre: number }).ordre ?? 0) + 1 : 0;
+
+  const { data, error } = await supabase
+    .from("produit_ouvrages")
+    .insert({
+      produit_id: produitId,
+      auteurs: input.auteurs || null,
+      titre: input.titre,
+      annee: input.annee || null,
+      source_editeur: input.source_editeur || null,
+      ordre: nextOrdre,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath(`/produits/${produitId}`);
+  return { data };
+}
+
+export async function updateOuvrage(ouvrageId: string, produitId: string, input: OuvrageInput) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("produit_ouvrages")
+    .update({
+      auteurs: input.auteurs || null,
+      titre: input.titre,
+      annee: input.annee || null,
+      source_editeur: input.source_editeur || null,
+    })
+    .eq("id", ouvrageId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath(`/produits/${produitId}`);
+  return { success: true };
+}
+
+export async function deleteOuvrage(ouvrageId: string, produitId: string) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("produit_ouvrages")
+    .delete()
+    .eq("id", ouvrageId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath(`/produits/${produitId}`);
+  return { success: true };
+}
+
+// ─── Bibliography: Articles scientifiques ─────────────────
+
+export interface ArticleInput {
+  auteurs?: string;
+  titre: string;
+  source_revue?: string;
+  annee?: string;
+  doi?: string;
+}
+
+export async function addArticle(produitId: string, input: ArticleInput) {
+  const supabase = await createClient();
+
+  const { data: existing } = await supabase
+    .from("produit_articles")
+    .select("ordre")
+    .eq("produit_id", produitId)
+    .order("ordre", { ascending: false })
+    .limit(1);
+
+  const nextOrdre = existing && existing.length > 0 ? ((existing[0] as { ordre: number }).ordre ?? 0) + 1 : 0;
+
+  const { data, error } = await supabase
+    .from("produit_articles")
+    .insert({
+      produit_id: produitId,
+      auteurs: input.auteurs || null,
+      titre: input.titre,
+      source_revue: input.source_revue || null,
+      annee: input.annee || null,
+      doi: input.doi || null,
+      ordre: nextOrdre,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath(`/produits/${produitId}`);
+  return { data };
+}
+
+export async function updateArticle(articleId: string, produitId: string, input: ArticleInput) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("produit_articles")
+    .update({
+      auteurs: input.auteurs || null,
+      titre: input.titre,
+      source_revue: input.source_revue || null,
+      annee: input.annee || null,
+      doi: input.doi || null,
+    })
+    .eq("id", articleId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath(`/produits/${produitId}`);
+  return { success: true };
+}
+
+export async function deleteArticle(articleId: string, produitId: string) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("produit_articles")
+    .delete()
+    .eq("id", articleId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath(`/produits/${produitId}`);
+  return { success: true };
 }

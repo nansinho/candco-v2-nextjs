@@ -27,6 +27,8 @@ export default async function ProduitDetailPage({ params }: PageProps) {
       publicVise={result.publicVise}
       competences={result.competences}
       financement={result.financement}
+      ouvrages={result.ouvrages}
+      articles={result.articles}
       bpfSpecialites={bpfResult.data}
     />
   );
