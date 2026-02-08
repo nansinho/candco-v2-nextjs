@@ -162,6 +162,23 @@ export function questionnaireInvitationTemplate(params: {
   );
 }
 
+// ─── Magic link login ────────────────────────────────────
+
+export function magicLinkLoginTemplate(params: { lien: string }) {
+  return baseLayout(
+    `<p style="margin:0 0 16px;">Bonjour,</p>
+    <p style="margin:0 0 16px;">Vous avez demandé un lien de connexion à votre espace C&CO Formation.</p>
+    <p style="margin:0 0 24px;">Cliquez sur le bouton ci-dessous pour vous connecter :</p>
+    <table cellpadding="0" cellspacing="0" style="margin:0 auto 24px;">
+      <tr><td style="background:#F97316;border-radius:8px;padding:12px 32px;">
+        <a href="${params.lien}" style="color:#fff;text-decoration:none;font-weight:600;font-size:14px;">Se connecter</a>
+      </td></tr>
+    </table>
+    <p style="margin:0;color:#a0a0a0;font-size:12px;">Ce lien est valable pendant 24 heures. Si vous n'avez pas demandé ce lien, ignorez cet email.</p>
+    <p style="margin:16px 0 0;color:#a0a0a0;font-size:12px;">Si le bouton ne fonctionne pas, copiez ce lien : <br><a href="${params.lien}" style="color:#F97316;word-break:break-all;">${params.lien}</a></p>`
+  );
+}
+
 // ─── Devis envoyé ───────────────────────────────────────
 
 export function devisEnvoyeTemplate(params: {

@@ -218,22 +218,10 @@ export async function inviteToExtranet(input: InviteInput) {
     if (linkError) {
       console.error("[extranet] generateLink error:", linkError.message);
       // Not a blocking error — the account is created, just no link
-    } else if (linkData?.properties?.action_link) {
-      // GoTrue returns links with its internal URL (e.g. http://supabase-kong:8000).
-      // Replace with the public Supabase URL so the link works externally.
-      const publicSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-      let rawLink = linkData.properties.action_link;
-      try {
-        const parsed = new URL(rawLink);
-        const publicParsed = new URL(publicSupabaseUrl);
-        parsed.protocol = publicParsed.protocol;
-        parsed.host = publicParsed.host;
-        rawLink = parsed.toString();
-      } catch {
-        // If URL parsing fails, fallback: naive string replacement
-        rawLink = rawLink.replace(/^https?:\/\/[^/]+/, publicSupabaseUrl.replace(/\/$/, ""));
-      }
-      loginLink = rawLink;
+    } else if (linkData?.properties?.hashed_token) {
+      // Build link pointing to our app's callback route (not Supabase)
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://solution.candco.fr";
+      loginLink = `${appUrl}/auth/callback?token_hash=${encodeURIComponent(linkData.properties.hashed_token)}&type=magiclink`;
     }
 
     // 5. Send invitation email via Resend
@@ -358,19 +346,10 @@ export async function resendExtranetInvitation(params: {
 
     if (linkError) {
       console.error("[extranet] resend generateLink error:", linkError.message);
-    } else if (linkData?.properties?.action_link) {
-      const publicSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-      let rawLink = linkData.properties.action_link;
-      try {
-        const parsed = new URL(rawLink);
-        const publicParsed = new URL(publicSupabaseUrl);
-        parsed.protocol = publicParsed.protocol;
-        parsed.host = publicParsed.host;
-        rawLink = parsed.toString();
-      } catch {
-        rawLink = rawLink.replace(/^https?:\/\/[^/]+/, publicSupabaseUrl.replace(/\/$/, ""));
-      }
-      loginLink = rawLink;
+    } else if (linkData?.properties?.hashed_token) {
+      // Build link pointing to our app's callback route (not Supabase)
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://solution.candco.fr";
+      loginLink = `${appUrl}/auth/callback?token_hash=${encodeURIComponent(linkData.properties.hashed_token)}&type=magiclink`;
     }
 
     // Update invite_le timestamp
