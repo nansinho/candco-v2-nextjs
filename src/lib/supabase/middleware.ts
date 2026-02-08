@@ -60,13 +60,8 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
-  // For authenticated users on root "/", redirect to their appropriate space
-  if (user && pathname === "/") {
-    const redirectPath = await getRedirectPath(supabase, user.id);
-    const url = request.nextUrl.clone();
-    url.pathname = redirectPath;
-    return NextResponse.redirect(url);
-  }
+  // For authenticated users on root "/", let them see the dashboard
+  // (the (dashboard)/page.tsx handles the "/" route)
 
   // Protect admin routes — only super-admins
   if (user && pathname.startsWith("/admin")) {
@@ -79,12 +74,12 @@ export async function updateSession(request: NextRequest) {
 
       if (!utilisateur || !utilisateur.is_super_admin) {
         const url = request.nextUrl.clone();
-        url.pathname = "/apprenants";
+        url.pathname = "/";
         return NextResponse.redirect(url);
       }
     } catch {
       const url = request.nextUrl.clone();
-      url.pathname = "/apprenants";
+      url.pathname = "/";
       return NextResponse.redirect(url);
     }
   }
@@ -166,7 +161,7 @@ async function getRedirectPath(
       .single();
 
     if (utilisateur) {
-      return "/apprenants";
+      return "/";
     }
 
     // Check if extranet user — accept actif OR invite (will be auto-activated)
