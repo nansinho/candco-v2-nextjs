@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { BookOpen, Loader2, Globe, Clock } from "lucide-react";
+import { BookOpen, Loader2, Globe, Clock, Upload, Sparkles, AlertCircle, CheckCircle2, FileText } from "lucide-react";
 import { DataTable, type Column, type ActiveFilter } from "@/components/data-table/DataTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,21 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toast";
 import { getProduits, createProduit, createProduitFromPDF, archiveProduit, unarchiveProduit, deleteProduits, importProduits, type CreateProduitInput } from "@/actions/produits";
-import { CsvImport, type ImportColumn } from "@/components/shared/csv-import";
 import { formatDate } from "@/lib/utils";
-
-const PRODUIT_IMPORT_COLUMNS: ImportColumn[] = [
-  { key: "intitule", label: "Intitulé", required: true, aliases: ["nom", "titre", "intitulé", "name", "title", "intitule formation", "nom formation"] },
-  { key: "sous_titre", label: "Sous-titre", aliases: ["subtitle", "sous titre", "sous-titre"] },
-  { key: "description", label: "Description", aliases: ["desc", "résumé", "resume", "detail"] },
-  { key: "identifiant_interne", label: "Identifiant interne", aliases: ["id interne", "ref", "référence", "reference", "code"] },
-  { key: "domaine", label: "Domaine", aliases: ["pôle", "pole", "categorie", "catégorie", "domain"] },
-  { key: "type_action", label: "Type d'action", aliases: ["type", "type action", "type d action", "type de formation"] },
-  { key: "modalite", label: "Modalité", aliases: ["modalité", "mode", "format"] },
-  { key: "formule", label: "Formule", aliases: ["inter intra", "formule commerciale"] },
-  { key: "duree_heures", label: "Durée (heures)", aliases: ["heures", "durée heures", "duree heures", "nb heures", "nombre heures", "hours"] },
-  { key: "duree_jours", label: "Durée (jours)", aliases: ["jours", "durée jours", "duree jours", "nb jours", "nombre jours", "days"] },
-];
 
 interface Produit {
   id: string;
@@ -221,6 +207,15 @@ export default function ProduitsPage() {
   const [sortDir, setSortDir] = React.useState<"asc" | "desc">("desc");
   const [filters, setFilters] = React.useState<ActiveFilter[]>([]);
 
+  // Import dialog state
+  const [importFile, setImportFile] = React.useState<File | null>(null);
+  const [isPdfImporting, setIsPdfImporting] = React.useState(false);
+  const [isJsonImporting, setIsJsonImporting] = React.useState(false);
+  const [importError, setImportError] = React.useState<string | null>(null);
+  const [importResult, setImportResult] = React.useState<{ success: number; errors: string[] } | null>(null);
+  const [jsonRows, setJsonRows] = React.useState<Record<string, string>[] | null>(null);
+  const importFileRef = React.useRef<HTMLInputElement>(null);
+
   React.useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(search);
@@ -292,6 +287,77 @@ export default function ProduitsPage() {
     }
   };
 
+  const resetImport = () => {
+    setImportFile(null);
+    setIsPdfImporting(false);
+    setIsJsonImporting(false);
+    setImportError(null);
+    setImportResult(null);
+    setJsonRows(null);
+    if (importFileRef.current) importFileRef.current.value = "";
+  };
+
+  const handleImportFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+
+    setImportFile(f);
+    setImportError(null);
+    setImportResult(null);
+    setJsonRows(null);
+
+    if (/\.pdf$/i.test(f.name)) {
+      setIsPdfImporting(true);
+      try {
+        await handlePdfImport(f);
+      } catch {
+        setImportError("Erreur lors de l'import IA du PDF.");
+      } finally {
+        setIsPdfImporting(false);
+      }
+    } else if (/\.json$/i.test(f.name)) {
+      try {
+        const text = await f.text();
+        const data = JSON.parse(text);
+        if (!Array.isArray(data) || data.length === 0) {
+          setImportError("Le fichier JSON doit contenir un tableau d'objets.");
+          return;
+        }
+        const rows = (data as Record<string, unknown>[]).map((item) => {
+          const row: Record<string, string> = {};
+          for (const [key, val] of Object.entries(item)) {
+            row[key] = val != null ? String(val) : "";
+          }
+          return row;
+        });
+        const valid = rows.filter((r) => r.intitule?.trim());
+        if (valid.length === 0) {
+          setImportError("Aucun produit avec un intitulé trouvé dans le fichier.");
+          return;
+        }
+        setJsonRows(valid);
+      } catch {
+        setImportError("Fichier JSON invalide.");
+      }
+    } else {
+      setImportError("Format non supporté. Utilisez un fichier PDF ou JSON.");
+    }
+  };
+
+  const handleJsonImportSubmit = async () => {
+    if (!jsonRows) return;
+    setIsJsonImporting(true);
+    try {
+      const result = await importProduits(jsonRows as Parameters<typeof importProduits>[0]);
+      setImportResult(result);
+      await fetchData();
+    } catch {
+      setImportResult({ success: 0, errors: ["Erreur lors de l'import."] });
+    } finally {
+      setIsJsonImporting(false);
+    }
+  };
+
   const handleSortChange = (key: string, dir: "asc" | "desc") => {
     setSortBy(key);
     setSortDir(dir);
@@ -360,20 +426,142 @@ export default function ProduitsPage() {
         </DialogContent>
       </Dialog>
 
-      <CsvImport
-        open={importOpen}
-        onOpenChange={setImportOpen}
-        title="Importer des produits de formation"
-        description="Importez vos produits depuis un fichier CSV, Excel, JSON ou PDF (IA)."
-        columns={PRODUIT_IMPORT_COLUMNS}
-        onPdfImport={handlePdfImport}
-        onImport={async (rows) => {
-          const result = await importProduits(rows as Parameters<typeof importProduits>[0]);
-          await fetchData();
-          return result;
-        }}
-        templateFilename="modele-produits-formation"
-      />
+      <Dialog open={importOpen} onOpenChange={(o) => { if (!o) resetImport(); setImportOpen(o); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Upload className="h-5 w-5 text-primary" />
+              Importer un produit
+            </DialogTitle>
+            <DialogDescription>
+              Importez depuis un <strong>PDF</strong> (analyse IA) ou un fichier <strong>JSON</strong>.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="flex items-start gap-2 rounded-md bg-muted/30 px-3 py-2 border border-border/30">
+              <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <p className="text-xs text-muted-foreground">
+                <strong className="text-primary">PDF :</strong> L&apos;IA extrait automatiquement toutes les informations du programme (intitulé, durée, objectifs, modules, tarifs...).
+              </p>
+            </div>
+
+            <div className="flex flex-col items-center gap-3">
+              <input
+                ref={importFileRef}
+                type="file"
+                accept=".pdf,.json"
+                onChange={handleImportFileChange}
+                className="hidden"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => importFileRef.current?.click()}
+                disabled={isPdfImporting}
+                className="w-full h-20 border-dashed border-2 border-border/40 hover:border-primary/30"
+              >
+                <div className="flex flex-col items-center gap-1">
+                  {importFile ? (
+                    <>
+                      <FileText className="h-5 w-5 text-primary" />
+                      <span className="text-xs text-foreground font-medium">{importFile.name}</span>
+                      <span className="text-[10px] text-muted-foreground/60">Cliquez pour changer</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-5 w-5 text-muted-foreground/60" />
+                      <span className="text-xs text-muted-foreground">Choisir un fichier PDF ou JSON</span>
+                    </>
+                  )}
+                </div>
+              </Button>
+            </div>
+
+            {isPdfImporting && (
+              <div className="flex flex-col items-center gap-3 py-6">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">Analyse IA du PDF en cours...</p>
+                <p className="text-[11px] text-muted-foreground/60">
+                  Extraction de l&apos;intitulé, description, durée, objectifs, programme, tarifs...
+                </p>
+              </div>
+            )}
+
+            {jsonRows && !importResult && (
+              <div className="flex items-center gap-2 rounded-md bg-emerald-500/10 px-3 py-2 border border-emerald-500/20">
+                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                <p className="text-xs text-emerald-400">
+                  <strong>{jsonRows.length}</strong> produit(s) trouvé(s) dans le fichier JSON
+                </p>
+              </div>
+            )}
+
+            {importError && (
+              <div className="flex items-start gap-2 rounded-md bg-destructive/10 px-3 py-2">
+                <AlertCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+                <p className="text-xs text-destructive">{importError}</p>
+              </div>
+            )}
+
+            {importResult && (
+              <div className="space-y-2">
+                {importResult.success > 0 && (
+                  <div className="flex items-center gap-2 rounded-md bg-emerald-500/10 px-3 py-2">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                    <p className="text-xs text-emerald-400">
+                      {importResult.success} produit(s) importé(s) avec succès.
+                    </p>
+                  </div>
+                )}
+                {importResult.errors.length > 0 && (
+                  <div className="space-y-1 rounded-md bg-destructive/10 px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
+                      <p className="text-xs text-destructive font-medium">{importResult.errors.length} erreur(s)</p>
+                    </div>
+                    <ul className="text-[11px] text-destructive/80 space-y-0.5 ml-6 max-h-24 overflow-y-auto">
+                      {importResult.errors.slice(0, 10).map((err, i) => (
+                        <li key={i}>{err}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => { resetImport(); setImportOpen(false); }}
+              className="h-8 text-xs border-border/60"
+            >
+              {importResult ? "Fermer" : "Annuler"}
+            </Button>
+            {jsonRows && !importResult && (
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleJsonImportSubmit}
+                disabled={isJsonImporting}
+                className="h-8 text-xs"
+              >
+                {isJsonImporting ? (
+                  <>
+                    <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+                    Import en cours...
+                  </>
+                ) : (
+                  `Importer (${jsonRows.length})`
+                )}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

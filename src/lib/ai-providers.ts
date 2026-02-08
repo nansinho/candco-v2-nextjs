@@ -59,11 +59,15 @@ export function creditsRemaining(credits: AICredits): number {
   return Math.max(0, credits.monthly_limit - credits.used);
 }
 
-// ─── Claude API call (text) ──────────────────────────────
+// ─── Claude API call ─────────────────────────────────────
+
+type ContentBlock =
+  | { type: "text"; text: string }
+  | { type: "document"; source: { type: "base64"; media_type: string; data: string } };
 
 interface ChatMessage {
   role: "system" | "user" | "assistant";
-  content: string;
+  content: string | ContentBlock[];
 }
 
 interface ChatCompletionResult {
@@ -92,7 +96,7 @@ export async function callClaude(
     body: JSON.stringify({
       model,
       max_tokens: 4096,
-      ...(systemMsg ? { system: systemMsg.content } : {}),
+      ...(systemMsg ? { system: typeof systemMsg.content === "string" ? systemMsg.content : "" } : {}),
       messages: userMessages.map((m) => ({ role: m.role, content: m.content })),
     }),
   });

@@ -5,7 +5,7 @@ import { callClaude, checkCredits, deductCredits } from "@/lib/ai-providers";
 export const maxDuration = 120;
 
 const SYSTEM_PROMPT = `Tu es un assistant specialise dans l'analyse de programmes de formation professionnelle francais.
-A partir du texte extrait d'un document PDF, tu dois identifier et structurer TOUTES les informations du programme de formation.
+A partir du document PDF fourni, tu dois identifier et structurer TOUTES les informations du programme de formation.
 
 Tu dois retourner un JSON valide avec la structure suivante :
 {
@@ -89,27 +89,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Le fichier est trop volumineux (max 10 Mo)" }, { status: 400 });
     }
 
-    // Extract text from PDF using pdf-parse
+    // Send PDF directly to Claude (native PDF support — no text extraction needed)
     const arrayBuffer = await file.arrayBuffer();
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const pdfParse = require("pdf-parse") as (buf: Buffer) => Promise<{ text: string }>;
-    const pdfData = await pdfParse(Buffer.from(arrayBuffer));
-    const text = pdfData.text;
+    const base64 = Buffer.from(arrayBuffer).toString("base64");
 
-    if (!text || text.trim().length < 50) {
-      return NextResponse.json(
-        { error: "Le PDF ne contient pas assez de texte exploitable. Essayez un autre document." },
-        { status: 400 }
-      );
-    }
-
-    // Call Claude API with comprehensive extraction prompt
-    const truncatedText = text.slice(0, 30000);
     const result = await callClaude([
       { role: "system", content: SYSTEM_PROMPT },
       {
         role: "user",
-        content: `Voici le texte extrait du PDF d'un programme de formation. Analyse-le et retourne le JSON complet avec TOUTES les informations que tu peux trouver :\n\n---\n${truncatedText}\n---`,
+        content: [
+          {
+            type: "document",
+            source: {
+              type: "base64",
+              media_type: "application/pdf",
+              data: base64,
+            },
+          },
+          {
+            type: "text",
+            text: "Analyse ce programme de formation et retourne le JSON complet avec TOUTES les informations que tu peux trouver.",
+          },
+        ],
       },
     ]);
 
