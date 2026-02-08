@@ -17,7 +17,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toast";
-import { getProduits, createProduit, archiveProduit, unarchiveProduit, deleteProduits, importProduits, type CreateProduitInput } from "@/actions/produits";
+import { getProduits, createProduit, createProduitFromPDF, archiveProduit, unarchiveProduit, deleteProduits, importProduits, type CreateProduitInput } from "@/actions/produits";
 import { CsvImport, type ImportColumn } from "@/components/shared/csv-import";
 import { formatDate } from "@/lib/utils";
 
@@ -251,6 +251,47 @@ export default function ProduitsPage() {
     });
   };
 
+  const handlePdfImport = async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await fetch("/api/ai/extract-programme", {
+      method: "POST",
+      body: formData,
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      toast({ title: "Erreur", description: result.error, variant: "destructive" });
+      throw new Error(result.error);
+    }
+
+    // Create the full product from extracted data
+    const createResult = await createProduitFromPDF(result.data);
+
+    if (createResult.error) {
+      const msg = typeof createResult.error === "string" ? createResult.error : "Erreur lors de la creation";
+      toast({ title: "Erreur", description: msg, variant: "destructive" });
+      throw new Error(msg);
+    }
+
+    toast({
+      title: "Produit cree depuis le PDF",
+      description: `"${createResult.data?.intitule}" a ete cree avec toutes les informations extraites.`,
+      variant: "success",
+    });
+
+    setImportOpen(false);
+
+    // Navigate to the created product
+    if (createResult.data?.id) {
+      router.push(`/produits/${createResult.data.id}`);
+    } else {
+      fetchData();
+    }
+  };
+
   const handleSortChange = (key: string, dir: "asc" | "desc") => {
     setSortBy(key);
     setSortDir(dir);
@@ -323,8 +364,9 @@ export default function ProduitsPage() {
         open={importOpen}
         onOpenChange={setImportOpen}
         title="Importer des produits de formation"
-        description="Importez vos produits de formation depuis un fichier CSV, Excel ou JSON."
+        description="Importez vos produits depuis un fichier CSV, Excel, JSON ou PDF (IA)."
         columns={PRODUIT_IMPORT_COLUMNS}
+        onPdfImport={handlePdfImport}
         onImport={async (rows) => {
           const result = await importProduits(rows as Parameters<typeof importProduits>[0]);
           await fetchData();

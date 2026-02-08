@@ -1,36 +1,57 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PDFParse } from "pdf-parse";
 import { getOrganisationId } from "@/lib/auth-helpers";
 import { callClaude, checkCredits, deductCredits } from "@/lib/ai-providers";
 
 export const maxDuration = 120;
 
-const SYSTEM_PROMPT = `Tu es un assistant specialise dans l'analyse de programmes de formation professionnelle.
-A partir du texte extrait d'un document PDF, tu dois identifier et structurer le programme de formation.
+const SYSTEM_PROMPT = `Tu es un assistant specialise dans l'analyse de programmes de formation professionnelle francais.
+A partir du texte extrait d'un document PDF, tu dois identifier et structurer TOUTES les informations du programme de formation.
 
 Tu dois retourner un JSON valide avec la structure suivante :
 {
-  "intitule": "Titre de la formation (si identifie)",
-  "description": "Description generale de la formation (si identifiee)",
+  "intitule": "Titre de la formation",
+  "sous_titre": "Sous-titre (si present)" ou null,
+  "description": "Description generale de la formation",
+  "domaine": "Domaine ou pole (ex: Securite, Developpement web, Management, etc.)" ou null,
+  "type_action": "action_formation" ou "bilan_competences" ou "vae" ou "apprentissage" ou null,
+  "modalite": "presentiel" ou "distanciel" ou "mixte" ou "afest" ou null,
+  "formule": "inter" ou "intra" ou "individuel" ou null,
   "duree_heures": nombre ou null,
   "duree_jours": nombre ou null,
+  "objectifs": ["Objectif 1", "Objectif 2", ...],
+  "public_vise": "Description du public vise" ou null,
+  "prerequis": "Prerequis (ex: Aucun prerequis)" ou null,
+  "nombre_participants_min": nombre ou null,
+  "nombre_participants_max": nombre ou null,
+  "certification": "Certification delivree (si mentionnee)" ou null,
+  "delai_acces": "Delai d'acces (ex: Inscription jusqu'au matin de la formation)" ou null,
+  "lieu": "Lieu de la formation (si mentionne)" ou null,
+  "tarif_inter_ht": nombre ou null,
+  "tarif_intra_ht": nombre ou null,
   "modules": [
     {
       "titre": "Titre du module/section",
-      "contenu": "Contenu detaille du module",
-      "duree": "Duree du module (ex: 2h, 1 jour)"
+      "contenu": "Contenu detaille du module (en texte, pas de liste)",
+      "duree": "Duree du module (ex: 2h, 1 jour)" ou null
     }
   ],
-  "objectifs": ["Objectif pedagogique 1", "Objectif pedagogique 2"]
+  "modalites_evaluation": "Comment les acquis sont evalues" ou null,
+  "modalites_pedagogiques": "Methodes pedagogiques utilisees (ex: cours magistral, exercices pratiques...)" ou null,
+  "moyens_pedagogiques": "Moyens mis a disposition (ex: supports de cours, materiel...)" ou null,
+  "accessibilite": "Informations d'accessibilite handicap" ou null
 }
 
-Regles :
-- Extrais tous les modules/sections du programme dans l'ordre
-- Si le document contient des objectifs pedagogiques, extrais-les
-- Si des durees sont mentionnees, inclus-les
-- Le contenu de chaque module doit etre un resume clair et concis
-- Retourne UNIQUEMENT le JSON, sans texte autour
-- Si le document n'est pas un programme de formation, retourne un JSON avec modules vide et un message dans description`;
+Regles STRICTES :
+- Extrais le MAXIMUM d'informations du document
+- Si une information n'est pas presente dans le PDF, mets null (pas de chaine vide)
+- Pour duree_heures et duree_jours, extrais les nombres. Ex: "14h (2 jours)" → duree_heures: 14, duree_jours: 2
+- Pour les tarifs, extrais le montant HT si possible. Ex: "1440 euros HT" → tarif_intra_ht: 1440
+- Les objectifs doivent etre une liste de chaines, un objectif par element
+- Les modules doivent etre dans l'ordre du document
+- Le contenu de chaque module doit etre detaille, pas un simple titre
+- type_action, modalite, formule doivent correspondre EXACTEMENT aux valeurs listees ci-dessus
+- Retourne UNIQUEMENT le JSON valide, sans texte ni markdown autour
+- Si le document n'est pas un programme de formation, retourne quand meme un JSON avec ce que tu peux extraire`;
 
 export async function POST(request: NextRequest) {
   // Auth check
@@ -46,7 +67,7 @@ export async function POST(request: NextRequest) {
   if (!ok) {
     return NextResponse.json(
       {
-        error: `Credits IA insuffisants. ${credits.used}/${credits.monthly_limit} credits utilises ce mois-ci. L'extraction de programme coute 1 credit.`,
+        error: `Credits IA insuffisants. ${credits.used}/${credits.monthly_limit} credits utilises ce mois-ci. L'extraction coute 1 credit.`,
       },
       { status: 429 }
     );
@@ -68,11 +89,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Le fichier est trop volumineux (max 10 Mo)" }, { status: 400 });
     }
 
-    // Extract text from PDF
+    // Extract text from PDF using pdf-parse
     const arrayBuffer = await file.arrayBuffer();
-    const pdfParser = new PDFParse({ data: new Uint8Array(arrayBuffer) });
-    const textResult = await pdfParser.getText();
-    const text = textResult.text;
+    const pdfParse = (await import("pdf-parse")).default;
+    const pdfData = await pdfParse(Buffer.from(arrayBuffer));
+    const text = pdfData.text;
 
     if (!text || text.trim().length < 50) {
       return NextResponse.json(
@@ -81,13 +102,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Call Claude API
+    // Call Claude API with comprehensive extraction prompt
     const truncatedText = text.slice(0, 30000);
     const result = await callClaude([
       { role: "system", content: SYSTEM_PROMPT },
       {
         role: "user",
-        content: `Voici le texte extrait du PDF d'un programme de formation. Analyse-le et retourne le JSON structure :\n\n---\n${truncatedText}\n---`,
+        content: `Voici le texte extrait du PDF d'un programme de formation. Analyse-le et retourne le JSON complet avec TOUTES les informations que tu peux trouver :\n\n---\n${truncatedText}\n---`,
       },
     ]);
 
