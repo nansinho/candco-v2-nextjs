@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { GraduationCap, Building2, Loader2 } from "lucide-react";
+import { GraduationCap, Building2, Loader2, Search, MapPin, X } from "lucide-react";
 import { DataTable, type Column, type ActiveFilter } from "@/components/data-table/DataTable";
 import {
   Dialog,
@@ -17,7 +17,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DatePicker } from "@/components/ui/date-picker";
 import { useToast } from "@/components/ui/toast";
-import { getApprenants, createApprenant, archiveApprenant, unarchiveApprenant, deleteApprenants, importApprenants, type CreateApprenantInput } from "@/actions/apprenants";
+import {
+  getApprenants,
+  createApprenant,
+  archiveApprenant,
+  unarchiveApprenant,
+  deleteApprenants,
+  importApprenants,
+  searchEntreprisesForLinking,
+  getAgencesForEntreprise,
+  type CreateApprenantInput,
+} from "@/actions/apprenants";
 import { CsvImport, type ImportColumn } from "@/components/shared/csv-import";
 import { formatDate } from "@/lib/utils";
 
@@ -295,6 +305,21 @@ interface FormErrors {
   _form?: string[];
 }
 
+interface EntrepriseOption {
+  id: string;
+  nom: string;
+  siret: string | null;
+  email: string | null;
+  adresse_ville: string | null;
+}
+
+interface AgenceOption {
+  id: string;
+  nom: string;
+  est_siege: boolean;
+  adresse_ville: string | null;
+}
+
 function CreateApprenantForm({
   onSuccess,
   onCancel,
@@ -304,6 +329,67 @@ function CreateApprenantForm({
 }) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [errors, setErrors] = React.useState<FormErrors>({});
+
+  // Enterprise state
+  const [entSearch, setEntSearch] = React.useState("");
+  const [entResults, setEntResults] = React.useState<EntrepriseOption[]>([]);
+  const [entSearching, setEntSearching] = React.useState(false);
+  const [selectedEntreprise, setSelectedEntreprise] = React.useState<EntrepriseOption | null>(null);
+
+  // Agency state
+  const [agences, setAgences] = React.useState<AgenceOption[]>([]);
+  const [selectedAgenceIds, setSelectedAgenceIds] = React.useState<string[]>([]);
+  const [estSiege, setEstSiege] = React.useState(false);
+
+  // Enterprise search debounce
+  React.useEffect(() => {
+    if (!entSearch.trim()) {
+      setEntResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setEntSearching(true);
+      const result = await searchEntreprisesForLinking(entSearch, []);
+      setEntResults(result.data as EntrepriseOption[]);
+      setEntSearching(false);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [entSearch]);
+
+  // Load agencies when enterprise is selected
+  React.useEffect(() => {
+    if (!selectedEntreprise) {
+      setAgences([]);
+      setSelectedAgenceIds([]);
+      setEstSiege(false);
+      return;
+    }
+    (async () => {
+      const result = await getAgencesForEntreprise(selectedEntreprise.id);
+      setAgences(result.data as AgenceOption[]);
+    })();
+  }, [selectedEntreprise]);
+
+  const handleSelectEntreprise = (ent: EntrepriseOption) => {
+    setSelectedEntreprise(ent);
+    setEntSearch("");
+    setEntResults([]);
+    setSelectedAgenceIds([]);
+    setEstSiege(false);
+  };
+
+  const handleRemoveEntreprise = () => {
+    setSelectedEntreprise(null);
+    setAgences([]);
+    setSelectedAgenceIds([]);
+    setEstSiege(false);
+  };
+
+  const toggleAgence = (agenceId: string) => {
+    setSelectedAgenceIds((prev) =>
+      prev.includes(agenceId) ? prev.filter((id) => id !== agenceId) : [...prev, agenceId],
+    );
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -318,6 +404,10 @@ function CreateApprenantForm({
       email: (formData.get("email") as string) || undefined,
       telephone: (formData.get("telephone") as string) || undefined,
       date_naissance: (formData.get("date_naissance") as string) || undefined,
+      // Enterprise attachment
+      entreprise_id: selectedEntreprise?.id || undefined,
+      est_siege: selectedEntreprise ? estSiege : undefined,
+      agence_ids: selectedEntreprise && selectedAgenceIds.length > 0 ? selectedAgenceIds : undefined,
     };
 
     const result = await createApprenant(input);
@@ -429,6 +519,125 @@ function CreateApprenantForm({
           name="date_naissance"
         />
       </div>
+
+      {/* Enterprise attachment */}
+      <fieldset className="space-y-3 rounded-md border border-border/40 p-3">
+        <legend className="px-1 text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider">
+          Rattachement entreprise
+        </legend>
+
+        {!selectedEntreprise ? (
+          <div className="space-y-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/50" />
+              <Input
+                placeholder="Rechercher une entreprise..."
+                value={entSearch}
+                onChange={(e) => setEntSearch(e.target.value)}
+                className="h-8 pl-8 text-xs border-border/60"
+              />
+            </div>
+            {entSearching && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Loader2 className="h-3 w-3 animate-spin" />Recherche...
+              </div>
+            )}
+            {entResults.length > 0 && (
+              <div className="space-y-0.5 max-h-[150px] overflow-y-auto">
+                {entResults.map((ent) => (
+                  <button
+                    key={ent.id}
+                    type="button"
+                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 hover:bg-muted/30 transition-colors cursor-pointer text-left"
+                    onClick={() => handleSelectEntreprise(ent)}
+                  >
+                    <Building2 className="h-3.5 w-3.5 text-orange-400 shrink-0" />
+                    <span className="text-[12px] font-medium truncate">{ent.nom}</span>
+                    {ent.adresse_ville && (
+                      <span className="text-[10px] text-muted-foreground/40 truncate">{ent.adresse_ville}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+            {entSearch.trim() && !entSearching && entResults.length === 0 && (
+              <p className="text-[11px] text-muted-foreground/50">Aucune entreprise trouvée</p>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {/* Selected enterprise */}
+            <div className="flex items-center justify-between rounded-md bg-muted/30 px-3 py-2">
+              <div className="flex items-center gap-2">
+                <Building2 className="h-3.5 w-3.5 text-orange-400" />
+                <span className="text-[12px] font-medium">{selectedEntreprise.nom}</span>
+                {selectedEntreprise.adresse_ville && (
+                  <span className="text-[10px] text-muted-foreground/40">{selectedEntreprise.adresse_ville}</span>
+                )}
+              </div>
+              <button
+                type="button"
+                className="p-0.5 rounded hover:bg-muted/50 text-muted-foreground/40 hover:text-foreground"
+                onClick={handleRemoveEntreprise}
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
+            {/* Headquarters checkbox */}
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={estSiege || selectedAgenceIds.length === 0}
+                onChange={(e) => setEstSiege(e.target.checked)}
+                disabled={selectedAgenceIds.length === 0}
+                className="h-3.5 w-3.5 rounded border-border accent-primary"
+              />
+              <span className="text-[12px]">
+                Siège social
+                {selectedAgenceIds.length === 0 && (
+                  <span className="ml-1 text-[10px] text-muted-foreground/50">(par défaut si aucune agence)</span>
+                )}
+              </span>
+            </label>
+
+            {/* Agencies */}
+            {agences.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-[11px] text-muted-foreground/60 font-medium">Agences :</p>
+                <div className="space-y-1 max-h-[120px] overflow-y-auto">
+                  {agences.map((ag) => (
+                    <label
+                      key={ag.id}
+                      className="flex items-center gap-2 rounded px-2 py-1 hover:bg-muted/20 cursor-pointer transition-colors"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedAgenceIds.includes(ag.id)}
+                        onChange={() => toggleAgence(ag.id)}
+                        className="h-3.5 w-3.5 rounded border-border accent-primary"
+                      />
+                      <MapPin className="h-3 w-3 text-muted-foreground/50 shrink-0" />
+                      <span className="text-[12px]">{ag.nom}</span>
+                      {ag.est_siege && (
+                        <span className="text-[9px] font-medium text-orange-400/80 bg-orange-400/10 px-1 py-0.5 rounded">siège</span>
+                      )}
+                      {ag.adresse_ville && (
+                        <span className="text-[10px] text-muted-foreground/40">{ag.adresse_ville}</span>
+                      )}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+            {agences.length === 0 && (
+              <p className="text-[10px] text-muted-foreground/40 italic">
+                Aucune agence définie pour cette entreprise. L&apos;apprenant sera rattaché au siège social.
+              </p>
+            )}
+          </div>
+        )}
+      </fieldset>
 
       <DialogFooter className="pt-2">
         <Button
