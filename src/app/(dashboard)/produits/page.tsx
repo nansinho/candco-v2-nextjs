@@ -202,7 +202,6 @@ export default function ProduitsPage() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [showArchived, setShowArchived] = React.useState(false);
   const [dialogOpen, setDialogOpen] = React.useState(false);
-  const [importOpen, setImportOpen] = React.useState(false);
   const [sortBy, setSortBy] = React.useState("created_at");
   const [sortDir, setSortDir] = React.useState<"asc" | "desc">("desc");
   const [filters, setFilters] = React.useState<ActiveFilter[]>([]);
@@ -236,14 +235,18 @@ export default function ProduitsPage() {
     fetchData();
   }, [fetchData]);
 
-  const handleCreateSuccess = () => {
+  const handleCreateSuccess = (produitId?: string) => {
     setDialogOpen(false);
-    fetchData();
     toast({
       title: "Produit créé",
       description: "Le produit de formation a été ajouté au catalogue.",
       variant: "success",
     });
+    if (produitId) {
+      router.push(`/produits/${produitId}`);
+    } else {
+      fetchData();
+    }
   };
 
   const handlePdfImport = async (file: File) => {
@@ -277,7 +280,7 @@ export default function ProduitsPage() {
       variant: "success",
     });
 
-    setImportOpen(false);
+    setDialogOpen(false);
 
     // Navigate to the created product
     if (createResult.data?.id) {
@@ -376,7 +379,7 @@ export default function ProduitsPage() {
         onPageChange={setPage}
         searchValue={search}
         onSearchChange={setSearch}
-        onImport={() => setImportOpen(true)}
+        onImport={() => setDialogOpen(true)}
         onAdd={() => setDialogOpen(true)}
         addLabel="Ajouter un produit"
         onRowClick={(item) => router.push(`/produits/${item.id}`)}
@@ -411,42 +414,25 @@ export default function ProduitsPage() {
         }}
       />
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={(o) => { if (!o) resetImport(); setDialogOpen(o); }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Ajouter un produit de formation</DialogTitle>
             <DialogDescription>
-              Renseignez les informations de base du produit. Vous pourrez compléter les détails ensuite.
-            </DialogDescription>
-          </DialogHeader>
-          <CreateProduitForm
-            onSuccess={handleCreateSuccess}
-            onCancel={() => setDialogOpen(false)}
-          />
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={importOpen} onOpenChange={(o) => { if (!o) resetImport(); setImportOpen(o); }}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Upload className="h-5 w-5 text-primary" />
-              Importer un produit
-            </DialogTitle>
-            <DialogDescription>
-              Importez depuis un <strong>PDF</strong> (analyse IA) ou un fichier <strong>JSON</strong>.
+              Créez manuellement ou importez depuis un PDF via l&apos;IA.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <div className="flex items-start gap-2 rounded-md bg-muted/30 px-3 py-2 border border-border/30">
+          {/* ─── Import IA zone ─────────────────────────── */}
+          <div className="space-y-3">
+            <div className="flex items-start gap-2 rounded-md bg-primary/5 px-3 py-2.5 border border-primary/20">
               <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-              <p className="text-xs text-muted-foreground">
-                <strong className="text-primary">PDF :</strong> L&apos;IA extrait automatiquement toutes les informations du programme (intitulé, durée, objectifs, modules, tarifs...).
-              </p>
+              <div className="text-xs text-muted-foreground">
+                <strong className="text-primary">Import IA :</strong> Uploadez un PDF et l&apos;IA remplit automatiquement tous les champs (programme, objectifs, tarifs, prérequis...).
+              </div>
             </div>
 
-            <div className="flex flex-col items-center gap-3">
+            <div className="flex items-center gap-2">
               <input
                 ref={importFileRef}
                 type="file"
@@ -459,32 +445,26 @@ export default function ProduitsPage() {
                 variant="outline"
                 onClick={() => importFileRef.current?.click()}
                 disabled={isPdfImporting}
-                className="w-full h-20 border-dashed border-2 border-border/40 hover:border-primary/30"
+                className="flex-1 h-10 border-dashed border-2 border-border/40 hover:border-primary/30 text-xs"
               >
-                <div className="flex flex-col items-center gap-1">
-                  {importFile ? (
-                    <>
-                      <FileText className="h-5 w-5 text-primary" />
-                      <span className="text-xs text-foreground font-medium">{importFile.name}</span>
-                      <span className="text-[10px] text-muted-foreground/60">Cliquez pour changer</span>
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="h-5 w-5 text-muted-foreground/60" />
-                      <span className="text-xs text-muted-foreground">Choisir un fichier PDF ou JSON</span>
-                    </>
-                  )}
-                </div>
+                {importFile ? (
+                  <span className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-primary" />
+                    <span className="font-medium truncate max-w-[200px]">{importFile.name}</span>
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2 text-muted-foreground">
+                    <Upload className="h-4 w-4" />
+                    Importer un PDF (IA)
+                  </span>
+                )}
               </Button>
             </div>
 
             {isPdfImporting && (
-              <div className="flex flex-col items-center gap-3 py-6">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="text-sm text-muted-foreground">Analyse IA du PDF en cours...</p>
-                <p className="text-[11px] text-muted-foreground/60">
-                  Extraction de l&apos;intitulé, description, durée, objectifs, programme, tarifs...
-                </p>
+              <div className="flex flex-col items-center gap-3 py-4">
+                <Loader2 className="h-7 w-7 animate-spin text-primary" />
+                <p className="text-xs text-muted-foreground">Analyse IA du PDF en cours...</p>
               </div>
             )}
 
@@ -509,9 +489,7 @@ export default function ProduitsPage() {
                 {importResult.success > 0 && (
                   <div className="flex items-center gap-2 rounded-md bg-emerald-500/10 px-3 py-2">
                     <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                    <p className="text-xs text-emerald-400">
-                      {importResult.success} produit(s) importé(s) avec succès.
-                    </p>
+                    <p className="text-xs text-emerald-400">{importResult.success} produit(s) importé(s).</p>
                   </div>
                 )}
                 {importResult.errors.length > 0 && (
@@ -520,46 +498,41 @@ export default function ProduitsPage() {
                       <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
                       <p className="text-xs text-destructive font-medium">{importResult.errors.length} erreur(s)</p>
                     </div>
-                    <ul className="text-[11px] text-destructive/80 space-y-0.5 ml-6 max-h-24 overflow-y-auto">
-                      {importResult.errors.slice(0, 10).map((err, i) => (
-                        <li key={i}>{err}</li>
-                      ))}
-                    </ul>
                   </div>
                 )}
               </div>
             )}
-          </div>
 
-          <DialogFooter className="pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => { resetImport(); setImportOpen(false); }}
-              className="h-8 text-xs border-border/60"
-            >
-              {importResult ? "Fermer" : "Annuler"}
-            </Button>
             {jsonRows && !importResult && (
-              <Button
-                type="button"
-                size="sm"
-                onClick={handleJsonImportSubmit}
-                disabled={isJsonImporting}
-                className="h-8 text-xs"
-              >
-                {isJsonImporting ? (
-                  <>
-                    <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
-                    Import en cours...
-                  </>
-                ) : (
-                  `Importer (${jsonRows.length})`
-                )}
+              <Button type="button" size="sm" onClick={handleJsonImportSubmit} disabled={isJsonImporting} className="w-full h-8 text-xs">
+                {isJsonImporting ? <><Loader2 className="mr-1.5 h-3 w-3 animate-spin" /> Import en cours...</> : `Importer (${jsonRows.length})`}
               </Button>
             )}
-          </DialogFooter>
+          </div>
+
+          {/* ─── Separator ──────────────────────────────── */}
+          {!isPdfImporting && !importResult && (
+            <>
+              <div className="relative my-1">
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border/40" /></div>
+                <div className="relative flex justify-center"><span className="bg-card px-3 text-[11px] text-muted-foreground/60 uppercase tracking-wider">ou créer manuellement</span></div>
+              </div>
+
+              {/* ─── Manual create form ──────────────────── */}
+              <CreateProduitForm
+                onSuccess={handleCreateSuccess}
+                onCancel={() => setDialogOpen(false)}
+              />
+            </>
+          )}
+
+          {(isPdfImporting || importResult) && (
+            <DialogFooter className="pt-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => { resetImport(); setDialogOpen(false); }} className="h-8 text-xs border-border/60">
+                {importResult ? "Fermer" : "Annuler"}
+              </Button>
+            </DialogFooter>
+          )}
         </DialogContent>
       </Dialog>
     </>
@@ -569,7 +542,7 @@ export default function ProduitsPage() {
 // ─── Create Form ─────────────────────────────────────────
 
 interface CreateFormProps {
-  onSuccess: () => void;
+  onSuccess: (produitId?: string) => void;
   onCancel: () => void;
 }
 
@@ -606,7 +579,7 @@ function CreateProduitForm({ onSuccess, onCancel }: CreateFormProps) {
     }
 
     setIsSubmitting(false);
-    onSuccess();
+    onSuccess(result.data?.id);
   }
 
   return (
