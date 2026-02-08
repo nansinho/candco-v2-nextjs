@@ -156,7 +156,7 @@ export async function getEntrepriseHistorique(
   // ── 1. Activités → events ──
   if (activitesResult.data) {
     for (const a of activitesResult.data) {
-      const user = a.utilisateurs as { prenom: string; nom: string } | null;
+      const user = a.utilisateurs as unknown as { prenom: string; nom: string } | null;
       events.push({
         id: `activite-${a.id}`,
         date: a.created_at,
@@ -176,7 +176,7 @@ export async function getEntrepriseHistorique(
   // ── 2. Sessions → events ──
   if (sessionsResult.data) {
     for (const sc of sessionsResult.data) {
-      const session = sc.sessions as {
+      const session = sc.sessions as unknown as {
         id: string;
         numero_affichage: string;
         nom: string;
@@ -288,7 +288,7 @@ export async function getEntrepriseHistorique(
   // ── 4. Apprenants liés → events ──
   if (apprenantsResult.data) {
     for (const ae of apprenantsResult.data) {
-      const app = ae.apprenants as {
+      const app = ae.apprenants as unknown as {
         id: string;
         numero_affichage: string;
         prenom: string;
@@ -316,7 +316,7 @@ export async function getEntrepriseHistorique(
   // ── 5. Contacts liés → events ──
   if (contactsResult.data) {
     for (const ce of contactsResult.data) {
-      const contact = ce.contacts_clients as {
+      const contact = ce.contacts_clients as unknown as {
         id: string;
         numero_affichage: string;
         prenom: string;
@@ -344,9 +344,9 @@ export async function getEntrepriseHistorique(
   // ── 6. Membres → events ──
   if (membresResult.data) {
     for (const m of membresResult.data) {
-      const app = m.apprenants as { id: string; prenom: string; nom: string } | null;
-      const contact = m.contacts_clients as { id: string; prenom: string; nom: string } | null;
-      const agence = m.entreprise_agences as { id: string; nom: string } | null;
+      const app = m.apprenants as unknown as { id: string; prenom: string; nom: string } | null;
+      const contact = m.contacts_clients as unknown as { id: string; prenom: string; nom: string } | null;
+      const agence = m.entreprise_agences as unknown as { id: string; nom: string } | null;
       const personName = app
         ? `${app.prenom} ${app.nom}`
         : contact
@@ -398,7 +398,7 @@ export async function getEntrepriseHistorique(
   // ── 8. Pôles → events ──
   if (polesResult.data) {
     for (const p of polesResult.data) {
-      const agence = p.entreprise_agences as { nom: string } | null;
+      const agence = p.entreprise_agences as unknown as { nom: string } | null;
       events.push({
         id: `pole-${p.id}`,
         date: p.created_at,
@@ -418,7 +418,7 @@ export async function getEntrepriseHistorique(
   // ── 9. Tâches → events ──
   if (tachesResult.data) {
     for (const t of tachesResult.data) {
-      const user = t.utilisateurs as { prenom: string; nom: string } | null;
+      const user = t.utilisateurs as unknown as { prenom: string; nom: string } | null;
 
       // Task creation
       events.push({
