@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -10,6 +9,7 @@ import {
   ExternalLink,
   Loader2,
   Mail,
+  MapPin,
   Plus,
   Save,
   Search,
@@ -33,7 +33,10 @@ import {
   linkEntrepriseToApprenant,
   unlinkEntrepriseFromApprenant,
   searchEntreprisesForLinking,
+  getAgencesForEntreprise,
+  updateApprenantEntrepriseLink,
   type UpdateApprenantInput,
+  type ApprenantEntreprise,
 } from "@/actions/apprenants";
 import { TachesActivitesTab } from "@/components/shared/taches-activites";
 import { useBreadcrumb } from "@/components/layout/breadcrumb-context";
@@ -67,13 +70,7 @@ interface Apprenant {
   updated_at: string | null;
 }
 
-interface Entreprise {
-  id: string;
-  nom: string;
-  siret: string | null;
-  email: string | null;
-  adresse_ville: string | null;
-}
+type Entreprise = ApprenantEntreprise;
 
 interface BpfCategorie {
   id: string;
@@ -703,6 +700,21 @@ export function ApprenantDetail({
 // Entreprises Tab (interactive: search + link / unlink)
 // ---------------------------------------------------------------------------
 
+interface SearchEntreprise {
+  id: string;
+  nom: string;
+  siret: string | null;
+  email: string | null;
+  adresse_ville: string | null;
+}
+
+interface AgenceOption {
+  id: string;
+  nom: string;
+  est_siege: boolean;
+  adresse_ville: string | null;
+}
+
 function EntreprisesTab({
   apprenantId,
   initialEntreprises,
@@ -716,8 +728,22 @@ function EntreprisesTab({
   const [entreprises, setEntreprises] = React.useState<Entreprise[]>(initialEntreprises);
   const [showSearch, setShowSearch] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
-  const [searchResults, setSearchResults] = React.useState<Entreprise[]>([]);
+  const [searchResults, setSearchResults] = React.useState<SearchEntreprise[]>([]);
   const [isSearching, setIsSearching] = React.useState(false);
+
+  // Link dialog state
+  const [linkingEnt, setLinkingEnt] = React.useState<SearchEntreprise | null>(null);
+  const [linkAgences, setLinkAgences] = React.useState<AgenceOption[]>([]);
+  const [linkSelectedAgenceIds, setLinkSelectedAgenceIds] = React.useState<string[]>([]);
+  const [linkEstSiege, setLinkEstSiege] = React.useState(false);
+  const [isLinking, setIsLinking] = React.useState(false);
+
+  // Edit dialog state
+  const [editingEnt, setEditingEnt] = React.useState<Entreprise | null>(null);
+  const [editAgences, setEditAgences] = React.useState<AgenceOption[]>([]);
+  const [editSelectedAgenceIds, setEditSelectedAgenceIds] = React.useState<string[]>([]);
+  const [editEstSiege, setEditEstSiege] = React.useState(false);
+  const [isSavingEdit, setIsSavingEdit] = React.useState(false);
 
   // Debounced search
   React.useEffect(() => {
@@ -729,25 +755,55 @@ function EntreprisesTab({
       setIsSearching(true);
       const excludeIds = entreprises.map((e) => e.id);
       const result = await searchEntreprisesForLinking(searchQuery, excludeIds);
-      setSearchResults(result.data as Entreprise[]);
+      setSearchResults(result.data as SearchEntreprise[]);
       setIsSearching(false);
     }, 300);
     return () => clearTimeout(timer);
   }, [searchQuery, entreprises]);
 
-  const handleLink = async (entrepriseId: string) => {
-    const result = await linkEntrepriseToApprenant(apprenantId, entrepriseId);
+  // Load agencies for link dialog
+  React.useEffect(() => {
+    if (!linkingEnt) return;
+    (async () => {
+      const result = await getAgencesForEntreprise(linkingEnt.id);
+      setLinkAgences(result.data as AgenceOption[]);
+    })();
+  }, [linkingEnt]);
+
+  // Load agencies for edit dialog
+  React.useEffect(() => {
+    if (!editingEnt) return;
+    (async () => {
+      const result = await getAgencesForEntreprise(editingEnt.id);
+      setEditAgences(result.data as AgenceOption[]);
+      setEditSelectedAgenceIds(editingEnt.agences.map((a) => a.id));
+      setEditEstSiege(editingEnt.est_siege);
+    })();
+  }, [editingEnt]);
+
+  const handleStartLink = (ent: SearchEntreprise) => {
+    setLinkingEnt(ent);
+    setLinkAgences([]);
+    setLinkSelectedAgenceIds([]);
+    setLinkEstSiege(false);
+  };
+
+  const handleConfirmLink = async () => {
+    if (!linkingEnt) return;
+    setIsLinking(true);
+    const result = await linkEntrepriseToApprenant(apprenantId, linkingEnt.id, {
+      est_siege: linkEstSiege,
+      agence_ids: linkSelectedAgenceIds,
+    });
+    setIsLinking(false);
     if (result.error) {
       toast({ title: "Erreur", description: typeof result.error === "string" ? result.error : "Une erreur est survenue", variant: "destructive" });
       return;
     }
-    // Move from search results to linked list
-    const linked = searchResults.find((e) => e.id === entrepriseId);
-    if (linked) {
-      setEntreprises((prev) => [...prev, linked]);
-      setSearchResults((prev) => prev.filter((e) => e.id !== entrepriseId));
-    }
+    setLinkingEnt(null);
+    setSearchResults((prev) => prev.filter((e) => e.id !== linkingEnt.id));
     toast({ title: "Entreprise rattachée", variant: "success" });
+    router.refresh();
   };
 
   const handleUnlink = async (ent: Entreprise) => {
@@ -761,6 +817,23 @@ function EntreprisesTab({
     toast({ title: "Entreprise retirée", variant: "success" });
   };
 
+  const handleSaveEdit = async () => {
+    if (!editingEnt) return;
+    setIsSavingEdit(true);
+    const result = await updateApprenantEntrepriseLink(editingEnt.lien_id, apprenantId, {
+      est_siege: editSelectedAgenceIds.length === 0 ? true : editEstSiege,
+      agence_ids: editSelectedAgenceIds,
+    });
+    setIsSavingEdit(false);
+    if (result.error) {
+      toast({ title: "Erreur", description: typeof result.error === "string" ? result.error : "Une erreur est survenue", variant: "destructive" });
+      return;
+    }
+    setEditingEnt(null);
+    toast({ title: "Rattachement modifié", variant: "success" });
+    router.refresh();
+  };
+
   return (
     <section className="rounded-lg border border-border/60 bg-card">
       <div className="flex items-center justify-between px-5 py-4 border-b border-border/60">
@@ -770,36 +843,102 @@ function EntreprisesTab({
             <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary/10 px-1.5 text-[11px] font-medium text-primary">{entreprises.length}</span>
           )}
         </h3>
-        <Button variant="outline" size="sm" className="h-7 text-[11px] border-border/60" onClick={() => { setShowSearch(!showSearch); setSearchQuery(""); setSearchResults([]); }}>
+        <Button variant="outline" size="sm" className="h-7 text-[11px] border-border/60" onClick={() => { setShowSearch(!showSearch); setSearchQuery(""); setSearchResults([]); setLinkingEnt(null); }}>
           {showSearch ? <><X className="mr-1 h-3 w-3" />Fermer</> : <><Plus className="mr-1 h-3 w-3" />Rattacher une entreprise</>}
         </Button>
       </div>
 
       {showSearch && (
         <div className="px-5 py-3 border-b border-border/40 bg-muted/10">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/50" />
-            <Input placeholder="Rechercher une entreprise par nom ou SIRET..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="h-8 pl-9 text-xs border-border/60" autoFocus />
-          </div>
-          {isSearching && <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" />Recherche...</div>}
-          {searchResults.length > 0 && (
-            <div className="mt-2 space-y-1">
-              {searchResults.map((ent) => (
-                <button key={ent.id} type="button" className="flex w-full items-center justify-between rounded-md px-3 py-2 hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => handleLink(ent.id)}>
-                  <div className="flex items-center gap-2">
-                    <Building2 className="h-3.5 w-3.5 text-orange-400" />
-                    <span className="text-[13px] font-medium">{ent.nom}</span>
-                    {ent.siret && <span className="text-[11px] text-muted-foreground/50">{ent.siret}</span>}
-                    {ent.adresse_ville && <span className="text-[11px] text-muted-foreground/40">{ent.adresse_ville}</span>}
-                  </div>
-                  <span className="text-[10px] text-primary font-medium flex items-center gap-0.5"><Plus className="h-3 w-3" />Rattacher</span>
+          {!linkingEnt ? (
+            <>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/50" />
+                <Input placeholder="Rechercher une entreprise par nom ou SIRET..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="h-8 pl-9 text-xs border-border/60" autoFocus />
+              </div>
+              {isSearching && <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" />Recherche...</div>}
+              {searchResults.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  {searchResults.map((ent) => (
+                    <button key={ent.id} type="button" className="flex w-full items-center justify-between rounded-md px-3 py-2 hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => handleStartLink(ent)}>
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-3.5 w-3.5 text-orange-400" />
+                        <span className="text-[13px] font-medium">{ent.nom}</span>
+                        {ent.siret && <span className="text-[11px] text-muted-foreground/50">{ent.siret}</span>}
+                        {ent.adresse_ville && <span className="text-[11px] text-muted-foreground/40">{ent.adresse_ville}</span>}
+                      </div>
+                      <span className="text-[10px] text-primary font-medium flex items-center gap-0.5"><Plus className="h-3 w-3" />Rattacher</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {searchQuery.trim() && !isSearching && searchResults.length === 0 && (
+                <p className="mt-2 text-xs text-muted-foreground/50">Aucune entreprise trouvée pour &laquo; {searchQuery} &raquo;</p>
+              )}
+            </>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-3.5 w-3.5 text-orange-400" />
+                  <span className="text-[13px] font-semibold">{linkingEnt.nom}</span>
+                </div>
+                <button type="button" className="text-[11px] text-muted-foreground hover:text-foreground" onClick={() => setLinkingEnt(null)}>
+                  Changer
                 </button>
-              ))}
+              </div>
+
+              <SiegeAgencePicker
+                agences={linkAgences}
+                selectedAgenceIds={linkSelectedAgenceIds}
+                estSiege={linkEstSiege}
+                onAgenceToggle={(id) => setLinkSelectedAgenceIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])}
+                onEstSiegeChange={setLinkEstSiege}
+              />
+
+              <div className="flex justify-end gap-2 pt-1">
+                <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => setLinkingEnt(null)}>Annuler</Button>
+                <Button size="sm" className="h-7 text-[11px]" onClick={handleConfirmLink} disabled={isLinking}>
+                  {isLinking ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Plus className="mr-1 h-3 w-3" />}
+                  Rattacher
+                </Button>
+              </div>
             </div>
           )}
-          {searchQuery.trim() && !isSearching && searchResults.length === 0 && (
-            <p className="mt-2 text-xs text-muted-foreground/50">Aucune entreprise trouvée pour &laquo; {searchQuery} &raquo;</p>
-          )}
+        </div>
+      )}
+
+      {/* Edit dialog */}
+      {editingEnt && (
+        <div className="px-5 py-3 border-b border-border/40 bg-blue-500/5">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Building2 className="h-3.5 w-3.5 text-orange-400" />
+                <span className="text-[13px] font-semibold">{editingEnt.nom}</span>
+                <span className="text-[10px] text-blue-400 font-medium">Modifier le rattachement</span>
+              </div>
+              <button type="button" className="p-0.5 text-muted-foreground/40 hover:text-foreground" onClick={() => setEditingEnt(null)}>
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
+            <SiegeAgencePicker
+              agences={editAgences}
+              selectedAgenceIds={editSelectedAgenceIds}
+              estSiege={editEstSiege}
+              onAgenceToggle={(id) => setEditSelectedAgenceIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])}
+              onEstSiegeChange={setEditEstSiege}
+            />
+
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => setEditingEnt(null)}>Annuler</Button>
+              <Button size="sm" className="h-7 text-[11px]" onClick={handleSaveEdit} disabled={isSavingEdit}>
+                {isSavingEdit ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Save className="mr-1 h-3 w-3" />}
+                Enregistrer
+              </Button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -814,40 +953,123 @@ function EntreprisesTab({
           </div>
         </div>
       ) : (
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-border/60 bg-muted/30">
-              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Nom</th>
-              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">SIRET</th>
-              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Email</th>
-              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Ville</th>
-              <th className="w-10" />
-            </tr>
-          </thead>
-          <tbody>
-            {entreprises.map((ent) => (
-              <tr key={ent.id} className="border-b border-border/40 transition-colors hover:bg-muted/20 group cursor-pointer" onClick={() => router.push(`/entreprises/${ent.id}`)}>
-                <td className="px-4 py-2.5">
+        <div className="divide-y divide-border/40">
+          {entreprises.map((ent) => (
+            <div key={ent.id} className="group">
+              <div
+                className="flex items-center px-5 py-3 hover:bg-muted/20 transition-colors cursor-pointer"
+                onClick={() => router.push(`/entreprises/${ent.id}`)}
+              >
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <Building2 className="h-3.5 w-3.5 text-orange-400" />
+                    <Building2 className="h-3.5 w-3.5 text-orange-400 shrink-0" />
                     <span className="text-[13px] font-medium">{ent.nom}</span>
+                    {ent.siret && <span className="text-[11px] text-muted-foreground/50">{ent.siret}</span>}
                   </div>
-                </td>
-                <td className="px-4 py-2.5 text-[13px] text-muted-foreground">{ent.siret ?? <span className="text-muted-foreground/40">--</span>}</td>
-                <td className="px-4 py-2.5 text-[13px] text-muted-foreground">{ent.email ?? <span className="text-muted-foreground/40">--</span>}</td>
-                <td className="px-4 py-2.5 text-[13px] text-muted-foreground">{ent.adresse_ville ?? <span className="text-muted-foreground/40">--</span>}</td>
-                <td className="px-4 py-2.5">
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={(e) => { e.stopPropagation(); router.push(`/entreprises/${ent.id}`); }} className="p-1 rounded hover:bg-muted/30 text-muted-foreground/40 hover:text-foreground" title="Voir la fiche"><ExternalLink className="h-3.5 w-3.5" /></button>
-                    <button onClick={(e) => { e.stopPropagation(); handleUnlink(ent); }} className="p-1 rounded hover:bg-destructive/10 text-muted-foreground/40 hover:text-destructive" title="Retirer de l'apprenant"><Unlink className="h-3.5 w-3.5" /></button>
+                  {/* Headquarters / Agency badges */}
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5 ml-5">
+                    {ent.est_siege && (
+                      <Badge className="h-5 text-[10px] bg-orange-500/10 text-orange-400 border-orange-500/20 font-normal">
+                        Siège social
+                      </Badge>
+                    )}
+                    {ent.agences.map((ag) => (
+                      <Badge key={ag.id} className="h-5 text-[10px] bg-blue-500/10 text-blue-400 border-blue-500/20 font-normal">
+                        <MapPin className="mr-0.5 h-2.5 w-2.5" />
+                        {ag.nom}
+                      </Badge>
+                    ))}
+                    {!ent.est_siege && ent.agences.length === 0 && (
+                      <span className="text-[10px] text-muted-foreground/40 italic">Aucun rattachement défini</span>
+                    )}
                   </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </div>
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setEditingEnt(ent); }}
+                    className="p-1 rounded hover:bg-muted/30 text-muted-foreground/40 hover:text-foreground"
+                    title="Modifier le rattachement"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                  </button>
+                  <button onClick={(e) => { e.stopPropagation(); router.push(`/entreprises/${ent.id}`); }} className="p-1 rounded hover:bg-muted/30 text-muted-foreground/40 hover:text-foreground" title="Voir la fiche"><ExternalLink className="h-3.5 w-3.5" /></button>
+                  <button onClick={(e) => { e.stopPropagation(); handleUnlink(ent); }} className="p-1 rounded hover:bg-destructive/10 text-muted-foreground/40 hover:text-destructive" title="Retirer de l'apprenant"><Unlink className="h-3.5 w-3.5" /></button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
       <EntrepriseConfirmDialog />
     </section>
+  );
+}
+
+// Reusable picker for headquarters + agencies
+function SiegeAgencePicker({
+  agences,
+  selectedAgenceIds,
+  estSiege,
+  onAgenceToggle,
+  onEstSiegeChange,
+}: {
+  agences: AgenceOption[];
+  selectedAgenceIds: string[];
+  estSiege: boolean;
+  onAgenceToggle: (id: string) => void;
+  onEstSiegeChange: (v: boolean) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <label className="flex items-center gap-2 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={estSiege || selectedAgenceIds.length === 0}
+          onChange={(e) => onEstSiegeChange(e.target.checked)}
+          disabled={selectedAgenceIds.length === 0}
+          className="h-3.5 w-3.5 rounded border-border accent-primary"
+        />
+        <span className="text-[12px]">
+          Siège social
+          {selectedAgenceIds.length === 0 && (
+            <span className="ml-1 text-[10px] text-muted-foreground/50">(par défaut si aucune agence)</span>
+          )}
+        </span>
+      </label>
+
+      {agences.length > 0 && (
+        <div className="space-y-1">
+          <p className="text-[11px] text-muted-foreground/60 font-medium">Agences :</p>
+          <div className="space-y-0.5 max-h-[150px] overflow-y-auto">
+            {agences.map((ag) => (
+              <label
+                key={ag.id}
+                className="flex items-center gap-2 rounded px-2 py-1 hover:bg-muted/20 cursor-pointer transition-colors"
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedAgenceIds.includes(ag.id)}
+                  onChange={() => onAgenceToggle(ag.id)}
+                  className="h-3.5 w-3.5 rounded border-border accent-primary"
+                />
+                <MapPin className="h-3 w-3 text-muted-foreground/50 shrink-0" />
+                <span className="text-[12px]">{ag.nom}</span>
+                {ag.est_siege && (
+                  <span className="text-[9px] font-medium text-orange-400/80 bg-orange-400/10 px-1 py-0.5 rounded">siège</span>
+                )}
+                {ag.adresse_ville && (
+                  <span className="text-[10px] text-muted-foreground/40">{ag.adresse_ville}</span>
+                )}
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+      {agences.length === 0 && (
+        <p className="text-[10px] text-muted-foreground/40 italic">
+          Aucune agence définie pour cette entreprise. L&apos;apprenant sera rattaché au siège social.
+        </p>
+      )}
+    </div>
   );
 }

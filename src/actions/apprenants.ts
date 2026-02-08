@@ -36,6 +36,10 @@ const CreateApprenantSchema = z.object({
   adresse_rue: z.string().optional(),
   adresse_cp: z.string().optional(),
   adresse_ville: z.string().optional(),
+  // Enterprise attachment (optional at creation)
+  entreprise_id: z.string().uuid().optional().or(z.literal("")),
+  est_siege: z.boolean().optional(),
+  agence_ids: z.array(z.string().uuid()).optional(),
 });
 
 export type CreateApprenantInput = z.infer<typeof CreateApprenantSchema>;
@@ -51,7 +55,14 @@ export async function createApprenant(input: CreateApprenantInput) {
     return { error: { _form: [result.error] } };
   }
 
-  const { organisationId, userId, role, supabase } = result;
+  const { organisationId, userId, role, supabase, admin } = result;
+
+  // Auto-assign BPF F.1.a
+  const { data: bpfF1a } = await admin
+    .from("bpf_categories_apprenant")
+    .select("id")
+    .ilike("code", "f.1.a")
+    .single();
 
   // Generate display number
   const { data: numero } = await supabase.rpc("next_numero", {
@@ -59,19 +70,53 @@ export async function createApprenant(input: CreateApprenantInput) {
     p_entite: "APP",
   });
 
+  // Extract enterprise fields before inserting apprenant
+  const { entreprise_id, est_siege, agence_ids, ...apprenantFields } = parsed.data;
+
   const { data, error } = await supabase
     .from("apprenants")
     .insert({
       organisation_id: organisationId,
       numero_affichage: numero,
-      ...parsed.data,
-      email: parsed.data.email || null,
+      ...apprenantFields,
+      email: apprenantFields.email || null,
+      bpf_categorie_id: bpfF1a?.id ?? null,
     })
     .select()
     .single();
 
   if (error) {
     return { error: { _form: [error.message] } };
+  }
+
+  // Link to enterprise if provided
+  const entId = entreprise_id || null;
+  if (entId) {
+    const selectedAgences = agence_ids ?? [];
+    // Zero-friction rule: if enterprise selected but no agency, auto-assign to headquarters
+    const estSiege = selectedAgences.length === 0 ? true : (est_siege ?? false);
+
+    const { data: aeLink } = await admin
+      .from("apprenant_entreprises")
+      .insert({
+        apprenant_id: data.id,
+        entreprise_id: entId,
+        est_siege: estSiege,
+      })
+      .select("id")
+      .single();
+
+    // Link to selected agencies
+    if (aeLink && selectedAgences.length > 0) {
+      await admin
+        .from("apprenant_entreprise_agences")
+        .insert(
+          selectedAgences.map((agenceId) => ({
+            apprenant_entreprise_id: aeLink.id,
+            agence_id: agenceId,
+          })),
+        );
+    }
   }
 
   await logHistorique({
@@ -144,6 +189,17 @@ export async function getApprenants(
   return { data: data ?? [], count: count ?? 0 };
 }
 
+export interface ApprenantEntreprise {
+  id: string;
+  nom: string;
+  siret: string | null;
+  email: string | null;
+  adresse_ville: string | null;
+  lien_id: string;
+  est_siege: boolean;
+  agences: { id: string; nom: string }[];
+}
+
 export async function getApprenant(id: string) {
   const orgResult = await getOrganisationId();
   if ("error" in orgResult) {
@@ -161,32 +217,33 @@ export async function getApprenant(id: string) {
     return { data: null, entreprises: [], error: error.message };
   }
 
-  // Fetch linked entreprises via junction table
+  // Fetch linked entreprises via junction table with headquarters/agency info
   const { data: liens } = await admin
     .from("apprenant_entreprises")
-    .select("entreprise_id, entreprises(id, nom, siret, email, adresse_ville)")
+    .select("id, entreprise_id, est_siege, entreprises(id, nom, siret, email, adresse_ville), apprenant_entreprise_agences(agence_id, entreprise_agences(id, nom))")
     .eq("apprenant_id", id);
 
-  const entreprises = (liens ?? [])
+  const entreprises: ApprenantEntreprise[] = (liens ?? [])
     .map((l) => {
       const e = l.entreprises;
       if (!e) return null;
       const ent = Array.isArray(e) ? e[0] : e;
-      return ent as {
-        id: string;
-        nom: string;
-        siret: string | null;
-        email: string | null;
-        adresse_ville: string | null;
+      const agencesRaw = (l as Record<string, unknown>).apprenant_entreprise_agences as Array<{
+        agence_id: string;
+        entreprise_agences: { id: string; nom: string } | null;
+      }> | null;
+      const agences = (agencesRaw ?? [])
+        .filter((a) => a.entreprise_agences != null)
+        .map((a) => ({ id: a.entreprise_agences!.id, nom: a.entreprise_agences!.nom }));
+
+      return {
+        ...(ent as { id: string; nom: string; siret: string | null; email: string | null; adresse_ville: string | null }),
+        lien_id: l.id as string,
+        est_siege: (l.est_siege as boolean) ?? true,
+        agences,
       };
     })
-    .filter(Boolean) as {
-    id: string;
-    nom: string;
-    siret: string | null;
-    email: string | null;
-    adresse_ville: string | null;
-  }[];
+    .filter(Boolean) as ApprenantEntreprise[];
 
   return { data: apprenant, entreprises };
 }
@@ -508,11 +565,14 @@ export async function importApprenants(
       }
     }
 
-    // 2. Résoudre BPF
+    // 2. Résoudre BPF (auto-assign F.1.a si non spécifié)
     let bpfCategorieId: string | null = null;
     if (row.statut_bpf?.trim()) {
       const code = extractBpfCode(row.statut_bpf);
       bpfCategorieId = bpfMap.get(code.toLowerCase()) ?? null;
+    }
+    if (!bpfCategorieId) {
+      bpfCategorieId = bpfMap.get("f.1.a") ?? null;
     }
 
     // 3. Résoudre entreprise (lookup ou création)
@@ -624,14 +684,28 @@ export async function importApprenants(
 
 // ─── Entreprise linking from apprenant side ─────────────
 
-export async function linkEntrepriseToApprenant(apprenantId: string, entrepriseId: string) {
+export async function linkEntrepriseToApprenant(
+  apprenantId: string,
+  entrepriseId: string,
+  options?: { est_siege?: boolean; agence_ids?: string[] },
+) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { organisationId, userId, role, supabase, admin } = result;
+  const { organisationId, userId, role, admin } = result;
 
-  const { error } = await supabase
+  const selectedAgences = options?.agence_ids ?? [];
+  // Zero-friction rule: if no agency selected, auto-assign to headquarters
+  const estSiege = selectedAgences.length === 0 ? true : (options?.est_siege ?? false);
+
+  const { data: aeLink, error } = await admin
     .from("apprenant_entreprises")
-    .insert({ apprenant_id: apprenantId, entreprise_id: entrepriseId });
+    .insert({
+      apprenant_id: apprenantId,
+      entreprise_id: entrepriseId,
+      est_siege: estSiege,
+    })
+    .select("id")
+    .single();
 
   if (error) {
     if (error.code === "23505") {
@@ -640,11 +714,29 @@ export async function linkEntrepriseToApprenant(apprenantId: string, entrepriseI
     return { error: error.message };
   }
 
+  // Link to selected agencies
+  if (aeLink && selectedAgences.length > 0) {
+    await admin
+      .from("apprenant_entreprise_agences")
+      .insert(
+        selectedAgences.map((agenceId) => ({
+          apprenant_entreprise_id: aeLink.id,
+          agence_id: agenceId,
+        })),
+      );
+  }
+
   // Fetch labels for logging
   const [{ data: ent }, { data: app }] = await Promise.all([
     admin.from("entreprises").select("numero_affichage, nom").eq("id", entrepriseId).single(),
     admin.from("apprenants").select("numero_affichage, prenom, nom").eq("id", apprenantId).single(),
   ]);
+
+  const attachmentDesc = estSiege && selectedAgences.length === 0
+    ? " (siège social)"
+    : estSiege
+    ? ` (siège social + ${selectedAgences.length} agence(s))`
+    : ` (${selectedAgences.length} agence(s))`;
 
   await logHistorique({
     organisationId,
@@ -656,7 +748,7 @@ export async function linkEntrepriseToApprenant(apprenantId: string, entrepriseI
     entiteId: apprenantId,
     entiteLabel: app ? `${app.numero_affichage} — ${app.prenom} ${app.nom}` : null,
     entrepriseId,
-    description: `Apprenant ${app ? `"${app.prenom} ${app.nom}"` : ""} rattaché à l'entreprise "${ent?.nom ?? ""}"`,
+    description: `Apprenant ${app ? `"${app.prenom} ${app.nom}"` : ""} rattaché à l'entreprise "${ent?.nom ?? ""}"${attachmentDesc}`,
     objetHref: `/apprenants/${apprenantId}`,
   });
 
@@ -730,6 +822,84 @@ export async function searchEntreprisesForLinking(search: string, excludeIds: st
     return { data: [], error: error.message };
   }
 
+  return { data: data ?? [] };
+}
+
+// ─── Update enterprise link (siege/agences) ─────────────
+
+export async function updateApprenantEntrepriseLink(
+  lienId: string,
+  apprenantId: string,
+  options: { est_siege: boolean; agence_ids: string[] },
+) {
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role, admin } = result;
+
+  // Zero-friction rule: if no agency selected, auto-assign to headquarters
+  const estSiege = options.agence_ids.length === 0 ? true : options.est_siege;
+
+  const { error } = await admin
+    .from("apprenant_entreprises")
+    .update({ est_siege: estSiege })
+    .eq("id", lienId);
+
+  if (error) return { error: error.message };
+
+  // Sync agences: delete all existing, then insert new
+  await admin.from("apprenant_entreprise_agences").delete().eq("apprenant_entreprise_id", lienId);
+
+  if (options.agence_ids.length > 0) {
+    await admin
+      .from("apprenant_entreprise_agences")
+      .insert(
+        options.agence_ids.map((agenceId) => ({
+          apprenant_entreprise_id: lienId,
+          agence_id: agenceId,
+        })),
+      );
+  }
+
+  // Fetch labels for logging
+  const { data: app } = await admin
+    .from("apprenants")
+    .select("numero_affichage, prenom, nom")
+    .eq("id", apprenantId)
+    .single();
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "apprenant",
+    action: "updated",
+    entiteType: "apprenant",
+    entiteId: apprenantId,
+    entiteLabel: app ? `${app.numero_affichage} — ${app.prenom} ${app.nom}` : null,
+    description: `Rattachement entreprise modifié — ${estSiege ? "siège social" : ""}${estSiege && options.agence_ids.length > 0 ? " + " : ""}${options.agence_ids.length > 0 ? `${options.agence_ids.length} agence(s)` : ""}`,
+    objetHref: `/apprenants/${apprenantId}`,
+  });
+
+  revalidatePath(`/apprenants/${apprenantId}`);
+  return { success: true };
+}
+
+// ─── Fetch agencies for an enterprise ───────────────────
+
+export async function getAgencesForEntreprise(entrepriseId: string) {
+  const authResult = await getOrganisationId();
+  if ("error" in authResult) return { data: [] };
+  const { admin } = authResult;
+
+  const { data, error } = await admin
+    .from("entreprise_agences")
+    .select("id, nom, est_siege, adresse_ville")
+    .eq("entreprise_id", entrepriseId)
+    .eq("actif", true)
+    .order("est_siege", { ascending: false })
+    .order("nom", { ascending: true });
+
+  if (error) return { data: [] };
   return { data: data ?? [] };
 }
 
