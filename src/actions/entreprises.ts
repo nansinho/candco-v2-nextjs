@@ -5,6 +5,7 @@ import { getOrganisationId } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { QueryFilter } from "@/lib/utils";
+import { logHistorique, logHistoriqueBatch, computeChanges } from "@/lib/historique";
 
 // ─── Schemas ─────────────────────────────────────────────
 
@@ -44,6 +45,25 @@ function cleanEmptyStrings<T extends Record<string, unknown>>(data: T): T {
   }
   return cleaned;
 }
+
+const ENTREPRISE_FIELD_LABELS: Record<string, string> = {
+  nom: "Nom",
+  siret: "SIRET",
+  email: "Email",
+  telephone: "Téléphone",
+  adresse_rue: "Adresse",
+  adresse_complement: "Complément adresse",
+  adresse_cp: "Code postal",
+  adresse_ville: "Ville",
+  facturation_raison_sociale: "Raison sociale facturation",
+  facturation_rue: "Adresse facturation",
+  facturation_complement: "Complément facturation",
+  facturation_cp: "CP facturation",
+  facturation_ville: "Ville facturation",
+  bpf_categorie_id: "Catégorie BPF",
+  numero_compte_comptable: "Compte comptable",
+  est_siege: "Siège social",
+};
 
 // ─── Actions ─────────────────────────────────────────────
 
@@ -148,7 +168,7 @@ export async function createEntreprise(input: CreateEntrepriseInput) {
     return { error: { _form: [result.error] } };
   }
 
-  const { organisationId, supabase } = result;
+  const { organisationId, userId, role, supabase } = result;
 
   // Generate display number
   const { data: numero } = await supabase.rpc("next_numero", {
@@ -172,6 +192,20 @@ export async function createEntreprise(input: CreateEntrepriseInput) {
     return { error: { _form: [error.message] } };
   }
 
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "entreprise",
+    action: "created",
+    entiteType: "entreprise",
+    entiteId: data.id,
+    entiteLabel: `${data.numero_affichage} — ${data.nom}`,
+    entrepriseId: data.id,
+    description: `Entreprise "${data.nom}" créée (${data.numero_affichage})`,
+    objetHref: `/entreprises/${data.id}`,
+  });
+
   revalidatePath("/entreprises");
   return { data };
 }
@@ -186,7 +220,15 @@ export async function updateEntreprise(id: string, input: UpdateEntrepriseInput)
   if ("error" in result) {
     return { error: { _form: [result.error] } };
   }
-  const { organisationId, supabase } = result;
+  const { organisationId, userId, role, supabase, admin } = result;
+
+  // Fetch old data for change tracking
+  const { data: oldData } = await admin
+    .from("entreprises")
+    .select("*")
+    .eq("id", id)
+    .eq("organisation_id", organisationId)
+    .single();
 
   const cleanedData = cleanEmptyStrings(parsed.data);
 
@@ -205,6 +247,29 @@ export async function updateEntreprise(id: string, input: UpdateEntrepriseInput)
     return { error: { _form: [error.message] } };
   }
 
+  const metadata = oldData
+    ? computeChanges(oldData as Record<string, unknown>, cleanedData as Record<string, unknown>, ENTREPRISE_FIELD_LABELS)
+    : {};
+  const changedFields = (metadata as { changed_fields?: string[] }).changed_fields;
+  const changedSummary = changedFields && changedFields.length > 0
+    ? ` (${changedFields.join(", ")})`
+    : "";
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "entreprise",
+    action: "updated",
+    entiteType: "entreprise",
+    entiteId: id,
+    entiteLabel: `${data.numero_affichage} — ${data.nom}`,
+    entrepriseId: id,
+    description: `Entreprise "${data.nom}" modifiée${changedSummary}`,
+    objetHref: `/entreprises/${id}`,
+    metadata,
+  });
+
   revalidatePath("/entreprises");
   revalidatePath(`/entreprises/${id}`);
   return { data };
@@ -213,7 +278,14 @@ export async function updateEntreprise(id: string, input: UpdateEntrepriseInput)
 export async function archiveEntreprise(id: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { organisationId, supabase } = result;
+  const { organisationId, userId, role, supabase, admin } = result;
+
+  // Fetch name for logging
+  const { data: ent } = await admin
+    .from("entreprises")
+    .select("numero_affichage, nom")
+    .eq("id", id)
+    .single();
 
   const { error } = await supabase
     .from("entreprises")
@@ -225,6 +297,20 @@ export async function archiveEntreprise(id: string) {
     return { error: error.message };
   }
 
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "entreprise",
+    action: "archived",
+    entiteType: "entreprise",
+    entiteId: id,
+    entiteLabel: ent ? `${ent.numero_affichage} — ${ent.nom}` : null,
+    entrepriseId: id,
+    description: `Entreprise "${ent?.nom ?? id}" archivée`,
+    objetHref: `/entreprises/${id}`,
+  });
+
   revalidatePath("/entreprises");
   return { success: true };
 }
@@ -232,7 +318,13 @@ export async function archiveEntreprise(id: string) {
 export async function unarchiveEntreprise(id: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { organisationId, supabase } = result;
+  const { organisationId, userId, role, supabase, admin } = result;
+
+  const { data: ent } = await admin
+    .from("entreprises")
+    .select("numero_affichage, nom")
+    .eq("id", id)
+    .single();
 
   const { error } = await supabase
     .from("entreprises")
@@ -244,6 +336,20 @@ export async function unarchiveEntreprise(id: string) {
     return { error: error.message };
   }
 
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "entreprise",
+    action: "unarchived",
+    entiteType: "entreprise",
+    entiteId: id,
+    entiteLabel: ent ? `${ent.numero_affichage} — ${ent.nom}` : null,
+    entrepriseId: id,
+    description: `Entreprise "${ent?.nom ?? id}" restaurée`,
+    objetHref: `/entreprises/${id}`,
+  });
+
   revalidatePath("/entreprises");
   return { success: true };
 }
@@ -251,7 +357,14 @@ export async function unarchiveEntreprise(id: string) {
 export async function deleteEntreprises(ids: string[]) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { organisationId, supabase } = result;
+  const { organisationId, userId, role, supabase, admin } = result;
+
+  // Fetch names before deletion for logging
+  const { data: ents } = await admin
+    .from("entreprises")
+    .select("id, numero_affichage, nom")
+    .in("id", ids)
+    .eq("organisation_id", organisationId);
 
   const { error } = await supabase
     .from("entreprises")
@@ -261,6 +374,23 @@ export async function deleteEntreprises(ids: string[]) {
 
   if (error) {
     return { error: error.message };
+  }
+
+  if (ents && ents.length > 0) {
+    await logHistoriqueBatch(
+      ents.map((ent) => ({
+        organisationId,
+        userId,
+        userRole: role,
+        module: "entreprise" as const,
+        action: "deleted" as const,
+        entiteType: "entreprise",
+        entiteId: ent.id,
+        entiteLabel: `${ent.numero_affichage} — ${ent.nom}`,
+        entrepriseId: ent.id,
+        description: `Entreprise "${ent.nom}" supprimée`,
+      })),
+    );
   }
 
   revalidatePath("/entreprises");
@@ -305,7 +435,7 @@ export async function importEntreprises(
     return { success: 0, errors: [String(authResult.error)] };
   }
 
-  const { organisationId, supabase } = authResult;
+  const { organisationId, userId, role, supabase } = authResult;
   let successCount = 0;
   const importErrors: string[] = [];
 
@@ -391,6 +521,20 @@ export async function importEntreprises(
     }
   }
 
+  if (successCount > 0) {
+    await logHistorique({
+      organisationId,
+      userId,
+      userRole: role,
+      module: "entreprise",
+      action: "imported",
+      entiteType: "entreprise",
+      entiteId: organisationId,
+      description: `Import de ${successCount} entreprise${successCount > 1 ? "s" : ""}${importErrors.length > 0 ? ` (${importErrors.length} erreur${importErrors.length > 1 ? "s" : ""})` : ""}`,
+      metadata: { success: successCount, errors_count: importErrors.length },
+    });
+  }
+
   revalidatePath("/entreprises");
   return { success: successCount, errors: importErrors };
 }
@@ -430,7 +574,9 @@ export async function getEntrepriseApprenants(entrepriseId: string) {
 }
 
 export async function linkApprenantToEntreprise(entrepriseId: string, apprenantId: string) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role, supabase, admin } = result;
 
   const { error } = await supabase
     .from("apprenant_entreprises")
@@ -443,12 +589,40 @@ export async function linkApprenantToEntreprise(entrepriseId: string, apprenantI
     return { error: error.message };
   }
 
+  // Fetch labels for logging
+  const [{ data: ent }, { data: app }] = await Promise.all([
+    admin.from("entreprises").select("numero_affichage, nom").eq("id", entrepriseId).single(),
+    admin.from("apprenants").select("numero_affichage, prenom, nom").eq("id", apprenantId).single(),
+  ]);
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "apprenant",
+    action: "linked",
+    entiteType: "apprenant",
+    entiteId: apprenantId,
+    entiteLabel: app ? `${app.numero_affichage} — ${app.prenom} ${app.nom}` : null,
+    entrepriseId,
+    description: `${app ? `${app.prenom} ${app.nom}` : "Apprenant"} rattaché à l'entreprise "${ent?.nom ?? ""}"`,
+    objetHref: `/apprenants/${apprenantId}`,
+  });
+
   revalidatePath(`/entreprises/${entrepriseId}`);
   return { success: true };
 }
 
 export async function unlinkApprenantFromEntreprise(entrepriseId: string, apprenantId: string) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role, supabase, admin } = result;
+
+  // Fetch labels before unlinking
+  const [{ data: ent }, { data: app }] = await Promise.all([
+    admin.from("entreprises").select("numero_affichage, nom").eq("id", entrepriseId).single(),
+    admin.from("apprenants").select("numero_affichage, prenom, nom").eq("id", apprenantId).single(),
+  ]);
 
   const { error } = await supabase
     .from("apprenant_entreprises")
@@ -459,6 +633,20 @@ export async function unlinkApprenantFromEntreprise(entrepriseId: string, appren
   if (error) {
     return { error: error.message };
   }
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "apprenant",
+    action: "unlinked",
+    entiteType: "apprenant",
+    entiteId: apprenantId,
+    entiteLabel: app ? `${app.numero_affichage} — ${app.prenom} ${app.nom}` : null,
+    entrepriseId,
+    description: `${app ? `${app.prenom} ${app.nom}` : "Apprenant"} détaché de l'entreprise "${ent?.nom ?? ""}"`,
+    objetHref: `/apprenants/${apprenantId}`,
+  });
 
   revalidatePath(`/entreprises/${entrepriseId}`);
   return { success: true };
@@ -519,7 +707,9 @@ export async function getEntrepriseContacts(entrepriseId: string) {
 }
 
 export async function linkContactToEntreprise(entrepriseId: string, contactId: string) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role, supabase, admin } = result;
 
   const { error } = await supabase
     .from("contact_entreprises")
@@ -532,12 +722,38 @@ export async function linkContactToEntreprise(entrepriseId: string, contactId: s
     return { error: error.message };
   }
 
+  const [{ data: ent }, { data: contact }] = await Promise.all([
+    admin.from("entreprises").select("numero_affichage, nom").eq("id", entrepriseId).single(),
+    admin.from("contacts_clients").select("numero_affichage, prenom, nom").eq("id", contactId).single(),
+  ]);
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "contact_client",
+    action: "linked",
+    entiteType: "contact_client",
+    entiteId: contactId,
+    entiteLabel: contact ? `${contact.numero_affichage} — ${contact.prenom} ${contact.nom}` : null,
+    entrepriseId,
+    description: `${contact ? `${contact.prenom} ${contact.nom}` : "Contact"} rattaché à l'entreprise "${ent?.nom ?? ""}"`,
+    objetHref: `/contacts-clients/${contactId}`,
+  });
+
   revalidatePath(`/entreprises/${entrepriseId}`);
   return { success: true };
 }
 
 export async function unlinkContactFromEntreprise(entrepriseId: string, contactId: string) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role, supabase, admin } = result;
+
+  const [{ data: ent }, { data: contact }] = await Promise.all([
+    admin.from("entreprises").select("numero_affichage, nom").eq("id", entrepriseId).single(),
+    admin.from("contacts_clients").select("numero_affichage, prenom, nom").eq("id", contactId).single(),
+  ]);
 
   const { error } = await supabase
     .from("contact_entreprises")
@@ -548,6 +764,20 @@ export async function unlinkContactFromEntreprise(entrepriseId: string, contactI
   if (error) {
     return { error: error.message };
   }
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "contact_client",
+    action: "unlinked",
+    entiteType: "contact_client",
+    entiteId: contactId,
+    entiteLabel: contact ? `${contact.numero_affichage} — ${contact.prenom} ${contact.nom}` : null,
+    entrepriseId,
+    description: `${contact ? `${contact.prenom} ${contact.nom}` : "Contact"} détaché de l'entreprise "${ent?.nom ?? ""}"`,
+    objetHref: `/contacts-clients/${contactId}`,
+  });
 
   revalidatePath(`/entreprises/${entrepriseId}`);
   return { success: true };

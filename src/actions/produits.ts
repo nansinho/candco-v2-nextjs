@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getOrganisationId } from "@/lib/auth-helpers";
+import { logHistorique, logHistoriqueBatch } from "@/lib/historique";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { QueryFilter } from "@/lib/utils";
@@ -209,7 +210,7 @@ export async function createProduit(input: CreateProduitInput) {
     return { error: { _form: [result.error] } };
   }
 
-  const { organisationId, supabase } = result;
+  const { organisationId, userId, role, supabase } = result;
 
   const { data: numero } = await supabase.rpc("next_numero", {
     p_organisation_id: organisationId,
@@ -232,6 +233,19 @@ export async function createProduit(input: CreateProduitInput) {
   if (error) {
     return { error: { _form: [error.message] } };
   }
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "produit",
+    action: "created",
+    entiteType: "produit",
+    entiteId: data.id,
+    entiteLabel: `${data.numero_affichage} — ${data.intitule}`,
+    description: `Produit de formation "${data.intitule}" créé`,
+    objetHref: `/produits/${data.id}`,
+  });
 
   revalidatePath("/produits");
   return { data };
@@ -283,7 +297,7 @@ export async function createProduitFromPDF(extracted: PDFExtractedData) {
     return { error: result.error };
   }
 
-  const { organisationId, supabase } = result;
+  const { organisationId, userId, role, supabase } = result;
 
   // Generate display number
   const { data: numero } = await supabase.rpc("next_numero", {
@@ -508,6 +522,20 @@ export async function createProduitFromPDF(extracted: PDFExtractedData) {
   // Recalculate completion
   await recalculateCompletion(produitId, supabase);
 
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "produit",
+    action: "created",
+    entiteType: "produit",
+    entiteId: produitId,
+    entiteLabel: produit.intitule,
+    description: `Produit de formation "${produit.intitule}" créé via import PDF IA`,
+    objetHref: `/produits/${produitId}`,
+    metadata: { source: "pdf_import" },
+  });
+
   revalidatePath("/produits");
   return { data: produit };
 }
@@ -651,8 +679,7 @@ export async function updateProduit(id: string, input: UpdateProduitInput) {
   if ("error" in orgResult) {
     return { error: { _form: [orgResult.error] } };
   }
-  const { organisationId } = orgResult;
-  const supabase = await createClient();
+  const { organisationId, userId, role, supabase } = orgResult;
   const cleanedData = cleanEmptyStrings(parsed.data);
 
   // Query related data counts for completion calculation
@@ -728,6 +755,19 @@ export async function updateProduit(id: string, input: UpdateProduitInput) {
       return { error: { _form: [coreError.message] } };
     }
 
+    await logHistorique({
+      organisationId,
+      userId,
+      userRole: role,
+      module: "produit",
+      action: "updated",
+      entiteType: "produit",
+      entiteId: id,
+      entiteLabel: coreResult.intitule,
+      description: `Produit de formation "${coreResult.intitule}" mis à jour`,
+      objetHref: `/produits/${id}`,
+    });
+
     revalidatePath("/produits");
     revalidatePath(`/produits/${id}`);
     return { data: coreResult };
@@ -737,6 +777,19 @@ export async function updateProduit(id: string, input: UpdateProduitInput) {
     return { error: { _form: [error.message] } };
   }
 
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "produit",
+    action: "updated",
+    entiteType: "produit",
+    entiteId: id,
+    entiteLabel: data.intitule,
+    description: `Produit de formation "${data.intitule}" mis à jour`,
+    objetHref: `/produits/${id}`,
+  });
+
   revalidatePath("/produits");
   revalidatePath(`/produits/${id}`);
   return { data };
@@ -745,7 +798,7 @@ export async function updateProduit(id: string, input: UpdateProduitInput) {
 export async function updateProduitImage(id: string, imageUrl: string) {
   const orgResult = await getOrganisationId();
   if ("error" in orgResult) return { error: orgResult.error };
-  const { organisationId, supabase } = orgResult;
+  const { organisationId, userId, role, supabase } = orgResult;
 
   const { error } = await supabase
     .from("produits_formation")
@@ -755,6 +808,19 @@ export async function updateProduitImage(id: string, imageUrl: string) {
 
   if (error) return { error: error.message };
 
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "produit",
+    action: "updated",
+    entiteType: "produit",
+    entiteId: id,
+    description: "Image du produit mise à jour",
+    objetHref: `/produits/${id}`,
+    metadata: { image_url: imageUrl },
+  });
+
   revalidatePath(`/produits/${id}`);
   return { data: { image_url: imageUrl } };
 }
@@ -762,7 +828,14 @@ export async function updateProduitImage(id: string, imageUrl: string) {
 export async function deleteProduits(ids: string[]) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { organisationId, supabase } = result;
+  const { organisationId, userId, role, supabase, admin } = result;
+
+  // Fetch names before deletion using admin client
+  const { data: produits } = await admin
+    .from("produits_formation")
+    .select("id, numero_affichage, intitule")
+    .in("id", ids)
+    .eq("organisation_id", organisationId);
 
   const { error } = await supabase
     .from("produits_formation")
@@ -774,6 +847,22 @@ export async function deleteProduits(ids: string[]) {
     return { error: error.message };
   }
 
+  if (produits && produits.length > 0) {
+    await logHistoriqueBatch(
+      produits.map((p) => ({
+        organisationId,
+        userId,
+        userRole: role,
+        module: "produit" as const,
+        action: "deleted" as const,
+        entiteType: "produit",
+        entiteId: p.id,
+        entiteLabel: `${p.numero_affichage} — ${p.intitule}`,
+        description: `Produit de formation "${p.intitule}" supprimé`,
+      })),
+    );
+  }
+
   revalidatePath("/produits");
   return { success: true };
 }
@@ -781,7 +870,14 @@ export async function deleteProduits(ids: string[]) {
 export async function archiveProduit(id: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { organisationId, supabase } = result;
+  const { organisationId, userId, role, supabase } = result;
+
+  // Fetch name for logging
+  const { data: produit } = await supabase
+    .from("produits_formation")
+    .select("numero_affichage, intitule")
+    .eq("id", id)
+    .single();
 
   const { error } = await supabase
     .from("produits_formation")
@@ -793,6 +889,19 @@ export async function archiveProduit(id: string) {
     return { error: error.message };
   }
 
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "produit",
+    action: "archived",
+    entiteType: "produit",
+    entiteId: id,
+    entiteLabel: produit ? `${produit.numero_affichage} — ${produit.intitule}` : null,
+    description: `Produit de formation "${produit?.intitule ?? id}" archivé`,
+    objetHref: `/produits/${id}`,
+  });
+
   revalidatePath("/produits");
   return { success: true };
 }
@@ -800,7 +909,14 @@ export async function archiveProduit(id: string) {
 export async function unarchiveProduit(id: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { organisationId, supabase } = result;
+  const { organisationId, userId, role, supabase } = result;
+
+  // Fetch name for logging
+  const { data: produit } = await supabase
+    .from("produits_formation")
+    .select("numero_affichage, intitule")
+    .eq("id", id)
+    .single();
 
   const { error } = await supabase
     .from("produits_formation")
@@ -811,6 +927,19 @@ export async function unarchiveProduit(id: string) {
   if (error) {
     return { error: error.message };
   }
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "produit",
+    action: "unarchived",
+    entiteType: "produit",
+    entiteId: id,
+    entiteLabel: produit ? `${produit.numero_affichage} — ${produit.intitule}` : null,
+    description: `Produit de formation "${produit?.intitule ?? id}" désarchivé`,
+    objetHref: `/produits/${id}`,
+  });
 
   revalidatePath("/produits");
   return { success: true };
@@ -834,7 +963,9 @@ export async function addTarif(produitId: string, input: TarifInput) {
     return { error: parsed.error.flatten().fieldErrors };
   }
 
-  const supabase = await createClient();
+  const orgResult = await getOrganisationId();
+  if ("error" in orgResult) return { error: { _form: [orgResult.error] } };
+  const { organisationId, userId, role, supabase } = orgResult;
 
   const { data, error } = await supabase
     .from("produit_tarifs")
@@ -854,6 +985,20 @@ export async function addTarif(produitId: string, input: TarifInput) {
   }
 
   await recalculateCompletion(produitId, supabase);
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "produit",
+    action: "updated",
+    entiteType: "produit",
+    entiteId: produitId,
+    description: `Tarif "${data.nom || "sans nom"}" ajouté au produit`,
+    objetHref: `/produits/${produitId}`,
+    metadata: { tarif_id: data.id, prix_ht: data.prix_ht },
+  });
+
   revalidatePath(`/produits/${produitId}`);
   return { data };
 }
@@ -864,7 +1009,9 @@ export async function updateTarif(tarifId: string, produitId: string, input: Tar
     return { error: parsed.error.flatten().fieldErrors };
   }
 
-  const supabase = await createClient();
+  const orgResult = await getOrganisationId();
+  if ("error" in orgResult) return { error: { _form: [orgResult.error] } };
+  const { organisationId, userId, role, supabase } = orgResult;
 
   const { data, error } = await supabase
     .from("produit_tarifs")
@@ -883,12 +1030,34 @@ export async function updateTarif(tarifId: string, produitId: string, input: Tar
     return { error: { _form: [error.message] } };
   }
 
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "produit",
+    action: "updated",
+    entiteType: "produit",
+    entiteId: produitId,
+    description: `Tarif "${data.nom || "sans nom"}" mis à jour`,
+    objetHref: `/produits/${produitId}`,
+    metadata: { tarif_id: tarifId, prix_ht: data.prix_ht },
+  });
+
   revalidatePath(`/produits/${produitId}`);
   return { data };
 }
 
 export async function deleteTarif(tarifId: string, produitId: string) {
-  const supabase = await createClient();
+  const orgResult = await getOrganisationId();
+  if ("error" in orgResult) return { error: orgResult.error };
+  const { organisationId, userId, role, supabase } = orgResult;
+
+  // Fetch tarif name before deletion
+  const { data: tarif } = await supabase
+    .from("produit_tarifs")
+    .select("nom")
+    .eq("id", tarifId)
+    .single();
 
   const { error } = await supabase
     .from("produit_tarifs")
@@ -900,6 +1069,20 @@ export async function deleteTarif(tarifId: string, produitId: string) {
   }
 
   await recalculateCompletion(produitId, supabase);
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "produit",
+    action: "updated",
+    entiteType: "produit",
+    entiteId: produitId,
+    description: `Tarif "${tarif?.nom || "sans nom"}" supprimé du produit`,
+    objetHref: `/produits/${produitId}`,
+    metadata: { tarif_id: tarifId },
+  });
+
   revalidatePath(`/produits/${produitId}`);
   return { success: true };
 }
@@ -907,7 +1090,9 @@ export async function deleteTarif(tarifId: string, produitId: string) {
 // ─── Objectifs pédagogiques ──────────────────────────────
 
 export async function addObjectif(produitId: string, objectif: string) {
-  const supabase = await createClient();
+  const orgResult = await getOrganisationId();
+  if ("error" in orgResult) return { error: orgResult.error };
+  const { organisationId, userId, role, supabase } = orgResult;
 
   const { data: existing } = await supabase
     .from("produit_objectifs")
@@ -929,12 +1114,27 @@ export async function addObjectif(produitId: string, objectif: string) {
   }
 
   await recalculateCompletion(produitId, supabase);
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "produit",
+    action: "updated",
+    entiteType: "produit",
+    entiteId: produitId,
+    description: "Objectif pédagogique ajouté au produit",
+    objetHref: `/produits/${produitId}`,
+  });
+
   revalidatePath(`/produits/${produitId}`);
   return { data };
 }
 
 export async function updateObjectif(objectifId: string, produitId: string, objectif: string) {
-  const supabase = await createClient();
+  const orgResult = await getOrganisationId();
+  if ("error" in orgResult) return { error: orgResult.error };
+  const { organisationId, userId, role, supabase } = orgResult;
 
   const { error } = await supabase
     .from("produit_objectifs")
@@ -945,12 +1145,26 @@ export async function updateObjectif(objectifId: string, produitId: string, obje
     return { error: error.message };
   }
 
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "produit",
+    action: "updated",
+    entiteType: "produit",
+    entiteId: produitId,
+    description: "Objectif pédagogique mis à jour",
+    objetHref: `/produits/${produitId}`,
+  });
+
   revalidatePath(`/produits/${produitId}`);
   return { success: true };
 }
 
 export async function deleteObjectif(objectifId: string, produitId: string) {
-  const supabase = await createClient();
+  const orgResult = await getOrganisationId();
+  if ("error" in orgResult) return { error: orgResult.error };
+  const { organisationId, userId, role, supabase } = orgResult;
 
   const { error } = await supabase
     .from("produit_objectifs")
@@ -962,6 +1176,19 @@ export async function deleteObjectif(objectifId: string, produitId: string) {
   }
 
   await recalculateCompletion(produitId, supabase);
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "produit",
+    action: "updated",
+    entiteType: "produit",
+    entiteId: produitId,
+    description: "Objectif pédagogique supprimé du produit",
+    objetHref: `/produits/${produitId}`,
+  });
+
   revalidatePath(`/produits/${produitId}`);
   return { success: true };
 }
@@ -982,7 +1209,9 @@ export async function addProgrammeModule(produitId: string, input: ProgrammeModu
     return { error: parsed.error.flatten().fieldErrors };
   }
 
-  const supabase = await createClient();
+  const orgResult = await getOrganisationId();
+  if ("error" in orgResult) return { error: { _form: [orgResult.error] } };
+  const { organisationId, userId, role, supabase } = orgResult;
 
   const { data: existing } = await supabase
     .from("produit_programme")
@@ -1010,6 +1239,19 @@ export async function addProgrammeModule(produitId: string, input: ProgrammeModu
   }
 
   await recalculateCompletion(produitId, supabase);
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "produit",
+    action: "updated",
+    entiteType: "produit",
+    entiteId: produitId,
+    description: `Module programme "${data.titre}" ajouté au produit`,
+    objetHref: `/produits/${produitId}`,
+  });
+
   revalidatePath(`/produits/${produitId}`);
   return { data };
 }
@@ -1024,7 +1266,9 @@ export async function updateProgrammeModule(
     return { error: parsed.error.flatten().fieldErrors };
   }
 
-  const supabase = await createClient();
+  const orgResult = await getOrganisationId();
+  if ("error" in orgResult) return { error: { _form: [orgResult.error] } };
+  const { organisationId, userId, role, supabase } = orgResult;
 
   const { error } = await supabase
     .from("produit_programme")
@@ -1039,12 +1283,33 @@ export async function updateProgrammeModule(
     return { error: { _form: [error.message] } };
   }
 
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "produit",
+    action: "updated",
+    entiteType: "produit",
+    entiteId: produitId,
+    description: `Module programme "${parsed.data.titre}" mis à jour`,
+    objetHref: `/produits/${produitId}`,
+  });
+
   revalidatePath(`/produits/${produitId}`);
   return { success: true };
 }
 
 export async function deleteProgrammeModule(moduleId: string, produitId: string) {
-  const supabase = await createClient();
+  const orgResult = await getOrganisationId();
+  if ("error" in orgResult) return { error: orgResult.error };
+  const { organisationId, userId, role, supabase } = orgResult;
+
+  // Fetch title before deletion
+  const { data: mod } = await supabase
+    .from("produit_programme")
+    .select("titre")
+    .eq("id", moduleId)
+    .single();
 
   const { error } = await supabase
     .from("produit_programme")
@@ -1056,6 +1321,19 @@ export async function deleteProgrammeModule(moduleId: string, produitId: string)
   }
 
   await recalculateCompletion(produitId, supabase);
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "produit",
+    action: "updated",
+    entiteType: "produit",
+    entiteId: produitId,
+    description: `Module programme "${mod?.titre ?? moduleId}" supprimé du produit`,
+    objetHref: `/produits/${produitId}`,
+  });
+
   revalidatePath(`/produits/${produitId}`);
   return { success: true };
 }
@@ -1065,7 +1343,9 @@ export async function reorderProgrammeModule(
   produitId: string,
   direction: "up" | "down",
 ) {
-  const supabase = await createClient();
+  const orgResult = await getOrganisationId();
+  if ("error" in orgResult) return { error: orgResult.error };
+  const { supabase } = orgResult;
 
   // Fetch all modules ordered
   const { data: modules, error: fetchError } = await supabase
@@ -1104,7 +1384,16 @@ export async function addListItem(
   table: "produit_prerequis" | "produit_public_vise" | "produit_financement" | "produit_competences",
   texte: string,
 ) {
-  const supabase = await createClient();
+  const orgResult = await getOrganisationId();
+  if ("error" in orgResult) return { error: orgResult.error };
+  const { organisationId, userId, role, supabase } = orgResult;
+
+  const tableLabels: Record<string, string> = {
+    produit_prerequis: "Prérequis",
+    produit_public_vise: "Public visé",
+    produit_financement: "Financement",
+    produit_competences: "Compétence",
+  };
 
   const { data: existing } = await supabase
     .from(table)
@@ -1126,6 +1415,19 @@ export async function addListItem(
   }
 
   await recalculateCompletion(produitId, supabase);
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "produit",
+    action: "updated",
+    entiteType: "produit",
+    entiteId: produitId,
+    description: `${tableLabels[table] ?? table} ajouté au produit`,
+    objetHref: `/produits/${produitId}`,
+  });
+
   revalidatePath(`/produits/${produitId}`);
   return { data };
 }
@@ -1136,7 +1438,16 @@ export async function updateListItem(
   table: "produit_prerequis" | "produit_public_vise" | "produit_financement" | "produit_competences",
   texte: string,
 ) {
-  const supabase = await createClient();
+  const orgResult = await getOrganisationId();
+  if ("error" in orgResult) return { error: orgResult.error };
+  const { organisationId, userId, role, supabase } = orgResult;
+
+  const tableLabels: Record<string, string> = {
+    produit_prerequis: "Prérequis",
+    produit_public_vise: "Public visé",
+    produit_financement: "Financement",
+    produit_competences: "Compétence",
+  };
 
   const { error } = await supabase
     .from(table)
@@ -1147,6 +1458,18 @@ export async function updateListItem(
     return { error: error.message };
   }
 
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "produit",
+    action: "updated",
+    entiteType: "produit",
+    entiteId: produitId,
+    description: `${tableLabels[table] ?? table} mis à jour`,
+    objetHref: `/produits/${produitId}`,
+  });
+
   revalidatePath(`/produits/${produitId}`);
   return { success: true };
 }
@@ -1156,7 +1479,16 @@ export async function deleteListItem(
   produitId: string,
   table: "produit_prerequis" | "produit_public_vise" | "produit_financement" | "produit_competences",
 ) {
-  const supabase = await createClient();
+  const orgResult = await getOrganisationId();
+  if ("error" in orgResult) return { error: orgResult.error };
+  const { organisationId, userId, role, supabase } = orgResult;
+
+  const tableLabels: Record<string, string> = {
+    produit_prerequis: "Prérequis",
+    produit_public_vise: "Public visé",
+    produit_financement: "Financement",
+    produit_competences: "Compétence",
+  };
 
   const { error } = await supabase
     .from(table)
@@ -1168,6 +1500,19 @@ export async function deleteListItem(
   }
 
   await recalculateCompletion(produitId, supabase);
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "produit",
+    action: "updated",
+    entiteType: "produit",
+    entiteId: produitId,
+    description: `${tableLabels[table] ?? table} supprimé du produit`,
+    objetHref: `/produits/${produitId}`,
+  });
+
   revalidatePath(`/produits/${produitId}`);
   return { success: true };
 }
@@ -1217,7 +1562,7 @@ export async function importProduits(
     return { success: 0, errors: [String(authResult.error)] };
   }
 
-  const { organisationId, supabase } = authResult;
+  const { organisationId, userId, role, supabase } = authResult;
   let successCount = 0;
   const importErrors: string[] = [];
 
@@ -1296,6 +1641,20 @@ export async function importProduits(
     successCount++;
   }
 
+  if (successCount > 0) {
+    await logHistorique({
+      organisationId,
+      userId,
+      userRole: role,
+      module: "produit",
+      action: "imported",
+      entiteType: "produit",
+      entiteId: organisationId,
+      description: `${successCount} produit(s) importé(s) via CSV`,
+      metadata: { success_count: successCount, error_count: importErrors.length },
+    });
+  }
+
   revalidatePath("/produits");
   return { success: successCount, errors: importErrors };
 }
@@ -1340,7 +1699,7 @@ export async function saveImportTemplate(
 ) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { organisationId, supabase } = result;
+  const { organisationId, userId, role, supabase } = result;
 
   const { data, error } = await supabase
     .from("import_templates")
@@ -1354,6 +1713,19 @@ export async function saveImportTemplate(
     .single();
 
   if (error) return { error: error.message };
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "produit",
+    action: "created",
+    entiteType: "import_template",
+    entiteId: data.id,
+    entiteLabel: nom,
+    description: `Template d'import "${nom}" sauvegardé`,
+  });
+
   return { data };
 }
 
@@ -1367,7 +1739,9 @@ export interface OuvrageInput {
 }
 
 export async function addOuvrage(produitId: string, input: OuvrageInput) {
-  const supabase = await createClient();
+  const orgResult = await getOrganisationId();
+  if ("error" in orgResult) return { error: orgResult.error };
+  const { organisationId, userId, role, supabase } = orgResult;
 
   const { data: existing } = await supabase
     .from("produit_ouvrages")
@@ -1395,12 +1769,26 @@ export async function addOuvrage(produitId: string, input: OuvrageInput) {
     return { error: error.message };
   }
 
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "produit",
+    action: "updated",
+    entiteType: "produit",
+    entiteId: produitId,
+    description: `Ouvrage "${input.titre}" ajouté à la bibliographie`,
+    objetHref: `/produits/${produitId}`,
+  });
+
   revalidatePath(`/produits/${produitId}`);
   return { data };
 }
 
 export async function updateOuvrage(ouvrageId: string, produitId: string, input: OuvrageInput) {
-  const supabase = await createClient();
+  const orgResult = await getOrganisationId();
+  if ("error" in orgResult) return { error: orgResult.error };
+  const { organisationId, userId, role, supabase } = orgResult;
 
   const { error } = await supabase
     .from("produit_ouvrages")
@@ -1416,12 +1804,33 @@ export async function updateOuvrage(ouvrageId: string, produitId: string, input:
     return { error: error.message };
   }
 
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "produit",
+    action: "updated",
+    entiteType: "produit",
+    entiteId: produitId,
+    description: `Ouvrage "${input.titre}" mis à jour dans la bibliographie`,
+    objetHref: `/produits/${produitId}`,
+  });
+
   revalidatePath(`/produits/${produitId}`);
   return { success: true };
 }
 
 export async function deleteOuvrage(ouvrageId: string, produitId: string) {
-  const supabase = await createClient();
+  const orgResult = await getOrganisationId();
+  if ("error" in orgResult) return { error: orgResult.error };
+  const { organisationId, userId, role, supabase } = orgResult;
+
+  // Fetch title before deletion
+  const { data: ouvrage } = await supabase
+    .from("produit_ouvrages")
+    .select("titre")
+    .eq("id", ouvrageId)
+    .single();
 
   const { error } = await supabase
     .from("produit_ouvrages")
@@ -1431,6 +1840,18 @@ export async function deleteOuvrage(ouvrageId: string, produitId: string) {
   if (error) {
     return { error: error.message };
   }
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "produit",
+    action: "updated",
+    entiteType: "produit",
+    entiteId: produitId,
+    description: `Ouvrage "${ouvrage?.titre ?? ouvrageId}" supprimé de la bibliographie`,
+    objetHref: `/produits/${produitId}`,
+  });
 
   revalidatePath(`/produits/${produitId}`);
   return { success: true };
@@ -1447,7 +1868,9 @@ export interface ArticleInput {
 }
 
 export async function addArticle(produitId: string, input: ArticleInput) {
-  const supabase = await createClient();
+  const orgResult = await getOrganisationId();
+  if ("error" in orgResult) return { error: orgResult.error };
+  const { organisationId, userId, role, supabase } = orgResult;
 
   const { data: existing } = await supabase
     .from("produit_articles")
@@ -1476,12 +1899,26 @@ export async function addArticle(produitId: string, input: ArticleInput) {
     return { error: error.message };
   }
 
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "produit",
+    action: "updated",
+    entiteType: "produit",
+    entiteId: produitId,
+    description: `Article "${input.titre}" ajouté à la bibliographie`,
+    objetHref: `/produits/${produitId}`,
+  });
+
   revalidatePath(`/produits/${produitId}`);
   return { data };
 }
 
 export async function updateArticle(articleId: string, produitId: string, input: ArticleInput) {
-  const supabase = await createClient();
+  const orgResult = await getOrganisationId();
+  if ("error" in orgResult) return { error: orgResult.error };
+  const { organisationId, userId, role, supabase } = orgResult;
 
   const { error } = await supabase
     .from("produit_articles")
@@ -1498,12 +1935,33 @@ export async function updateArticle(articleId: string, produitId: string, input:
     return { error: error.message };
   }
 
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "produit",
+    action: "updated",
+    entiteType: "produit",
+    entiteId: produitId,
+    description: `Article "${input.titre}" mis à jour dans la bibliographie`,
+    objetHref: `/produits/${produitId}`,
+  });
+
   revalidatePath(`/produits/${produitId}`);
   return { success: true };
 }
 
 export async function deleteArticle(articleId: string, produitId: string) {
-  const supabase = await createClient();
+  const orgResult = await getOrganisationId();
+  if ("error" in orgResult) return { error: orgResult.error };
+  const { organisationId, userId, role, supabase } = orgResult;
+
+  // Fetch title before deletion
+  const { data: article } = await supabase
+    .from("produit_articles")
+    .select("titre")
+    .eq("id", articleId)
+    .single();
 
   const { error } = await supabase
     .from("produit_articles")
@@ -1513,6 +1971,18 @@ export async function deleteArticle(articleId: string, produitId: string) {
   if (error) {
     return { error: error.message };
   }
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "produit",
+    action: "updated",
+    entiteType: "produit",
+    entiteId: produitId,
+    description: `Article "${article?.titre ?? articleId}" supprimé de la bibliographie`,
+    objetHref: `/produits/${produitId}`,
+  });
 
   revalidatePath(`/produits/${produitId}`);
   return { success: true };

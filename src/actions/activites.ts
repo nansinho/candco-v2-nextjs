@@ -1,7 +1,7 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
 import { getOrganisationId } from "@/lib/auth-helpers";
+import { logHistorique } from "@/lib/historique";
 import { z } from "zod";
 
 // ─── Schemas ─────────────────────────────────────────────
@@ -72,7 +72,7 @@ export async function createActivite(input: CreateActiviteInput) {
     return { error: { _form: [result.error] } };
   }
 
-  const { organisationId, userId, supabase } = result;
+  const { organisationId, userId, role, supabase } = result;
   const cleanedData = cleanEmptyStrings(parsed.data);
 
   const { data, error } = await supabase
@@ -88,6 +88,23 @@ export async function createActivite(input: CreateActiviteInput) {
   if (error) {
     return { error: { _form: [error.message] } };
   }
+
+  const truncatedContent = parsed.data.contenu.length > 80
+    ? parsed.data.contenu.substring(0, 80) + "..."
+    : parsed.data.contenu;
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "activite",
+    action: "created",
+    entiteType: "activite",
+    entiteId: data.id,
+    entiteLabel: truncatedContent,
+    entrepriseId: parsed.data.entite_type === "entreprise" ? parsed.data.entite_id ?? null : null,
+    description: `Note ajoutée : "${truncatedContent}"`,
+  });
 
   return { data };
 }

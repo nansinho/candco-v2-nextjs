@@ -16,6 +16,16 @@ import {
   Users,
   CheckSquare,
   X,
+  FileText,
+  CreditCard,
+  Mail,
+  BookOpen,
+  DoorOpen,
+  Briefcase,
+  HelpCircle,
+  User,
+  Banknote,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -25,6 +35,8 @@ import {
   getEntrepriseHistorique,
   type HistoriqueEvent,
   type HistoriqueModule,
+  type HistoriqueAction,
+  type HistoriqueOrigine,
   type HistoriqueFilters,
 } from "@/actions/entreprise-historique";
 
@@ -34,10 +46,35 @@ const MODULE_CONFIG: Record<
   HistoriqueModule,
   { label: string; color: string; bgColor: string }
 > = {
-  activite: {
-    label: "Activité",
-    color: "text-blue-400",
-    bgColor: "bg-blue-500/15",
+  entreprise: {
+    label: "Entreprise",
+    color: "text-orange-400",
+    bgColor: "bg-orange-500/15",
+  },
+  apprenant: {
+    label: "Apprenant",
+    color: "text-cyan-400",
+    bgColor: "bg-cyan-500/15",
+  },
+  contact_client: {
+    label: "Contact",
+    color: "text-amber-400",
+    bgColor: "bg-amber-500/15",
+  },
+  formateur: {
+    label: "Formateur",
+    color: "text-teal-400",
+    bgColor: "bg-teal-500/15",
+  },
+  financeur: {
+    label: "Financeur",
+    color: "text-lime-400",
+    bgColor: "bg-lime-500/15",
+  },
+  produit: {
+    label: "Produit",
+    color: "text-violet-400",
+    bgColor: "bg-violet-500/15",
   },
   session: {
     label: "Session",
@@ -49,47 +86,75 @@ const MODULE_CONFIG: Record<
     color: "text-emerald-400",
     bgColor: "bg-emerald-500/15",
   },
-  apprenant: {
-    label: "Apprenant",
-    color: "text-cyan-400",
-    bgColor: "bg-cyan-500/15",
+  devis: {
+    label: "Devis",
+    color: "text-sky-400",
+    bgColor: "bg-sky-500/15",
   },
-  contact: {
-    label: "Contact",
-    color: "text-amber-400",
-    bgColor: "bg-amber-500/15",
+  facture: {
+    label: "Facture",
+    color: "text-green-400",
+    bgColor: "bg-green-500/15",
   },
-  organisation: {
-    label: "Organisation",
-    color: "text-orange-400",
-    bgColor: "bg-orange-500/15",
+  avoir: {
+    label: "Avoir",
+    color: "text-red-400",
+    bgColor: "bg-red-500/15",
   },
   tache: {
     label: "Tâche",
     color: "text-pink-400",
     bgColor: "bg-pink-500/15",
   },
+  activite: {
+    label: "Activité",
+    color: "text-blue-400",
+    bgColor: "bg-blue-500/15",
+  },
+  salle: {
+    label: "Salle",
+    color: "text-stone-400",
+    bgColor: "bg-stone-500/15",
+  },
+  email: {
+    label: "Email",
+    color: "text-indigo-400",
+    bgColor: "bg-indigo-500/15",
+  },
+  organisation: {
+    label: "Organisation",
+    color: "text-orange-400",
+    bgColor: "bg-orange-500/15",
+  },
+  questionnaire: {
+    label: "Questionnaire",
+    color: "text-fuchsia-400",
+    bgColor: "bg-fuchsia-500/15",
+  },
+  opportunite: {
+    label: "Opportunité",
+    color: "text-yellow-400",
+    bgColor: "bg-yellow-500/15",
+  },
 };
 
-const TYPE_ACTION_LABELS: Record<string, string> = {
-  note_ajoutee: "Note ajoutée",
-  session_creee: "Session créée",
-  session_statut_change: "Statut session modifié",
-  convention_signee: "Convention signée",
-  inscription_inscrit: "Inscription",
-  inscription_confirme: "Inscription confirmée",
-  inscription_annule: "Inscription annulée",
-  inscription_liste_attente: "Liste d'attente",
-  apprenant_rattache: "Apprenant rattaché",
-  contact_rattache: "Contact rattaché",
-  membre_ajoute: "Membre ajouté",
-  agence_creee: "Agence créée",
-  pole_cree: "Pôle créé",
-  tache_creee: "Tâche créée",
-  tache_terminee: "Tâche terminée",
+const ACTION_LABELS: Record<HistoriqueAction, string> = {
+  created: "Création",
+  updated: "Modification",
+  archived: "Archivage",
+  unarchived: "Désarchivage",
+  deleted: "Suppression",
+  status_changed: "Changement de statut",
+  linked: "Association",
+  unlinked: "Dissociation",
+  imported: "Import",
+  sent: "Envoi",
+  signed: "Signature",
+  completed: "Terminé",
+  generated: "Génération",
 };
 
-const ORIGINE_LABELS: Record<string, { label: string; class: string }> = {
+const ORIGINE_LABELS: Record<HistoriqueOrigine, { label: string; class: string }> = {
   backoffice: {
     label: "Back-office",
     class: "border-transparent bg-gray-500/15 text-gray-400",
@@ -102,6 +167,15 @@ const ORIGINE_LABELS: Record<string, { label: string; class: string }> = {
     label: "Système",
     class: "border-transparent bg-gray-500/10 text-gray-500",
   },
+};
+
+const ROLE_LABELS: Record<string, string> = {
+  admin: "Admin",
+  manager: "Manager",
+  user: "Utilisateur",
+  formateur: "Formateur",
+  apprenant: "Apprenant",
+  contact_client: "Contact client",
 };
 
 // ─── Helpers ────────────────────────────────────────────
@@ -117,34 +191,54 @@ function formatDateTime(dateString: string): string {
   });
 }
 
-function formatDateShort(dateString: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleDateString("fr-FR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-}
-
 function getModuleIcon(module: HistoriqueModule) {
   switch (module) {
-    case "activite":
-      return <MessageSquarePlus className="h-3.5 w-3.5" />;
+    case "entreprise":
+      return <Building2 className="h-3.5 w-3.5" />;
+    case "apprenant":
+      return <GraduationCap className="h-3.5 w-3.5" />;
+    case "contact_client":
+      return <Users className="h-3.5 w-3.5" />;
+    case "formateur":
+      return <User className="h-3.5 w-3.5" />;
+    case "financeur":
+      return <Banknote className="h-3.5 w-3.5" />;
+    case "produit":
+      return <BookOpen className="h-3.5 w-3.5" />;
     case "session":
       return <Calendar className="h-3.5 w-3.5" />;
     case "inscription":
       return <GraduationCap className="h-3.5 w-3.5" />;
-    case "apprenant":
-      return <GraduationCap className="h-3.5 w-3.5" />;
-    case "contact":
-      return <Users className="h-3.5 w-3.5" />;
-    case "organisation":
-      return <Building2 className="h-3.5 w-3.5" />;
+    case "devis":
+      return <FileText className="h-3.5 w-3.5" />;
+    case "facture":
+      return <CreditCard className="h-3.5 w-3.5" />;
+    case "avoir":
+      return <CreditCard className="h-3.5 w-3.5" />;
     case "tache":
       return <CheckSquare className="h-3.5 w-3.5" />;
+    case "activite":
+      return <MessageSquarePlus className="h-3.5 w-3.5" />;
+    case "salle":
+      return <DoorOpen className="h-3.5 w-3.5" />;
+    case "email":
+      return <Mail className="h-3.5 w-3.5" />;
+    case "organisation":
+      return <Building2 className="h-3.5 w-3.5" />;
+    case "questionnaire":
+      return <HelpCircle className="h-3.5 w-3.5" />;
+    case "opportunite":
+      return <Briefcase className="h-3.5 w-3.5" />;
     default:
       return <Clock className="h-3.5 w-3.5" />;
   }
+}
+
+function formatChangedFields(metadata: Record<string, unknown> | null): string | null {
+  if (!metadata) return null;
+  const fields = metadata.changed_fields as string[] | undefined;
+  if (!fields || fields.length === 0) return null;
+  return fields.join(", ");
 }
 
 // ─── Component ──────────────────────────────────────────
@@ -160,20 +254,23 @@ export function HistoriqueTab({ entrepriseId }: HistoriqueTabProps) {
   const [page, setPage] = React.useState(1);
   const [loading, setLoading] = React.useState(true);
   const [showFilters, setShowFilters] = React.useState(false);
+  const [expandedMetadata, setExpandedMetadata] = React.useState<Set<string>>(new Set());
 
   // Filters
   const [filterModule, setFilterModule] = React.useState<string>("");
-  const [filterTypeAction, setFilterTypeAction] = React.useState<string>("");
+  const [filterAction, setFilterAction] = React.useState<string>("");
+  const [filterOrigine, setFilterOrigine] = React.useState<string>("");
   const [filterDateDebut, setFilterDateDebut] = React.useState<string>("");
   const [filterDateFin, setFilterDateFin] = React.useState<string>("");
 
-  const activeFilterCount = [filterModule, filterTypeAction, filterDateDebut, filterDateFin].filter(Boolean).length;
+  const activeFilterCount = [filterModule, filterAction, filterOrigine, filterDateDebut, filterDateFin].filter(Boolean).length;
 
   const fetchData = React.useCallback(async () => {
     setLoading(true);
     const filters: HistoriqueFilters = {};
     if (filterModule) filters.module = filterModule as HistoriqueModule;
-    if (filterTypeAction) filters.type_action = filterTypeAction;
+    if (filterAction) filters.action = filterAction as HistoriqueAction;
+    if (filterOrigine) filters.origine = filterOrigine as HistoriqueOrigine;
     if (filterDateDebut) filters.date_debut = filterDateDebut;
     if (filterDateFin) filters.date_fin = filterDateFin;
 
@@ -183,7 +280,7 @@ export function HistoriqueTab({ entrepriseId }: HistoriqueTabProps) {
       setTotalCount(result.count);
     }
     setLoading(false);
-  }, [entrepriseId, page, filterModule, filterTypeAction, filterDateDebut, filterDateFin]);
+  }, [entrepriseId, page, filterModule, filterAction, filterOrigine, filterDateDebut, filterDateFin]);
 
   React.useEffect(() => {
     fetchData();
@@ -192,41 +289,29 @@ export function HistoriqueTab({ entrepriseId }: HistoriqueTabProps) {
   // Reset page when filters change
   React.useEffect(() => {
     setPage(1);
-  }, [filterModule, filterTypeAction, filterDateDebut, filterDateFin]);
+  }, [filterModule, filterAction, filterOrigine, filterDateDebut, filterDateFin]);
 
   const totalPages = Math.ceil(totalCount / 25);
 
   const clearFilters = () => {
     setFilterModule("");
-    setFilterTypeAction("");
+    setFilterAction("");
+    setFilterOrigine("");
     setFilterDateDebut("");
     setFilterDateFin("");
   };
 
-  // Get available type_action options based on selected module
-  const availableTypeActions = React.useMemo(() => {
-    const actions: string[] = [];
-    for (const [key] of Object.entries(TYPE_ACTION_LABELS)) {
-      if (!filterModule) {
-        actions.push(key);
-      } else if (filterModule === "activite" && key.startsWith("note_")) {
-        actions.push(key);
-      } else if (filterModule === "session" && (key.startsWith("session_") || key === "convention_signee")) {
-        actions.push(key);
-      } else if (filterModule === "inscription" && key.startsWith("inscription_")) {
-        actions.push(key);
-      } else if (filterModule === "apprenant" && key.startsWith("apprenant_")) {
-        actions.push(key);
-      } else if (filterModule === "contact" && key.startsWith("contact_")) {
-        actions.push(key);
-      } else if (filterModule === "organisation" && (key.startsWith("membre_") || key.startsWith("agence_") || key.startsWith("pole_"))) {
-        actions.push(key);
-      } else if (filterModule === "tache" && key.startsWith("tache_")) {
-        actions.push(key);
+  const toggleMetadata = (eventId: string) => {
+    setExpandedMetadata((prev) => {
+      const next = new Set(prev);
+      if (next.has(eventId)) {
+        next.delete(eventId);
+      } else {
+        next.add(eventId);
       }
-    }
-    return actions;
-  }, [filterModule]);
+      return next;
+    });
+  };
 
   return (
     <div className="space-y-4">
@@ -270,7 +355,7 @@ export function HistoriqueTab({ entrepriseId }: HistoriqueTabProps) {
       {/* Filters panel */}
       {showFilters && (
         <div className="rounded-lg border border-border/60 bg-card p-4">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
             {/* Module filter */}
             <div>
               <Label className="mb-1.5 text-xs text-muted-foreground">Module</Label>
@@ -278,7 +363,7 @@ export function HistoriqueTab({ entrepriseId }: HistoriqueTabProps) {
                 value={filterModule}
                 onChange={(e) => {
                   setFilterModule(e.target.value);
-                  setFilterTypeAction("");
+                  setFilterAction("");
                 }}
                 className="h-9 w-full rounded-md border border-border/60 bg-muted px-3 text-[13px] text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
               >
@@ -291,18 +376,35 @@ export function HistoriqueTab({ entrepriseId }: HistoriqueTabProps) {
               </select>
             </div>
 
-            {/* Type action filter */}
+            {/* Action filter */}
             <div>
-              <Label className="mb-1.5 text-xs text-muted-foreground">Type d&apos;action</Label>
+              <Label className="mb-1.5 text-xs text-muted-foreground">Action</Label>
               <select
-                value={filterTypeAction}
-                onChange={(e) => setFilterTypeAction(e.target.value)}
+                value={filterAction}
+                onChange={(e) => setFilterAction(e.target.value)}
                 className="h-9 w-full rounded-md border border-border/60 bg-muted px-3 text-[13px] text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
               >
                 <option value="">Toutes les actions</option>
-                {availableTypeActions.map((key) => (
+                {Object.entries(ACTION_LABELS).map(([key, label]) => (
                   <option key={key} value={key}>
-                    {TYPE_ACTION_LABELS[key] || key}
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Origine filter */}
+            <div>
+              <Label className="mb-1.5 text-xs text-muted-foreground">Origine</Label>
+              <select
+                value={filterOrigine}
+                onChange={(e) => setFilterOrigine(e.target.value)}
+                className="h-9 w-full rounded-md border border-border/60 bg-muted px-3 text-[13px] text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              >
+                <option value="">Toutes les origines</option>
+                {Object.entries(ORIGINE_LABELS).map(([key, config]) => (
+                  <option key={key} value={key}>
+                    {config.label}
                   </option>
                 ))}
               </select>
@@ -358,9 +460,16 @@ export function HistoriqueTab({ entrepriseId }: HistoriqueTabProps) {
           {/* Timeline line */}
           <div className="absolute left-[19px] top-2 bottom-2 w-px bg-border/60" />
 
-          {events.map((event, index) => {
-            const moduleConf = MODULE_CONFIG[event.module];
-            const origineConf = ORIGINE_LABELS[event.origine];
+          {events.map((event) => {
+            const moduleConf = MODULE_CONFIG[event.module] ?? {
+              label: event.module,
+              color: "text-gray-400",
+              bgColor: "bg-gray-500/15",
+            };
+            const origineConf = ORIGINE_LABELS[event.origine] ?? ORIGINE_LABELS.backoffice;
+            const changedFields = formatChangedFields(event.metadata);
+            const hasDetailedChanges = event.metadata?.old_values && event.metadata?.new_values;
+            const isExpanded = expandedMetadata.has(event.id);
 
             return (
               <div key={event.id} className="relative flex gap-3 pb-4">
@@ -376,7 +485,7 @@ export function HistoriqueTab({ entrepriseId }: HistoriqueTabProps) {
                 <div className="min-w-0 flex-1 rounded-lg border border-border/40 bg-card/50 px-3.5 py-2.5 transition-colors hover:bg-card">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      {/* Module badge + type + date */}
+                      {/* Module badge + action + date */}
                       <div className="flex flex-wrap items-center gap-1.5">
                         <Badge
                           className={`${moduleConf.bgColor} ${moduleConf.color} border-transparent text-[10px] px-1.5 py-0`}
@@ -385,7 +494,7 @@ export function HistoriqueTab({ entrepriseId }: HistoriqueTabProps) {
                           <span className="ml-1">{moduleConf.label}</span>
                         </Badge>
                         <span className="text-[11px] text-muted-foreground">
-                          {TYPE_ACTION_LABELS[event.type_action] || event.type_action}
+                          {ACTION_LABELS[event.action] || event.action}
                         </span>
                         <span className="text-[10px] text-muted-foreground/50">
                           &middot;
@@ -400,17 +509,60 @@ export function HistoriqueTab({ entrepriseId }: HistoriqueTabProps) {
                         {event.description}
                       </p>
 
+                      {/* Changed fields summary */}
+                      {changedFields && (
+                        <div className="mt-1">
+                          <button
+                            type="button"
+                            onClick={() => hasDetailedChanges && toggleMetadata(event.id)}
+                            className={`text-[11px] text-muted-foreground/70 ${hasDetailedChanges ? "cursor-pointer hover:text-muted-foreground" : ""}`}
+                          >
+                            Champs modifiés : {changedFields}
+                            {hasDetailedChanges && (
+                              <ChevronDown className={`ml-0.5 inline h-3 w-3 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                            )}
+                          </button>
+
+                          {/* Expanded changes detail */}
+                          {isExpanded && hasDetailedChanges && (
+                            <div className="mt-1.5 rounded border border-border/30 bg-muted/30 p-2 text-[11px]">
+                              {((event.metadata?.changed_fields as string[]) || []).map((field) => {
+                                const key = Object.keys(event.metadata?.old_values as Record<string, unknown> || {}).find(
+                                  (k) => {
+                                    const fieldLabels = event.metadata?.field_labels as Record<string, string> | undefined;
+                                    return fieldLabels?.[k] === field || k === field;
+                                  }
+                                ) || field;
+                                const oldVal = (event.metadata?.old_values as Record<string, unknown>)?.[key];
+                                const newVal = (event.metadata?.new_values as Record<string, unknown>)?.[key];
+                                return (
+                                  <div key={field} className="flex items-baseline gap-1 py-0.5">
+                                    <span className="font-medium text-foreground/70">{field} :</span>
+                                    <span className="text-red-400/70 line-through">{oldVal != null ? String(oldVal) : "vide"}</span>
+                                    <span className="text-muted-foreground/50">&rarr;</span>
+                                    <span className="text-green-400/70">{newVal != null ? String(newVal) : "vide"}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       {/* Meta row */}
                       <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                        {event.utilisateur && (
+                        {event.user_nom && (
                           <span className="text-[11px] text-muted-foreground">
-                            Par {event.utilisateur}
+                            Par {event.user_nom}
+                            {event.user_role && (
+                              <span className="text-muted-foreground/50"> ({ROLE_LABELS[event.user_role] || event.user_role})</span>
+                            )}
                           </span>
                         )}
-                        {event.agence && (
+                        {event.agence_nom && (
                           <Badge className="border-transparent bg-gray-500/10 text-gray-400 text-[10px] px-1.5 py-0">
                             <Building2 className="mr-0.5 h-2.5 w-2.5" />
-                            {event.agence}
+                            {event.agence_nom}
                           </Badge>
                         )}
                         <Badge className={`${origineConf.class} text-[10px] px-1.5 py-0`}>
@@ -426,7 +578,7 @@ export function HistoriqueTab({ entrepriseId }: HistoriqueTabProps) {
                         size="icon"
                         className="h-7 w-7 flex-shrink-0 text-muted-foreground hover:text-foreground"
                         onClick={() => router.push(event.objet_href!)}
-                        title={`Voir ${event.objet_label || ""}`}
+                        title={`Voir ${event.entite_label || ""}`}
                       >
                         <ExternalLink className="h-3.5 w-3.5" />
                       </Button>

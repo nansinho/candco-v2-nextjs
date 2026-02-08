@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getOrganisationId } from "@/lib/auth-helpers";
+import { logHistorique, logHistoriqueBatch } from "@/lib/historique";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { QueryFilter } from "@/lib/utils";
@@ -37,7 +38,7 @@ export async function createFormateur(input: FormateurInput) {
     return { error: { _form: [result.error] } };
   }
 
-  const { organisationId, supabase } = result;
+  const { organisationId, userId, role, supabase } = result;
 
   // Generate display number
   const { data: numero } = await supabase.rpc("next_numero", {
@@ -72,6 +73,19 @@ export async function createFormateur(input: FormateurInput) {
   if (error) {
     return { error: { _form: [error.message] } };
   }
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "formateur",
+    action: "created",
+    entiteType: "formateur",
+    entiteId: data.id,
+    entiteLabel: `${data.numero_affichage} — ${data.prenom} ${data.nom}`,
+    description: `Formateur "${data.prenom} ${data.nom}" créé (${data.numero_affichage})`,
+    objetHref: `/formateurs/${data.id}`,
+  });
 
   revalidatePath("/formateurs");
   return { data };
@@ -162,7 +176,7 @@ export async function updateFormateur(id: string, input: Partial<FormateurInput>
   if ("error" in orgResult) {
     return { error: { _form: [orgResult.error] } };
   }
-  const { organisationId } = orgResult;
+  const { organisationId, userId, role } = orgResult;
   const supabase = await createClient();
 
   // Build update payload, converting empty strings to null
@@ -200,6 +214,19 @@ export async function updateFormateur(id: string, input: Partial<FormateurInput>
     return { error: { _form: [error.message] } };
   }
 
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "formateur",
+    action: "updated",
+    entiteType: "formateur",
+    entiteId: data.id,
+    entiteLabel: `${data.numero_affichage} — ${data.prenom} ${data.nom}`,
+    description: `Formateur "${data.prenom} ${data.nom}" modifié (${data.numero_affichage})`,
+    objetHref: `/formateurs/${data.id}`,
+  });
+
   revalidatePath("/formateurs");
   revalidatePath(`/formateurs/${id}`);
   return { data };
@@ -234,7 +261,7 @@ export async function importFormateurs(
     return { success: 0, errors: [String(authResult.error)] };
   }
 
-  const { organisationId, supabase } = authResult;
+  const { organisationId, userId, role, supabase } = authResult;
   let success = 0;
   const errors: string[] = [];
 
@@ -326,6 +353,21 @@ export async function importFormateurs(
     }
   }
 
+  if (success > 0) {
+    await logHistorique({
+      organisationId,
+      userId,
+      userRole: role,
+      module: "formateur",
+      action: "imported",
+      entiteType: "formateur",
+      entiteId: organisationId,
+      entiteLabel: `Import de ${success} formateur(s)`,
+      description: `${success} formateur(s) importé(s)${errors.length > 0 ? `, ${errors.length} erreur(s)` : ""}`,
+      metadata: { success, errors_count: errors.length },
+    });
+  }
+
   revalidatePath("/formateurs");
   return { success, errors };
 }
@@ -333,7 +375,14 @@ export async function importFormateurs(
 export async function deleteFormateurs(ids: string[]) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { organisationId, supabase } = result;
+  const { organisationId, userId, role, admin, supabase } = result;
+
+  // Fetch names before deletion for history logging
+  const { data: formateursToDelete } = await admin
+    .from("formateurs")
+    .select("id, numero_affichage, prenom, nom")
+    .in("id", ids)
+    .eq("organisation_id", organisationId);
 
   const { error } = await supabase
     .from("formateurs")
@@ -345,6 +394,22 @@ export async function deleteFormateurs(ids: string[]) {
     return { error: error.message };
   }
 
+  if (formateursToDelete && formateursToDelete.length > 0) {
+    await logHistoriqueBatch(
+      formateursToDelete.map((f) => ({
+        organisationId,
+        userId,
+        userRole: role,
+        module: "formateur" as const,
+        action: "deleted" as const,
+        entiteType: "formateur",
+        entiteId: f.id,
+        entiteLabel: `${f.numero_affichage} — ${f.prenom} ${f.nom}`,
+        description: `Formateur "${f.prenom} ${f.nom}" supprimé (${f.numero_affichage})`,
+      })),
+    );
+  }
+
   revalidatePath("/formateurs");
   return { success: true };
 }
@@ -352,7 +417,15 @@ export async function deleteFormateurs(ids: string[]) {
 export async function archiveFormateur(id: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { organisationId, supabase } = result;
+  const { organisationId, userId, role, admin, supabase } = result;
+
+  // Fetch name before archiving for history logging
+  const { data: formateur } = await admin
+    .from("formateurs")
+    .select("numero_affichage, prenom, nom")
+    .eq("id", id)
+    .eq("organisation_id", organisationId)
+    .single();
 
   const { error } = await supabase
     .from("formateurs")
@@ -364,6 +437,21 @@ export async function archiveFormateur(id: string) {
     return { error: error.message };
   }
 
+  if (formateur) {
+    await logHistorique({
+      organisationId,
+      userId,
+      userRole: role,
+      module: "formateur",
+      action: "archived",
+      entiteType: "formateur",
+      entiteId: id,
+      entiteLabel: `${formateur.numero_affichage} — ${formateur.prenom} ${formateur.nom}`,
+      description: `Formateur "${formateur.prenom} ${formateur.nom}" archivé (${formateur.numero_affichage})`,
+      objetHref: `/formateurs/${id}`,
+    });
+  }
+
   revalidatePath("/formateurs");
   return { success: true };
 }
@@ -371,7 +459,15 @@ export async function archiveFormateur(id: string) {
 export async function unarchiveFormateur(id: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { organisationId, supabase } = result;
+  const { organisationId, userId, role, admin, supabase } = result;
+
+  // Fetch name before unarchiving for history logging
+  const { data: formateur } = await admin
+    .from("formateurs")
+    .select("numero_affichage, prenom, nom")
+    .eq("id", id)
+    .eq("organisation_id", organisationId)
+    .single();
 
   const { error } = await supabase
     .from("formateurs")
@@ -381,6 +477,21 @@ export async function unarchiveFormateur(id: string) {
 
   if (error) {
     return { error: error.message };
+  }
+
+  if (formateur) {
+    await logHistorique({
+      organisationId,
+      userId,
+      userRole: role,
+      module: "formateur",
+      action: "unarchived",
+      entiteType: "formateur",
+      entiteId: id,
+      entiteLabel: `${formateur.numero_affichage} — ${formateur.prenom} ${formateur.nom}`,
+      description: `Formateur "${formateur.prenom} ${formateur.nom}" désarchivé (${formateur.numero_affichage})`,
+      objetHref: `/formateurs/${id}`,
+    });
   }
 
   revalidatePath("/formateurs");

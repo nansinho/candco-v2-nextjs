@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { QueryFilter } from "@/lib/utils";
 import { sendInscriptionEmail } from "@/actions/emails";
+import { logHistorique, logHistoriqueBatch } from "@/lib/historique";
 
 // ─── Schemas ─────────────────────────────────────────────
 
@@ -41,7 +42,7 @@ export async function createSession(input: CreateSessionInput) {
     return { error: { _form: [result.error] } };
   }
 
-  const { organisationId, supabase } = result;
+  const { organisationId, userId, role, supabase } = result;
 
   const { data: numero } = await supabase.rpc("next_numero", {
     p_organisation_id: organisationId,
@@ -71,6 +72,19 @@ export async function createSession(input: CreateSessionInput) {
   if (error) {
     return { error: { _form: [error.message] } };
   }
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "session",
+    action: "created",
+    entiteType: "session",
+    entiteId: data.id,
+    entiteLabel: `${data.numero_affichage} — ${data.nom}`,
+    description: `Session "${data.nom}" créée`,
+    objetHref: `/sessions/${data.id}`,
+  });
 
   revalidatePath("/sessions");
   return { data };
@@ -171,7 +185,7 @@ export async function updateSession(id: string, input: UpdateSessionInput) {
   if ("error" in result) {
     return { error: { _form: [result.error] } };
   }
-  const { organisationId, supabase } = result;
+  const { organisationId, userId, role, supabase } = result;
 
   const { data, error } = await supabase
     .from("sessions")
@@ -197,6 +211,19 @@ export async function updateSession(id: string, input: UpdateSessionInput) {
     return { error: { _form: [error.message] } };
   }
 
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "session",
+    action: "updated",
+    entiteType: "session",
+    entiteId: id,
+    entiteLabel: `${data.numero_affichage} — ${data.nom}`,
+    description: `Session "${data.nom}" modifiée`,
+    objetHref: `/sessions/${id}`,
+  });
+
   revalidatePath("/sessions");
   revalidatePath(`/sessions/${id}`);
   return { data };
@@ -205,7 +232,14 @@ export async function updateSession(id: string, input: UpdateSessionInput) {
 export async function deleteSessions(ids: string[]) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { organisationId, supabase } = result;
+  const { organisationId, userId, role, supabase, admin } = result;
+
+  // Fetch session names BEFORE deletion
+  const { data: sessions } = await admin
+    .from("sessions")
+    .select("id, nom, numero_affichage")
+    .in("id", ids)
+    .eq("organisation_id", organisationId);
 
   const { error } = await supabase
     .from("sessions")
@@ -217,6 +251,20 @@ export async function deleteSessions(ids: string[]) {
     return { error: error.message };
   }
 
+  await logHistoriqueBatch(
+    (sessions ?? []).map((s) => ({
+      organisationId,
+      userId,
+      userRole: role,
+      module: "session" as const,
+      action: "deleted" as const,
+      entiteType: "session",
+      entiteId: s.id,
+      entiteLabel: `${s.numero_affichage} — ${s.nom}`,
+      description: `Session "${s.nom}" supprimée`,
+    })),
+  );
+
   revalidatePath("/sessions");
   return { success: true };
 }
@@ -224,7 +272,14 @@ export async function deleteSessions(ids: string[]) {
 export async function archiveSession(id: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { organisationId, supabase } = result;
+  const { organisationId, userId, role, supabase, admin } = result;
+
+  // Fetch session name for logging
+  const { data: session } = await admin
+    .from("sessions")
+    .select("nom, numero_affichage")
+    .eq("id", id)
+    .single();
 
   const { error } = await supabase
     .from("sessions")
@@ -236,6 +291,19 @@ export async function archiveSession(id: string) {
     return { error: error.message };
   }
 
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "session",
+    action: "archived",
+    entiteType: "session",
+    entiteId: id,
+    entiteLabel: session ? `${session.numero_affichage} — ${session.nom}` : null,
+    description: `Session "${session?.nom ?? id}" archivée`,
+    objetHref: `/sessions/${id}`,
+  });
+
   revalidatePath("/sessions");
   return { success: true };
 }
@@ -243,7 +311,14 @@ export async function archiveSession(id: string) {
 export async function unarchiveSession(id: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { organisationId, supabase } = result;
+  const { organisationId, userId, role, supabase, admin } = result;
+
+  // Fetch session name for logging
+  const { data: session } = await admin
+    .from("sessions")
+    .select("nom, numero_affichage")
+    .eq("id", id)
+    .single();
 
   const { error } = await supabase
     .from("sessions")
@@ -254,6 +329,19 @@ export async function unarchiveSession(id: string) {
   if (error) {
     return { error: error.message };
   }
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "session",
+    action: "unarchived",
+    entiteType: "session",
+    entiteId: id,
+    entiteLabel: session ? `${session.numero_affichage} — ${session.nom}` : null,
+    description: `Session "${session?.nom ?? id}" désarchivée`,
+    objetHref: `/sessions/${id}`,
+  });
 
   revalidatePath("/sessions");
   return { success: true };
@@ -274,7 +362,9 @@ export async function getSessionFormateurs(sessionId: string) {
 }
 
 export async function addSessionFormateur(sessionId: string, formateurId: string, role: string = "principal") {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role: userRole, supabase, admin } = result;
 
   const { error } = await supabase
     .from("session_formateurs")
@@ -282,12 +372,43 @@ export async function addSessionFormateur(sessionId: string, formateurId: string
 
   if (error) return { error: error.message };
 
+  // Fetch labels for logging
+  const [{ data: session }, { data: formateur }] = await Promise.all([
+    admin.from("sessions").select("nom, numero_affichage").eq("id", sessionId).single(),
+    admin.from("formateurs").select("prenom, nom").eq("id", formateurId).single(),
+  ]);
+
+  const formateurLabel = formateur ? `${formateur.prenom} ${formateur.nom}` : formateurId;
+  const sessionLabel = session ? `${session.numero_affichage} — ${session.nom}` : sessionId;
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole,
+    module: "session",
+    action: "linked",
+    entiteType: "session",
+    entiteId: sessionId,
+    entiteLabel: sessionLabel,
+    description: `Formateur "${formateurLabel}" ajouté à la session "${session?.nom ?? sessionId}"`,
+    objetHref: `/sessions/${sessionId}`,
+    metadata: { formateur_id: formateurId, formateur_nom: formateurLabel, role },
+  });
+
   revalidatePath(`/sessions/${sessionId}`);
   return { success: true };
 }
 
 export async function removeSessionFormateur(sessionId: string, formateurId: string) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role: userRole, supabase, admin } = result;
+
+  // Fetch labels BEFORE deletion
+  const [{ data: session }, { data: formateur }] = await Promise.all([
+    admin.from("sessions").select("nom, numero_affichage").eq("id", sessionId).single(),
+    admin.from("formateurs").select("prenom, nom").eq("id", formateurId).single(),
+  ]);
 
   const { error } = await supabase
     .from("session_formateurs")
@@ -296,6 +417,23 @@ export async function removeSessionFormateur(sessionId: string, formateurId: str
     .eq("formateur_id", formateurId);
 
   if (error) return { error: error.message };
+
+  const formateurLabel = formateur ? `${formateur.prenom} ${formateur.nom}` : formateurId;
+  const sessionLabel = session ? `${session.numero_affichage} — ${session.nom}` : sessionId;
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole,
+    module: "session",
+    action: "unlinked",
+    entiteType: "session",
+    entiteId: sessionId,
+    entiteLabel: sessionLabel,
+    description: `Formateur "${formateurLabel}" retiré de la session "${session?.nom ?? sessionId}"`,
+    objetHref: `/sessions/${sessionId}`,
+    metadata: { formateur_id: formateurId, formateur_nom: formateurLabel },
+  });
 
   revalidatePath(`/sessions/${sessionId}`);
   return { success: true };
@@ -335,7 +473,9 @@ export async function addCommanditaire(sessionId: string, input: CommanditaireIn
   const parsed = CommanditaireSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.flatten().fieldErrors };
 
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: { _form: [result.error] } };
+  const { organisationId, userId, role, supabase, admin } = result;
 
   const { data, error } = await supabase
     .from("session_commanditaires")
@@ -352,12 +492,55 @@ export async function addCommanditaire(sessionId: string, input: CommanditaireIn
 
   if (error) return { error: { _form: [error.message] } };
 
+  // Fetch labels for logging
+  const { data: session } = await admin
+    .from("sessions")
+    .select("nom, numero_affichage")
+    .eq("id", sessionId)
+    .single();
+
+  let commanditaireLabel = "Commanditaire";
+  const entrepriseId = parsed.data.entreprise_id || null;
+  if (entrepriseId) {
+    const { data: ent } = await admin.from("entreprises").select("nom").eq("id", entrepriseId).single();
+    if (ent) commanditaireLabel = ent.nom;
+  }
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "session",
+    action: "linked",
+    entiteType: "session_commanditaire",
+    entiteId: data.id,
+    entiteLabel: commanditaireLabel,
+    entrepriseId,
+    description: `Commanditaire "${commanditaireLabel}" ajouté à la session "${session?.nom ?? sessionId}"`,
+    objetHref: `/sessions/${sessionId}`,
+    metadata: {
+      session_id: sessionId,
+      entreprise_id: entrepriseId,
+      financeur_id: parsed.data.financeur_id || null,
+      budget: parsed.data.budget,
+    },
+  });
+
   revalidatePath(`/sessions/${sessionId}`);
   return { data };
 }
 
 export async function updateCommanditaireWorkflow(commanditaireId: string, sessionId: string, statut: string) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role: userRole, supabase, admin } = result;
+
+  // Fetch old data for logging
+  const { data: oldCmd } = await admin
+    .from("session_commanditaires")
+    .select("statut_workflow, entreprise_id, entreprises(nom)")
+    .eq("id", commanditaireId)
+    .single();
 
   const { error } = await supabase
     .from("session_commanditaires")
@@ -366,12 +549,45 @@ export async function updateCommanditaireWorkflow(commanditaireId: string, sessi
 
   if (error) return { error: error.message };
 
+  const { data: session } = await admin
+    .from("sessions")
+    .select("nom, numero_affichage")
+    .eq("id", sessionId)
+    .single();
+
+  const entreprise = oldCmd?.entreprises as unknown as { nom: string } | null;
+  const cmdLabel = entreprise?.nom ?? "Commanditaire";
+  const oldStatut = oldCmd?.statut_workflow ?? "inconnu";
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole,
+    module: "session",
+    action: "status_changed",
+    entiteType: "session_commanditaire",
+    entiteId: commanditaireId,
+    entiteLabel: cmdLabel,
+    entrepriseId: oldCmd?.entreprise_id ?? null,
+    description: `Workflow commanditaire "${cmdLabel}" changé de "${oldStatut}" à "${statut}" (session "${session?.nom ?? sessionId}")`,
+    objetHref: `/sessions/${sessionId}`,
+    metadata: { session_id: sessionId, old_statut: oldStatut, new_statut: statut },
+  });
+
   revalidatePath(`/sessions/${sessionId}`);
   return { success: true };
 }
 
 export async function removeCommanditaire(commanditaireId: string, sessionId: string) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role: userRole, supabase, admin } = result;
+
+  // Fetch labels BEFORE deletion
+  const [{ data: cmd }, { data: session }] = await Promise.all([
+    admin.from("session_commanditaires").select("entreprise_id, entreprises(nom)").eq("id", commanditaireId).single(),
+    admin.from("sessions").select("nom, numero_affichage").eq("id", sessionId).single(),
+  ]);
 
   const { error } = await supabase
     .from("session_commanditaires")
@@ -379,6 +595,24 @@ export async function removeCommanditaire(commanditaireId: string, sessionId: st
     .eq("id", commanditaireId);
 
   if (error) return { error: error.message };
+
+  const entreprise = cmd?.entreprises as unknown as { nom: string } | null;
+  const cmdLabel = entreprise?.nom ?? "Commanditaire";
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole,
+    module: "session",
+    action: "unlinked",
+    entiteType: "session_commanditaire",
+    entiteId: commanditaireId,
+    entiteLabel: cmdLabel,
+    entrepriseId: cmd?.entreprise_id ?? null,
+    description: `Commanditaire "${cmdLabel}" retiré de la session "${session?.nom ?? sessionId}"`,
+    objetHref: `/sessions/${sessionId}`,
+    metadata: { session_id: sessionId },
+  });
 
   revalidatePath(`/sessions/${sessionId}`);
   return { success: true };
@@ -408,7 +642,9 @@ export async function addInscription(
   apprenantId: string,
   commanditaireId?: string,
 ) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role, supabase, admin } = result;
 
   const { data, error } = await supabase
     .from("inscriptions")
@@ -425,12 +661,43 @@ export async function addInscription(
   // Send confirmation email (fire-and-forget)
   sendInscriptionEmail({ apprenantId, sessionId }).catch(() => {});
 
+  // Fetch labels for logging
+  const [{ data: session }, { data: apprenant }] = await Promise.all([
+    admin.from("sessions").select("nom, numero_affichage").eq("id", sessionId).single(),
+    admin.from("apprenants").select("prenom, nom, numero_affichage").eq("id", apprenantId).single(),
+  ]);
+
+  const apprenantLabel = apprenant ? `${apprenant.prenom} ${apprenant.nom}` : apprenantId;
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "inscription",
+    action: "created",
+    entiteType: "inscription",
+    entiteId: data.id,
+    entiteLabel: apprenantLabel,
+    description: `Apprenant "${apprenantLabel}" inscrit à la session "${session?.nom ?? sessionId}"`,
+    objetHref: `/sessions/${sessionId}`,
+    metadata: { session_id: sessionId, apprenant_id: apprenantId, commanditaire_id: commanditaireId ?? null },
+  });
+
   revalidatePath(`/sessions/${sessionId}`);
   return { data };
 }
 
 export async function updateInscriptionStatut(inscriptionId: string, sessionId: string, statut: string) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role: userRole, supabase, admin } = result;
+
+  // Fetch old data for logging
+  const { data: oldInscription } = await admin
+    .from("inscriptions")
+    .select("statut, apprenant_id, apprenants(prenom, nom)")
+    .eq("id", inscriptionId)
+    .single();
 
   const { error } = await supabase
     .from("inscriptions")
@@ -439,12 +706,44 @@ export async function updateInscriptionStatut(inscriptionId: string, sessionId: 
 
   if (error) return { error: error.message };
 
+  const apprenant = oldInscription?.apprenants as unknown as { prenom: string; nom: string } | null;
+  const apprenantLabel = apprenant ? `${apprenant.prenom} ${apprenant.nom}` : (oldInscription?.apprenant_id ?? inscriptionId);
+  const oldStatut = oldInscription?.statut ?? "inconnu";
+
+  const { data: session } = await admin
+    .from("sessions")
+    .select("nom, numero_affichage")
+    .eq("id", sessionId)
+    .single();
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole,
+    module: "inscription",
+    action: "status_changed",
+    entiteType: "inscription",
+    entiteId: inscriptionId,
+    entiteLabel: String(apprenantLabel),
+    description: `Statut inscription de "${apprenantLabel}" changé de "${oldStatut}" à "${statut}" (session "${session?.nom ?? sessionId}")`,
+    objetHref: `/sessions/${sessionId}`,
+    metadata: { session_id: sessionId, old_statut: oldStatut, new_statut: statut },
+  });
+
   revalidatePath(`/sessions/${sessionId}`);
   return { success: true };
 }
 
 export async function removeInscription(inscriptionId: string, sessionId: string) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role: userRole, supabase, admin } = result;
+
+  // Fetch labels BEFORE deletion
+  const [{ data: inscription }, { data: session }] = await Promise.all([
+    admin.from("inscriptions").select("apprenant_id, apprenants(prenom, nom)").eq("id", inscriptionId).single(),
+    admin.from("sessions").select("nom, numero_affichage").eq("id", sessionId).single(),
+  ]);
 
   const { error } = await supabase
     .from("inscriptions")
@@ -452,6 +751,23 @@ export async function removeInscription(inscriptionId: string, sessionId: string
     .eq("id", inscriptionId);
 
   if (error) return { error: error.message };
+
+  const apprenant = inscription?.apprenants as unknown as { prenom: string; nom: string } | null;
+  const apprenantLabel = apprenant ? `${apprenant.prenom} ${apprenant.nom}` : (inscription?.apprenant_id ?? inscriptionId);
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole,
+    module: "inscription",
+    action: "deleted",
+    entiteType: "inscription",
+    entiteId: inscriptionId,
+    entiteLabel: String(apprenantLabel),
+    description: `Inscription de "${apprenantLabel}" supprimée de la session "${session?.nom ?? sessionId}"`,
+    objetHref: `/sessions/${sessionId}`,
+    metadata: { session_id: sessionId, apprenant_id: inscription?.apprenant_id ?? null },
+  });
 
   revalidatePath(`/sessions/${sessionId}`);
   return { success: true };
@@ -492,7 +808,9 @@ export async function addCreneau(sessionId: string, input: CreneauInput) {
   const parsed = CreneauSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.flatten().fieldErrors };
 
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: { _form: [result.error] } };
+  const { organisationId, userId, role, supabase, admin } = result;
 
   const { data, error } = await supabase
     .from("session_creneaux")
@@ -510,12 +828,40 @@ export async function addCreneau(sessionId: string, input: CreneauInput) {
 
   if (error) return { error: { _form: [error.message] } };
 
+  const { data: session } = await admin
+    .from("sessions")
+    .select("nom, numero_affichage")
+    .eq("id", sessionId)
+    .single();
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "session",
+    action: "created",
+    entiteType: "session_creneau",
+    entiteId: data.id,
+    entiteLabel: `${parsed.data.date} ${parsed.data.heure_debut}-${parsed.data.heure_fin}`,
+    description: `Créneau du ${parsed.data.date} (${parsed.data.heure_debut}-${parsed.data.heure_fin}) ajouté à la session "${session?.nom ?? sessionId}"`,
+    objetHref: `/sessions/${sessionId}`,
+    metadata: { session_id: sessionId, date: parsed.data.date, heure_debut: parsed.data.heure_debut, heure_fin: parsed.data.heure_fin, type: parsed.data.type },
+  });
+
   revalidatePath(`/sessions/${sessionId}`);
   return { data };
 }
 
 export async function removeCreneau(creneauId: string, sessionId: string) {
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role: userRole, supabase, admin } = result;
+
+  // Fetch labels BEFORE deletion
+  const [{ data: creneau }, { data: session }] = await Promise.all([
+    admin.from("session_creneaux").select("date, heure_debut, heure_fin").eq("id", creneauId).single(),
+    admin.from("sessions").select("nom, numero_affichage").eq("id", sessionId).single(),
+  ]);
 
   const { error } = await supabase
     .from("session_creneaux")
@@ -523,6 +869,22 @@ export async function removeCreneau(creneauId: string, sessionId: string) {
     .eq("id", creneauId);
 
   if (error) return { error: error.message };
+
+  const creneauLabel = creneau ? `${creneau.date} ${creneau.heure_debut}-${creneau.heure_fin}` : creneauId;
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole,
+    module: "session",
+    action: "deleted",
+    entiteType: "session_creneau",
+    entiteId: creneauId,
+    entiteLabel: creneauLabel,
+    description: `Créneau du ${creneau?.date ?? "?"} supprimé de la session "${session?.nom ?? sessionId}"`,
+    objetHref: `/sessions/${sessionId}`,
+    metadata: { session_id: sessionId },
+  });
 
   revalidatePath(`/sessions/${sessionId}`);
   return { success: true };
@@ -572,7 +934,9 @@ export async function bulkAddInscriptions(
 ) {
   if (apprenantIds.length === 0) return { error: "Aucun apprenant sélectionné" };
 
-  const supabase = await createClient();
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role, supabase, admin } = result;
 
   // Get existing inscriptions for this session to avoid duplicates
   const { data: existing } = await supabase
@@ -604,6 +968,31 @@ export async function bulkAddInscriptions(
   for (const apprenantId of newIds) {
     sendInscriptionEmail({ apprenantId, sessionId }).catch(() => {});
   }
+
+  // Fetch labels for logging
+  const [{ data: session }, { data: apprenants }] = await Promise.all([
+    admin.from("sessions").select("nom, numero_affichage").eq("id", sessionId).single(),
+    admin.from("apprenants").select("id, prenom, nom").in("id", newIds),
+  ]);
+
+  const apprenantMap = new Map<string, string>((apprenants ?? []).map((a: { id: string; prenom: string; nom: string }) => [a.id, `${a.prenom} ${a.nom}`]));
+  const sessionNom = session?.nom ?? sessionId;
+
+  await logHistoriqueBatch(
+    newIds.map((apprenantId) => ({
+      organisationId,
+      userId,
+      userRole: role,
+      module: "inscription" as const,
+      action: "created" as const,
+      entiteType: "inscription",
+      entiteId: apprenantId,
+      entiteLabel: apprenantMap.get(apprenantId) ?? apprenantId,
+      description: `Apprenant "${apprenantMap.get(apprenantId) ?? apprenantId}" inscrit à la session "${sessionNom}" (inscription groupée)`,
+      objetHref: `/sessions/${sessionId}`,
+      metadata: { session_id: sessionId, bulk: true, commanditaire_id: commanditaireId ?? null },
+    })),
+  );
 
   revalidatePath(`/sessions/${sessionId}`);
   return { success: true, count: newIds.length, skipped: apprenantIds.length - newIds.length };
@@ -657,12 +1046,12 @@ const STATUT_TRANSITIONS: Record<string, string[]> = {
 export async function updateSessionStatut(sessionId: string, newStatut: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { organisationId, supabase } = result;
+  const { organisationId, userId, role, supabase } = result;
 
   // Get current statut
   const { data: session } = await supabase
     .from("sessions")
-    .select("statut")
+    .select("statut, nom, numero_affichage")
     .eq("id", sessionId)
     .eq("organisation_id", organisationId)
     .single();
@@ -674,6 +1063,8 @@ export async function updateSessionStatut(sessionId: string, newStatut: string) 
     return { error: `Transition de "${session.statut}" vers "${newStatut}" non autorisée` };
   }
 
+  const oldStatut = session.statut;
+
   const { error } = await supabase
     .from("sessions")
     .update({ statut: newStatut })
@@ -681,6 +1072,20 @@ export async function updateSessionStatut(sessionId: string, newStatut: string) 
     .eq("organisation_id", organisationId);
 
   if (error) return { error: error.message };
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "session",
+    action: "status_changed",
+    entiteType: "session",
+    entiteId: sessionId,
+    entiteLabel: `${session.numero_affichage} — ${session.nom}`,
+    description: `Statut de la session "${session.nom}" changé de "${oldStatut}" à "${newStatut}"`,
+    objetHref: `/sessions/${sessionId}`,
+    metadata: { old_statut: oldStatut, new_statut: newStatut },
+  });
 
   revalidatePath("/sessions");
   revalidatePath(`/sessions/${sessionId}`);
