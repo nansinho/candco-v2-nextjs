@@ -53,6 +53,7 @@ import { FonctionSelect } from "@/components/shared/fonction-select";
 import { OrganisationTab } from "@/components/entreprise/organisation-tab";
 import { EntrepriseSessionsTab } from "@/components/entreprise/sessions-tab";
 import { BesoinsFormationTab } from "@/components/entreprise/besoins-formation-tab";
+import { EmailTab } from "@/components/entreprise/email-tab";
 import { HistoriqueTab } from "@/components/entreprise/historique-tab";
 
 // ─── Types ───────────────────────────────────────────────
@@ -219,6 +220,9 @@ export function EntrepriseDetail({
           <TabsTrigger value="suivi" className="text-xs">
             Suivi &amp; Formation
           </TabsTrigger>
+          <TabsTrigger value="email" className="text-xs">
+            Email
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="general" className="mt-6">
@@ -243,6 +247,10 @@ export function EntrepriseDetail({
 
         <TabsContent value="suivi" className="mt-6">
           <SuiviFormationTab entrepriseId={entreprise.id} agences={agences} />
+        </TabsContent>
+
+        <TabsContent value="email" className="mt-6">
+          <EmailTab entrepriseId={entreprise.id} />
         </TabsContent>
       </Tabs>
       <ConfirmDialog />
