@@ -468,7 +468,7 @@ export function HistoriqueTab({ entrepriseId }: HistoriqueTabProps) {
             };
             const origineConf = ORIGINE_LABELS[event.origine] ?? ORIGINE_LABELS.backoffice;
             const changedFields = formatChangedFields(event.metadata);
-            const hasDetailedChanges = event.metadata?.old_values && event.metadata?.new_values;
+            const hasDetailedChanges = !!(event.metadata?.old_values && event.metadata?.new_values);
             const isExpanded = expandedMetadata.has(event.id);
 
             return (
