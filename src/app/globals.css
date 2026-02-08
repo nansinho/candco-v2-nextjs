@@ -201,9 +201,42 @@ html.light input[type="date"] {
   display: none;
 }
 
+/* Thin scrollbar for tables and scrollable containers */
+.thin-scrollbar::-webkit-scrollbar {
+  height: 4px;
+}
+
+.thin-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+html.dark .thin-scrollbar::-webkit-scrollbar-thumb {
+  background: #2A2A2A;
+  border-radius: 2px;
+}
+
+html.light .thin-scrollbar::-webkit-scrollbar-thumb {
+  background: #D4D4D4;
+  border-radius: 2px;
+}
+
+/* Responsive: prevent horizontal overflow on the body */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
 /* Focus ring */
 *:focus-visible {
   outline: 2px solid var(--color-ring);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
+}
+
+/* Touch-friendly tap targets on mobile */
+@media (max-width: 640px) {
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
 }

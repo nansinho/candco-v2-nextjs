@@ -11,7 +11,7 @@ const labelMap: Record<string, string> = {
   "contacts-clients": "Contacts clients",
   formateurs: "Formateurs",
   financeurs: "Financeurs",
-  produits: "Produits de formation",
+  produits: "Catalogue de formation",
   sessions: "Sessions",
   planning: "Planning",
   questionnaires: "Questionnaires",

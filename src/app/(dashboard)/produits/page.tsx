@@ -32,6 +32,9 @@ interface Produit {
   duree_jours: number | null;
   publie: boolean;
   completion_pct: number;
+  organise_par_nom: string | null;
+  organise_par_logo_url: string | null;
+  organise_par_actif: boolean;
   created_at: string;
 }
 
@@ -163,10 +166,27 @@ const columns: Column<Produit>[] = [
       ),
   },
   {
+    key: "organise_par_nom",
+    label: "Organisé par",
+    minWidth: 140,
+    defaultVisible: false,
+    render: (item: Produit) =>
+      item.organise_par_actif && item.organise_par_nom ? (
+        <div className="flex items-center gap-2">
+          {item.organise_par_logo_url ? (
+            <img src={item.organise_par_logo_url} alt="" className="h-5 w-5 rounded object-contain bg-white shrink-0" />
+          ) : null}
+          <span className="text-[12px] truncate max-w-[120px]">{item.organise_par_nom}</span>
+        </div>
+      ) : (
+        <span className="text-muted-foreground/40 text-[11px]">—</span>
+      ),
+  },
+  {
     key: "completion_pct",
     label: "Complétion",
     minWidth: 120,
-    render: (item) => (
+    render: (item: Produit) => (
       <div className="flex items-center gap-2">
         <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted/50">
           <div
@@ -238,8 +258,8 @@ export default function ProduitsPage() {
   const handleCreateSuccess = (produitId?: string) => {
     setDialogOpen(false);
     toast({
-      title: "Produit créé",
-      description: "Le produit de formation a été ajouté au catalogue.",
+      title: "Formation créée",
+      description: "La formation a été ajoutée au catalogue.",
       variant: "success",
     });
     if (produitId) {
@@ -275,8 +295,8 @@ export default function ProduitsPage() {
     }
 
     toast({
-      title: "Produit cree depuis le PDF",
-      description: `"${createResult.data?.intitule}" a ete cree avec toutes les informations extraites.`,
+      title: "Formation créée depuis le PDF",
+      description: `"${createResult.data?.intitule}" a été créée avec toutes les informations extraites.`,
       variant: "success",
     });
 
@@ -370,7 +390,7 @@ export default function ProduitsPage() {
   return (
     <>
       <DataTable
-        title="Produits de formation"
+        title="Catalogue de formation"
         tableId="produits"
         columns={columns}
         data={data}
@@ -381,7 +401,7 @@ export default function ProduitsPage() {
         onSearchChange={setSearch}
         onImport={() => setDialogOpen(true)}
         onAdd={() => setDialogOpen(true)}
-        addLabel="Ajouter un produit"
+        addLabel="Ajouter une formation"
         onRowClick={(item) => router.push(`/produits/${item.id}`)}
         getRowId={(item) => item.id}
         isLoading={isLoading}
@@ -417,7 +437,7 @@ export default function ProduitsPage() {
       <Dialog open={dialogOpen} onOpenChange={(o) => { if (!o) resetImport(); setDialogOpen(o); }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Ajouter un produit de formation</DialogTitle>
+            <DialogTitle>Ajouter une formation</DialogTitle>
             <DialogDescription>
               Créez manuellement ou importez depuis un PDF via l&apos;IA.
             </DialogDescription>
@@ -718,7 +738,7 @@ function CreateProduitForm({ onSuccess, onCancel }: CreateFormProps) {
               Création...
             </>
           ) : (
-            "Créer le produit"
+            "Créer la formation"
           )}
         </Button>
       </DialogFooter>
