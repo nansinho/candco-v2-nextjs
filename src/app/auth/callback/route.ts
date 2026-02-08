@@ -4,13 +4,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url);
+  const { searchParams } = new URL(request.url);
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://solution.candco.fr";
   const token_hash = searchParams.get("token_hash");
   const type = searchParams.get("type") as "magiclink" | "email" | null;
 
   if (!token_hash || !type) {
     return NextResponse.redirect(
-      new URL("/login?error=missing_params", origin)
+      new URL("/login?error=missing_params", baseUrl)
     );
   }
 
@@ -42,7 +43,7 @@ export async function GET(request: NextRequest) {
   if (error || !data.user) {
     console.error("[auth/callback] verifyOtp error:", error?.message);
     return NextResponse.redirect(
-      new URL("/login?error=invalid_or_expired_link", origin)
+      new URL("/login?error=invalid_or_expired_link", baseUrl)
     );
   }
 
@@ -57,7 +58,7 @@ export async function GET(request: NextRequest) {
     .single();
 
   if (utilisateur) {
-    return NextResponse.redirect(new URL("/apprenants", origin));
+    return NextResponse.redirect(new URL("/apprenants", baseUrl));
   }
 
   // Check extranet_acces for role-based routing
@@ -71,7 +72,7 @@ export async function GET(request: NextRequest) {
 
   if (!acces) {
     return NextResponse.redirect(
-      new URL("/login?error=no_access", origin)
+      new URL("/login?error=no_access", baseUrl)
     );
   }
 
@@ -84,11 +85,11 @@ export async function GET(request: NextRequest) {
 
   // First-time login: redirect to set-password page
   if (acces.statut === "invite" || acces.statut === "en_attente") {
-    const setPasswordUrl = new URL("/set-password", origin);
+    const setPasswordUrl = new URL("/set-password", baseUrl);
     setPasswordUrl.searchParams.set("next", targetPath);
     return NextResponse.redirect(setPasswordUrl);
   }
 
   // Returning user: go directly to their extranet space
-  return NextResponse.redirect(new URL(targetPath, origin));
+  return NextResponse.redirect(new URL(targetPath, baseUrl));
 }
