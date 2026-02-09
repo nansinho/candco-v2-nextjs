@@ -5,8 +5,6 @@ import { useRouter } from "next/navigation";
 import { BookOpen, Loader2, Globe, Clock, Upload, Sparkles, AlertCircle, CheckCircle2, FileText } from "lucide-react";
 import { DataTable, type Column, type ActiveFilter } from "@/components/data-table/DataTable";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -17,7 +15,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toast";
-import { getProduits, createProduit, createProduitFromPDF, archiveProduit, unarchiveProduit, deleteProduits, importProduits, type CreateProduitInput } from "@/actions/produits";
+import { getProduits, createDraftProduit, createProduitFromPDF, archiveProduit, unarchiveProduit, deleteProduits, importProduits } from "@/actions/produits";
 import { formatDate } from "@/lib/utils";
 
 interface Produit {
@@ -230,6 +228,7 @@ export default function ProduitsPage() {
   const [importFile, setImportFile] = React.useState<File | null>(null);
   const [isPdfImporting, setIsPdfImporting] = React.useState(false);
   const [isJsonImporting, setIsJsonImporting] = React.useState(false);
+  const [isManualCreating, setIsManualCreating] = React.useState(false);
   const [importError, setImportError] = React.useState<string | null>(null);
   const [importResult, setImportResult] = React.useState<{ success: number; errors: string[] } | null>(null);
   const [jsonRows, setJsonRows] = React.useState<Record<string, string>[] | null>(null);
@@ -269,6 +268,28 @@ export default function ProduitsPage() {
       router.push(`/produits/${produitId}`);
     } else {
       fetchData();
+    }
+  };
+
+  const handleManualCreate = async () => {
+    setIsManualCreating(true);
+    try {
+      const result = await createDraftProduit();
+      if (result.error) {
+        toast({ title: "Erreur", description: typeof result.error === "string" ? result.error : "Impossible de créer la formation.", variant: "destructive" });
+        return;
+      }
+      if (result.data?.id) {
+        setDialogOpen(false);
+        toast({
+          title: "Formation créée",
+          description: "Complétez les informations dans l'éditeur.",
+          variant: "success",
+        });
+        router.push(`/produits/${result.data.id}`);
+      }
+    } finally {
+      setIsManualCreating(false);
     }
   };
 
@@ -541,11 +562,42 @@ export default function ProduitsPage() {
                 <div className="relative flex justify-center"><span className="bg-card px-3 text-[11px] text-muted-foreground/60 uppercase tracking-wider">ou créer manuellement</span></div>
               </div>
 
-              {/* ─── Manual create form ──────────────────── */}
-              <CreateProduitForm
-                onSuccess={handleCreateSuccess}
-                onCancel={() => setDialogOpen(false)}
-              />
+              {/* ─── Manual create → redirect to full edit page ── */}
+              <div className="space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  Créez une formation vide et accédez à l&apos;éditeur complet avec tous les onglets (Général, Pratique, Objectifs, Programme, Modalités...).
+                </p>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setDialogOpen(false)}
+                    className="h-8 text-xs border-border/60"
+                  >
+                    Annuler
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={isManualCreating}
+                    onClick={handleManualCreate}
+                    className="h-8 text-xs"
+                  >
+                    {isManualCreating ? (
+                      <>
+                        <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+                        Création...
+                      </>
+                    ) : (
+                      <>
+                        <BookOpen className="mr-1.5 h-3 w-3" />
+                        Créer et configurer
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
             </>
           )}
 
@@ -562,189 +614,3 @@ export default function ProduitsPage() {
   );
 }
 
-// ─── Create Form ─────────────────────────────────────────
-
-interface CreateFormProps {
-  onSuccess: (produitId?: string) => void;
-  onCancel: () => void;
-}
-
-function CreateProduitForm({ onSuccess, onCancel }: CreateFormProps) {
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [errors, setErrors] = React.useState<Record<string, string[]>>({});
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setErrors({});
-
-    const fd = new FormData(e.currentTarget);
-    const input: CreateProduitInput = {
-      intitule: fd.get("intitule") as string,
-      domaine: (fd.get("domaine") as string) || "",
-      type_action: (fd.get("type_action") as CreateProduitInput["type_action"]) || "",
-      modalite: (fd.get("modalite") as CreateProduitInput["modalite"]) || "",
-      formule: (fd.get("formule") as CreateProduitInput["formule"]) || "",
-      duree_heures: fd.get("duree_heures") ? Number(fd.get("duree_heures")) : undefined,
-      duree_jours: fd.get("duree_jours") ? Number(fd.get("duree_jours")) : undefined,
-    };
-
-    const result = await createProduit(input);
-
-    if (result.error) {
-      if (typeof result.error === "object" && "_form" in result.error) {
-        setErrors({ _form: result.error._form as string[] });
-      } else {
-        setErrors(result.error as Record<string, string[]>);
-      }
-      setIsSubmitting(false);
-      return;
-    }
-
-    setIsSubmitting(false);
-    onSuccess(result.data?.id);
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {errors._form && (
-        <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {errors._form[0]}
-        </div>
-      )}
-
-      <div className="space-y-2">
-        <Label htmlFor="intitule" className="text-[13px]">
-          Intitulé <span className="text-destructive">*</span>
-        </Label>
-        <Input
-          id="intitule"
-          name="intitule"
-          required
-          placeholder="Ex: Formation React avancé"
-          className="h-9 text-[13px] border-border/60"
-        />
-        {errors.intitule && (
-          <p className="text-xs text-destructive">{errors.intitule[0]}</p>
-        )}
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="domaine" className="text-[13px]">
-          Domaine / Pôle
-        </Label>
-        <Input
-          id="domaine"
-          name="domaine"
-          placeholder="Ex: Développement web"
-          className="h-9 text-[13px] border-border/60"
-        />
-      </div>
-
-      <div className="grid grid-cols-3 gap-3">
-        <div className="space-y-2">
-          <Label htmlFor="type_action" className="text-[13px]">
-            Type d&apos;action
-          </Label>
-          <select
-            id="type_action"
-            name="type_action"
-            className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
-          >
-            <option value="">--</option>
-            <option value="action_formation">Action de formation</option>
-            <option value="bilan_competences">Bilan de compétences</option>
-            <option value="vae">VAE</option>
-            <option value="apprentissage">Apprentissage</option>
-          </select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="modalite" className="text-[13px]">
-            Modalité
-          </Label>
-          <select
-            id="modalite"
-            name="modalite"
-            className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
-          >
-            <option value="">--</option>
-            <option value="presentiel">Présentiel</option>
-            <option value="distanciel">Distanciel</option>
-            <option value="mixte">Mixte</option>
-            <option value="afest">AFEST</option>
-          </select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="formule" className="text-[13px]">
-            Formule
-          </Label>
-          <select
-            id="formule"
-            name="formule"
-            className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
-          >
-            <option value="">--</option>
-            <option value="inter">Inter</option>
-            <option value="intra">Intra</option>
-            <option value="individuel">Individuel</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-2">
-          <Label htmlFor="duree_heures" className="text-[13px]">
-            Durée (heures)
-          </Label>
-          <Input
-            id="duree_heures"
-            name="duree_heures"
-            type="number"
-            step="0.5"
-            min="0"
-            placeholder="Ex: 14"
-            className="h-9 text-[13px] border-border/60"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="duree_jours" className="text-[13px]">
-            Durée (jours)
-          </Label>
-          <Input
-            id="duree_jours"
-            name="duree_jours"
-            type="number"
-            step="0.5"
-            min="0"
-            placeholder="Ex: 2"
-            className="h-9 text-[13px] border-border/60"
-          />
-        </div>
-      </div>
-
-      <DialogFooter className="pt-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={onCancel}
-          className="h-8 text-xs border-border/60"
-        >
-          Annuler
-        </Button>
-        <Button type="submit" size="sm" disabled={isSubmitting} className="h-8 text-xs">
-          {isSubmitting ? (
-            <>
-              <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
-              Création...
-            </>
-          ) : (
-            "Créer la formation"
-          )}
-        </Button>
-      </DialogFooter>
-    </form>
-  );
-}
