@@ -467,8 +467,8 @@ export function DataTable<T>({
         </div>
       )}
 
-      {/* Search + Filter toggle */}
-      {(onSearchChange || (onFiltersChange && filterableColumns.length > 0)) && (
+      {/* Search + Filter toggle (only when filters are available) */}
+      {(onFiltersChange && filterableColumns.length > 0) && (
         <div className="flex flex-wrap items-center gap-2">
           {onSearchChange && (
             <div className="relative w-full sm:max-w-xs">
@@ -481,25 +481,23 @@ export function DataTable<T>({
               />
             </div>
           )}
-          {onFiltersChange && filterableColumns.length > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              className={cn(
-                "h-8 text-xs border-border/60",
-                filters.length > 0 && "bg-primary/10 text-primary border-primary/30"
-              )}
-              onClick={() => setShowFilters(!showFilters)}
-            >
-              <SlidersHorizontal className="mr-1.5 h-3 w-3" />
-              Filtres
-              {filters.length > 0 && (
-                <span className="ml-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                  {filters.length}
-                </span>
-              )}
-            </Button>
-          )}
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn(
+              "h-8 text-xs border-border/60",
+              filters.length > 0 && "bg-primary/10 text-primary border-primary/30"
+            )}
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            <SlidersHorizontal className="mr-1.5 h-3 w-3" />
+            Filtres
+            {filters.length > 0 && (
+              <span className="ml-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                {filters.length}
+              </span>
+            )}
+          </Button>
         </div>
       )}
 
