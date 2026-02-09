@@ -376,7 +376,7 @@ export async function getEntrepriseEmailHistory(
         .eq("entite_id", entrepriseId)
         .order("created_at", { ascending: false })
         .limit(limit);
-      data = fallback.data;
+      data = fallback.data as typeof data;
       error = fallback.error;
     }
 
