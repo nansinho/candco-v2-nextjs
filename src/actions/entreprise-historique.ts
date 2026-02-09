@@ -5,36 +5,9 @@ import type {
   HistoriqueModule,
   HistoriqueAction,
   HistoriqueOrigine,
+  HistoriqueEvent,
+  HistoriqueFilters,
 } from "@/lib/historique";
-
-// ─── Types ──────────────────────────────────────────────
-
-export type { HistoriqueModule, HistoriqueAction, HistoriqueOrigine };
-
-export interface HistoriqueEvent {
-  id: string;
-  date: string;
-  module: HistoriqueModule;
-  action: HistoriqueAction;
-  description: string;
-  entite_label: string | null;
-  entite_id: string | null;
-  objet_href: string | null;
-  user_nom: string | null;
-  user_role: string | null;
-  origine: HistoriqueOrigine;
-  agence_nom: string | null;
-  metadata: Record<string, unknown> | null;
-}
-
-export interface HistoriqueFilters {
-  module?: HistoriqueModule;
-  action?: HistoriqueAction;
-  origine?: HistoriqueOrigine;
-  utilisateur?: string;
-  date_debut?: string;
-  date_fin?: string;
-}
 
 // ─── Action ─────────────────────────────────────────────
 

@@ -31,14 +31,14 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { DatePicker } from "@/components/ui/date-picker";
-import {
-  getEntrepriseHistorique,
-  type HistoriqueEvent,
-  type HistoriqueModule,
-  type HistoriqueAction,
-  type HistoriqueOrigine,
-  type HistoriqueFilters,
-} from "@/actions/entreprise-historique";
+import { getEntrepriseHistorique } from "@/actions/entreprise-historique";
+import type {
+  HistoriqueEvent,
+  HistoriqueModule,
+  HistoriqueAction,
+  HistoriqueOrigine,
+  HistoriqueFilters,
+} from "@/lib/historique";
 
 // ─── Constants ──────────────────────────────────────────
 
