@@ -6,32 +6,13 @@ export async function updateSession(request: NextRequest) {
   // Server actions handle their own auth via getOrganisationId().
   // Running full middleware on every server action causes 500 errors
   // because NextResponse.next() can interfere with POST body processing.
+  // Server action POSTs handle their own auth via getOrganisationId() → createClient().
+  // Do NOT create a Supabase client or call getUser() here — it can consume the
+  // refresh token without forwarding new cookies, breaking downstream auth.
+  // Cookie refresh happens on every GET request via the standard path below.
   const isServerAction = request.method === "POST" && request.headers.has("Next-Action");
   if (isServerAction) {
-    // Still need to refresh auth cookies for server actions
-    const response = NextResponse.next({ request });
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return request.cookies.getAll();
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value }) =>
-              request.cookies.set(name, value)
-            );
-            cookiesToSet.forEach(({ name, value, options }) =>
-              response.cookies.set(name, value, options)
-            );
-          },
-        },
-      }
-    );
-    // Refresh session (updates cookies if needed)
-    await supabase.auth.getUser();
-    return response;
+    return NextResponse.next();
   }
 
   let supabaseResponse = NextResponse.next({

@@ -73,59 +73,64 @@ export async function getOrganisationId() {
  * Get the current user's full profile (for sidebar, header, etc.)
  */
 export async function getCurrentUser() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-  if (!user) return null;
+    if (!user) return null;
 
-  const admin = createAdminClient();
-  const { data: utilisateur } = await admin
-    .from("utilisateurs")
-    .select("id, organisation_id, email, prenom, nom, role, is_super_admin, avatar_url")
-    .eq("id", user.id)
-    .single();
+    const admin = createAdminClient();
+    const { data: utilisateur } = await admin
+      .from("utilisateurs")
+      .select("id, organisation_id, email, prenom, nom, role, is_super_admin, avatar_url")
+      .eq("id", user.id)
+      .single();
 
-  if (!utilisateur) return null;
+    if (!utilisateur) return null;
 
-  // If super-admin, get all accessible organisations
-  let organisations: { id: string; nom: string }[] = [];
-  if (utilisateur.is_super_admin) {
-    const { data: orgs } = await admin
+    // If super-admin, get all accessible organisations
+    let organisations: { id: string; nom: string }[] = [];
+    if (utilisateur.is_super_admin) {
+      const { data: orgs } = await admin
+        .from("organisations")
+        .select("id, nom")
+        .order("nom");
+      organisations = orgs || [];
+    } else {
+      // Check user_organisations for multi-org access
+      const { data: userOrgs } = await admin
+        .from("user_organisations")
+        .select("organisation_id, organisations(id, nom)")
+        .eq("user_id", user.id);
+
+      if (userOrgs && userOrgs.length > 1) {
+        organisations = userOrgs
+          .map((uo: Record<string, unknown>) => uo.organisations as { id: string; nom: string })
+          .filter(Boolean);
+      }
+    }
+
+    // Get current org name
+    const cookieStore = await cookies();
+    const currentOrgId = cookieStore.get("current_org_id")?.value || utilisateur.organisation_id;
+
+    const { data: currentOrg } = await admin
       .from("organisations")
       .select("id, nom")
-      .order("nom");
-    organisations = orgs || [];
-  } else {
-    // Check user_organisations for multi-org access
-    const { data: userOrgs } = await admin
-      .from("user_organisations")
-      .select("organisation_id, organisations(id, nom)")
-      .eq("user_id", user.id);
+      .eq("id", currentOrgId)
+      .single();
 
-    if (userOrgs && userOrgs.length > 1) {
-      organisations = userOrgs
-        .map((uo: Record<string, unknown>) => uo.organisations as { id: string; nom: string })
-        .filter(Boolean);
-    }
+    return {
+      ...utilisateur,
+      currentOrganisation: currentOrg,
+      organisations,
+      hasMultiOrg: organisations.length > 1 || utilisateur.is_super_admin,
+    };
+  } catch (err) {
+    console.error("[getCurrentUser] Unexpected error:", err);
+    return null;
   }
-
-  // Get current org name
-  const cookieStore = await cookies();
-  const currentOrgId = cookieStore.get("current_org_id")?.value || utilisateur.organisation_id;
-
-  const { data: currentOrg } = await admin
-    .from("organisations")
-    .select("id, nom")
-    .eq("id", currentOrgId)
-    .single();
-
-  return {
-    ...utilisateur,
-    currentOrganisation: currentOrg,
-    organisations,
-    hasMultiOrg: organisations.length > 1 || utilisateur.is_super_admin,
-  };
 }
 
