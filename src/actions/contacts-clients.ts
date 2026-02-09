@@ -151,17 +151,17 @@ export async function createContactClient(input: CreateContactClientInput) {
     return { error: { _form: [result.error] } };
   }
 
-  const { organisationId, userId, role, supabase } = result;
+  const { organisationId, userId, role, admin } = result;
 
-  // Generate display number
-  const { data: numero } = await supabase.rpc("next_numero", {
+  // Generate display number (use admin to bypass RLS for super-admin org switching)
+  const { data: numero } = await admin.rpc("next_numero", {
     p_organisation_id: organisationId,
     p_entite: "CTC",
   });
 
   const cleanedData = cleanEmptyStrings(parsed.data);
 
-  const { data, error } = await supabase
+  const { data, error } = await admin
     .from("contacts_clients")
     .insert({
       organisation_id: organisationId,

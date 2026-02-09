@@ -742,7 +742,8 @@ export async function linkContactToEntreprise(entrepriseId: string, contactId: s
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, supabase, admin } = result;
 
-  const { error } = await supabase
+  // Use admin to bypass RLS (needed for super-admin org switching)
+  const { error } = await admin
     .from("contact_entreprises")
     .insert({ entreprise_id: entrepriseId, contact_client_id: contactId });
 
