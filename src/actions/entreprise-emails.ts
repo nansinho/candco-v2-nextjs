@@ -31,7 +31,7 @@ export interface EmailHistoryItem {
   statut: string;
   template: string | null;
   created_at: string;
-  metadata: Record<string, unknown> | null;
+  metadata?: Record<string, unknown> | null;
 }
 
 // ─── Get members with email info ─────────────────────────
@@ -354,7 +354,8 @@ export async function getEntrepriseEmailHistory(
     const { organisationId } = result;
     const admin = createAdminClient();
 
-    const { data, error } = await admin
+    // Try with metadata column first, fallback without it if column doesn't exist yet
+    let query = admin
       .from("emails_envoyes")
       .select("id, destinataire_email, destinataire_nom, sujet, statut, template, created_at, metadata")
       .eq("organisation_id", organisationId)
@@ -362,6 +363,22 @@ export async function getEntrepriseEmailHistory(
       .eq("entite_id", entrepriseId)
       .order("created_at", { ascending: false })
       .limit(limit);
+
+    let { data, error } = await query;
+
+    // If metadata column doesn't exist, retry without it
+    if (error?.message?.includes("metadata")) {
+      const fallback = await admin
+        .from("emails_envoyes")
+        .select("id, destinataire_email, destinataire_nom, sujet, statut, template, created_at")
+        .eq("organisation_id", organisationId)
+        .eq("entite_type", "entreprise")
+        .eq("entite_id", entrepriseId)
+        .order("created_at", { ascending: false })
+        .limit(limit);
+      data = fallback.data;
+      error = fallback.error;
+    }
 
     if (error) return { data: [], error: error.message };
     return { data: (data ?? []) as EmailHistoryItem[] };
