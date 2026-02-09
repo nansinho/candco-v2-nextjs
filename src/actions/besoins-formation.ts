@@ -20,6 +20,7 @@ const CreateBesoinSchema = z.object({
   responsable_id: z.string().uuid().optional().or(z.literal("")),
   notes: z.string().optional().or(z.literal("")),
   // Plan fields
+  type_besoin: z.enum(["plan", "ponctuel"]).default("plan"),
   produit_id: z.string().uuid("Un programme de formation est requis"),
   plan_formation_id: z.string().uuid().optional().or(z.literal("")),
   // Périmètre
@@ -55,6 +56,7 @@ export type UpdateBesoinInput = z.infer<typeof UpdateBesoinSchema>;
 export async function getBesoinsFormation(
   entrepriseId: string,
   annee?: number,
+  typeBesoin?: "plan" | "ponctuel",
 ) {
   const result = await getOrganisationId();
   if ("error" in result) return { data: [] };
@@ -78,6 +80,10 @@ export async function getBesoinsFormation(
 
   if (annee) {
     query = query.eq("annee_cible", annee);
+  }
+
+  if (typeBesoin) {
+    query = query.eq("type_besoin", typeBesoin);
   }
 
   const { data, error } = await query;
@@ -116,7 +122,7 @@ export async function createBesoinFormation(input: CreateBesoinInput) {
     priorite: d.priorite,
     annee_cible: d.annee_cible,
     statut: "a_etudier",
-    type_besoin: "plan",
+    type_besoin: d.type_besoin || "plan",
     produit_id: d.produit_id,
     siege_social: d.siege_social || false,
     agences_ids: d.agences_ids || [],

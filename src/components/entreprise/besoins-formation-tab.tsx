@@ -44,7 +44,12 @@ import {
   createPlanFormation,
   updatePlanFormation,
   getPlanBudgetSummary,
+  getPonctuelBudgetSummary,
 } from "@/actions/plans-formation";
+import {
+  checkBudgetAlerts,
+  type BudgetAlert,
+} from "@/actions/budget-distribution";
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -122,10 +127,13 @@ const STATUT_CONFIG: Record<string, { label: string; className: string }> = {
 export function BesoinsFormationTab({
   entrepriseId,
   agences,
+  typeBesoin = "plan",
 }: {
   entrepriseId: string;
   agences: AgenceOption[];
+  typeBesoin?: "plan" | "ponctuel";
 }) {
+  const isPonctuel = typeBesoin === "ponctuel";
   const router = useRouter();
   const { toast } = useToast();
   const { confirm, ConfirmDialog } = useConfirm();
@@ -154,6 +162,12 @@ export function BesoinsFormationTab({
   // Tarif cache (produit_id → prix_ht)
   const [tarifCache, setTarifCache] = React.useState<Record<string, number>>({});
 
+  // Ponctuel budget summary
+  const [ponctuelBudget, setPonctuelBudget] = React.useState<{ budgetTotal: number; nbFormations: number } | null>(null);
+
+  // Budget alerts
+  const [budgetAlerts, setBudgetAlerts] = React.useState<BudgetAlert[]>([]);
+
   // ─── Load data ──────────────────────────────────────────
 
   const loadData = React.useCallback(async () => {
@@ -161,7 +175,7 @@ export function BesoinsFormationTab({
     setError(null);
     try {
       const [besoinsRes, plansRes] = await Promise.all([
-        getBesoinsFormation(entrepriseId, anneeFilter ?? undefined),
+        getBesoinsFormation(entrepriseId, anneeFilter ?? undefined, typeBesoin),
         getPlansFormation(entrepriseId),
       ]);
       const loadedBesoins = (besoinsRes.data ?? []) as Besoin[];
@@ -177,6 +191,18 @@ export function BesoinsFormationTab({
         }
       }
       setPlanBudgets(budgets);
+
+      // Load ponctuel budget summary if in ponctuel mode
+      if (isPonctuel) {
+        const targetYr = anneeFilter ?? currentYear;
+        const ponctuelRes = await getPonctuelBudgetSummary(entrepriseId, targetYr);
+        setPonctuelBudget(ponctuelRes.data);
+      }
+
+      // Load budget alerts
+      const targetYr = anneeFilter ?? currentYear;
+      const alertsRes = await checkBudgetAlerts(entrepriseId, targetYr);
+      setBudgetAlerts(alertsRes.data);
 
       // Load tarifs for all produit_ids in besoins (for card display)
       const produitIds = [...new Set(
@@ -199,7 +225,7 @@ export function BesoinsFormationTab({
     } finally {
       setLoading(false);
     }
-  }, [entrepriseId, anneeFilter]);
+  }, [entrepriseId, anneeFilter, typeBesoin]);
 
   React.useEffect(() => {
     loadData();
@@ -221,11 +247,13 @@ export function BesoinsFormationTab({
 
     const annee = Number(fd.get("annee_cible")) || currentYear;
 
-    // Ensure a plan exists for this year
+    // For plan type: ensure a plan exists for this year
     let planFormationId = "";
-    const existingPlan = plans.find((p) => p.annee === annee);
-    if (existingPlan) {
-      planFormationId = existingPlan.id;
+    if (!isPonctuel) {
+      const existingPlan = plans.find((p) => p.annee === annee);
+      if (existingPlan) {
+        planFormationId = existingPlan.id;
+      }
     }
 
     // Parse agences multi-select
@@ -243,15 +271,16 @@ export function BesoinsFormationTab({
       annee_cible: annee,
       date_echeance: (fd.get("date_echeance") as string) || "",
       notes: (fd.get("notes") as string) || "",
+      type_besoin: typeBesoin,
       produit_id: produitId,
-      plan_formation_id: planFormationId,
+      plan_formation_id: isPonctuel ? "" : planFormationId,
       siege_social: fd.get("siege_social") === "on",
       agences_ids: agencesIds,
     };
 
     try {
-      // Auto-create plan if needed
-      if (!planFormationId) {
+      // Auto-create plan if needed (only for plan type)
+      if (!isPonctuel && !planFormationId) {
         const planRes = await createPlanFormation({
           entreprise_id: entrepriseId,
           annee,
@@ -267,7 +296,7 @@ export function BesoinsFormationTab({
         toast({ title: "Erreur", description: "Impossible d'ajouter la formation au plan.", variant: "destructive" });
         return;
       }
-      toast({ title: "Formation ajoutée au plan", variant: "success" });
+      toast({ title: isPonctuel ? "Formation ponctuelle ajoutée" : "Formation ajoutée au plan", variant: "success" });
       setShowForm(false);
       loadData();
     } catch {
@@ -401,51 +430,98 @@ export function BesoinsFormationTab({
 
   return (
     <div className="space-y-4">
-      {/* Budget block — always visible */}
-      {relevantPlans.length > 0 ? (
+      {/* Budget alerts */}
+      {budgetAlerts.length > 0 && (
         <div className="space-y-2">
-          {relevantPlans.map((plan) => {
-            const budget = planBudgets[plan.id];
-            if (!budget) return null;
+          {budgetAlerts.map((alert, i) => {
+            const isOverspend = alert.type === "depassement" || alert.type === "global_depassement";
             return (
-              <PlanBudgetCard
-                key={plan.id}
-                plan={plan}
-                budget={budget}
-                onUpdateBudget={async (newBudget) => {
-                  const res = await updatePlanFormation(plan.id, { budget_total: newBudget });
-                  if (res.error) {
-                    toast({ title: "Erreur", description: String(res.error), variant: "destructive" });
-                  } else {
-                    toast({ title: "Budget mis à jour", variant: "success" });
-                    loadData();
-                  }
-                }}
-              />
+              <div
+                key={i}
+                className={`rounded-md border px-3 py-2 text-[12px] flex items-center gap-2 ${
+                  isOverspend
+                    ? "border-destructive/30 bg-destructive/5 text-destructive"
+                    : "border-amber-500/30 bg-amber-500/5 text-amber-400"
+                }`}
+              >
+                <span className="shrink-0">⚠</span>
+                <span>
+                  <strong>{alert.entite}</strong> — {isOverspend ? "Dépassement" : "Seuil de vigilance"} :{" "}
+                  {alert.pourcentage}% ({formatCurrency(alert.budgetEngage)} / {formatCurrency(alert.budgetAlloue)})
+                </span>
+              </div>
             );
           })}
         </div>
-      ) : (
-        /* No plan exists yet — invite to create one for budget tracking */
-        <div className="rounded-lg border border-dashed border-border/60 bg-muted/10 p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Wallet className="h-4 w-4 text-muted-foreground/40" />
-              <span className="text-[13px] text-muted-foreground/60">
-                Aucun budget défini pour {targetYear}
-              </span>
+      )}
+
+      {/* Budget block */}
+      {isPonctuel ? (
+        /* Ponctuel mode: read-only budget summary */
+        ponctuelBudget && ponctuelBudget.nbFormations > 0 ? (
+          <div className="rounded-lg border border-border/60 bg-card p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Wallet className="h-4 w-4 text-amber-400" />
+              <span className="text-[13px] font-medium">Budget formations ponctuelles</span>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 text-xs border-border/60"
-              onClick={() => handleCreatePlanForYear(targetYear)}
-            >
-              <Plus className="mr-1 h-3 w-3" />
-              Définir un budget {targetYear}
-            </Button>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-muted-foreground/60">
+                {ponctuelBudget.nbFormations} formation{ponctuelBudget.nbFormations > 1 ? "s" : ""} ponctuelle{ponctuelBudget.nbFormations > 1 ? "s" : ""}
+              </span>
+              <span className="text-[15px] font-semibold">{formatCurrency(ponctuelBudget.budgetTotal)}</span>
+            </div>
+            <p className="text-[10px] text-muted-foreground/40 mt-1">
+              Calculé automatiquement — n'impacte pas le budget du plan annuel
+            </p>
           </div>
-        </div>
+        ) : null
+      ) : (
+        /* Plan mode: editable budget cards */
+        relevantPlans.length > 0 ? (
+          <div className="space-y-2">
+            {relevantPlans.map((plan) => {
+              const budget = planBudgets[plan.id];
+              if (!budget) return null;
+              return (
+                <PlanBudgetCard
+                  key={plan.id}
+                  plan={plan}
+                  budget={budget}
+                  onUpdateBudget={async (newBudget) => {
+                    const res = await updatePlanFormation(plan.id, { budget_total: newBudget });
+                    if (res.error) {
+                      toast({ title: "Erreur", description: String(res.error), variant: "destructive" });
+                    } else {
+                      toast({ title: "Budget mis à jour", variant: "success" });
+                      loadData();
+                    }
+                  }}
+                />
+              );
+            })}
+          </div>
+        ) : (
+          /* No plan exists yet — invite to create one for budget tracking */
+          <div className="rounded-lg border border-dashed border-border/60 bg-muted/10 p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Wallet className="h-4 w-4 text-muted-foreground/40" />
+                <span className="text-[13px] text-muted-foreground/60">
+                  Aucun budget défini pour {targetYear}
+                </span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs border-border/60"
+                onClick={() => handleCreatePlanForYear(targetYear)}
+              >
+                <Plus className="mr-1 h-3 w-3" />
+                Définir un budget {targetYear}
+              </Button>
+            </div>
+          </div>
+        )
       )}
 
       {/* Header: year filter + add button */}
@@ -484,7 +560,7 @@ export function BesoinsFormationTab({
           onClick={() => setShowForm(true)}
         >
           <Plus className="mr-1 h-3 w-3" />
-          Ajouter une formation au plan
+          {isPonctuel ? "Ajouter une formation ponctuelle" : "Ajouter une formation au plan"}
         </Button>
       </div>
 
@@ -498,6 +574,7 @@ export function BesoinsFormationTab({
           saving={saving}
           planBudgets={planBudgets}
           plans={plans}
+          isPonctuel={isPonctuel}
           onSubmit={handleCreate}
           onCancel={() => setShowForm(false)}
         />
@@ -517,7 +594,9 @@ export function BesoinsFormationTab({
       {besoins.length === 0 && !showForm ? (
         <div className="flex flex-col items-center gap-3 rounded-lg border border-border/60 bg-card py-16">
           <ClipboardList className="h-8 w-8 text-muted-foreground/30" />
-          <p className="text-sm text-muted-foreground/60">Aucune formation dans le plan</p>
+          <p className="text-sm text-muted-foreground/60">
+            {isPonctuel ? "Aucune formation ponctuelle" : "Aucune formation dans le plan"}
+          </p>
           <Button
             variant="outline"
             size="sm"
@@ -525,7 +604,7 @@ export function BesoinsFormationTab({
             onClick={() => setShowForm(true)}
           >
             <Plus className="mr-1 h-3 w-3" />
-            Ajouter une formation au plan
+            {isPonctuel ? "Ajouter une formation ponctuelle" : "Ajouter une formation au plan"}
           </Button>
         </div>
       ) : (
@@ -689,6 +768,7 @@ function CreateFormationPlanForm({
   saving,
   planBudgets,
   plans,
+  isPonctuel,
   onSubmit,
   onCancel,
 }: {
@@ -699,6 +779,7 @@ function CreateFormationPlanForm({
   saving: boolean;
   planBudgets: Record<string, PlanBudget>;
   plans: PlanFormation[];
+  isPonctuel: boolean;
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   onCancel: () => void;
 }) {
@@ -765,7 +846,9 @@ function CreateFormationPlanForm({
   return (
     <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-medium">Ajouter une formation au plan</p>
+        <p className="text-sm font-medium">
+          {isPonctuel ? "Ajouter une formation ponctuelle" : "Ajouter une formation au plan"}
+        </p>
         <button type="button" onClick={onCancel} className="text-muted-foreground hover:text-foreground">
           <X className="h-4 w-4" />
         </button>
@@ -941,8 +1024,8 @@ function CreateFormationPlanForm({
           <Input name="description" placeholder="Détails complémentaires..." className="h-8 text-[13px] border-border/60" />
         </div>
 
-        {/* Budget impact preview */}
-        {tarifInfo && activeBudget && activeBudget.budgetTotal > 0 && (
+        {/* Budget impact preview — only for plan mode */}
+        {!isPonctuel && tarifInfo && activeBudget && activeBudget.budgetTotal > 0 && (
           <div className={`rounded-md border px-3 py-2 text-[11px] ${
             previewRemaining < 0
               ? "border-destructive/30 bg-destructive/5 text-destructive"
@@ -965,7 +1048,7 @@ function CreateFormationPlanForm({
           </Button>
           <Button type="submit" size="sm" className="h-7 text-xs" disabled={saving || !selectedProduit}>
             {saving ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Plus className="mr-1 h-3 w-3" />}
-            Ajouter au plan
+            {isPonctuel ? "Ajouter" : "Ajouter au plan"}
           </Button>
         </div>
       </form>
