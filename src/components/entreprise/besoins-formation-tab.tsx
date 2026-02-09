@@ -20,6 +20,7 @@ import {
   MapPin,
   TrendingUp,
   Wallet,
+  Settings2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -147,6 +148,12 @@ export function BesoinsFormationTab({
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [editIntitule, setEditIntitule] = React.useState("");
 
+  // Edit modal
+  const [editingBesoin, setEditingBesoin] = React.useState<Besoin | null>(null);
+
+  // Tarif cache (produit_id → prix_ht)
+  const [tarifCache, setTarifCache] = React.useState<Record<string, number>>({});
+
   // ─── Load data ──────────────────────────────────────────
 
   const loadData = React.useCallback(async () => {
@@ -157,7 +164,8 @@ export function BesoinsFormationTab({
         getBesoinsFormation(entrepriseId, anneeFilter ?? undefined),
         getPlansFormation(entrepriseId),
       ]);
-      setBesoins((besoinsRes.data ?? []) as Besoin[]);
+      const loadedBesoins = (besoinsRes.data ?? []) as Besoin[];
+      setBesoins(loadedBesoins);
       setPlans((plansRes.data ?? []) as PlanFormation[]);
 
       // Load budget summaries for all plans
@@ -169,6 +177,23 @@ export function BesoinsFormationTab({
         }
       }
       setPlanBudgets(budgets);
+
+      // Load tarifs for all produit_ids in besoins (for card display)
+      const produitIds = [...new Set(
+        loadedBesoins.filter((b) => b.produit_id).map((b) => b.produit_id as string)
+      )];
+      const newCache: Record<string, number> = {};
+      for (const pid of produitIds) {
+        if (!tarifCache[pid]) {
+          const tarifRes = await getProduitDefaultTarif(pid);
+          if (tarifRes.data?.prix_ht) {
+            newCache[pid] = Number(tarifRes.data.prix_ht);
+          }
+        }
+      }
+      if (Object.keys(newCache).length > 0) {
+        setTarifCache((prev) => ({ ...prev, ...newCache }));
+      }
     } catch {
       setError("Impossible de charger le plan de formation");
     } finally {
@@ -310,6 +335,40 @@ export function BesoinsFormationTab({
     }
   };
 
+  const handleEditSave = async (id: string, updates: Record<string, unknown>) => {
+    try {
+      const res = await updateBesoinFormation(id, updates);
+      if (res.error) {
+        toast({ title: "Erreur", description: String(res.error), variant: "destructive" });
+        return;
+      }
+      setEditingBesoin(null);
+      toast({ title: "Formation modifiée", variant: "success" });
+      loadData();
+    } catch {
+      toast({ title: "Erreur", description: "Impossible de modifier la formation", variant: "destructive" });
+    }
+  };
+
+  // Create a plan for budget even when no formations exist
+  const handleCreatePlanForYear = async (annee: number) => {
+    try {
+      const res = await createPlanFormation({
+        entreprise_id: entrepriseId,
+        annee,
+        budget_total: 0,
+      });
+      if (res.error) {
+        toast({ title: "Erreur", description: String(res.error), variant: "destructive" });
+        return;
+      }
+      toast({ title: `Plan ${annee} créé`, variant: "success" });
+      loadData();
+    } catch {
+      toast({ title: "Erreur", description: "Impossible de créer le plan", variant: "destructive" });
+    }
+  };
+
   const anneeOptions = [currentYear - 1, currentYear, currentYear + 1];
 
   if (loading) {
@@ -336,10 +395,14 @@ export function BesoinsFormationTab({
     ? plans.filter((p) => p.annee === anneeFilter)
     : plans;
 
+  // Check if a plan exists for the filtered year (or current year)
+  const targetYear = anneeFilter ?? currentYear;
+  const hasPlanForTargetYear = plans.some((p) => p.annee === targetYear);
+
   return (
     <div className="space-y-4">
       {/* Budget block — always visible */}
-      {relevantPlans.length > 0 && (
+      {relevantPlans.length > 0 ? (
         <div className="space-y-2">
           {relevantPlans.map((plan) => {
             const budget = planBudgets[plan.id];
@@ -361,6 +424,27 @@ export function BesoinsFormationTab({
               />
             );
           })}
+        </div>
+      ) : (
+        /* No plan exists yet — invite to create one for budget tracking */
+        <div className="rounded-lg border border-dashed border-border/60 bg-muted/10 p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Wallet className="h-4 w-4 text-muted-foreground/40" />
+              <span className="text-[13px] text-muted-foreground/60">
+                Aucun budget défini pour {targetYear}
+              </span>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs border-border/60"
+              onClick={() => handleCreatePlanForYear(targetYear)}
+            >
+              <Plus className="mr-1 h-3 w-3" />
+              Définir un budget {targetYear}
+            </Button>
+          </div>
         </div>
       )}
 
@@ -412,8 +496,20 @@ export function BesoinsFormationTab({
           currentYear={currentYear}
           anneeOptions={anneeOptions}
           saving={saving}
+          planBudgets={planBudgets}
+          plans={plans}
           onSubmit={handleCreate}
           onCancel={() => setShowForm(false)}
+        />
+      )}
+
+      {/* Edit modal */}
+      {editingBesoin && (
+        <EditFormationModal
+          besoin={editingBesoin}
+          agences={agences}
+          onSave={(updates) => handleEditSave(editingBesoin.id, updates)}
+          onCancel={() => setEditingBesoin(null)}
         />
       )}
 
@@ -439,6 +535,7 @@ export function BesoinsFormationTab({
               key={b.id}
               besoin={b}
               agences={agences}
+              tarifPrixHt={b.produit_id ? (tarifCache[b.produit_id] ?? null) : null}
               editingId={editingId}
               editIntitule={editIntitule}
               onEditIntituleChange={setEditIntitule}
@@ -447,6 +544,7 @@ export function BesoinsFormationTab({
               onRenameCancel={() => setEditingId(null)}
               onStatutChange={handleStatutChange}
               onDelete={handleDelete}
+              onEdit={setEditingBesoin}
               onNavigateSession={(sessionId) => router.push(`/sessions/${sessionId}`)}
             />
           ))}
@@ -589,6 +687,8 @@ function CreateFormationPlanForm({
   currentYear,
   anneeOptions,
   saving,
+  planBudgets,
+  plans,
   onSubmit,
   onCancel,
 }: {
@@ -597,6 +697,8 @@ function CreateFormationPlanForm({
   currentYear: number;
   anneeOptions: number[];
   saving: boolean;
+  planBudgets: Record<string, PlanBudget>;
+  plans: PlanFormation[];
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   onCancel: () => void;
 }) {
@@ -609,6 +711,7 @@ function CreateFormationPlanForm({
   const [tarifInfo, setTarifInfo] = React.useState<{ prix_ht: number; unite: string } | null>(null);
   const [selectedAgences, setSelectedAgences] = React.useState<string[]>([]);
   const [siegeSocial, setSiegeSocial] = React.useState(false);
+  const [selectedAnnee, setSelectedAnnee] = React.useState(currentYear);
   const searchTimeout = React.useRef<NodeJS.Timeout | null>(null);
 
   const handleProduitSearch = (value: string) => {
@@ -651,6 +754,13 @@ function CreateFormationPlanForm({
         : [...prev, agenceId],
     );
   };
+
+  // Budget preview: show what happens after adding this formation
+  const activePlan = plans.find((p) => p.annee === selectedAnnee);
+  const activeBudget = activePlan ? planBudgets[activePlan.id] : null;
+  const addedCost = tarifInfo?.prix_ht ?? 0;
+  const previewEngaged = (activeBudget?.budgetEngage ?? 0) + addedCost;
+  const previewRemaining = (activeBudget?.budgetTotal ?? 0) - previewEngaged;
 
   return (
     <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-4">
@@ -764,41 +874,39 @@ function CreateFormationPlanForm({
           </div>
         </div>
 
-        {/* Périmètre: siège + agences */}
-        {(agences.length > 0) && (
-          <div className="space-y-1.5">
-            <Label className="text-[12px]">Périmètre</Label>
-            <div className="flex flex-wrap items-center gap-2">
+        {/* Périmètre: siège + agences — always visible */}
+        <div className="space-y-1.5">
+          <Label className="text-[12px]">Périmètre</Label>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setSiegeSocial(!siegeSocial)}
+              className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[11px] font-medium transition-colors ${
+                siegeSocial
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border/40 bg-muted/30 text-muted-foreground/60 hover:border-border/80"
+              }`}
+            >
+              <Building2 className="h-3 w-3" />
+              Siège social
+            </button>
+            {agences.map((a) => (
               <button
+                key={a.id}
                 type="button"
-                onClick={() => setSiegeSocial(!siegeSocial)}
+                onClick={() => toggleAgence(a.id)}
                 className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[11px] font-medium transition-colors ${
-                  siegeSocial
+                  selectedAgences.includes(a.id)
                     ? "border-primary bg-primary/10 text-primary"
                     : "border-border/40 bg-muted/30 text-muted-foreground/60 hover:border-border/80"
                 }`}
               >
-                <Building2 className="h-3 w-3" />
-                Siège social
+                <MapPin className="h-3 w-3" />
+                {a.nom}
               </button>
-              {agences.map((a) => (
-                <button
-                  key={a.id}
-                  type="button"
-                  onClick={() => toggleAgence(a.id)}
-                  className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[11px] font-medium transition-colors ${
-                    selectedAgences.includes(a.id)
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border/40 bg-muted/30 text-muted-foreground/60 hover:border-border/80"
-                  }`}
-                >
-                  <MapPin className="h-3 w-3" />
-                  {a.nom}
-                </button>
-              ))}
-            </div>
+            ))}
           </div>
-        )}
+        </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="space-y-1.5">
@@ -811,7 +919,12 @@ function CreateFormationPlanForm({
           </div>
           <div className="space-y-1.5">
             <Label className="text-[12px]">Année cible <span className="text-destructive">*</span></Label>
-            <select name="annee_cible" defaultValue={currentYear} className="h-8 w-full rounded-md border border-input bg-muted px-2 text-[13px] text-foreground">
+            <select
+              name="annee_cible"
+              value={selectedAnnee}
+              onChange={(e) => setSelectedAnnee(Number(e.target.value))}
+              className="h-8 w-full rounded-md border border-input bg-muted px-2 text-[13px] text-foreground"
+            >
               {anneeOptions.map((yr) => (
                 <option key={yr} value={yr}>{yr}</option>
               ))}
@@ -828,6 +941,24 @@ function CreateFormationPlanForm({
           <Input name="description" placeholder="Détails complémentaires..." className="h-8 text-[13px] border-border/60" />
         </div>
 
+        {/* Budget impact preview */}
+        {tarifInfo && activeBudget && activeBudget.budgetTotal > 0 && (
+          <div className={`rounded-md border px-3 py-2 text-[11px] ${
+            previewRemaining < 0
+              ? "border-destructive/30 bg-destructive/5 text-destructive"
+              : "border-emerald-500/20 bg-emerald-500/5 text-emerald-400"
+          }`}>
+            <div className="flex items-center justify-between">
+              <span>Impact budget {selectedAnnee} :</span>
+              <div className="flex items-center gap-3">
+                <span>Engagé : {formatCurrency(activeBudget.budgetEngage)} → <strong>{formatCurrency(previewEngaged)}</strong></span>
+                <span>|</span>
+                <span>Restant : <strong>{formatCurrency(previewRemaining)}</strong></span>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="flex justify-end gap-2">
           <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={onCancel}>
             Annuler
@@ -842,11 +973,245 @@ function CreateFormationPlanForm({
   );
 }
 
+// ─── Edit Formation Modal ────────────────────────────────
+
+function EditFormationModal({
+  besoin,
+  agences,
+  onSave,
+  onCancel,
+}: {
+  besoin: Besoin;
+  agences: AgenceOption[];
+  onSave: (updates: Record<string, unknown>) => void;
+  onCancel: () => void;
+}) {
+  const [searchProduit, setSearchProduit] = React.useState("");
+  const [produitResults, setProduitResults] = React.useState<ProduitOption[]>([]);
+  const [selectedProduit, setSelectedProduit] = React.useState<ProduitOption | null>(
+    besoin.produits_formation
+      ? { id: besoin.produits_formation.id, intitule: besoin.produits_formation.intitule, numero_affichage: besoin.produits_formation.numero_affichage, duree_heures: null }
+      : null,
+  );
+  const [showProduitSearch, setShowProduitSearch] = React.useState(false);
+  const [searchLoading, setSearchLoading] = React.useState(false);
+  const [intitule, setIntitule] = React.useState(besoin.intitule);
+  const [publicCible, setPublicCible] = React.useState(besoin.public_cible || "");
+  const [priorite, setPriorite] = React.useState(besoin.priorite);
+  const [dateEcheance, setDateEcheance] = React.useState(besoin.date_echeance || "");
+  const [description, setDescription] = React.useState(besoin.description || "");
+  const [siegeSocial, setSiegeSocial] = React.useState(besoin.siege_social || false);
+  const [selectedAgences, setSelectedAgences] = React.useState<string[]>(besoin.agences_ids || []);
+  const [saving, setSaving] = React.useState(false);
+  const searchTimeout = React.useRef<NodeJS.Timeout | null>(null);
+
+  const handleProduitSearch = (value: string) => {
+    setSearchProduit(value);
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    searchTimeout.current = setTimeout(async () => {
+      setSearchLoading(true);
+      const res = await searchProduitsForBesoin(value);
+      setProduitResults(res.data as ProduitOption[]);
+      setSearchLoading(false);
+    }, 300);
+  };
+
+  const handleProduitSelect = (produit: ProduitOption) => {
+    setSelectedProduit(produit);
+    setIntitule(produit.intitule);
+    setShowProduitSearch(false);
+    setSearchProduit("");
+  };
+
+  React.useEffect(() => {
+    if (showProduitSearch && produitResults.length === 0) {
+      handleProduitSearch("");
+    }
+  }, [showProduitSearch]);
+
+  const toggleAgence = (agenceId: string) => {
+    setSelectedAgences((prev) =>
+      prev.includes(agenceId)
+        ? prev.filter((id) => id !== agenceId)
+        : [...prev, agenceId],
+    );
+  };
+
+  const handleSubmit = () => {
+    setSaving(true);
+    const updates: Record<string, unknown> = {
+      intitule,
+      public_cible: publicCible || null,
+      priorite,
+      date_echeance: dateEcheance || null,
+      description: description || null,
+      siege_social: siegeSocial,
+      agences_ids: selectedAgences,
+    };
+    if (selectedProduit && selectedProduit.id !== besoin.produit_id) {
+      updates.produit_id = selectedProduit.id;
+    }
+    onSave(updates);
+  };
+
+  return (
+    <div className="rounded-lg border border-border/60 bg-card p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium">Modifier la formation</p>
+        <button type="button" onClick={onCancel} className="text-muted-foreground hover:text-foreground">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+
+      {/* Programme */}
+      <div className="space-y-1.5">
+        <Label className="text-[12px]">Programme de formation</Label>
+        {selectedProduit ? (
+          <div className="flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
+            <BookOpen className="h-3.5 w-3.5 text-primary shrink-0" />
+            <span className="text-[12px] font-medium truncate">{selectedProduit.intitule}</span>
+            <span className="text-[10px] font-mono text-muted-foreground/50">{selectedProduit.numero_affichage}</span>
+            <button
+              type="button"
+              onClick={() => { setSelectedProduit(null); setShowProduitSearch(true); }}
+              className="text-muted-foreground hover:text-foreground shrink-0 ml-auto"
+            >
+              <Pencil className="h-3 w-3" />
+            </button>
+          </div>
+        ) : (
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowProduitSearch(!showProduitSearch)}
+              className="flex items-center gap-2 w-full rounded-md border border-border/60 bg-muted px-3 py-2 text-[12px] text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+            >
+              <Search className="h-3 w-3" />
+              Rechercher un programme...
+            </button>
+            {showProduitSearch && (
+              <div className="absolute top-full left-0 right-0 z-10 mt-1 rounded-md border border-border/60 bg-card shadow-lg">
+                <div className="p-2">
+                  <Input
+                    value={searchProduit}
+                    onChange={(e) => handleProduitSearch(e.target.value)}
+                    placeholder="Rechercher par intitulé..."
+                    className="h-7 text-[12px]"
+                    autoFocus
+                  />
+                </div>
+                <div className="max-h-48 overflow-auto">
+                  {searchLoading ? (
+                    <div className="flex items-center justify-center py-4">
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : produitResults.length === 0 ? (
+                    <p className="text-center py-4 text-[11px] text-muted-foreground/60">Aucun programme trouvé</p>
+                  ) : (
+                    produitResults.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => handleProduitSelect(p)}
+                        className="flex items-center gap-2 w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors"
+                      >
+                        <BookOpen className="h-3 w-3 text-muted-foreground/50 shrink-0" />
+                        <span className="text-[12px] truncate">{p.intitule}</span>
+                        <span className="text-[10px] font-mono text-muted-foreground/40 shrink-0">{p.numero_affichage}</span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label className="text-[12px]">Intitulé</Label>
+          <Input value={intitule} onChange={(e) => setIntitule(e.target.value)} className="h-8 text-[13px] border-border/60" />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-[12px]">Public cible</Label>
+          <Input value={publicCible} onChange={(e) => setPublicCible(e.target.value)} className="h-8 text-[13px] border-border/60" />
+        </div>
+      </div>
+
+      {/* Périmètre — always visible */}
+      <div className="space-y-1.5">
+        <Label className="text-[12px]">Périmètre</Label>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setSiegeSocial(!siegeSocial)}
+            className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[11px] font-medium transition-colors ${
+              siegeSocial
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border/40 bg-muted/30 text-muted-foreground/60 hover:border-border/80"
+            }`}
+          >
+            <Building2 className="h-3 w-3" />
+            Siège social
+          </button>
+          {agences.map((a) => (
+            <button
+              key={a.id}
+              type="button"
+              onClick={() => toggleAgence(a.id)}
+              className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[11px] font-medium transition-colors ${
+                selectedAgences.includes(a.id)
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border/40 bg-muted/30 text-muted-foreground/60 hover:border-border/80"
+              }`}
+            >
+              <MapPin className="h-3 w-3" />
+              {a.nom}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label className="text-[12px]">Priorité</Label>
+          <select value={priorite} onChange={(e) => setPriorite(e.target.value)} className="h-8 w-full rounded-md border border-input bg-muted px-2 text-[13px] text-foreground">
+            <option value="faible">Faible</option>
+            <option value="moyenne">Moyenne</option>
+            <option value="haute">Haute</option>
+          </select>
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-[12px]">Date prévisionnelle</Label>
+          <Input type="date" value={dateEcheance} onChange={(e) => setDateEcheance(e.target.value)} className="h-8 text-[13px] border-border/60" />
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label className="text-[12px]">Description / Notes</Label>
+        <Input value={description} onChange={(e) => setDescription(e.target.value)} className="h-8 text-[13px] border-border/60" />
+      </div>
+
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={onCancel}>
+          Annuler
+        </Button>
+        <Button size="sm" className="h-7 text-xs" disabled={saving} onClick={handleSubmit}>
+          {saving ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Check className="mr-1 h-3 w-3" />}
+          Enregistrer
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Formation Plan Card ─────────────────────────────────
 
 function FormationPlanCard({
   besoin: b,
   agences,
+  tarifPrixHt,
   editingId,
   editIntitule,
   onEditIntituleChange,
@@ -855,10 +1220,12 @@ function FormationPlanCard({
   onRenameCancel,
   onStatutChange,
   onDelete,
+  onEdit,
   onNavigateSession,
 }: {
   besoin: Besoin;
   agences: AgenceOption[];
+  tarifPrixHt: number | null;
   editingId: string | null;
   editIntitule: string;
   onEditIntituleChange: (v: string) => void;
@@ -867,6 +1234,7 @@ function FormationPlanCard({
   onRenameCancel: () => void;
   onStatutChange: (id: string, statut: string) => void;
   onDelete: (id: string) => void;
+  onEdit: (b: Besoin) => void;
   onNavigateSession: (sessionId: string) => void;
 }) {
   const prio = PRIORITE_CONFIG[b.priorite] ?? PRIORITE_CONFIG.moyenne;
@@ -923,8 +1291,15 @@ function FormationPlanCard({
           <Badge variant="outline" className="text-[10px] shrink-0">
             {b.annee_cible}
           </Badge>
+
+          {/* Cost badge from programme tarif */}
+          {tarifPrixHt != null && tarifPrixHt > 0 && (
+            <Badge variant="outline" className="text-[10px] shrink-0 text-emerald-400 border-emerald-500/20">
+              {formatCurrency(tarifPrixHt)}
+            </Badge>
+          )}
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1 shrink-0">
           {/* Status select */}
           <select
             value={b.statut}
@@ -935,6 +1310,17 @@ function FormationPlanCard({
               <option key={val} value={val}>{label}</option>
             ))}
           </select>
+
+          {/* Edit button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-primary"
+            onClick={() => onEdit(b)}
+            title="Modifier"
+          >
+            <Settings2 className="h-3 w-3" />
+          </Button>
 
           {/* Rename button */}
           <Button
