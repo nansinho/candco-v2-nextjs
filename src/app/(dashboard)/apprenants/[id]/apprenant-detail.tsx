@@ -295,115 +295,125 @@ export function ApprenantDetail({
                 </div>
               )}
 
-              <div className="p-5 space-y-4">
-                {/* Row 1: Civilité + Prénom + Nom */}
-                <div className="grid grid-cols-[100px_1fr_1fr] gap-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="civilite" className="text-[13px] text-muted-foreground">Civilité</Label>
-                    <select id="civilite" name="civilite" defaultValue={apprenant.civilite ?? ""} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground">
-                      <option value="">--</option>
-                      <option value="Monsieur">Monsieur</option>
-                      <option value="Madame">Madame</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="prenom" className="text-[13px] text-muted-foreground">Prénom <span className="text-destructive">*</span></Label>
-                    <Input id="prenom" name="prenom" defaultValue={apprenant.prenom} className="h-9 text-[13px] border-border/60" />
-                    {errors.prenom && <p className="text-xs text-destructive">{errors.prenom[0]}</p>}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="nom" className="text-[13px] text-muted-foreground">Nom <span className="text-destructive">*</span></Label>
-                    <Input id="nom" name="nom" defaultValue={apprenant.nom} className="h-9 text-[13px] border-border/60" />
-                    {errors.nom && <p className="text-xs text-destructive">{errors.nom[0]}</p>}
-                  </div>
-                </div>
+              <div className="p-5">
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                  {/* ── COLONNE GAUCHE : Identité + Adresse ── */}
+                  <div className="space-y-5">
+                    <p className="text-[11px] font-medium text-muted-foreground/60 uppercase tracking-wider">Identité</p>
 
-                {/* Row 2: Email + Téléphone + Date naissance */}
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="email" className="text-[13px] text-muted-foreground">Email</Label>
-                    <Input id="email" name="email" type="email" defaultValue={apprenant.email ?? ""} className="h-9 text-[13px] border-border/60" />
-                    {errors.email && <p className="text-xs text-destructive">{errors.email[0]}</p>}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="telephone" className="text-[13px] text-muted-foreground">Téléphone</Label>
-                    <Input id="telephone" name="telephone" defaultValue={apprenant.telephone ?? ""} className="h-9 text-[13px] border-border/60" />
-                    {errors.telephone && <p className="text-xs text-destructive">{errors.telephone[0]}</p>}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="date_naissance" className="text-[13px] text-muted-foreground">Date de naissance</Label>
-                    <DatePicker id="date_naissance" name="date_naissance" defaultValue={apprenant.date_naissance ?? ""} />
-                    {errors.date_naissance && <p className="text-xs text-destructive">{errors.date_naissance[0]}</p>}
-                  </div>
-                </div>
-
-                {/* Row 3: Fonction + Lieu d'activité */}
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <Label className="text-[13px] text-muted-foreground">Fonction</Label>
-                    <FonctionSelect value={fonction} onChange={setFonction} placeholder="Sélectionner une fonction" />
-                    {errors.fonction && <p className="text-xs text-destructive">{errors.fonction[0]}</p>}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-[13px] text-muted-foreground">Lieu d&apos;activité</Label>
-                    <CityAutocomplete value={lieuActivite} onChange={setLieuActivite} placeholder="Rechercher une ville..." />
-                    {errors.lieu_activite && <p className="text-xs text-destructive">{errors.lieu_activite[0]}</p>}
-                  </div>
-                </div>
-
-                {/* Divider */}
-                <div className="border-t border-border/40 pt-4">
-                  <p className="text-[11px] font-medium text-muted-foreground/60 uppercase tracking-wider mb-3">Adresse</p>
-
-                  {/* Rue */}
-                  <div className="space-y-3">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="adresse_rue" className="text-[13px] text-muted-foreground">Rue</Label>
-                      <AddressAutocomplete
-                        id="adresse_rue" name="adresse_rue" value={adresseRue}
-                        onChange={(val) => setAdresseRue(val)}
-                        onSelect={(r) => { setAdresseRue(r.rue); setAdresseCp(r.cp); setAdresseVille(r.ville); }}
-                        placeholder="Rechercher une adresse..."
-                      />
-                    </div>
-
-                    {/* Complément */}
-                    <div className="space-y-1.5">
-                      <Label htmlFor="adresse_complement" className="text-[13px] text-muted-foreground">Complément</Label>
-                      <Input id="adresse_complement" name="adresse_complement" defaultValue={apprenant.adresse_complement ?? ""} className="h-9 text-[13px] border-border/60" />
-                    </div>
-
-                    {/* CP + Ville */}
-                    <div className="grid grid-cols-[120px_1fr] gap-3">
+                    {/* Civilité + Prénom + Nom */}
+                    <div className="grid grid-cols-[90px_1fr_1fr] gap-3">
                       <div className="space-y-1.5">
-                        <Label htmlFor="adresse_cp" className="text-[13px] text-muted-foreground">Code postal</Label>
-                        <Input id="adresse_cp" name="adresse_cp" value={adresseCp} onChange={(e) => setAdresseCp(e.target.value)} className="h-9 text-[13px] border-border/60" />
+                        <Label htmlFor="civilite" className="text-[13px] text-muted-foreground">Civilité</Label>
+                        <select id="civilite" name="civilite" defaultValue={apprenant.civilite ?? ""} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground">
+                          <option value="">--</option>
+                          <option value="Monsieur">M.</option>
+                          <option value="Madame">Mme</option>
+                        </select>
                       </div>
                       <div className="space-y-1.5">
-                        <Label htmlFor="adresse_ville" className="text-[13px] text-muted-foreground">Ville</Label>
-                        <Input id="adresse_ville" name="adresse_ville" value={adresseVille} onChange={(e) => setAdresseVille(e.target.value)} className="h-9 text-[13px] border-border/60" />
+                        <Label htmlFor="prenom" className="text-[13px] text-muted-foreground">Prénom <span className="text-destructive">*</span></Label>
+                        <Input id="prenom" name="prenom" defaultValue={apprenant.prenom} className="h-9 text-[13px] border-border/60" />
+                        {errors.prenom && <p className="text-xs text-destructive">{errors.prenom[0]}</p>}
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="nom" className="text-[13px] text-muted-foreground">Nom <span className="text-destructive">*</span></Label>
+                        <Input id="nom" name="nom" defaultValue={apprenant.nom} className="h-9 text-[13px] border-border/60" />
+                        {errors.nom && <p className="text-xs text-destructive">{errors.nom[0]}</p>}
+                      </div>
+                    </div>
+
+                    {/* Email + Téléphone */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="email" className="text-[13px] text-muted-foreground">Email</Label>
+                        <Input id="email" name="email" type="email" defaultValue={apprenant.email ?? ""} className="h-9 text-[13px] border-border/60" />
+                        {errors.email && <p className="text-xs text-destructive">{errors.email[0]}</p>}
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="telephone" className="text-[13px] text-muted-foreground">Téléphone</Label>
+                        <Input id="telephone" name="telephone" defaultValue={apprenant.telephone ?? ""} className="h-9 text-[13px] border-border/60" />
+                        {errors.telephone && <p className="text-xs text-destructive">{errors.telephone[0]}</p>}
+                      </div>
+                    </div>
+
+                    {/* Date de naissance */}
+                    <div className="w-1/2 space-y-1.5">
+                      <Label htmlFor="date_naissance" className="text-[13px] text-muted-foreground">Date de naissance</Label>
+                      <DatePicker id="date_naissance" name="date_naissance" defaultValue={apprenant.date_naissance ?? ""} />
+                      {errors.date_naissance && <p className="text-xs text-destructive">{errors.date_naissance[0]}</p>}
+                    </div>
+
+                    {/* ── Adresse ── */}
+                    <div className="border-t border-border/40 pt-5">
+                      <p className="text-[11px] font-medium text-muted-foreground/60 uppercase tracking-wider mb-4">Adresse</p>
+
+                      <div className="space-y-3">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="adresse_rue" className="text-[13px] text-muted-foreground">Rue</Label>
+                          <AddressAutocomplete
+                            id="adresse_rue" name="adresse_rue" value={adresseRue}
+                            onChange={(val) => setAdresseRue(val)}
+                            onSelect={(r) => { setAdresseRue(r.rue); setAdresseCp(r.cp); setAdresseVille(r.ville); }}
+                            placeholder="Rechercher une adresse..."
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <Label htmlFor="adresse_complement" className="text-[13px] text-muted-foreground">Complément</Label>
+                          <Input id="adresse_complement" name="adresse_complement" defaultValue={apprenant.adresse_complement ?? ""} className="h-9 text-[13px] border-border/60" />
+                        </div>
+
+                        <div className="grid grid-cols-[110px_1fr] gap-3">
+                          <div className="space-y-1.5">
+                            <Label htmlFor="adresse_cp" className="text-[13px] text-muted-foreground">Code postal</Label>
+                            <Input id="adresse_cp" name="adresse_cp" value={adresseCp} onChange={(e) => setAdresseCp(e.target.value)} className="h-9 text-[13px] border-border/60" />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor="adresse_ville" className="text-[13px] text-muted-foreground">Ville</Label>
+                            <Input id="adresse_ville" name="adresse_ville" value={adresseVille} onChange={(e) => setAdresseVille(e.target.value)} className="h-9 text-[13px] border-border/60" />
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Divider */}
-                <div className="border-t border-border/40 pt-4">
-                  <p className="text-[11px] font-medium text-muted-foreground/60 uppercase tracking-wider mb-3">BPF &amp; Comptabilité</p>
+                  {/* ── COLONNE DROITE : Activité + BPF ── */}
+                  <div className="space-y-5">
+                    <p className="text-[11px] font-medium text-muted-foreground/60 uppercase tracking-wider">Activité</p>
 
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="bpf_categorie_id" className="text-[13px] text-muted-foreground">Statut BPF</Label>
-                      <select id="bpf_categorie_id" name="bpf_categorie_id" defaultValue={apprenant.bpf_categorie_id ?? ""} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground">
-                        <option value="">-- Aucun --</option>
-                        {bpfCategories.map((cat) => (
-                          <option key={cat.id} value={cat.id}>{cat.code} — {cat.libelle}</option>
-                        ))}
-                      </select>
+                    <div className="space-y-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-[13px] text-muted-foreground">Fonction</Label>
+                        <FonctionSelect value={fonction} onChange={setFonction} placeholder="Sélectionner une fonction" />
+                        {errors.fonction && <p className="text-xs text-destructive">{errors.fonction[0]}</p>}
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-[13px] text-muted-foreground">Lieu d&apos;activité</Label>
+                        <CityAutocomplete value={lieuActivite} onChange={setLieuActivite} placeholder="Rechercher une ville..." />
+                        {errors.lieu_activite && <p className="text-xs text-destructive">{errors.lieu_activite[0]}</p>}
+                      </div>
                     </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="numero_compte_comptable" className="text-[13px] text-muted-foreground">N° compte comptable</Label>
-                      <Input id="numero_compte_comptable" name="numero_compte_comptable" defaultValue={apprenant.numero_compte_comptable ?? ""} className="h-9 text-[13px] border-border/60" />
+
+                    {/* ── BPF & Comptabilité ── */}
+                    <div className="border-t border-border/40 pt-5">
+                      <p className="text-[11px] font-medium text-muted-foreground/60 uppercase tracking-wider mb-4">BPF &amp; Comptabilité</p>
+
+                      <div className="space-y-3">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="bpf_categorie_id" className="text-[13px] text-muted-foreground">Statut BPF</Label>
+                          <select id="bpf_categorie_id" name="bpf_categorie_id" defaultValue={apprenant.bpf_categorie_id ?? ""} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground">
+                            <option value="">-- Aucun --</option>
+                            {bpfCategories.map((cat) => (
+                              <option key={cat.id} value={cat.id}>{cat.code} — {cat.libelle}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="numero_compte_comptable" className="text-[13px] text-muted-foreground">N° compte comptable</Label>
+                          <Input id="numero_compte_comptable" name="numero_compte_comptable" defaultValue={apprenant.numero_compte_comptable ?? ""} className="h-9 text-[13px] border-border/60" />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
