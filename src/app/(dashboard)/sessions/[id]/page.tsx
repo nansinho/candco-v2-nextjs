@@ -1,4 +1,4 @@
-import { getSession, getSessionFormateurs, getSessionCommanditaires, getInscriptions, getCreneaux, getSessionFinancials } from "@/actions/sessions";
+import { getSession, getSessionFormateurs, getSessionCommanditaires, getInscriptions, getCreneaux, getSessionFinancials, getSessionEmargements, getSessionDocuments } from "@/actions/sessions";
 import { getAllSalles } from "@/actions/salles";
 import { getAllFormateurs } from "@/actions/formateurs";
 import { getAllEntreprises } from "@/actions/entreprises";
@@ -22,6 +22,8 @@ export default async function SessionDetailPage({ params }: PageProps) {
     inscriptionsResult,
     creneauxResult,
     financialsResult,
+    emargementsResult,
+    documentsResult,
     sallesResult,
     allFormateursResult,
     allEntreprisesResult,
@@ -35,6 +37,8 @@ export default async function SessionDetailPage({ params }: PageProps) {
     getInscriptions(id),
     getCreneaux(id),
     getSessionFinancials(id),
+    getSessionEmargements(id),
+    getSessionDocuments(id),
     getAllSalles(),
     getAllFormateurs(),
     getAllEntreprises(),
@@ -55,6 +59,8 @@ export default async function SessionDetailPage({ params }: PageProps) {
       inscriptions={inscriptionsResult.data}
       creneaux={creneauxResult.data}
       financials={financialsResult}
+      emargements={emargementsResult.data}
+      documents={documentsResult.data}
       salles={sallesResult.data}
       allFormateurs={allFormateursResult.data}
       allEntreprises={allEntreprisesResult.data}

@@ -998,6 +998,277 @@ export async function bulkAddInscriptions(
   return { success: true, count: newIds.length, skipped: apprenantIds.length - newIds.length };
 }
 
+// ─── Toggle émargement on créneau ────────────────────────
+
+export async function toggleCreneauEmargement(creneauId: string, sessionId: string) {
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role: userRole, supabase, admin } = result;
+
+  // Get current state
+  const { data: creneau } = await supabase
+    .from("session_creneaux")
+    .select("emargement_ouvert, date, heure_debut, heure_fin")
+    .eq("id", creneauId)
+    .single();
+
+  if (!creneau) return { error: "Créneau non trouvé" };
+
+  const newValue = !creneau.emargement_ouvert;
+
+  const { error } = await supabase
+    .from("session_creneaux")
+    .update({ emargement_ouvert: newValue })
+    .eq("id", creneauId);
+
+  if (error) return { error: error.message };
+
+  const { data: session } = await admin
+    .from("sessions")
+    .select("nom")
+    .eq("id", sessionId)
+    .single();
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole,
+    module: "session",
+    action: "updated",
+    entiteType: "session_creneau",
+    entiteId: creneauId,
+    entiteLabel: `${creneau.date} ${creneau.heure_debut}-${creneau.heure_fin}`,
+    description: `Émargement ${newValue ? "ouvert" : "fermé"} pour le créneau du ${creneau.date} (${creneau.heure_debut}-${creneau.heure_fin}) — session "${session?.nom ?? sessionId}"`,
+    objetHref: `/sessions/${sessionId}`,
+    metadata: { session_id: sessionId, emargement_ouvert: newValue },
+  });
+
+  revalidatePath(`/sessions/${sessionId}`);
+  return { success: true, emargement_ouvert: newValue };
+}
+
+// ─── Émargement (attendance tracking) ───────────────────
+
+export async function getSessionEmargements(sessionId: string) {
+  const supabase = await createClient();
+
+  // Get all créneaux for this session
+  const { data: creneaux } = await supabase
+    .from("session_creneaux")
+    .select(`
+      id, date, heure_debut, heure_fin, duree_minutes, type, emargement_ouvert,
+      formateurs(id, prenom, nom),
+      salles(id, nom)
+    `)
+    .eq("session_id", sessionId)
+    .order("date", { ascending: true })
+    .order("heure_debut", { ascending: true });
+
+  if (!creneaux || creneaux.length === 0) return { data: [] };
+
+  // Get all emargements for these créneaux
+  const creneauIds = creneaux.map((c) => c.id);
+  const { data: emargements } = await supabase
+    .from("emargements")
+    .select(`
+      id, creneau_id, apprenant_id, present, signature_url, heure_signature,
+      apprenants(id, prenom, nom, numero_affichage)
+    `)
+    .in("creneau_id", creneauIds);
+
+  // Get all inscriptions for this session (to know who should be present)
+  const { data: inscriptions } = await supabase
+    .from("inscriptions")
+    .select("apprenant_id, statut, apprenants(id, prenom, nom, numero_affichage)")
+    .eq("session_id", sessionId)
+    .in("statut", ["inscrit", "confirme"]);
+
+  // Build a map: creneauId → emargements[]
+  const emargementMap = new Map<string, Array<{
+    id: string;
+    creneau_id: string;
+    apprenant_id: string;
+    present: boolean | null;
+    signature_url: string | null;
+    heure_signature: string | null;
+    apprenants: { id: string; prenom: string; nom: string; numero_affichage: string } | null;
+  }>>();
+  for (const e of emargements ?? []) {
+    const list = emargementMap.get(e.creneau_id) ?? [];
+    // Supabase returns arrays for joins — normalize to single object
+    const apprenantRaw = e.apprenants;
+    const apprenant = Array.isArray(apprenantRaw) ? apprenantRaw[0] ?? null : apprenantRaw;
+    list.push({ ...e, apprenants: apprenant });
+    emargementMap.set(e.creneau_id, list);
+  }
+
+  // Normalize inscriptions apprenants too
+  const normalizedInscrits = (inscriptions ?? []).map((i) => {
+    const appRaw = i.apprenants;
+    return {
+      ...i,
+      apprenants: Array.isArray(appRaw) ? appRaw[0] ?? null : appRaw,
+    };
+  });
+
+  // Normalize créneau joins (formateurs / salles can be arrays from Supabase)
+  const result = creneaux.map((c) => {
+    const fRaw = c.formateurs;
+    const sRaw = c.salles;
+    return {
+      ...c,
+      formateurs: Array.isArray(fRaw) ? fRaw[0] ?? null : fRaw,
+      salles: Array.isArray(sRaw) ? sRaw[0] ?? null : sRaw,
+      emargements: emargementMap.get(c.id) ?? [],
+      inscrits: normalizedInscrits,
+    };
+  });
+
+  return { data: result };
+}
+
+export async function toggleEmargementPresence(
+  creneauId: string,
+  apprenantId: string,
+  present: boolean,
+  sessionId: string,
+) {
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { supabase } = result;
+
+  // Upsert: create or update emargement record
+  const { error } = await supabase
+    .from("emargements")
+    .upsert(
+      {
+        creneau_id: creneauId,
+        apprenant_id: apprenantId,
+        present,
+        heure_signature: present ? new Date().toISOString() : null,
+      },
+      { onConflict: "creneau_id,apprenant_id" }
+    );
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/sessions/${sessionId}`);
+  return { success: true };
+}
+
+// ─── Documents session ──────────────────────────────────
+
+export async function getSessionDocuments(sessionId: string) {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("documents")
+    .select("*")
+    .eq("entite_type", "session")
+    .eq("entite_id", sessionId)
+    .order("created_at", { ascending: false });
+
+  if (error) return { data: [] };
+  return { data: data ?? [] };
+}
+
+export async function addSessionDocument(input: {
+  sessionId: string;
+  nom: string;
+  categorie: string;
+  fichier_url: string;
+  taille_octets: number;
+  mime_type: string;
+}) {
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role: userRole, supabase, admin } = result;
+
+  const { data, error } = await supabase
+    .from("documents")
+    .insert({
+      organisation_id: organisationId,
+      nom: input.nom,
+      categorie: input.categorie,
+      fichier_url: input.fichier_url,
+      taille_octets: input.taille_octets,
+      mime_type: input.mime_type,
+      entite_type: "session",
+      entite_id: input.sessionId,
+      genere: false,
+    })
+    .select()
+    .single();
+
+  if (error) return { error: error.message };
+
+  const { data: session } = await admin
+    .from("sessions")
+    .select("nom")
+    .eq("id", input.sessionId)
+    .single();
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole,
+    module: "session",
+    action: "created",
+    entiteType: "document",
+    entiteId: data.id,
+    entiteLabel: input.nom,
+    description: `Document "${input.nom}" ajouté à la session "${session?.nom ?? input.sessionId}"`,
+    objetHref: `/sessions/${input.sessionId}`,
+    metadata: { session_id: input.sessionId, categorie: input.categorie },
+  });
+
+  revalidatePath(`/sessions/${input.sessionId}`);
+  return { data };
+}
+
+export async function removeSessionDocument(documentId: string, sessionId: string) {
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role: userRole, supabase, admin } = result;
+
+  // Get document info before deletion
+  const { data: doc } = await admin
+    .from("documents")
+    .select("nom, fichier_url")
+    .eq("id", documentId)
+    .single();
+
+  const { error } = await supabase
+    .from("documents")
+    .delete()
+    .eq("id", documentId);
+
+  if (error) return { error: error.message };
+
+  const { data: session } = await admin
+    .from("sessions")
+    .select("nom")
+    .eq("id", sessionId)
+    .single();
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole,
+    module: "session",
+    action: "deleted",
+    entiteType: "document",
+    entiteId: documentId,
+    entiteLabel: doc?.nom ?? documentId,
+    description: `Document "${doc?.nom ?? "?"}" supprimé de la session "${session?.nom ?? sessionId}"`,
+    objetHref: `/sessions/${sessionId}`,
+    metadata: { session_id: sessionId },
+  });
+
+  revalidatePath(`/sessions/${sessionId}`);
+  return { success: true };
+}
+
 // ─── Financial helpers ───────────────────────────────────
 
 export async function getSessionFinancials(sessionId: string) {
