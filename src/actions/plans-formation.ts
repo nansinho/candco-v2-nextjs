@@ -243,20 +243,43 @@ export async function getPlanBudgetSummary(planId: string) {
 
   if (!plan) return { data: null };
 
-  // Get all besoins linked to this plan
+  // Get all besoins linked to this plan with their produit_id
   const { data: besoins } = await admin
     .from("besoins_formation")
-    .select("id, intitule, cout_estime, statut")
+    .select("id, intitule, statut, produit_id")
     .eq("plan_formation_id", planId)
     .eq("organisation_id", organisationId)
     .is("archived_at", null);
 
-  const besoinsList = besoins ?? [];
-  const budgetEngage = besoinsList.reduce((sum, b) => sum + (Number(b.cout_estime) || 0), 0);
+  const besoinsList = (besoins ?? []) as { id: string; intitule: string; statut: string; produit_id: string | null }[];
+
+  // Compute budget engagé from live produit_tarifs (default tarif for each linked produit)
+  const produitIds = besoinsList
+    .filter((b: { produit_id: string | null }) => b.produit_id)
+    .map((b: { produit_id: string | null }) => b.produit_id as string);
+
+  let budgetEngage = 0;
+  if (produitIds.length > 0) {
+    const uniqueProduitIds = [...new Set(produitIds)];
+    const { data: tarifs } = await admin
+      .from("produit_tarifs")
+      .select("produit_id, prix_ht")
+      .in("produit_id", uniqueProduitIds)
+      .eq("is_default", true);
+
+    const tarifMap = new Map(
+      ((tarifs ?? []) as { produit_id: string; prix_ht: number }[]).map((t: { produit_id: string; prix_ht: number }) => [t.produit_id, Number(t.prix_ht) || 0]),
+    );
+    budgetEngage = besoinsList.reduce(
+      (sum: number, b: { produit_id: string | null }) => sum + (b.produit_id ? (tarifMap.get(b.produit_id) || 0) : 0),
+      0,
+    );
+  }
+
   const budgetRestant = (Number(plan.budget_total) || 0) - budgetEngage;
   const nbBesoins = besoinsList.length;
-  const nbValides = besoinsList.filter((b) => b.statut === "valide" || b.statut === "planifie" || b.statut === "transforme" || b.statut === "realise").length;
-  const nbTransformes = besoinsList.filter((b) => b.statut === "transforme").length;
+  const nbValides = besoinsList.filter((b: { statut: string }) => b.statut === "valide" || b.statut === "planifie" || b.statut === "transforme" || b.statut === "realise").length;
+  const nbTransformes = besoinsList.filter((b: { statut: string }) => b.statut === "transforme").length;
 
   return {
     data: {
