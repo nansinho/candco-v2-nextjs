@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { ClipboardList, Loader2, Copy, FileText } from "lucide-react";
+import { ClipboardList, Loader2, Copy, FileText, FileUp, Sparkles, Upload } from "lucide-react";
 import { DataTable, type Column } from "@/components/data-table/DataTable";
 import {
   Dialog,
@@ -22,6 +22,8 @@ import {
   createQuestionnaire,
   deleteQuestionnaires,
   duplicateQuestionnaire,
+  createQuestionnaireFromPDF,
+  generateQuestionnaireFromPrompt,
   type CreateQuestionnaireInput,
 } from "@/actions/questionnaires";
 import { formatDate } from "@/lib/utils";
@@ -171,6 +173,8 @@ export default function QuestionnairesPage() {
   const [totalCount, setTotalCount] = React.useState(0);
   const [isLoading, setIsLoading] = React.useState(true);
   const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [pdfDialogOpen, setPdfDialogOpen] = React.useState(false);
+  const [promptDialogOpen, setPromptDialogOpen] = React.useState(false);
   const [sortBy, setSortBy] = React.useState("created_at");
   const [sortDir, setSortDir] = React.useState<"asc" | "desc">("desc");
 
@@ -203,6 +207,18 @@ export default function QuestionnairesPage() {
     toast({ title: "Questionnaire créé", description: "Le questionnaire a été créé avec succès.", variant: "success" });
   };
 
+  const handleAISuccess = (id: string, nom: string) => {
+    setPdfDialogOpen(false);
+    setPromptDialogOpen(false);
+    fetchData();
+    toast({
+      title: "Questionnaire généré par IA",
+      description: `"${nom}" a été créé. Vous pouvez le modifier avant activation.`,
+      variant: "success",
+    });
+    router.push(`/questionnaires/${id}`);
+  };
+
   return (
     <>
       <DataTable
@@ -216,7 +232,8 @@ export default function QuestionnairesPage() {
         searchValue={search}
         onSearchChange={setSearch}
         onAdd={() => setDialogOpen(true)}
-        addLabel="Créer un questionnaire"
+        addLabel="Créer"
+        onImport={() => setPdfDialogOpen(true)}
         onRowClick={(item) => router.push(`/questionnaires/${item.id}`)}
         getRowId={(item) => item.id}
         isLoading={isLoading}
@@ -233,8 +250,20 @@ export default function QuestionnairesPage() {
           await fetchData();
           toast({ title: "Supprimé", description: `${ids.length} questionnaire(s) supprimé(s).`, variant: "success" });
         }}
+        headerExtra={
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs border-primary/30 text-primary hover:bg-primary/10"
+            onClick={() => setPromptDialogOpen(true)}
+          >
+            <Sparkles className="mr-1.5 h-3 w-3" />
+            <span className="hidden sm:inline">Générer par IA</span>
+          </Button>
+        }
       />
 
+      {/* Dialog: Création manuelle */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
@@ -249,11 +278,49 @@ export default function QuestionnairesPage() {
           />
         </DialogContent>
       </Dialog>
+
+      {/* Dialog: Import PDF IA */}
+      <Dialog open={pdfDialogOpen} onOpenChange={setPdfDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileUp className="h-5 w-5 text-primary" />
+              Importer un questionnaire depuis un PDF
+            </DialogTitle>
+            <DialogDescription>
+              Uploadez un PDF contenant un questionnaire (enquête de satisfaction, évaluation pédagogique...). L&apos;IA extraira automatiquement les questions.
+            </DialogDescription>
+          </DialogHeader>
+          <PDFImportForm
+            onSuccess={handleAISuccess}
+            onCancel={() => setPdfDialogOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Générer par IA (prompt) */}
+      <Dialog open={promptDialogOpen} onOpenChange={setPromptDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Générer un questionnaire par IA
+            </DialogTitle>
+            <DialogDescription>
+              Décrivez le questionnaire souhaité et l&apos;IA le générera automatiquement avec les questions adaptées.
+            </DialogDescription>
+          </DialogHeader>
+          <PromptGenerateForm
+            onSuccess={handleAISuccess}
+            onCancel={() => setPromptDialogOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
 
-// ─── Create Form ─────────────────────────────────────────
+// ─── Create Form (manual) ───────────────────────────────
 
 function CreateQuestionnaireForm({
   onSuccess,
@@ -387,5 +454,273 @@ function CreateQuestionnaireForm({
         </Button>
       </DialogFooter>
     </form>
+  );
+}
+
+// ─── PDF Import Form ────────────────────────────────────
+
+function PDFImportForm({
+  onSuccess,
+  onCancel,
+}: {
+  onSuccess: (id: string, nom: string) => void;
+  onCancel: () => void;
+}) {
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const [file, setFile] = React.useState<File | null>(null);
+  const fileRef = React.useRef<HTMLInputElement>(null);
+
+  const handleSubmit = async () => {
+    if (!file) return;
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Step 1: Extract questions from PDF via API Route
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/ai/extract-questionnaire", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        setError(result.error || "Erreur lors de l'extraction");
+        setIsLoading(false);
+        return;
+      }
+
+      // Step 2: Create questionnaire from extracted data
+      const createResult = await createQuestionnaireFromPDF(result.data);
+
+      if (createResult.error) {
+        setError(createResult.error);
+        setIsLoading(false);
+        return;
+      }
+
+      onSuccess(createResult.data!.id, createResult.data!.nom);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erreur inattendue");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {error && (
+        <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {error}
+        </div>
+      )}
+
+      <div
+        className={`relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 transition-colors ${
+          file
+            ? "border-primary/40 bg-primary/5"
+            : "border-border/60 hover:border-border"
+        }`}
+        onClick={() => fileRef.current?.click()}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter") fileRef.current?.click(); }}
+      >
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".pdf"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) {
+              if (f.size > 10 * 1024 * 1024) {
+                setError("Le fichier est trop volumineux (max 10 Mo)");
+                return;
+              }
+              setFile(f);
+              setError(null);
+            }
+          }}
+        />
+        {file ? (
+          <>
+            <FileText className="h-8 w-8 text-primary mb-2" />
+            <p className="text-sm font-medium">{file.name}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {(file.size / 1024 / 1024).toFixed(2)} Mo
+            </p>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mt-2 h-7 text-xs text-muted-foreground"
+              onClick={(e) => { e.stopPropagation(); setFile(null); }}
+            >
+              Changer de fichier
+            </Button>
+          </>
+        ) : (
+          <>
+            <Upload className="h-8 w-8 text-muted-foreground/40 mb-2" />
+            <p className="text-sm text-muted-foreground">
+              Cliquez pour sélectionner un PDF
+            </p>
+            <p className="text-xs text-muted-foreground/60 mt-1">
+              Questionnaire, enquête de satisfaction, évaluation... (max 10 Mo)
+            </p>
+          </>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2 rounded-md bg-primary/5 px-3 py-2 border border-primary/10">
+        <Sparkles className="h-4 w-4 text-primary shrink-0" />
+        <p className="text-xs text-muted-foreground">
+          L&apos;IA analysera le PDF et extraira automatiquement les questions, types de réponses et options.
+          <span className="text-primary font-medium ml-1">Coût : 1 crédit IA</span>
+        </p>
+      </div>
+
+      <DialogFooter className="pt-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onCancel}
+          disabled={isLoading}
+          className="h-8 text-xs border-border/60"
+        >
+          Annuler
+        </Button>
+        <Button
+          size="sm"
+          disabled={!file || isLoading}
+          onClick={handleSubmit}
+          className="h-8 text-xs"
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+              Extraction en cours...
+            </>
+          ) : (
+            <>
+              <FileUp className="mr-1.5 h-3 w-3" />
+              Extraire les questions
+            </>
+          )}
+        </Button>
+      </DialogFooter>
+    </div>
+  );
+}
+
+// ─── Prompt Generate Form ───────────────────────────────
+
+function PromptGenerateForm({
+  onSuccess,
+  onCancel,
+}: {
+  onSuccess: (id: string, nom: string) => void;
+  onCancel: () => void;
+}) {
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const [prompt, setPrompt] = React.useState("");
+
+  const handleSubmit = async () => {
+    if (prompt.trim().length < 10) {
+      setError("Décrivez le questionnaire souhaité (min. 10 caractères)");
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const result = await generateQuestionnaireFromPrompt(prompt);
+
+      if (result.error) {
+        setError(result.error);
+        setIsLoading(false);
+        return;
+      }
+
+      onSuccess(result.data!.id, result.data!.nom);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erreur inattendue");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {error && (
+        <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {error}
+        </div>
+      )}
+
+      <div className="space-y-2">
+        <Label htmlFor="ai-prompt" className="text-[13px]">
+          Décrivez le questionnaire souhaité
+        </Label>
+        <textarea
+          id="ai-prompt"
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          rows={4}
+          placeholder={`Ex: Créer un questionnaire de satisfaction à chaud pour une formation en management de 2 jours, 10 questions variées couvrant la pédagogie, le contenu, le formateur et la logistique`}
+          className="w-full rounded-md border border-input bg-muted px-3 py-2 text-[13px] text-foreground placeholder:text-muted-foreground/40 resize-none"
+          disabled={isLoading}
+        />
+        <p className="text-xs text-muted-foreground/60">
+          Précisez le type (satisfaction, pédagogique...), le nombre de questions, le thème et le public cible pour de meilleurs résultats.
+        </p>
+      </div>
+
+      <div className="flex items-center gap-2 rounded-md bg-primary/5 px-3 py-2 border border-primary/10">
+        <Sparkles className="h-4 w-4 text-primary shrink-0" />
+        <p className="text-xs text-muted-foreground">
+          L&apos;IA générera le questionnaire complet avec des questions variées et adaptées.
+          <span className="text-primary font-medium ml-1">Coût : 1 crédit IA</span>
+        </p>
+      </div>
+
+      <DialogFooter className="pt-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onCancel}
+          disabled={isLoading}
+          className="h-8 text-xs border-border/60"
+        >
+          Annuler
+        </Button>
+        <Button
+          size="sm"
+          disabled={prompt.trim().length < 10 || isLoading}
+          onClick={handleSubmit}
+          className="h-8 text-xs"
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+              Génération en cours...
+            </>
+          ) : (
+            <>
+              <Sparkles className="mr-1.5 h-3 w-3" />
+              Générer (1 crédit)
+            </>
+          )}
+        </Button>
+      </DialogFooter>
+    </div>
   );
 }

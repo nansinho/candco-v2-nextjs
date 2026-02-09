@@ -5,6 +5,7 @@ import { NavigationProgress } from "@/components/layout/navigation-progress";
 import { SidebarProvider } from "@/components/layout/sidebar-context";
 import { BreadcrumbProvider } from "@/components/layout/breadcrumb-context";
 import { getCurrentUser } from "@/lib/auth-helpers";
+import { getAICredits } from "@/actions/parametres";
 
 export default async function DashboardLayout({
   children,
@@ -12,11 +13,16 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   let user = null;
+  let aiCredits = null;
   try {
     user = await getCurrentUser();
+    const creditsResult = await getAICredits();
+    aiCredits = creditsResult.data;
   } catch (err) {
     console.error("[DashboardLayout] getCurrentUser failed:", err);
   }
+
+  const userInitial = user?.prenom?.[0]?.toUpperCase() ?? user?.nom?.[0]?.toUpperCase() ?? "N";
 
   return (
     <ToastProvider>
@@ -31,7 +37,7 @@ export default async function DashboardLayout({
               hasMultiOrg={user?.hasMultiOrg ?? false}
             />
             <div className="flex flex-1 flex-col lg:pl-[240px] transition-all duration-300 min-w-0">
-              <Header />
+              <Header aiCredits={aiCredits} userInitial={userInitial} />
               <main className="flex-1 px-4 py-4 sm:px-6 sm:py-6 lg:px-8 overflow-x-hidden">
                 {children}
               </main>
