@@ -4,6 +4,8 @@
 // ─── Credit costs ────────────────────────────────────────
 export const AI_COSTS = {
   extract_programme: 1,
+  extract_questionnaire: 1,
+  generate_questionnaire: 1,
 } as const;
 
 export type AIAction = keyof typeof AI_COSTS;

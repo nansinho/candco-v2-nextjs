@@ -111,6 +111,8 @@ interface DataTableProps<T> {
   // Filters
   filters?: ActiveFilter[];
   onFiltersChange?: (filters: ActiveFilter[]) => void;
+  // Extra header buttons
+  headerExtra?: React.ReactNode;
 }
 
 // ─── Column visibility persistence ─────────────────────────
@@ -162,6 +164,7 @@ export function DataTable<T>({
   onSortChange,
   filters = [],
   onFiltersChange,
+  headerExtra,
 }: DataTableProps<T>) {
   const { toast } = useToast();
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
@@ -396,6 +399,7 @@ export function DataTable<T>({
                 <span className="hidden sm:inline">Importer</span>
               </Button>
             )}
+            {headerExtra}
             <Button
               variant="outline"
               size="sm"

@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getOrganisationId } from "@/lib/auth-helpers";
 import { logHistorique } from "@/lib/historique";
+import { callClaude, checkCredits, deductCredits } from "@/lib/ai-providers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { QueryFilter } from "@/lib/utils";
@@ -778,4 +779,227 @@ export async function getQuestionnaireStats(questionnaireId: string) {
       questionStats,
     },
   };
+}
+
+// ─── AI: Shared helper ──────────────────────────────────
+
+interface AIQuestionData {
+  texte: string;
+  type: string;
+  options?: { label: string; value: string }[];
+  obligatoire?: boolean;
+  points?: number;
+}
+
+interface AIQuestionnaireData {
+  nom: string;
+  type?: string;
+  public_cible?: string;
+  introduction?: string;
+  questions: AIQuestionData[];
+}
+
+const VALID_Q_TYPES = ["libre", "echelle", "choix_unique", "choix_multiple", "vrai_faux"];
+const VALID_QUESTIONNAIRE_TYPES = [
+  "satisfaction_chaud",
+  "satisfaction_froid",
+  "pedagogique_pre",
+  "pedagogique_post",
+  "standalone",
+];
+
+async function createQuestionnaireFromAI(
+  organisationId: string,
+  userId: string,
+  role: string,
+  aiData: AIQuestionnaireData,
+  source: string,
+): Promise<{ data?: { id: string; nom: string }; error?: string }> {
+  const admin = createAdminClient();
+
+  const qType = VALID_QUESTIONNAIRE_TYPES.includes(aiData.type ?? "")
+    ? aiData.type!
+    : "standalone";
+
+  const { data: questionnaire, error: qErr } = await admin
+    .from("questionnaires")
+    .insert({
+      organisation_id: organisationId,
+      nom: aiData.nom || "Questionnaire IA",
+      type: qType,
+      public_cible: aiData.public_cible || null,
+      introduction: aiData.introduction || null,
+      statut: "brouillon",
+      relances_auto: true,
+      is_default: false,
+    })
+    .select("id, nom")
+    .single();
+
+  if (qErr || !questionnaire) {
+    return { error: qErr?.message ?? "Erreur lors de la creation du questionnaire" };
+  }
+
+  // Insert questions in batch
+  if (aiData.questions && aiData.questions.length > 0) {
+    const questionsToInsert = aiData.questions.map((q, index) => ({
+      questionnaire_id: questionnaire.id,
+      texte: q.texte,
+      type: VALID_Q_TYPES.includes(q.type) ? q.type : "libre",
+      options: (q.type === "choix_unique" || q.type === "choix_multiple") && q.options?.length
+        ? q.options
+        : [],
+      obligatoire: q.obligatoire ?? true,
+      points: q.points ?? 0,
+      ordre: index,
+    }));
+
+    const { error: insertErr } = await admin
+      .from("questionnaire_questions")
+      .insert(questionsToInsert);
+
+    if (insertErr) {
+      console.error("Error inserting AI questions:", insertErr);
+    }
+  }
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "questionnaire",
+    action: "created",
+    entiteType: "questionnaire",
+    entiteId: questionnaire.id,
+    entiteLabel: questionnaire.nom,
+    description: `Questionnaire "${questionnaire.nom}" cree par IA (${source})`,
+    objetHref: `/questionnaires/${questionnaire.id}`,
+  });
+
+  return { data: questionnaire };
+}
+
+// ─── AI: Create questionnaire from PDF extraction ───────
+
+export async function createQuestionnaireFromPDF(
+  aiData: AIQuestionnaireData,
+): Promise<{ data?: { id: string; nom: string }; error?: string }> {
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role } = result;
+
+  const res = await createQuestionnaireFromAI(
+    organisationId,
+    userId,
+    role,
+    aiData,
+    "import PDF",
+  );
+
+  if (res.data) {
+    revalidatePath("/questionnaires");
+  }
+
+  return res;
+}
+
+// ─── AI: Generate questionnaire from prompt ─────────────
+
+const GENERATE_SYSTEM_PROMPT = `Tu es un expert en creation de questionnaires pour organismes de formation professionnelle francais.
+Tu dois generer un questionnaire complet et professionnel selon la demande de l'utilisateur.
+
+Retourne UNIQUEMENT un JSON valide avec cette structure :
+{
+  "nom": "Titre du questionnaire",
+  "type": "satisfaction_chaud" ou "satisfaction_froid" ou "pedagogique_pre" ou "pedagogique_post" ou "standalone",
+  "public_cible": "apprenant" ou "contact_client" ou "financeur" ou "formateur" ou null,
+  "introduction": "Texte d'introduction professionnel pour le questionnaire",
+  "questions": [
+    {
+      "texte": "Texte de la question",
+      "type": "echelle" ou "choix_unique" ou "choix_multiple" ou "libre" ou "vrai_faux",
+      "options": [{"label": "Texte affiche", "value": "slug_snake_case"}],
+      "obligatoire": true,
+      "points": 0
+    }
+  ]
+}
+
+=== REGLES ===
+
+- Genere entre 5 et 15 questions sauf si l'utilisateur precise un nombre
+- VARIE les types de questions : melange echelle, choix_unique, choix_multiple, libre, vrai_faux
+- Ne mets PAS que des echelles ou que des choix uniques — un bon questionnaire est diversifie
+- Pour "echelle" : pas d'options (le front affiche un slider 0-10)
+- Pour "vrai_faux" : pas d'options (le front les genere)
+- Pour "libre" : pas d'options
+- Pour "choix_unique" et "choix_multiple" : options obligatoires avec label + value (value en snake_case sans accents)
+- Les questions doivent etre claires, professionnelles, adaptees au contexte formation
+- L'introduction doit etre accueillante et expliquer le but du questionnaire
+- Adapte le vocabulaire au public cible (tutoiement pour apprenants, vouvoiement pour entreprises)
+- Termine souvent par une question "libre" pour commentaires/suggestions
+- Si l'utilisateur mentionne "satisfaction a chaud" → type: "satisfaction_chaud"
+- Si l'utilisateur mentionne "satisfaction a froid" → type: "satisfaction_froid"
+- Si l'utilisateur mentionne "positionnement" ou "pre-formation" → type: "pedagogique_pre"
+- Si l'utilisateur mentionne "evaluation des acquis" ou "post-formation" → type: "pedagogique_post"
+- Sinon → type: "standalone"
+- Retourne UNIQUEMENT le JSON valide, sans texte ni markdown autour`;
+
+export async function generateQuestionnaireFromPrompt(
+  prompt: string,
+): Promise<{ data?: { id: string; nom: string }; error?: string }> {
+  if (!prompt || prompt.trim().length < 10) {
+    return { error: "Le prompt doit contenir au moins 10 caracteres" };
+  }
+
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role } = result;
+
+  // Check credits
+  const { ok, credits } = await checkCredits(organisationId, "generate_questionnaire");
+  if (!ok) {
+    return {
+      error: `Credits IA insuffisants. ${credits.used}/${credits.monthly_limit} credits utilises ce mois-ci.`,
+    };
+  }
+
+  try {
+    const aiResult = await callClaude([
+      { role: "system", content: GENERATE_SYSTEM_PROMPT },
+      { role: "user", content: prompt },
+    ]);
+
+    const jsonMatch = aiResult.text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      return { error: "L'IA n'a pas pu generer le questionnaire. Reessayez avec un prompt plus precis." };
+    }
+
+    const aiData = JSON.parse(jsonMatch[0]) as AIQuestionnaireData;
+
+    if (!aiData.nom || !aiData.questions?.length) {
+      return { error: "L'IA n'a pas genere de questions valides. Reessayez." };
+    }
+
+    const res = await createQuestionnaireFromAI(
+      organisationId,
+      userId,
+      role,
+      aiData,
+      "generation par prompt",
+    );
+
+    if (res.error) return res;
+
+    // Deduct credits only after successful creation
+    await deductCredits(organisationId, "generate_questionnaire");
+
+    revalidatePath("/questionnaires");
+    return res;
+  } catch (error) {
+    console.error("Generate questionnaire error:", error);
+    return {
+      error: error instanceof Error ? error.message : "Erreur lors de la generation",
+    };
+  }
 }
