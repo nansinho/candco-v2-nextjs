@@ -17,7 +17,7 @@ CREATE TABLE plan_budgets_agence (
   agence_id uuid REFERENCES entreprise_agences(id) ON DELETE CASCADE, -- NULL = siège social
   budget_alloue numeric(10,2) DEFAULT 0,
   created_at timestamptz DEFAULT now() NOT NULL,
-  updated_at timestamptz DEFAULT now() NOT NULL,
+  updated_at timestamptz DEFAULT now() NOT NULL
   -- NOTE: uniqueness handled by index below (NULL-safe for siège)
 );
 
