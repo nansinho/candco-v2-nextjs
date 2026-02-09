@@ -628,7 +628,7 @@ function SuiviFormationTab({ entrepriseId, agences }: { entrepriseId: string; ag
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          Besoin de formation
+          Plan
         </button>
         <button
           onClick={() => setSubTab("historique")}
