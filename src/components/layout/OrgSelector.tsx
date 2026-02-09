@@ -4,7 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Building2, ChevronDown, Loader2, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { switchOrganisation } from "@/lib/auth-helpers";
+import { switchOrganisation } from "@/lib/auth-actions";
 
 interface Organisation {
   id: string;
