@@ -40,51 +40,73 @@ export async function getMembreEmails(entrepriseId: string): Promise<{
   data: MembreEmail[];
   error?: string;
 }> {
-  const result = await getOrganisationId();
-  if ("error" in result) return { data: [], error: result.error };
+  try {
+    const result = await getOrganisationId();
+    if ("error" in result) return { data: [], error: result.error };
 
-  const { admin } = result;
+    const { admin } = result;
 
-  const { data, error } = await admin
-    .from("entreprise_membres")
-    .select(
-      "id, roles, rattache_siege, fonction, pole_id, " +
-      "apprenants(prenom, nom, email), " +
-      "contacts_clients(prenom, nom, email), " +
-      "entreprise_poles(nom), " +
-      "membre_agences(entreprise_agences(id, nom))"
-    )
-    .eq("entreprise_id", entrepriseId)
-    .order("created_at", { ascending: false });
+    // Fetch membres without deep nested select
+    const { data, error } = await admin
+      .from("entreprise_membres")
+      .select(
+        "id, roles, rattache_siege, fonction, pole_id, " +
+        "apprenants(prenom, nom, email), " +
+        "contacts_clients(prenom, nom, email), " +
+        "entreprise_poles(nom)"
+      )
+      .eq("entreprise_id", entrepriseId)
+      .order("created_at", { ascending: false });
 
-  if (error) return { data: [], error: error.message };
+    if (error) return { data: [], error: error.message };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const membres: MembreEmail[] = (data as any[] ?? []).map((m: Record<string, unknown>) => {
-    const apprenant = m.apprenants as { prenom: string; nom: string; email: string | null } | null;
-    const contact = m.contacts_clients as { prenom: string; nom: string; email: string | null } | null;
-    const pole = m.entreprise_poles as { nom: string } | null;
-    const agencesRaw = (m.membre_agences as Array<{ entreprise_agences: { id: string; nom: string } | null }>) ?? [];
+    // Fetch agence assignments separately to avoid deep nested select
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const membreIds = (data ?? [] as any[]).map((m: any) => m.id as string);
+    const agenceMap = new Map<string, Array<{ id: string; nom: string }>>();
 
-    const agences = agencesRaw
-      .filter((ma) => ma.entreprise_agences != null)
-      .map((ma) => ma.entreprise_agences!);
+    if (membreIds.length > 0) {
+      const { data: maData } = await admin
+        .from("membre_agences")
+        .select("membre_id, entreprise_agences(id, nom)")
+        .in("membre_id", membreIds);
 
-    return {
-      membre_id: m.id as string,
-      prenom: apprenant?.prenom ?? contact?.prenom ?? "",
-      nom: apprenant?.nom ?? contact?.nom ?? "",
-      email: apprenant?.email ?? contact?.email ?? null,
-      roles: (m.roles as string[]) ?? [],
-      rattache_siege: (m.rattache_siege as boolean) ?? false,
-      agence_ids: agences.map((a) => a.id),
-      agence_noms: agences.map((a) => a.nom),
-      pole_nom: pole?.nom ?? null,
-      fonction: m.fonction as string | null,
-    };
-  });
+      if (maData) {
+        for (const row of maData as unknown as Array<{ membre_id: string; entreprise_agences: { id: string; nom: string } | null }>) {
+          if (!row.entreprise_agences) continue;
+          const existing = agenceMap.get(row.membre_id) ?? [];
+          existing.push({ id: row.entreprise_agences.id, nom: row.entreprise_agences.nom });
+          agenceMap.set(row.membre_id, existing);
+        }
+      }
+    }
 
-  return { data: membres };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const membres: MembreEmail[] = (data as any[] ?? []).map((m: Record<string, unknown>) => {
+      const apprenant = m.apprenants as { prenom: string; nom: string; email: string | null } | null;
+      const contact = m.contacts_clients as { prenom: string; nom: string; email: string | null } | null;
+      const pole = m.entreprise_poles as { nom: string } | null;
+      const agences = agenceMap.get(m.id as string) ?? [];
+
+      return {
+        membre_id: m.id as string,
+        prenom: apprenant?.prenom ?? contact?.prenom ?? "",
+        nom: apprenant?.nom ?? contact?.nom ?? "",
+        email: apprenant?.email ?? contact?.email ?? null,
+        roles: (m.roles as string[]) ?? [],
+        rattache_siege: (m.rattache_siege as boolean) ?? false,
+        agence_ids: agences.map((a) => a.id),
+        agence_noms: agences.map((a) => a.nom),
+        pole_nom: pole?.nom ?? null,
+        fonction: m.fonction as string | null,
+      };
+    });
+
+    return { data: membres };
+  } catch (err) {
+    console.error("[getMembreEmails] Unexpected error:", err);
+    return { data: [], error: "Impossible de charger les emails" };
+  }
 }
 
 // ─── Send targeted email ─────────────────────────────────
@@ -325,21 +347,26 @@ export async function getEntrepriseEmailHistory(
   entrepriseId: string,
   limit = 50
 ): Promise<{ data: EmailHistoryItem[]; error?: string }> {
-  const result = await getOrganisationId();
-  if ("error" in result) return { data: [], error: result.error };
+  try {
+    const result = await getOrganisationId();
+    if ("error" in result) return { data: [], error: result.error };
 
-  const { organisationId } = result;
-  const admin = createAdminClient();
+    const { organisationId } = result;
+    const admin = createAdminClient();
 
-  const { data, error } = await admin
-    .from("emails_envoyes")
-    .select("id, destinataire_email, destinataire_nom, sujet, statut, template, created_at, metadata")
-    .eq("organisation_id", organisationId)
-    .eq("entite_type", "entreprise")
-    .eq("entite_id", entrepriseId)
-    .order("created_at", { ascending: false })
-    .limit(limit);
+    const { data, error } = await admin
+      .from("emails_envoyes")
+      .select("id, destinataire_email, destinataire_nom, sujet, statut, template, created_at, metadata")
+      .eq("organisation_id", organisationId)
+      .eq("entite_type", "entreprise")
+      .eq("entite_id", entrepriseId)
+      .order("created_at", { ascending: false })
+      .limit(limit);
 
-  if (error) return { data: [], error: error.message };
-  return { data: (data ?? []) as EmailHistoryItem[] };
+    if (error) return { data: [], error: error.message };
+    return { data: (data ?? []) as EmailHistoryItem[] };
+  } catch (err) {
+    console.error("[getEntrepriseEmailHistory] Unexpected error:", err);
+    return { data: [], error: "Impossible de charger l'historique des emails" };
+  }
 }

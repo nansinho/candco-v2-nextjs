@@ -1099,47 +1099,53 @@ export async function getEntrepriseSessions(entrepriseId: string): Promise<{
   data: Record<string, unknown>[];
   error?: string;
 }> {
-  const result = await getOrganisationId();
-  if ("error" in result) return { data: [], error: result.error };
-  const { admin, organisationId } = result;
+  try {
+    const result = await getOrganisationId();
+    if ("error" in result) return { data: [], error: result.error };
+    const { admin, organisationId } = result;
 
-  // Get sessions where this entreprise is a commanditaire
-  const { data: commanditaires, error: cmdError } = await admin
-    .from("session_commanditaires")
-    .select("session_id")
-    .eq("entreprise_id", entrepriseId);
+    // Get sessions where this entreprise is a commanditaire
+    const { data: commanditaires, error: cmdError } = await admin
+      .from("session_commanditaires")
+      .select("session_id")
+      .eq("entreprise_id", entrepriseId);
 
-  if (cmdError) {
-    console.error("[getEntrepriseSessions] commanditaires error:", cmdError.message);
-    return { data: [], error: cmdError.message };
+    if (cmdError) {
+      console.error("[getEntrepriseSessions] commanditaires error:", cmdError.message);
+      return { data: [], error: cmdError.message };
+    }
+
+    if (!commanditaires || commanditaires.length === 0) return { data: [] };
+
+    const sessionIds = [...new Set(commanditaires.map((c) => c.session_id))];
+
+    // Fetch sessions with simple joins
+    const { data, error } = await admin
+      .from("sessions")
+      .select(`
+        id,
+        numero_affichage,
+        nom,
+        statut,
+        date_debut,
+        date_fin,
+        archived_at,
+        produits_formation(intitule),
+        inscriptions(id),
+        session_formateurs(formateur_id, formateurs(prenom, nom))
+      `)
+      .in("id", sessionIds)
+      .eq("organisation_id", organisationId)
+      .order("date_debut", { ascending: false, nullsFirst: false });
+
+    if (error) {
+      console.error("[getEntrepriseSessions] sessions error:", error.message);
+      return { data: [], error: error.message };
+    }
+
+    return { data: data ?? [] };
+  } catch (err) {
+    console.error("[getEntrepriseSessions] Unexpected error:", err);
+    return { data: [], error: "Impossible de charger les sessions" };
   }
-
-  if (!commanditaires || commanditaires.length === 0) return { data: [] };
-
-  const sessionIds = [...new Set(commanditaires.map((c) => c.session_id))];
-
-  const { data, error } = await admin
-    .from("sessions")
-    .select(`
-      id,
-      numero_affichage,
-      nom,
-      statut,
-      date_debut,
-      date_fin,
-      archived_at,
-      produits_formation(intitule),
-      inscriptions(id),
-      session_formateurs(formateurs(prenom, nom))
-    `)
-    .in("id", sessionIds)
-    .eq("organisation_id", organisationId)
-    .order("date_debut", { ascending: false, nullsFirst: false });
-
-  if (error) {
-    console.error("[getEntrepriseSessions] sessions error:", error.message);
-    return { data: [], error: error.message };
-  }
-
-  return { data: data ?? [] };
 }

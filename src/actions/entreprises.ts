@@ -551,52 +551,57 @@ export interface ApprenantLink {
 }
 
 export async function getEntrepriseApprenants(entrepriseId: string) {
-  const result = await getOrganisationId();
-  if ("error" in result) return { data: [], error: result.error };
-  const { admin } = result;
+  try {
+    const result = await getOrganisationId();
+    if ("error" in result) return { data: [], error: result.error };
+    const { admin } = result;
 
-  // Source 1: apprenant_entreprises junction table (simple link)
-  const { data: links, error: linksError } = await admin
-    .from("apprenant_entreprises")
-    .select("apprenant_id, apprenants(id, numero_affichage, prenom, nom, email, telephone)")
-    .eq("entreprise_id", entrepriseId);
+    // Source 1: apprenant_entreprises junction table (simple link)
+    const { data: links, error: linksError } = await admin
+      .from("apprenant_entreprises")
+      .select("apprenant_id, apprenants(id, numero_affichage, prenom, nom, email, telephone)")
+      .eq("entreprise_id", entrepriseId);
 
-  // Source 2: entreprise_membres table (organisation link)
-  const { data: membres, error: membresError } = await admin
-    .from("entreprise_membres")
-    .select("apprenant_id, apprenants(id, numero_affichage, prenom, nom, email, telephone)")
-    .eq("entreprise_id", entrepriseId)
-    .not("apprenant_id", "is", null);
+    // Source 2: entreprise_membres table (organisation link)
+    const { data: membres, error: membresError } = await admin
+      .from("entreprise_membres")
+      .select("apprenant_id, apprenants(id, numero_affichage, prenom, nom, email, telephone)")
+      .eq("entreprise_id", entrepriseId)
+      .not("apprenant_id", "is", null);
 
-  if (linksError && membresError) {
-    return { data: [], error: linksError.message };
-  }
+    if (linksError && membresError) {
+      return { data: [], error: linksError.message };
+    }
 
-  interface ApprenantJoin {
-    apprenants: ApprenantLink | null;
-  }
+    interface ApprenantJoin {
+      apprenants: ApprenantLink | null;
+    }
 
-  // Merge both sources and deduplicate by apprenant id
-  const seen = new Set<string>();
-  const apprenants: ApprenantLink[] = [];
+    // Merge both sources and deduplicate by apprenant id
+    const seen = new Set<string>();
+    const apprenants: ApprenantLink[] = [];
 
-  for (const source of [links ?? [], membres ?? []]) {
-    for (const row of source as unknown as ApprenantJoin[]) {
-      const a = row.apprenants;
-      if (a && !seen.has(a.id)) {
-        seen.add(a.id);
-        apprenants.push(a);
+    for (const source of [links ?? [], membres ?? []]) {
+      for (const row of source as unknown as ApprenantJoin[]) {
+        const a = row.apprenants;
+        if (a && !seen.has(a.id)) {
+          seen.add(a.id);
+          apprenants.push(a);
+        }
       }
     }
+
+    // Sort by nom, prenom
+    apprenants.sort((a, b) => {
+      const cmp = a.nom.localeCompare(b.nom, "fr");
+      return cmp !== 0 ? cmp : a.prenom.localeCompare(b.prenom, "fr");
+    });
+
+    return { data: apprenants };
+  } catch (err) {
+    console.error("[getEntrepriseApprenants] Unexpected error:", err);
+    return { data: [], error: "Impossible de charger les apprenants" };
   }
-
-  // Sort by nom, prenom
-  apprenants.sort((a, b) => {
-    const cmp = a.nom.localeCompare(b.nom, "fr");
-    return cmp !== 0 ? cmp : a.prenom.localeCompare(b.prenom, "fr");
-  });
-
-  return { data: apprenants };
 }
 
 export async function linkApprenantToEntreprise(entrepriseId: string, apprenantId: string) {
@@ -871,6 +876,7 @@ export interface UnifiedContact {
  * A contact_client appearing in both lists gets type "contact_membre".
  */
 export async function getEntrepriseUnifiedContacts(entrepriseId: string) {
+  try {
   const result = await getOrganisationId();
   if ("error" in result) return { data: [], error: result.error };
 
@@ -1045,6 +1051,10 @@ export async function getEntrepriseUnifiedContacts(entrepriseId: string) {
   });
 
   return { data: sorted };
+  } catch (err) {
+    console.error("[getEntrepriseUnifiedContacts] Unexpected error:", err);
+    return { data: [], error: "Impossible de charger les contacts" };
+  }
 }
 
 // ─── Search helpers ─────────────────────────────────────
