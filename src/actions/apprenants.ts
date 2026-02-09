@@ -11,7 +11,6 @@ const APPRENANT_FIELD_LABELS: Record<string, string> = {
   civilite: "Civilité",
   prenom: "Prénom",
   nom: "Nom",
-  nom_naissance: "Nom de naissance",
   email: "Email",
   telephone: "Téléphone",
   date_naissance: "Date de naissance",
@@ -62,7 +61,8 @@ export async function createApprenant(input: CreateApprenantInput) {
     .from("bpf_categories_apprenant")
     .select("id")
     .ilike("code", "f.1.a")
-    .single();
+    .limit(1)
+    .maybeSingle();
 
   // Generate display number
   const { data: numero } = await supabase.rpc("next_numero", {
@@ -252,7 +252,6 @@ const UpdateApprenantSchema = z.object({
   civilite: z.string().optional(),
   prenom: z.string().min(1, "Le prénom est requis"),
   nom: z.string().min(1, "Le nom est requis"),
-  nom_naissance: z.string().optional(),
   email: z.string().email("Email invalide").optional().or(z.literal("")),
   telephone: z.string().optional(),
   date_naissance: z.string().optional(),
@@ -656,8 +655,7 @@ export async function importApprenants(
     if (entrepriseId && newApprenant) {
       await supabase
         .from("apprenant_entreprises")
-        .insert({ apprenant_id: newApprenant.id, entreprise_id: entrepriseId })
-        .single();
+        .insert({ apprenant_id: newApprenant.id, entreprise_id: entrepriseId });
     }
 
     successCount++;
