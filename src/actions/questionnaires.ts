@@ -122,9 +122,9 @@ export async function createQuestionnaire(input: CreateQuestionnaireInput) {
 
   const result = await getOrganisationId();
   if ("error" in result) return { error: { _form: [result.error] } };
-  const { organisationId, userId, role, supabase } = result;
+  const { organisationId, userId, role, admin } = result;
 
-  const { data, error } = await supabase
+  const { data, error } = await admin
     .from("questionnaires")
     .insert({
       organisation_id: organisationId,
@@ -165,9 +165,9 @@ export async function updateQuestionnaire(id: string, input: UpdateQuestionnaire
 
   const result = await getOrganisationId();
   if ("error" in result) return { error: { _form: [result.error] } };
-  const { organisationId, userId, role, supabase } = result;
+  const { organisationId, userId, role, admin } = result;
 
-  const { data, error } = await supabase
+  const { data, error } = await admin
     .from("questionnaires")
     .update({
       nom: parsed.data.nom,
@@ -208,14 +208,14 @@ export async function updateQuestionnaire(id: string, input: UpdateQuestionnaire
 export async function deleteQuestionnaires(ids: string[]) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { organisationId, userId, role, supabase, admin } = result;
+  const { organisationId, userId, role, admin } = result;
 
   const { data: questionnaires } = await admin
     .from("questionnaires")
     .select("id, nom")
     .in("id", ids);
 
-  const { error } = await supabase
+  const { error } = await admin
     .from("questionnaires")
     .delete()
     .in("id", ids)
@@ -244,7 +244,7 @@ export async function deleteQuestionnaires(ids: string[]) {
 export async function duplicateQuestionnaire(id: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { organisationId, userId, role, supabase, admin } = result;
+  const { organisationId, userId, role, admin } = result;
 
   // Get original
   const { data: original } = await admin
@@ -256,7 +256,7 @@ export async function duplicateQuestionnaire(id: string) {
   if (!original) return { error: "Questionnaire introuvable" };
 
   // Duplicate header
-  const { data: copy, error: copyErr } = await supabase
+  const { data: copy, error: copyErr } = await admin
     .from("questionnaires")
     .insert({
       organisation_id: organisationId,
@@ -282,7 +282,7 @@ export async function duplicateQuestionnaire(id: string) {
     .order("ordre");
 
   if (questions && questions.length > 0) {
-    await supabase.from("questionnaire_questions").insert(
+    await admin.from("questionnaire_questions").insert(
       questions.map((q) => ({
         questionnaire_id: copy.id,
         ordre: q.ordre,
@@ -320,9 +320,9 @@ export async function addQuestion(questionnaireId: string, input: QuestionInput)
 
   const result = await getOrganisationId();
   if ("error" in result) return { error: { _form: [result.error] } };
-  const { supabase } = result;
+  const { admin } = result;
 
-  const { data, error } = await supabase
+  const { data, error } = await admin
     .from("questionnaire_questions")
     .insert({
       questionnaire_id: questionnaireId,
@@ -352,9 +352,9 @@ export async function updateQuestion(
 
   const result = await getOrganisationId();
   if ("error" in result) return { error: { _form: [result.error] } };
-  const { supabase } = result;
+  const { admin } = result;
 
-  const { data, error } = await supabase
+  const { data, error } = await admin
     .from("questionnaire_questions")
     .update({
       texte: parsed.data.texte,
@@ -377,9 +377,9 @@ export async function updateQuestion(
 export async function removeQuestion(questionId: string, questionnaireId: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { supabase } = result;
+  const { admin } = result;
 
-  const { error } = await supabase
+  const { error } = await admin
     .from("questionnaire_questions")
     .delete()
     .eq("id", questionId);
@@ -396,11 +396,11 @@ export async function reorderQuestions(
 ) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { supabase } = result;
+  const { admin } = result;
 
   // Update each question's ordre
   for (let i = 0; i < orderedIds.length; i++) {
-    await supabase
+    await admin
       .from("questionnaire_questions")
       .update({ ordre: i })
       .eq("id", orderedIds[i]);
@@ -443,9 +443,9 @@ export async function addSessionEvaluation(
 ) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { supabase } = result;
+  const { admin } = result;
 
-  const { data, error } = await supabase
+  const { data, error } = await admin
     .from("session_evaluations")
     .insert({
       session_id: sessionId,
@@ -464,9 +464,9 @@ export async function addSessionEvaluation(
 export async function removeSessionEvaluation(evaluationId: string, sessionId: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { supabase } = result;
+  const { admin } = result;
 
-  const { error } = await supabase
+  const { error } = await admin
     .from("session_evaluations")
     .delete()
     .eq("id", evaluationId);
@@ -486,7 +486,7 @@ export async function sendQuestionnaireInvitations(
 ) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { organisationId, userId, role, supabase } = result;
+  const { organisationId, userId, role, admin } = result;
 
   const invitations = recipients.map((r) => ({
     questionnaire_id: questionnaireId,
@@ -499,7 +499,7 @@ export async function sendQuestionnaireInvitations(
     expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
   }));
 
-  const { data, error } = await supabase
+  const { data, error } = await admin
     .from("questionnaire_invitations")
     .insert(invitations)
     .select();
