@@ -14,8 +14,8 @@ export default async function DashboardLayout({
   let user = null;
   try {
     user = await getCurrentUser();
-  } catch {
-    // Silently handle — sidebar will render with defaults
+  } catch (err) {
+    console.error("[DashboardLayout] getCurrentUser failed:", err);
   }
 
   return (
