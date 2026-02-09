@@ -1381,6 +1381,9 @@ function FormationPreview({ open, onClose, produit, tarifs, objectifs, programme
                   {tarifs[0].prix_ht.toLocaleString("fr-FR")} € HT
                   {tarifs[0].unite ? ` / ${tarifs[0].unite}` : ""}
                 </p>
+                <p className="text-[10px] text-muted-foreground/60 mt-0.5">
+                  {(tarifs[0].prix_ht * (1 + tarifs[0].taux_tva / 100)).toLocaleString("fr-FR")} € TTC
+                </p>
               </div>
             )}
           </div>
@@ -1483,15 +1486,21 @@ function FormationPreview({ open, onClose, produit, tarifs, objectifs, programme
             <div>
               <h2 style={{ fontSize: "15px", fontWeight: 600, color: "#FF7C4C", marginBottom: "8px" }}>Tarifs</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {tarifs.map((t) => (
-                  <div key={t.id} className="rounded-lg border border-border/60 p-4 flex items-center justify-between">
-                    <div>
-                      <p className="text-[12px] font-medium">{t.nom || "Tarif"}</p>
-                      {t.unite && <p className="text-[11px] text-muted-foreground">Par {t.unite}</p>}
+                {tarifs.map((t) => {
+                  const ttcPreview = t.prix_ht * (1 + t.taux_tva / 100);
+                  return (
+                    <div key={t.id} className="rounded-lg border border-border/60 p-4 flex items-center justify-between">
+                      <div>
+                        <p className="text-[12px] font-medium">{t.nom || "Tarif"}</p>
+                        {t.unite && <p className="text-[11px] text-muted-foreground">Par {t.unite}</p>}
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-bold text-primary">{t.prix_ht.toLocaleString("fr-FR")} € <span className="text-[11px] font-normal text-muted-foreground">HT</span></p>
+                        <p className="text-[11px] text-muted-foreground/60">{ttcPreview.toLocaleString("fr-FR")} € TTC</p>
+                      </div>
                     </div>
-                    <p className="text-lg font-bold text-primary">{t.prix_ht.toLocaleString("fr-FR")} € <span className="text-[11px] font-normal text-muted-foreground">HT</span></p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -1688,18 +1697,62 @@ function TarifsSection({ produitId, tarifs }: { produitId: string; tarifs: Tarif
   const [tarifNom, setTarifNom] = React.useState("");
   const [tarifPrixHt, setTarifPrixHt] = React.useState("");
   const [tarifTauxTva, setTarifTauxTva] = React.useState("0");
+  const [tarifPrixTtc, setTarifPrixTtc] = React.useState("");
   const [tarifUnite, setTarifUnite] = React.useState("");
+  const lastEditedRef = React.useRef<"ht" | "ttc">("ht");
+
+  const handlePrixHtChange = (value: string) => {
+    setTarifPrixHt(value);
+    lastEditedRef.current = "ht";
+    const ht = parseFloat(value);
+    const tva = parseFloat(tarifTauxTva) || 0;
+    if (!isNaN(ht) && value !== "") {
+      setTarifPrixTtc((ht * (1 + tva / 100)).toFixed(2));
+    } else {
+      setTarifPrixTtc("");
+    }
+  };
+
+  const handlePrixTtcChange = (value: string) => {
+    setTarifPrixTtc(value);
+    lastEditedRef.current = "ttc";
+    const ttc = parseFloat(value);
+    const tva = parseFloat(tarifTauxTva) || 0;
+    if (!isNaN(ttc) && value !== "") {
+      setTarifPrixHt((ttc / (1 + tva / 100)).toFixed(2));
+    } else {
+      setTarifPrixHt("");
+    }
+  };
+
+  const handleTauxTvaChange = (value: string) => {
+    setTarifTauxTva(value);
+    const tva = parseFloat(value) || 0;
+    if (lastEditedRef.current === "ht") {
+      const ht = parseFloat(tarifPrixHt);
+      if (!isNaN(ht) && tarifPrixHt !== "") {
+        setTarifPrixTtc((ht * (1 + tva / 100)).toFixed(2));
+      }
+    } else {
+      const ttc = parseFloat(tarifPrixTtc);
+      if (!isNaN(ttc) && tarifPrixTtc !== "") {
+        setTarifPrixHt((ttc / (1 + tva / 100)).toFixed(2));
+      }
+    }
+  };
 
   const resetTarifForm = () => {
     setTarifNom("");
     setTarifPrixHt("");
     setTarifTauxTva("0");
+    setTarifPrixTtc("");
     setTarifUnite("");
+    lastEditedRef.current = "ht";
   };
 
   const handleAddTarif = async () => {
     const prixHt = Number(tarifPrixHt);
-    if (isNaN(prixHt) || prixHt < 0) {
+    if (isNaN(prixHt) || prixHt < 0 || tarifPrixHt === "") {
       toast({ title: "Erreur", description: "Le prix HT est requis.", variant: "destructive" });
       return;
     }
@@ -1745,18 +1798,22 @@ function TarifsSection({ produitId, tarifs }: { produitId: string; tarifs: Tarif
 
       {isAdding && (
         <div className="rounded-lg border border-primary/20 bg-muted/30 p-3 space-y-2">
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-5 gap-2">
             <div className="space-y-1">
               <Label className="text-[10px]">Nom</Label>
               <Input value={tarifNom} onChange={(e) => setTarifNom(e.target.value)} placeholder="Inter-entreprise" className="h-7 text-[11px] border-border/60" />
             </div>
             <div className="space-y-1">
               <Label className="text-[10px]">Prix HT</Label>
-              <Input value={tarifPrixHt} onChange={(e) => setTarifPrixHt(e.target.value)} type="number" step="0.01" min="0" className="h-7 text-[11px] border-border/60" />
+              <Input value={tarifPrixHt} onChange={(e) => handlePrixHtChange(e.target.value)} type="number" step="0.01" min="0" className="h-7 text-[11px] border-border/60" />
             </div>
             <div className="space-y-1">
               <Label className="text-[10px]">TVA %</Label>
-              <Input value={tarifTauxTva} onChange={(e) => setTarifTauxTva(e.target.value)} type="number" step="0.01" className="h-7 text-[11px] border-border/60" />
+              <Input value={tarifTauxTva} onChange={(e) => handleTauxTvaChange(e.target.value)} type="number" step="0.01" className="h-7 text-[11px] border-border/60" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[10px]">Prix TTC</Label>
+              <Input value={tarifPrixTtc} onChange={(e) => handlePrixTtcChange(e.target.value)} type="number" step="0.01" min="0" className="h-7 text-[11px] border-border/60" />
             </div>
             <div className="space-y-1">
               <Label className="text-[10px]">Unité</Label>
@@ -1800,7 +1857,9 @@ function TarifsSection({ produitId, tarifs }: { produitId: string; tarifs: Tarif
                 <div className="flex items-center gap-3">
                   <div className="text-right">
                     <p className="text-[13px] font-mono font-medium">{formatCurrency(t.prix_ht)} HT</p>
-                    {t.taux_tva > 0 && <p className="text-[11px] text-muted-foreground/60">{formatCurrency(ttc)} TTC</p>}
+                    <p className="text-[11px] text-muted-foreground/60">
+                      {formatCurrency(ttc)} TTC{t.taux_tva > 0 && ` (${t.taux_tva}%)`}
+                    </p>
                   </div>
                   <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive" onClick={() => handleDelete(t.id)} type="button">
                     <Trash2 className="h-3 w-3" />
