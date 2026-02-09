@@ -17,15 +17,14 @@ import {
 // ─── Widget definitions ──────────────────────────────────
 
 const DEFAULT_WIDGETS: WidgetConfig[] = [
-  { id: "chiffres", title: "Chiffres clés", size: "medium", visible: true },
-  { id: "sessions-actives", title: "Sessions actives", size: "small", visible: true },
-  { id: "alertes", title: "Alertes", size: "large", visible: true },
   { id: "stats", title: "Vue d'ensemble", size: "medium", visible: true },
-  { id: "acces-rapides", title: "Accès rapides", size: "small", visible: true },
+  { id: "chiffres", title: "Chiffres clés", size: "small", visible: true },
   { id: "sessions", title: "Prochaines sessions", size: "medium", visible: true },
+  { id: "sessions-actives", title: "Sessions actives", size: "small", visible: true },
+  { id: "alertes", title: "Alertes", size: "medium", visible: true },
+  { id: "acces-rapides", title: "Accès rapides", size: "small", visible: true },
   { id: "devis", title: "Derniers devis", size: "small", visible: true },
   { id: "factures", title: "Dernières factures", size: "medium", visible: true },
-  { id: "devis2", title: "Devis récents (étendu)", size: "small", visible: false },
 ];
 
 // ─── Data fetching ───────────────────────────────────────
@@ -134,7 +133,6 @@ async function DashboardContent() {
     "sessions": <SessionsWidget sessions={data.upcomingSessions} />,
     "devis": <DevisWidget devis={data.recentDevis} />,
     "factures": <FacturesWidget factures={data.recentFactures} />,
-    "devis2": <DevisWidget devis={data.recentDevis} />,
   };
 
   return (
