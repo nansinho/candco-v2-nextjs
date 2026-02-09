@@ -91,20 +91,25 @@ const MembreSchema = z.object({
 // ─── Agences ─────────────────────────────────────────────
 
 export async function getAgences(entrepriseId: string) {
-  const result = await getOrganisationId();
-  if ("error" in result) return { data: [], error: result.error };
+  try {
+    const result = await getOrganisationId();
+    if ("error" in result) return { data: [], error: result.error };
 
-  const { admin } = result;
+    const { admin } = result;
 
-  const { data, error } = await admin
-    .from("entreprise_agences")
-    .select("*")
-    .eq("entreprise_id", entrepriseId)
-    .order("est_siege", { ascending: false })
-    .order("nom", { ascending: true });
+    const { data, error } = await admin
+      .from("entreprise_agences")
+      .select("*")
+      .eq("entreprise_id", entrepriseId)
+      .order("est_siege", { ascending: false })
+      .order("nom", { ascending: true });
 
-  if (error) return { data: [], error: error.message };
-  return { data: (data ?? []) as Agence[] };
+    if (error) return { data: [], error: error.message };
+    return { data: (data ?? []) as Agence[] };
+  } catch (err) {
+    console.error("[getAgences] Unexpected error:", err);
+    return { data: [], error: "Impossible de charger les agences" };
+  }
 }
 
 export async function createAgence(entrepriseId: string, input: z.infer<typeof AgenceSchema>) {
@@ -267,25 +272,30 @@ export async function deleteAgence(agenceId: string, entrepriseId: string) {
 // ─── Pôles ───────────────────────────────────────────────
 
 export async function getPoles(entrepriseId: string) {
-  const result = await getOrganisationId();
-  if ("error" in result) return { data: [], error: result.error };
+  try {
+    const result = await getOrganisationId();
+    if ("error" in result) return { data: [], error: result.error };
 
-  const { admin } = result;
+    const { admin } = result;
 
-  const { data, error } = await admin
-    .from("entreprise_poles")
-    .select("*, entreprise_agences(nom)")
-    .eq("entreprise_id", entrepriseId)
-    .order("nom", { ascending: true });
+    const { data, error } = await admin
+      .from("entreprise_poles")
+      .select("*, entreprise_agences(nom)")
+      .eq("entreprise_id", entrepriseId)
+      .order("nom", { ascending: true });
 
-  if (error) return { data: [], error: error.message };
+    if (error) return { data: [], error: error.message };
 
-  const poles = (data ?? []).map((p: Record<string, unknown>) => ({
-    ...p,
-    agence_nom: (p.entreprise_agences as { nom: string } | null)?.nom ?? null,
-  })) as unknown as (Pole & { agence_nom: string | null })[];
+    const poles = (data ?? []).map((p: Record<string, unknown>) => ({
+      ...p,
+      agence_nom: (p.entreprise_agences as { nom: string } | null)?.nom ?? null,
+    })) as unknown as (Pole & { agence_nom: string | null })[];
 
-  return { data: poles };
+    return { data: poles };
+  } catch (err) {
+    console.error("[getPoles] Unexpected error:", err);
+    return { data: [], error: "Impossible de charger les pôles" };
+  }
 }
 
 export async function createPole(entrepriseId: string, input: z.infer<typeof PoleSchema>) {
@@ -431,45 +441,66 @@ export async function deletePole(poleId: string, entrepriseId: string) {
 // ─── Membres ─────────────────────────────────────────────
 
 export async function getMembres(entrepriseId: string) {
-  const result = await getOrganisationId();
-  if ("error" in result) return { data: [], error: result.error };
+  try {
+    const result = await getOrganisationId();
+    if ("error" in result) return { data: [], error: result.error };
 
-  const { admin } = result;
+    const { admin } = result;
 
-  const { data, error } = await admin
-    .from("entreprise_membres")
-    .select("*, apprenants(prenom, nom), contacts_clients(prenom, nom), entreprise_poles(nom), membre_agences(entreprise_agences(id, nom))")
-    .eq("entreprise_id", entrepriseId)
-    .order("created_at", { ascending: false });
+    // Fetch membres with simple joins (no deep nesting)
+    const { data, error } = await admin
+      .from("entreprise_membres")
+      .select("*, apprenants(prenom, nom), contacts_clients(prenom, nom), entreprise_poles(nom)")
+      .eq("entreprise_id", entrepriseId)
+      .order("created_at", { ascending: false });
 
-  if (error) return { data: [], error: error.message };
+    if (error) return { data: [], error: error.message };
 
-  const membres = (data ?? []).map((m: Record<string, unknown>) => {
-    const agencesRaw = (m.membre_agences as Array<{ entreprise_agences: { id: string; nom: string } | null }>) ?? [];
-    const agences: MembreAgence[] = agencesRaw
-      .filter((ma) => ma.entreprise_agences != null)
-      .map((ma) => ({ id: ma.entreprise_agences!.id, nom: ma.entreprise_agences!.nom }));
+    // Fetch agence assignments separately to avoid deep nested select issue
+    const membreIds = (data ?? []).map((m: Record<string, unknown>) => m.id as string);
+    const agenceMap = new Map<string, MembreAgence[]>();
 
-    return {
-      id: m.id,
-      entreprise_id: m.entreprise_id,
-      pole_id: m.pole_id,
-      apprenant_id: m.apprenant_id,
-      contact_client_id: m.contact_client_id,
-      roles: (m.roles as string[]) ?? [],
-      fonction: m.fonction,
-      rattache_siege: (m.rattache_siege as boolean) ?? false,
-      created_at: m.created_at,
-      apprenant_prenom: (m.apprenants as { prenom: string; nom: string } | null)?.prenom ?? null,
-      apprenant_nom: (m.apprenants as { prenom: string; nom: string } | null)?.nom ?? null,
-      contact_prenom: (m.contacts_clients as { prenom: string; nom: string } | null)?.prenom ?? null,
-      contact_nom: (m.contacts_clients as { prenom: string; nom: string } | null)?.nom ?? null,
-      agences,
-      pole_nom: (m.entreprise_poles as { nom: string } | null)?.nom ?? null,
-    };
-  }) as Membre[];
+    if (membreIds.length > 0) {
+      const { data: maData } = await admin
+        .from("membre_agences")
+        .select("membre_id, agence_id, entreprise_agences(id, nom)")
+        .in("membre_id", membreIds);
 
-  return { data: membres };
+      if (maData) {
+        for (const row of maData as unknown as Array<{ membre_id: string; agence_id: string; entreprise_agences: { id: string; nom: string } | null }>) {
+          if (!row.entreprise_agences) continue;
+          const existing = agenceMap.get(row.membre_id) ?? [];
+          existing.push({ id: row.entreprise_agences.id, nom: row.entreprise_agences.nom });
+          agenceMap.set(row.membre_id, existing);
+        }
+      }
+    }
+
+    const membres = (data ?? []).map((m: Record<string, unknown>) => {
+      return {
+        id: m.id,
+        entreprise_id: m.entreprise_id,
+        pole_id: m.pole_id,
+        apprenant_id: m.apprenant_id,
+        contact_client_id: m.contact_client_id,
+        roles: (m.roles as string[]) ?? [],
+        fonction: m.fonction,
+        rattache_siege: (m.rattache_siege as boolean) ?? false,
+        created_at: m.created_at,
+        apprenant_prenom: (m.apprenants as { prenom: string; nom: string } | null)?.prenom ?? null,
+        apprenant_nom: (m.apprenants as { prenom: string; nom: string } | null)?.nom ?? null,
+        contact_prenom: (m.contacts_clients as { prenom: string; nom: string } | null)?.prenom ?? null,
+        contact_nom: (m.contacts_clients as { prenom: string; nom: string } | null)?.nom ?? null,
+        agences: agenceMap.get(m.id as string) ?? [],
+        pole_nom: (m.entreprise_poles as { nom: string } | null)?.nom ?? null,
+      };
+    }) as Membre[];
+
+    return { data: membres };
+  } catch (err) {
+    console.error("[getMembres] Unexpected error:", err);
+    return { data: [], error: "Impossible de charger les membres" };
+  }
 }
 
 export async function createMembre(entrepriseId: string, input: z.infer<typeof MembreSchema>) {

@@ -43,6 +43,7 @@ export async function getEntrepriseHistorique(
   filters: HistoriqueFilters = {},
   page: number = 1,
 ) {
+  try {
   const result = await getOrganisationId();
   if ("error" in result) {
     return { data: [], count: 0, error: result.error };
@@ -119,4 +120,8 @@ export async function getEntrepriseHistorique(
   }));
 
   return { data: events, count: count ?? 0 };
+  } catch (err) {
+    console.error("[getEntrepriseHistorique] Unexpected error:", err);
+    return { data: [], count: 0, error: "Impossible de charger l'historique" };
+  }
 }
