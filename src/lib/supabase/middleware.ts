@@ -2,6 +2,38 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function updateSession(request: NextRequest) {
+  // Skip heavy middleware logic for server action POST requests.
+  // Server actions handle their own auth via getOrganisationId().
+  // Running full middleware on every server action causes 500 errors
+  // because NextResponse.next() can interfere with POST body processing.
+  const isServerAction = request.method === "POST" && request.headers.has("Next-Action");
+  if (isServerAction) {
+    // Still need to refresh auth cookies for server actions
+    const response = NextResponse.next({ request });
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value }) =>
+              request.cookies.set(name, value)
+            );
+            cookiesToSet.forEach(({ name, value, options }) =>
+              response.cookies.set(name, value, options)
+            );
+          },
+        },
+      }
+    );
+    // Refresh session (updates cookies if needed)
+    await supabase.auth.getUser();
+    return response;
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   });
