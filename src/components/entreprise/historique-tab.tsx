@@ -152,6 +152,7 @@ const ACTION_LABELS: Record<HistoriqueAction, string> = {
   signed: "Signature",
   completed: "Terminé",
   generated: "Génération",
+  alert_triggered: "Alerte budget",
 };
 
 const ORIGINE_LABELS: Record<HistoriqueOrigine, { label: string; class: string }> = {

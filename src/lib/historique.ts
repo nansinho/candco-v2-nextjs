@@ -35,7 +35,8 @@ export type HistoriqueAction =
   | "sent"
   | "signed"
   | "completed"
-  | "generated";
+  | "generated"
+  | "alert_triggered";
 
 export type HistoriqueOrigine = "backoffice" | "extranet" | "systeme";
 
