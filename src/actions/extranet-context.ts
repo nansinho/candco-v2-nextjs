@@ -39,7 +39,7 @@ export async function getExtranetUserContext(): Promise<{
     .eq("user_id", user.id)
     .eq("statut", "actif")
     .limit(1)
-    .single();
+    .maybeSingle();
 
   if (!acces) {
     return { error: "Aucun acces extranet actif" };

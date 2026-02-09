@@ -26,6 +26,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/alert-dialog";
 import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
+import { FonctionSelect } from "@/components/shared/fonction-select";
+import { CityAutocomplete } from "@/components/shared/city-autocomplete";
 import {
   updateApprenant,
   archiveApprenant,
@@ -54,7 +56,6 @@ interface Apprenant {
   civilite: string | null;
   prenom: string;
   nom: string;
-  nom_naissance: string | null;
   email: string | null;
   telephone: string | null;
   date_naissance: string | null;
@@ -83,7 +84,6 @@ interface FormErrors {
   civilite?: string[];
   prenom?: string[];
   nom?: string[];
-  nom_naissance?: string[];
   email?: string[];
   telephone?: string[];
   date_naissance?: string[];
@@ -119,7 +119,9 @@ export function ApprenantDetail({
   const [isArchiving, setIsArchiving] = React.useState(false);
   const [errors, setErrors] = React.useState<FormErrors>({});
 
-  // Controlled state for address (so autocomplete can update CP/Ville)
+  // Controlled state for custom fields
+  const [fonction, setFonction] = React.useState(apprenant.fonction ?? "");
+  const [lieuActivite, setLieuActivite] = React.useState(apprenant.lieu_activite ?? "");
   const [adresseRue, setAdresseRue] = React.useState(apprenant.adresse_rue ?? "");
   const [adresseCp, setAdresseCp] = React.useState(apprenant.adresse_cp ?? "");
   const [adresseVille, setAdresseVille] = React.useState(apprenant.adresse_ville ?? "");
@@ -135,12 +137,11 @@ export function ApprenantDetail({
       civilite: (fd.get("civilite") as string) || undefined,
       prenom: fd.get("prenom") as string,
       nom: fd.get("nom") as string,
-      nom_naissance: (fd.get("nom_naissance") as string) || undefined,
       email: (fd.get("email") as string) || undefined,
       telephone: (fd.get("telephone") as string) || undefined,
       date_naissance: (fd.get("date_naissance") as string) || undefined,
-      fonction: (fd.get("fonction") as string) || undefined,
-      lieu_activite: (fd.get("lieu_activite") as string) || undefined,
+      fonction: fonction || undefined,
+      lieu_activite: lieuActivite || undefined,
       adresse_rue: (fd.get("adresse_rue") as string) || undefined,
       adresse_complement: (fd.get("adresse_complement") as string) || undefined,
       adresse_cp: (fd.get("adresse_cp") as string) || undefined,
@@ -294,16 +295,16 @@ export function ApprenantDetail({
                 </div>
               )}
 
-              <div className="p-6 space-y-6">
-                {/* Identity */}
+              <div className="p-6 space-y-8">
+                {/* Identity + Contact — grouped together for quick overview */}
                 <fieldset className="space-y-4">
                   <legend className="text-sm font-semibold text-muted-foreground/80 uppercase tracking-wider">
-                    Identité
+                    Identité &amp; Contact
                   </legend>
 
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    {/* Civilité */}
-                    <div className="space-y-2">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-6">
+                    {/* Civilité — small column */}
+                    <div className="space-y-2 sm:col-span-1">
                       <Label htmlFor="civilite" className="text-[13px]">
                         Civilité
                       </Label>
@@ -325,7 +326,7 @@ export function ApprenantDetail({
                     </div>
 
                     {/* Prénom */}
-                    <div className="space-y-2">
+                    <div className="space-y-2 sm:col-span-2">
                       <Label htmlFor="prenom" className="text-[13px]">
                         Prénom <span className="text-destructive">*</span>
                       </Label>
@@ -343,7 +344,7 @@ export function ApprenantDetail({
                     </div>
 
                     {/* Nom */}
-                    <div className="space-y-2">
+                    <div className="space-y-2 sm:col-span-3">
                       <Label htmlFor="nom" className="text-[13px]">
                         Nom <span className="text-destructive">*</span>
                       </Label>
@@ -360,35 +361,8 @@ export function ApprenantDetail({
                       )}
                     </div>
 
-                    {/* Nom de naissance */}
-                    <div className="space-y-2">
-                      <Label htmlFor="nom_naissance" className="text-[13px]">
-                        Nom de naissance
-                      </Label>
-                      <Input
-                        id="nom_naissance"
-                        name="nom_naissance"
-                        defaultValue={apprenant.nom_naissance ?? ""}
-                        className="h-9 text-[13px] border-border/60"
-                      />
-                      {errors.nom_naissance && (
-                        <p className="text-xs text-destructive">
-                          {errors.nom_naissance[0]}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </fieldset>
-
-                {/* Contact */}
-                <fieldset className="space-y-4">
-                  <legend className="text-sm font-semibold text-muted-foreground/80 uppercase tracking-wider">
-                    Contact
-                  </legend>
-
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {/* Email */}
-                    <div className="space-y-2">
+                    <div className="space-y-2 sm:col-span-3">
                       <Label htmlFor="email" className="text-[13px]">
                         Email
                       </Label>
@@ -407,7 +381,7 @@ export function ApprenantDetail({
                     </div>
 
                     {/* Téléphone */}
-                    <div className="space-y-2">
+                    <div className="space-y-2 sm:col-span-2">
                       <Label htmlFor="telephone" className="text-[13px]">
                         Téléphone
                       </Label>
@@ -425,9 +399,9 @@ export function ApprenantDetail({
                     </div>
 
                     {/* Date de naissance */}
-                    <div className="space-y-2">
+                    <div className="space-y-2 sm:col-span-1">
                       <Label htmlFor="date_naissance" className="text-[13px]">
-                        Date de naissance
+                        Naissance
                       </Label>
                       <DatePicker
                         id="date_naissance"
@@ -451,14 +425,13 @@ export function ApprenantDetail({
 
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="fonction" className="text-[13px]">
+                      <Label className="text-[13px]">
                         Fonction
                       </Label>
-                      <Input
-                        id="fonction"
-                        name="fonction"
-                        defaultValue={apprenant.fonction ?? ""}
-                        className="h-9 text-[13px] border-border/60"
+                      <FonctionSelect
+                        value={fonction}
+                        onChange={setFonction}
+                        placeholder="Sélectionner une fonction"
                       />
                       {errors.fonction && (
                         <p className="text-xs text-destructive">
@@ -468,14 +441,13 @@ export function ApprenantDetail({
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="lieu_activite" className="text-[13px]">
+                      <Label className="text-[13px]">
                         Lieu d&apos;activité
                       </Label>
-                      <Input
-                        id="lieu_activite"
-                        name="lieu_activite"
-                        defaultValue={apprenant.lieu_activite ?? ""}
-                        className="h-9 text-[13px] border-border/60"
+                      <CityAutocomplete
+                        value={lieuActivite}
+                        onChange={setLieuActivite}
+                        placeholder="Rechercher une ville..."
                       />
                       {errors.lieu_activite && (
                         <p className="text-xs text-destructive">

@@ -99,7 +99,7 @@ export async function createFonction(nom: string): Promise<{ data?: FonctionPred
       .eq("organisation_id", orgId)
       .order("ordre", { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     const nextOrdre = (maxRow?.ordre ?? 0) + 1;
 

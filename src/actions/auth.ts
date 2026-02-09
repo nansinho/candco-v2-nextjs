@@ -184,7 +184,7 @@ export async function sendMagicLink(email: string) {
           .select("organisation_id")
           .eq("user_id", userId)
           .limit(1)
-          .single();
+          .maybeSingle();
 
         if (acces?.organisation_id) {
           organisationId = acces.organisation_id;
