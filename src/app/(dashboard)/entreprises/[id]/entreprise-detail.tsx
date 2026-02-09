@@ -33,6 +33,8 @@ import { QuickActionsBar } from "@/components/shared/quick-actions-bar";
 import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
 import { SiretSearch } from "@/components/shared/siret-search";
 import {
+  getEntreprise,
+  getBpfCategoriesEntreprise,
   updateEntreprise,
   archiveEntreprise,
   unarchiveEntreprise,
@@ -47,6 +49,7 @@ import {
   type UnifiedContact,
   type UnifiedContactType,
 } from "@/actions/entreprises";
+import { getAgences } from "@/actions/entreprise-organisation";
 import { createContactClient, type CreateContactClientInput } from "@/actions/contacts-clients";
 
 import { FonctionSelect } from "@/components/shared/fonction-select";
@@ -92,22 +95,54 @@ interface BpfCategorie {
 // ─── Main Component ─────────────────────────────────────
 
 export function EntrepriseDetail({
-  entreprise: initialEntreprise,
-  bpfCategories,
-  agences = [],
+  entrepriseId,
 }: {
-  entreprise: Record<string, unknown>;
-  bpfCategories: BpfCategorie[];
-  agences?: { id: string; nom: string }[];
+  entrepriseId: string;
 }) {
   const router = useRouter();
   const { toast } = useToast();
   const { confirm, ConfirmDialog } = useConfirm();
 
-  const [entreprise, setEntreprise] = React.useState<EntrepriseData>(initialEntreprise as unknown as EntrepriseData);
-  const id = entreprise.id;
-  useBreadcrumb(id, entreprise.nom);
+  const [entreprise, setEntreprise] = React.useState<EntrepriseData | null>(null);
+  const [bpfCategories, setBpfCategories] = React.useState<BpfCategorie[]>([]);
+  const [agences, setAgences] = React.useState<{ id: string; nom: string }[]>([]);
+  const [pageLoading, setPageLoading] = React.useState(true);
+  const [pageError, setPageError] = React.useState<string | null>(null);
   const [isArchiving, setIsArchiving] = React.useState(false);
+
+  const id = entrepriseId;
+
+  // Fetch initial data client-side
+  React.useEffect(() => {
+    let cancelled = false;
+    async function loadData() {
+      setPageLoading(true);
+      setPageError(null);
+      try {
+        const [entrepriseResult, bpfResult, agencesResult] = await Promise.all([
+          getEntreprise(id),
+          getBpfCategoriesEntreprise(),
+          getAgences(id),
+        ]);
+        if (cancelled) return;
+        if (entrepriseResult.error || !entrepriseResult.data) {
+          setPageError(entrepriseResult.error ?? "Entreprise introuvable");
+          return;
+        }
+        setEntreprise(entrepriseResult.data as unknown as EntrepriseData);
+        setBpfCategories(bpfResult.data ?? []);
+        setAgences((agencesResult.data ?? []).map((a: { id: string; nom: string }) => ({ id: a.id, nom: a.nom })));
+      } catch {
+        if (!cancelled) setPageError("Impossible de charger les données de l'entreprise.");
+      } finally {
+        if (!cancelled) setPageLoading(false);
+      }
+    }
+    loadData();
+    return () => { cancelled = true; };
+  }, [id]);
+
+  useBreadcrumb(id, entreprise?.nom ?? "");
 
   async function handleArchive() {
     if (!(await confirm({ title: "Archiver cette entreprise ?", description: "L'entreprise sera masquée des listes mais pourra être restaurée.", confirmLabel: "Archiver", variant: "destructive" }))) return;
@@ -130,12 +165,48 @@ export function EntrepriseDetail({
     router.push("/entreprises");
   }
 
-  const isArchived = !!entreprise.archived_at;
+  const isArchived = !!entreprise?.archived_at;
 
   const handleUnarchive = async () => {
     await unarchiveEntreprise(id);
     router.push("/entreprises");
   };
+
+  // Loading state
+  if (pageLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="h-8 w-8 animate-pulse rounded bg-muted/30" />
+          <div className="space-y-2">
+            <div className="h-6 w-48 animate-pulse rounded bg-muted/30" />
+            <div className="h-4 w-32 animate-pulse rounded bg-muted/30" />
+          </div>
+        </div>
+        <Separator className="bg-border/60" />
+        <div className="h-10 w-full animate-pulse rounded bg-muted/30" />
+        <div className="h-64 w-full animate-pulse rounded bg-muted/30" />
+      </div>
+    );
+  }
+
+  // Error state
+  if (pageError || !entreprise) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-24">
+        <h2 className="text-lg font-medium">Erreur de chargement</h2>
+        <p className="text-sm text-muted-foreground text-center max-w-md">
+          {pageError ?? "Entreprise introuvable."}
+        </p>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => router.push("/entreprises")}>
+            <ArrowLeft className="mr-1.5 h-3 w-3" />
+            Retour
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
