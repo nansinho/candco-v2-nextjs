@@ -16,6 +16,14 @@ import {
   Trash2,
   UserPlus,
   X,
+  ToggleLeft,
+  ToggleRight,
+  CheckCircle2,
+  XCircle,
+  ClipboardCheck,
+  FileText,
+  Upload,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,6 +57,10 @@ import {
   removeInscription,
   addCreneau,
   removeCreneau,
+  toggleCreneauEmargement,
+  toggleEmargementPresence,
+  addSessionDocument,
+  removeSessionDocument,
   type UpdateSessionInput,
   type CommanditaireInput,
   type CreneauInput,
@@ -123,6 +135,52 @@ interface Financials {
   rentabilite: number;
 }
 
+interface EmargementApprenant {
+  id: string;
+  prenom: string;
+  nom: string;
+  numero_affichage: string;
+}
+
+interface EmargementRecord {
+  id: string;
+  creneau_id: string;
+  apprenant_id: string;
+  present: boolean | null;
+  signature_url: string | null;
+  heure_signature: string | null;
+  apprenants: EmargementApprenant | null;
+}
+
+interface EmargementCreneau {
+  id: string;
+  date: string;
+  heure_debut: string;
+  heure_fin: string;
+  duree_minutes: number | null;
+  type: string;
+  emargement_ouvert: boolean;
+  formateurs: { id: string; prenom: string; nom: string } | null;
+  salles: { id: string; nom: string } | null;
+  emargements: EmargementRecord[];
+  inscrits: {
+    apprenant_id: string;
+    statut: string;
+    apprenants: EmargementApprenant | null;
+  }[];
+}
+
+interface SessionDocument {
+  id: string;
+  nom: string;
+  categorie: string | null;
+  fichier_url: string;
+  taille_octets: number | null;
+  mime_type: string | null;
+  genere: boolean;
+  created_at: string;
+}
+
 interface SalleOption {
   id: string;
   nom: string;
@@ -184,6 +242,8 @@ export function SessionDetail({
   inscriptions,
   creneaux,
   financials,
+  emargements,
+  documents,
   salles,
   allFormateurs,
   allEntreprises,
@@ -197,6 +257,8 @@ export function SessionDetail({
   inscriptions: Inscription[];
   creneaux: Creneau[];
   financials: Financials;
+  emargements: EmargementCreneau[];
+  documents: SessionDocument[];
   salles: SalleOption[];
   allFormateurs: FormateurOption[];
   allEntreprises: EntrepriseOption[];
@@ -384,6 +446,17 @@ export function SessionDetail({
             {creneaux.length > 0 && (
               <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[11px] font-medium text-primary">
                 {creneaux.length}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="emargement" className="text-xs">
+            Émargement
+          </TabsTrigger>
+          <TabsTrigger value="documents" className="text-xs">
+            Documents
+            {documents.length > 0 && (
+              <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[11px] font-medium text-primary">
+                {documents.length}
               </span>
             )}
           </TabsTrigger>
@@ -815,6 +888,25 @@ export function SessionDetail({
                       <span className="text-[11px] text-muted-foreground/60">{c.salles.nom}</span>
                     )}
                     <div className="flex-1" />
+                    <button
+                      type="button"
+                      title={c.emargement_ouvert ? "Fermer l'émargement" : "Ouvrir l'émargement"}
+                      className={`flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium transition-colors ${
+                        c.emargement_ouvert
+                          ? "bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25"
+                          : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                      }`}
+                      onClick={async () => {
+                        await toggleCreneauEmargement(c.id, session.id);
+                        router.refresh();
+                      }}
+                    >
+                      {c.emargement_ouvert ? (
+                        <><ToggleRight className="h-3.5 w-3.5" />Ouvert</>
+                      ) : (
+                        <><ToggleLeft className="h-3.5 w-3.5" />Fermé</>
+                      )}
+                    </button>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -831,6 +923,125 @@ export function SessionDetail({
               </div>
             )}
           </div>
+        </TabsContent>
+
+        {/* ═══ Émargement Tab ═══ */}
+        <TabsContent value="emargement" className="mt-6">
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Suivi de présence par créneau. Ouvrez l&apos;émargement dans l&apos;onglet Créneaux pour permettre aux apprenants de signer.
+            </p>
+
+            {emargements.length === 0 ? (
+              <div className="flex flex-col items-center gap-3 rounded-lg border border-border/60 bg-card py-16">
+                <ClipboardCheck className="h-8 w-8 text-muted-foreground/30" />
+                <p className="text-sm text-muted-foreground/60">Aucun créneau planifié</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {emargements.map((ec) => {
+                  const totalInscrits = ec.inscrits.length;
+                  const presents = ec.emargements.filter((e) => e.present === true).length;
+                  const absents = ec.emargements.filter((e) => e.present === false).length;
+
+                  return (
+                    <div key={ec.id} className="rounded-lg border border-border/60 bg-card">
+                      {/* Créneau header */}
+                      <div className="flex flex-wrap items-center gap-3 px-4 py-3 border-b border-border/60 bg-muted/20">
+                        <div className="flex items-center gap-2">
+                          <CalendarDays className="h-3.5 w-3.5 text-muted-foreground/50" />
+                          <span className="text-[13px] font-medium">{formatDate(ec.date)}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Clock className="h-3 w-3 text-muted-foreground/50" />
+                          <span className="text-[13px] text-muted-foreground">
+                            {ec.heure_debut.slice(0, 5)} — {ec.heure_fin.slice(0, 5)}
+                          </span>
+                        </div>
+                        <Badge variant="outline" className="text-[10px] capitalize">{ec.type}</Badge>
+                        {ec.formateurs && (
+                          <span className="text-[12px] text-muted-foreground">{ec.formateurs.prenom} {ec.formateurs.nom}</span>
+                        )}
+                        <div className="flex-1" />
+                        <div className="flex items-center gap-3 text-[11px]">
+                          <span className="text-emerald-400">{presents} présent(s)</span>
+                          <span className="text-destructive">{absents} absent(s)</span>
+                          <span className="text-muted-foreground">{totalInscrits - presents - absents} non pointé(s)</span>
+                        </div>
+                        {ec.emargement_ouvert ? (
+                          <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/20 text-[10px]">Ouvert</Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px] text-muted-foreground">Fermé</Badge>
+                        )}
+                      </div>
+
+                      {/* Apprenant list */}
+                      {totalInscrits === 0 ? (
+                        <div className="px-4 py-6 text-center">
+                          <p className="text-xs text-muted-foreground/60">Aucun apprenant inscrit</p>
+                        </div>
+                      ) : (
+                        <div className="divide-y divide-border/40">
+                          {ec.inscrits.map((insc) => {
+                            const emargement = ec.emargements.find((e) => e.apprenant_id === insc.apprenant_id);
+                            const isPresent = emargement?.present === true;
+                            const isAbsent = emargement?.present === false;
+                            const notMarked = !emargement || emargement.present === null;
+
+                            return (
+                              <div key={insc.apprenant_id} className="flex items-center justify-between px-4 py-2.5">
+                                <div className="flex items-center gap-2">
+                                  {isPresent && <CheckCircle2 className="h-4 w-4 text-emerald-400" />}
+                                  {isAbsent && <XCircle className="h-4 w-4 text-destructive" />}
+                                  {notMarked && <div className="h-4 w-4 rounded-full border-2 border-muted-foreground/30" />}
+                                  <span className="text-[13px]">{insc.apprenants?.prenom} {insc.apprenants?.nom}</span>
+                                  <span className="text-[11px] font-mono text-muted-foreground/50">{insc.apprenants?.numero_affichage}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <Button
+                                    variant={isPresent ? "default" : "outline"}
+                                    size="sm"
+                                    className={`h-6 text-[10px] px-2 ${isPresent ? "bg-emerald-600 hover:bg-emerald-700" : "border-border/60"}`}
+                                    onClick={async () => {
+                                      await toggleEmargementPresence(ec.id, insc.apprenant_id, true, session.id);
+                                      router.refresh();
+                                    }}
+                                  >
+                                    Présent
+                                  </Button>
+                                  <Button
+                                    variant={isAbsent ? "destructive" : "outline"}
+                                    size="sm"
+                                    className={`h-6 text-[10px] px-2 ${!isAbsent ? "border-border/60" : ""}`}
+                                    onClick={async () => {
+                                      await toggleEmargementPresence(ec.id, insc.apprenant_id, false, session.id);
+                                      router.refresh();
+                                    }}
+                                  >
+                                    Absent
+                                  </Button>
+                                  {emargement?.heure_signature && (
+                                    <span className="text-[10px] text-muted-foreground/50 ml-2">
+                                      {new Date(emargement.heure_signature).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        {/* ═══ Documents Tab ═══ */}
+        <TabsContent value="documents" className="mt-6">
+          <DocumentsTab sessionId={session.id} documents={documents} />
         </TabsContent>
 
         {/* ═══ Financier Tab ═══ */}
@@ -1461,6 +1672,231 @@ function AddApprenantInline({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Documents Tab ──────────────────────────────────────
+
+const DOCUMENT_CATEGORIES = [
+  { value: "convention", label: "Convention" },
+  { value: "programme", label: "Programme" },
+  { value: "convocation", label: "Convocation" },
+  { value: "attestation", label: "Attestation" },
+  { value: "certificat", label: "Certificat" },
+  { value: "emargement", label: "Émargement" },
+  { value: "contrat_sous_traitance", label: "Contrat sous-traitance" },
+  { value: "autre", label: "Autre" },
+];
+
+function DocumentsTab({
+  sessionId,
+  documents,
+}: {
+  sessionId: string;
+  documents: SessionDocument[];
+}) {
+  const router = useRouter();
+  const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
+  const [uploading, setUploading] = React.useState(false);
+  const [showUpload, setShowUpload] = React.useState(false);
+  const [categorie, setCategorie] = React.useState("autre");
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleUpload = async (file: File) => {
+    if (file.size > 20 * 1024 * 1024) {
+      toast({ title: "Erreur", description: "Le fichier ne doit pas dépasser 20 Mo.", variant: "destructive" });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const { createClient } = await import("@/lib/supabase/client");
+      const supabase = createClient();
+
+      const ext = file.name.split(".").pop() ?? "bin";
+      const filename = `sessions/${sessionId}/${Date.now()}.${ext}`;
+
+      // Try "documents" bucket first, fallback to "images" bucket
+      let publicUrl: string;
+      const { error: uploadError } = await supabase.storage
+        .from("documents")
+        .upload(filename, file, { contentType: file.type, upsert: false });
+
+      if (uploadError) {
+        const { error: fallbackError } = await supabase.storage
+          .from("images")
+          .upload(filename, file, { contentType: file.type, upsert: false });
+        if (fallbackError) throw fallbackError;
+        const { data: urlData } = supabase.storage.from("images").getPublicUrl(filename);
+        publicUrl = urlData.publicUrl;
+      } else {
+        const { data: urlData } = supabase.storage.from("documents").getPublicUrl(filename);
+        publicUrl = urlData.publicUrl;
+      }
+
+      await addSessionDocument({
+        sessionId,
+        nom: file.name,
+        categorie,
+        fichier_url: publicUrl,
+        taille_octets: file.size,
+        mime_type: file.type,
+      });
+
+      toast({ title: "Document ajouté", description: file.name, variant: "success" });
+      setShowUpload(false);
+      setCategorie("autre");
+      router.refresh();
+    } catch {
+      toast({ title: "Erreur", description: "Impossible d'uploader le fichier.", variant: "destructive" });
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleDelete = async (doc: SessionDocument) => {
+    if (!(await confirm({
+      title: "Supprimer ce document ?",
+      description: `Le document "${doc.nom}" sera supprimé définitivement.`,
+      confirmLabel: "Supprimer",
+      variant: "destructive",
+    }))) return;
+
+    const res = await removeSessionDocument(doc.id, sessionId);
+    if (res.error) {
+      toast({ title: "Erreur", description: String(res.error), variant: "destructive" });
+      return;
+    }
+    toast({ title: "Document supprimé", variant: "success" });
+    router.refresh();
+  };
+
+  const formatSize = (bytes: number | null) => {
+    if (!bytes) return "--";
+    if (bytes < 1024) return `${bytes} o`;
+    if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} Ko`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">Documents rattachés à cette session.</p>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 text-xs border-border/60"
+          onClick={() => setShowUpload(true)}
+        >
+          <Upload className="mr-1 h-3 w-3" />
+          Importer
+        </Button>
+      </div>
+
+      {showUpload && (
+        <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium">Importer un document</p>
+            <button type="button" onClick={() => setShowUpload(false)} className="text-muted-foreground hover:text-foreground">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-[12px]">Catégorie</Label>
+            <select
+              value={categorie}
+              onChange={(e) => setCategorie(e.target.value)}
+              className="h-8 w-full rounded-md border border-input bg-muted px-2 text-[13px] text-foreground sm:w-64"
+            >
+              {DOCUMENT_CATEGORIES.map((cat) => (
+                <option key={cat.value} value={cat.value}>{cat.label}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-3">
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="text-[13px] text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-primary-foreground hover:file:bg-primary/90"
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.zip"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleUpload(f);
+              }}
+              disabled={uploading}
+            />
+            {uploading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+          </div>
+          <p className="text-[11px] text-muted-foreground/60">PDF, Word, Excel, images, ZIP — max 20 Mo</p>
+        </div>
+      )}
+
+      {documents.length === 0 && !showUpload ? (
+        <div className="flex flex-col items-center gap-3 rounded-lg border border-border/60 bg-card py-16">
+          <FileText className="h-8 w-8 text-muted-foreground/30" />
+          <p className="text-sm text-muted-foreground/60">Aucun document</p>
+        </div>
+      ) : documents.length > 0 ? (
+        <div className="rounded-lg border border-border/60 bg-card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[500px]">
+              <thead>
+                <tr className="border-b border-border/60 bg-muted/30">
+                  <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Document</th>
+                  <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Catégorie</th>
+                  <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Taille</th>
+                  <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Date</th>
+                  <th className="px-4 py-2.5 w-20" />
+                </tr>
+              </thead>
+              <tbody>
+                {documents.map((doc) => (
+                  <tr key={doc.id} className="border-b border-border/40 hover:bg-muted/20 group">
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-muted-foreground/50 shrink-0" />
+                        <span className="text-[13px] font-medium truncate max-w-[250px]">{doc.nom}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <Badge variant="outline" className="text-[10px] capitalize">
+                        {DOCUMENT_CATEGORIES.find((c) => c.value === doc.categorie)?.label ?? doc.categorie ?? "Autre"}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-2.5 text-[13px] text-muted-foreground">{formatSize(doc.taille_octets)}</td>
+                    <td className="px-4 py-2.5 text-[13px] text-muted-foreground">{formatDate(doc.created_at)}</td>
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center gap-1">
+                        <a
+                          href={doc.fichier_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
+                          title="Télécharger"
+                        >
+                          <Download className="h-3 w-3" />
+                        </a>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
+                          onClick={() => handleDelete(doc)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : null}
+      <ConfirmDialog />
     </div>
   );
 }

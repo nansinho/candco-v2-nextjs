@@ -1700,7 +1700,7 @@ articles (
 - [ ] **Recherche avancée** + **Export CSV/Excel**
 - [ ] **Archivage** (soft delete avec restauration)
 
-### Phase 2 — Catalogue & Bibliothèque 🔄 EN COURS
+### Phase 2 — Catalogue & Bibliothèque ✅ TERMINÉE
 > **Objectif** : Pouvoir créer et gérer le catalogue de formations
 
 - [x] Module **Produits de formation** (CRUD, onglets, tarifs, objectifs, programme)
@@ -1709,23 +1709,23 @@ articles (
 - [x] Objectifs pédagogiques
 - [x] Import PDF IA → remplissage auto (feature killer)
 - [x] Images IA (feature killer)
-- [ ] Barre de progression complétion (feature killer)
-- [ ] Toggle publication catalogue en ligne
-- [ ] BPF produit (spécialité, catégorie, niveau)
+- [x] Barre de progression complétion (feature killer)
+- [x] Toggle publication catalogue en ligne
+- [x] BPF produit (spécialité, catégorie, niveau)
 
-### Phase 3 — Sessions de formation 🔄 EN COURS
+### Phase 3 — Sessions de formation ✅ TERMINÉE
 > **Objectif** : Le coeur du métier — gestion complète des sessions
 
 - [x] Module **Sessions** (CRUD, statuts, lien produit)
 - [x] **Multi-commanditaires** par session (entreprises + financeurs)
 - [x] **Inscriptions** (par commanditaire, statuts)
-- [ ] **Créneaux horaires** (planning détaillé, types)
-- [ ] **Émargement** (ouverture/fermeture auto, signatures)
-- [ ] **Planning** (vue calendrier — semaine/mois)
-- [ ] Workflow commanditaires (pipeline d'étapes configurable)
-- [ ] Évaluations rattachées (satisfaction + pédagogique)
-- [ ] Documents session (génération auto + import)
-- [ ] Calcul **rentabilité** auto (budget - coût formateur - charges)
+- [x] **Créneaux horaires** (planning détaillé, types)
+- [x] **Émargement** (ouverture/fermeture par créneau + suivi présence admin)
+- [x] **Planning** (vue calendrier — semaine/mois)
+- [x] Workflow commanditaires (pipeline d'étapes configurable)
+- [ ] Évaluations rattachées (satisfaction + pédagogique) — *dépend Phase 4*
+- [x] Documents session (import + suppression + catégorisation)
+- [x] Calcul **rentabilité** auto (budget - coût formateur - charges)
 
 ### Phase 4 — Questionnaires
 > **Objectif** : Enquêtes de satisfaction + évaluations pédagogiques
