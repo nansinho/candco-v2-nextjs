@@ -126,16 +126,32 @@ export async function setPassword(input: SetPasswordInput) {
 
   // Activate extranet access if still "invite"
   const admin = createAdminClient();
-  await admin
+  const { data: activatedAcces } = await admin
     .from("extranet_acces")
     .update({
       statut: "actif",
       active_le: new Date().toISOString(),
     })
     .eq("user_id", user.id)
-    .in("statut", ["invite", "en_attente"]);
+    .in("statut", ["invite", "en_attente"])
+    .select("role")
+    .single();
 
-  redirect(parsed.data.next || "/");
+  // Redirect to the correct extranet route, or fallback
+  if (parsed.data.next) {
+    redirect(parsed.data.next);
+  }
+
+  if (activatedAcces) {
+    const routeMap: Record<string, string> = {
+      formateur: "/extranet/formateur",
+      apprenant: "/extranet/apprenant",
+      contact_client: "/extranet/client",
+    };
+    redirect(routeMap[activatedAcces.role] || "/");
+  }
+
+  redirect("/");
 }
 
 // ─── Send magic link for login ──────────────────────────

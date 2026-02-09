@@ -60,8 +60,54 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
-  // For authenticated users on root "/", let them see the dashboard
-  // (the (dashboard)/page.tsx handles the "/" route)
+  // Protect dashboard routes from extranet-only users
+  // If user has extranet_acces but is NOT in utilisateurs, block dashboard access
+  const isDashboardRoute =
+    user &&
+    !pathname.startsWith("/extranet") &&
+    !pathname.startsWith("/admin") &&
+    !pathname.startsWith("/api/") &&
+    !pathname.startsWith("/auth/") &&
+    !pathname.startsWith("/login") &&
+    !pathname.startsWith("/register") &&
+    !pathname.startsWith("/set-password");
+
+  if (isDashboardRoute) {
+    try {
+      const { data: utilisateur } = await supabase
+        .from("utilisateurs")
+        .select("id")
+        .eq("id", user!.id)
+        .single();
+
+      if (!utilisateur) {
+        // Not an internal user — check if extranet user trying to access dashboard
+        const { data: acces } = await supabase
+          .from("extranet_acces")
+          .select("role")
+          .eq("user_id", user!.id)
+          .in("statut", ["actif", "invite", "en_attente"])
+          .limit(1)
+          .single();
+
+        if (acces) {
+          const routeMap: Record<string, string> = {
+            formateur: "/extranet/formateur",
+            apprenant: "/extranet/apprenant",
+            contact_client: "/extranet/client",
+          };
+          const dest = routeMap[acces.role];
+          if (dest) {
+            const url = request.nextUrl.clone();
+            url.pathname = dest;
+            return NextResponse.redirect(url);
+          }
+        }
+      }
+    } catch {
+      // Silently continue — don't block on error
+    }
+  }
 
   // Protect admin routes — only super-admins
   if (user && pathname.startsWith("/admin")) {
@@ -144,27 +190,20 @@ export async function updateSession(request: NextRequest) {
 
 /**
  * Determine redirect path based on user type:
- * 1. Check utilisateurs table → /apprenants (back-office)
- * 2. Check extranet_acces table → /extranet/{role}
+ * 1. Check extranet_acces FIRST → /extranet/{role}
+ * 2. Check utilisateurs table → / (back-office)
  * 3. Fallback → /login
+ *
+ * Extranet is checked first because a user can exist in BOTH tables
+ * (e.g. admin who was also invited as formateur). Extranet takes priority
+ * to prevent external users from accessing the admin dashboard.
  */
 async function getRedirectPath(
   supabase: ReturnType<typeof createServerClient>,
   userId: string
 ): Promise<string> {
   try {
-    // Check if internal user (admin/manager/user)
-    const { data: utilisateur } = await supabase
-      .from("utilisateurs")
-      .select("id")
-      .eq("id", userId)
-      .single();
-
-    if (utilisateur) {
-      return "/";
-    }
-
-    // Check if extranet user — accept actif OR invite (will be auto-activated)
+    // 1. Check extranet_acces FIRST — extranet users must not land on dashboard
     const { data: acces } = await supabase
       .from("extranet_acces")
       .select("role, statut")
@@ -182,7 +221,18 @@ async function getRedirectPath(
       return routeMap[acces.role] || "/login";
     }
 
-    // Authenticated user not found in any table
+    // 2. Check if internal user (admin/manager/user)
+    const { data: utilisateur } = await supabase
+      .from("utilisateurs")
+      .select("id")
+      .eq("id", userId)
+      .single();
+
+    if (utilisateur) {
+      return "/";
+    }
+
+    // 3. Authenticated user not found in any table
     return "/login";
   } catch {
     return "/login";
