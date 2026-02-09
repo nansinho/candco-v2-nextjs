@@ -1,4 +1,5 @@
 import { getSession, getSessionFormateurs, getSessionCommanditaires, getInscriptions, getCreneaux, getSessionFinancials, getSessionEmargements, getSessionDocuments } from "@/actions/sessions";
+import { getSessionEvaluations, getAllQuestionnaires } from "@/actions/questionnaires";
 import { getAllSalles } from "@/actions/salles";
 import { getAllFormateurs } from "@/actions/formateurs";
 import { getAllEntreprises } from "@/actions/entreprises";
@@ -24,6 +25,8 @@ export default async function SessionDetailPage({ params }: PageProps) {
     financialsResult,
     emargementsResult,
     documentsResult,
+    evaluationsResult,
+    allQuestionnairesResult,
     sallesResult,
     allFormateursResult,
     allEntreprisesResult,
@@ -39,6 +42,8 @@ export default async function SessionDetailPage({ params }: PageProps) {
     getSessionFinancials(id),
     getSessionEmargements(id),
     getSessionDocuments(id),
+    getSessionEvaluations(id),
+    getAllQuestionnaires(),
     getAllSalles(),
     getAllFormateurs(),
     getAllEntreprises(),
@@ -61,6 +66,8 @@ export default async function SessionDetailPage({ params }: PageProps) {
       financials={financialsResult}
       emargements={emargementsResult.data}
       documents={documentsResult.data}
+      evaluations={evaluationsResult.data}
+      allQuestionnaires={allQuestionnairesResult.data}
       salles={sallesResult.data}
       allFormateurs={allFormateursResult.data}
       allEntreprises={allEntreprisesResult.data}

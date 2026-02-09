@@ -24,6 +24,8 @@ import {
   FileText,
   Upload,
   Download,
+  ClipboardList,
+  Link2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,6 +69,10 @@ import {
 } from "@/actions/sessions";
 import { createFormateur } from "@/actions/formateurs";
 import { createApprenant } from "@/actions/apprenants";
+import {
+  addSessionEvaluation,
+  removeSessionEvaluation,
+} from "@/actions/questionnaires";
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -181,6 +187,23 @@ interface SessionDocument {
   created_at: string;
 }
 
+interface SessionEvaluation {
+  id: string;
+  session_id: string;
+  questionnaire_id: string | null;
+  type: string | null;
+  date_envoi: string | null;
+  questionnaires: { id: string; nom: string; type: string; statut: string; public_cible: string | null } | null;
+}
+
+interface QuestionnaireOption {
+  id: string;
+  nom: string;
+  type: string;
+  statut: string;
+  public_cible: string | null;
+}
+
 interface SalleOption {
   id: string;
   nom: string;
@@ -244,6 +267,8 @@ export function SessionDetail({
   financials,
   emargements,
   documents,
+  evaluations,
+  allQuestionnaires,
   salles,
   allFormateurs,
   allEntreprises,
@@ -259,6 +284,8 @@ export function SessionDetail({
   financials: Financials;
   emargements: EmargementCreneau[];
   documents: SessionDocument[];
+  evaluations: SessionEvaluation[];
+  allQuestionnaires: QuestionnaireOption[];
   salles: SalleOption[];
   allFormateurs: FormateurOption[];
   allEntreprises: EntrepriseOption[];
@@ -460,6 +487,7 @@ export function SessionDetail({
               </span>
             )}
           </TabsTrigger>
+          <TabsTrigger value="evaluations" className="text-xs">Évaluations</TabsTrigger>
           <TabsTrigger value="financier" className="text-xs">Financier</TabsTrigger>
           <TabsTrigger value="taches" className="text-xs">Tâches</TabsTrigger>
         </TabsList>
@@ -1042,6 +1070,11 @@ export function SessionDetail({
         {/* ═══ Documents Tab ═══ */}
         <TabsContent value="documents" className="mt-6">
           <DocumentsTab sessionId={session.id} documents={documents} />
+        </TabsContent>
+
+        {/* ═══ Évaluations Tab ═══ */}
+        <TabsContent value="evaluations" className="mt-6">
+          <EvaluationsTab sessionId={session.id} evaluations={evaluations} allQuestionnaires={allQuestionnaires} />
         </TabsContent>
 
         {/* ═══ Financier Tab ═══ */}
@@ -2002,6 +2035,183 @@ function AddCreneauForm({
           </Button>
         </div>
       </form>
+    </div>
+  );
+}
+
+// ─── Évaluations Tab ────────────────────────────────────
+
+const EVAL_TYPE_LABELS: Record<string, string> = {
+  satisfaction_chaud: "Satisfaction à chaud",
+  satisfaction_froid: "Satisfaction à froid",
+  pedagogique_pre: "Péda. pré-formation",
+  pedagogique_post: "Péda. post-formation",
+  standalone: "Standalone",
+};
+
+const EVAL_TYPE_COLORS: Record<string, string> = {
+  satisfaction_chaud: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+  satisfaction_froid: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+  pedagogique_pre: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+  pedagogique_post: "bg-violet-500/10 text-violet-400 border-violet-500/20",
+  standalone: "bg-gray-500/10 text-gray-400 border-gray-500/20",
+};
+
+function EvaluationsTab({
+  sessionId,
+  evaluations,
+  allQuestionnaires,
+}: {
+  sessionId: string;
+  evaluations: SessionEvaluation[];
+  allQuestionnaires: QuestionnaireOption[];
+}) {
+  const router = useRouter();
+  const { toast } = useToast();
+  const [showAdd, setShowAdd] = React.useState(false);
+  const [selectedQId, setSelectedQId] = React.useState("");
+  const [selectedType, setSelectedType] = React.useState("satisfaction_chaud");
+  const [adding, setAdding] = React.useState(false);
+
+  const available = allQuestionnaires.filter(
+    (q) => !evaluations.some((ev) => ev.questionnaire_id === q.id),
+  );
+
+  const handleAdd = async () => {
+    if (!selectedQId) return;
+    setAdding(true);
+    const result = await addSessionEvaluation(sessionId, selectedQId, selectedType);
+    setAdding(false);
+    if (result.error) {
+      toast({ title: "Erreur", description: String(result.error), variant: "destructive" });
+      return;
+    }
+    setShowAdd(false);
+    setSelectedQId("");
+    toast({ title: "Évaluation rattachée", variant: "success" });
+    router.refresh();
+  };
+
+  const handleRemove = async (evalId: string) => {
+    const result = await removeSessionEvaluation(evalId, sessionId);
+    if (result.error) {
+      toast({ title: "Erreur", variant: "destructive" });
+      return;
+    }
+    toast({ title: "Évaluation retirée", variant: "success" });
+    router.refresh();
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-medium">{evaluations.length} évaluation(s) rattachée(s)</h2>
+        <Button size="sm" className="h-8 text-xs" onClick={() => setShowAdd(!showAdd)}>
+          <Plus className="mr-1.5 h-3 w-3" />
+          Rattacher un questionnaire
+        </Button>
+      </div>
+
+      {showAdd && (
+        <div className="rounded-lg border border-border/60 bg-card p-4 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-[11px] text-muted-foreground">Questionnaire</Label>
+              <select
+                value={selectedQId}
+                onChange={(e) => setSelectedQId(e.target.value)}
+                className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
+              >
+                <option value="">-- Sélectionner --</option>
+                {available.map((q) => (
+                  <option key={q.id} value={q.id}>
+                    {q.nom} ({EVAL_TYPE_LABELS[q.type] ?? q.type})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[11px] text-muted-foreground">Type d&apos;évaluation</Label>
+              <select
+                value={selectedType}
+                onChange={(e) => setSelectedType(e.target.value)}
+                className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
+              >
+                <option value="satisfaction_chaud">Satisfaction à chaud</option>
+                <option value="satisfaction_froid">Satisfaction à froid</option>
+                <option value="pedagogique_pre">Péda. pré-formation</option>
+                <option value="pedagogique_post">Péda. post-formation</option>
+              </select>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setShowAdd(false)}>
+              Annuler
+            </Button>
+            <Button size="sm" className="h-7 text-xs" disabled={!selectedQId || adding} onClick={handleAdd}>
+              {adding ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Plus className="mr-1 h-3 w-3" />}
+              Rattacher
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {evaluations.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border/60 py-12">
+          <ClipboardList className="h-8 w-8 text-muted-foreground/30" />
+          <p className="mt-3 text-sm text-muted-foreground/60">Aucune évaluation rattachée</p>
+          <p className="text-[11px] text-muted-foreground/40 mt-1">
+            Rattachez des questionnaires de satisfaction ou pédagogiques à cette session.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {evaluations.map((ev) => (
+            <div key={ev.id} className="flex items-center justify-between rounded-lg border border-border/60 bg-card p-4">
+              <div className="flex items-center gap-3">
+                <ClipboardList className="h-4 w-4 text-muted-foreground/50" />
+                <div>
+                  <p className="text-[13px] font-medium">
+                    {ev.questionnaires?.nom ?? "Questionnaire supprimé"}
+                  </p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <Badge variant="outline" className={`text-[10px] ${EVAL_TYPE_COLORS[ev.type ?? ""] ?? ""}`}>
+                      {EVAL_TYPE_LABELS[ev.type ?? ""] ?? ev.type}
+                    </Badge>
+                    {ev.questionnaires?.statut && (
+                      <span className="text-[10px] text-muted-foreground">
+                        {ev.questionnaires.statut === "actif" ? "Actif" : ev.questionnaires.statut === "brouillon" ? "Brouillon" : "Archivé"}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-1">
+                {ev.questionnaire_id && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => router.push(`/questionnaires/${ev.questionnaire_id}`)}
+                    title="Voir le questionnaire"
+                  >
+                    <Link2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-muted-foreground/50 hover:text-destructive"
+                  onClick={() => handleRemove(ev.id)}
+                  title="Retirer"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
