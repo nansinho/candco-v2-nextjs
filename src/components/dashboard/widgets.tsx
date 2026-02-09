@@ -144,12 +144,12 @@ export function StatsWidget({ data }: { data: StatsData }) {
 export function SessionsWidget({ sessions }: { sessions: SessionItem[] }) {
   if (sessions.length === 0) {
     return (
-      <div className="text-center py-4">
-        <Calendar className="h-6 w-6 text-muted-foreground/15 mx-auto mb-2" />
-        <p className="text-xs text-muted-foreground/40">Aucune session planifiée</p>
-        <Link href="/sessions" className="text-[11px] text-primary hover:underline mt-1 inline-block">
-          Créer une session
-        </Link>
+      <div className="flex items-center gap-3 py-1">
+        <Calendar className="h-4 w-4 text-muted-foreground/20 shrink-0" />
+        <p className="text-xs text-muted-foreground/40">
+          Aucune session planifiée.{" "}
+          <Link href="/sessions" className="text-primary hover:underline">Créer</Link>
+        </p>
       </div>
     );
   }
@@ -191,9 +191,12 @@ export function SessionsWidget({ sessions }: { sessions: SessionItem[] }) {
 export function DevisWidget({ devis }: { devis: DevisItem[] }) {
   if (devis.length === 0) {
     return (
-      <div className="text-center py-4">
-        <FileText className="h-6 w-6 text-muted-foreground/15 mx-auto mb-2" />
-        <p className="text-xs text-muted-foreground/40">Aucun devis</p>
+      <div className="flex items-center gap-3 py-1">
+        <FileText className="h-4 w-4 text-muted-foreground/20 shrink-0" />
+        <p className="text-xs text-muted-foreground/40">
+          Aucun devis.{" "}
+          <Link href="/devis" className="text-primary hover:underline">Créer</Link>
+        </p>
       </div>
     );
   }
@@ -238,9 +241,12 @@ export function DevisWidget({ devis }: { devis: DevisItem[] }) {
 export function FacturesWidget({ factures }: { factures: FactureItem[] }) {
   if (factures.length === 0) {
     return (
-      <div className="text-center py-4">
-        <Receipt className="h-6 w-6 text-muted-foreground/15 mx-auto mb-2" />
-        <p className="text-xs text-muted-foreground/40">Aucune facture</p>
+      <div className="flex items-center gap-3 py-1">
+        <Receipt className="h-4 w-4 text-muted-foreground/20 shrink-0" />
+        <p className="text-xs text-muted-foreground/40">
+          Aucune facture.{" "}
+          <Link href="/factures" className="text-primary hover:underline">Créer</Link>
+        </p>
       </div>
     );
   }
