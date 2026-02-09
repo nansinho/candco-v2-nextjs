@@ -18,13 +18,17 @@ CREATE TABLE plan_budgets_agence (
   budget_alloue numeric(10,2) DEFAULT 0,
   created_at timestamptz DEFAULT now() NOT NULL,
   updated_at timestamptz DEFAULT now() NOT NULL,
-  UNIQUE (plan_formation_id, agence_id)
+  -- NOTE: uniqueness handled by index below (NULL-safe for siège)
 );
 
 -- Indexes
 CREATE INDEX idx_plan_budgets_agence_organisation ON plan_budgets_agence(organisation_id);
 CREATE INDEX idx_plan_budgets_agence_plan ON plan_budgets_agence(plan_formation_id);
 CREATE INDEX idx_plan_budgets_agence_agence ON plan_budgets_agence(agence_id);
+
+-- NULL-safe unique: one allocation per plan per agence (NULL agence_id = siège)
+CREATE UNIQUE INDEX idx_plan_budgets_agence_unique
+  ON plan_budgets_agence (plan_formation_id, COALESCE(agence_id, '00000000-0000-0000-0000-000000000000'));
 
 -- RLS
 ALTER TABLE plan_budgets_agence ENABLE ROW LEVEL SECURITY;
