@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.73.0",
+    "@radix-ui/react-select": "^2.2.6",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.95.1",
     "class-variance-authority": "^0.7.1",

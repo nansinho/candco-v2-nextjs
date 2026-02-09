@@ -20,7 +20,8 @@ export type HistoriqueModule =
   | "email"
   | "organisation"
   | "questionnaire"
-  | "opportunite";
+  | "opportunite"
+  | "ticket";
 
 export type HistoriqueAction =
   | "created"
@@ -35,7 +36,9 @@ export type HistoriqueAction =
   | "sent"
   | "signed"
   | "completed"
-  | "generated";
+  | "generated"
+  | "replied"
+  | "assigned";
 
 export type HistoriqueOrigine = "backoffice" | "extranet" | "systeme";
 

@@ -13,9 +13,15 @@ import {
   Building2,
   GraduationCap,
   UserCheck,
+  LifeBuoy,
+  CircleDot,
+  Loader2,
+  Pause,
+  Flame,
 } from "lucide-react";
 import { getOrganisationId, getCurrentUser } from "@/lib/auth-helpers";
 import { formatDate, formatCurrency } from "@/lib/utils";
+import { getTicketStats } from "@/actions/tickets";
 
 // ─── Data fetching ───────────────────────────────────────
 
@@ -352,6 +358,88 @@ async function RecentActivity() {
   );
 }
 
+const ticketStatutDot: Record<string, string> = {
+  ouvert: "bg-amber-400", en_cours: "bg-blue-400", en_attente: "bg-yellow-400",
+  resolu: "bg-emerald-400", ferme: "bg-zinc-400",
+};
+
+const ticketPrioriteDot: Record<string, string> = {
+  urgente: "bg-red-400", haute: "bg-orange-400", normale: "bg-blue-400", basse: "bg-zinc-400",
+};
+
+async function TicketStats() {
+  const stats = await getTicketStats();
+  const total = stats.ouverts + stats.en_cours + stats.en_attente;
+
+  if (total === 0 && stats.recents.length === 0) return null;
+
+  return (
+    <div className="pt-6">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-xs font-medium text-muted-foreground/50 uppercase tracking-wider">
+          Tickets support
+        </h2>
+        <Link href="/tickets" className="text-[11px] text-muted-foreground/30 hover:text-primary flex items-center gap-1 transition-colors">
+          Tout voir <ArrowRight className="h-3 w-3" />
+        </Link>
+      </div>
+
+      {/* Ticket counters */}
+      <div className="flex gap-4 mb-3">
+        <Link href="/tickets?statut=ouvert" className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border/40 hover:border-border/60 transition-colors group flex-1">
+          <CircleDot className="h-3.5 w-3.5 text-amber-400" />
+          <span className="text-[18px] font-semibold leading-none">{stats.ouverts}</span>
+          <span className="text-[11px] text-muted-foreground/40 group-hover:text-muted-foreground/60">Ouverts</span>
+        </Link>
+        <Link href="/tickets?statut=en_cours" className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border/40 hover:border-border/60 transition-colors group flex-1">
+          <Loader2 className="h-3.5 w-3.5 text-blue-400" />
+          <span className="text-[18px] font-semibold leading-none">{stats.en_cours}</span>
+          <span className="text-[11px] text-muted-foreground/40 group-hover:text-muted-foreground/60">En cours</span>
+        </Link>
+        <Link href="/tickets?statut=en_attente" className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border/40 hover:border-border/60 transition-colors group flex-1">
+          <Pause className="h-3.5 w-3.5 text-yellow-400" />
+          <span className="text-[18px] font-semibold leading-none">{stats.en_attente}</span>
+          <span className="text-[11px] text-muted-foreground/40 group-hover:text-muted-foreground/60">En attente</span>
+        </Link>
+        {stats.urgents > 0 && (
+          <Link href="/tickets?priorite=urgente" className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/5 border border-red-500/10 hover:border-red-500/20 transition-colors group flex-1">
+            <Flame className="h-3.5 w-3.5 text-red-400" />
+            <span className="text-[18px] font-semibold leading-none text-red-400">{stats.urgents}</span>
+            <span className="text-[11px] text-red-400/60 group-hover:text-red-400/80">Urgents</span>
+          </Link>
+        )}
+      </div>
+
+      {/* Recent tickets */}
+      {stats.recents.length > 0 && (
+        <div className="-mx-1">
+          {stats.recents.map((ticket) => {
+            const dot = ticketStatutDot[ticket.statut] ?? "bg-zinc-500";
+            return (
+              <Link
+                key={ticket.id}
+                href={`/tickets/${ticket.id}`}
+                className="flex items-center gap-2.5 rounded-md px-1 py-1.5 -mx-1 hover:bg-muted/20 transition-colors group"
+              >
+                <div className={`h-1.5 w-1.5 rounded-full ${dot} shrink-0`} />
+                <span className="text-[13px] truncate flex-1 group-hover:text-primary transition-colors">
+                  {ticket.titre}
+                </span>
+                {ticket.priorite === "urgente" && (
+                  <span className="text-[10px] text-red-400 font-medium shrink-0">Urgent</span>
+                )}
+                <span className="text-[11px] text-muted-foreground/30 font-mono shrink-0">
+                  {ticket.numero_affichage}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 async function QuickLinks() {
   const data = await getDashboardData();
   if (!data) return null;
@@ -465,6 +553,11 @@ export default function DashboardPage() {
           </Suspense>
         </div>
       </div>
+
+      {/* Tickets support */}
+      <Suspense fallback={null}>
+        <TicketStats />
+      </Suspense>
 
       {/* Footer links */}
       <div className="pt-8 pb-2 border-t border-border/20 mt-8">

@@ -136,6 +136,11 @@ const MODULE_CONFIG: Record<
     color: "text-yellow-400",
     bgColor: "bg-yellow-500/15",
   },
+  ticket: {
+    label: "Ticket",
+    color: "text-rose-400",
+    bgColor: "bg-rose-500/15",
+  },
 };
 
 const ACTION_LABELS: Record<HistoriqueAction, string> = {
@@ -152,6 +157,8 @@ const ACTION_LABELS: Record<HistoriqueAction, string> = {
   signed: "Signature",
   completed: "Terminé",
   generated: "Génération",
+  replied: "Réponse",
+  assigned: "Assignation",
 };
 
 const ORIGINE_LABELS: Record<HistoriqueOrigine, { label: string; class: string }> = {
