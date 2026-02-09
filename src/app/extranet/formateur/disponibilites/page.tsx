@@ -1,6 +1,6 @@
 import { getExtranetUserContext } from "@/actions/extranet-context";
 import { redirect } from "next/navigation";
-import { Clock } from "lucide-react";
+import { DisponibilitesClient } from "./disponibilites-client";
 
 export default async function FormateurDisponibilitesPage() {
   const { data: ctx, error } = await getExtranetUserContext();
@@ -11,18 +11,14 @@ export default async function FormateurDisponibilitesPage() {
       <div>
         <h1 className="text-xl font-semibold tracking-tight">Disponibilites</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Declarez vos disponibilites pour les sessions a venir
+          Declarez vos disponibilites pour les sessions a venir.
+          L&apos;administration pourra les consulter sur le planning.
         </p>
       </div>
-      <div className="rounded-lg border border-border/60 bg-card p-12 text-center">
-        <Clock className="mx-auto h-10 w-10 text-muted-foreground/20" />
-        <p className="mt-3 text-sm font-medium text-muted-foreground/60">
-          La gestion des disponibilites sera bientot disponible
-        </p>
-        <p className="mt-1 text-xs text-muted-foreground/40">
-          Vous pourrez declarer vos creneaux disponibles et exporter en iCal.
-        </p>
-      </div>
+      <DisponibilitesClient
+        formateurId={ctx.entiteId}
+        organisationId={ctx.organisationId}
+      />
     </div>
   );
 }

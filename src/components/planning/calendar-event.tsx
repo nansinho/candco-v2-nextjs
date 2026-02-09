@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { MapPin, Monitor, Laptop, Briefcase, User, Clock, X } from "lucide-react";
+import { MapPin, Monitor, Laptop, Briefcase, User, Clock, X, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PlanningCreneau } from "@/actions/planning";
 import {
@@ -116,9 +116,11 @@ export function MonthEvent({ creneau, onClick }: MonthEventProps) {
 interface EventDetailProps {
   creneau: PlanningCreneau;
   onClose: () => void;
+  onEdit?: (creneau: PlanningCreneau) => void;
+  onDelete?: (creneau: PlanningCreneau) => void;
 }
 
-export function EventDetail({ creneau, onClose }: EventDetailProps) {
+export function EventDetail({ creneau, onClose, onEdit, onDelete }: EventDetailProps) {
   const color = getSessionColor(creneau.session_id);
   const TypeIcon = typeIconMap[creneau.type] ?? MapPin;
   const typeConfig = TYPE_CONFIG[creneau.type];
@@ -187,7 +189,7 @@ export function EventDetail({ creneau, onClose }: EventDetailProps) {
       </div>
 
       {/* Footer */}
-      <div className="px-4 py-2.5 border-t border-border/40 bg-muted/20">
+      <div className="px-4 py-2.5 border-t border-border/40 bg-muted/20 flex items-center justify-between">
         <Link
           href={`/sessions/${creneau.session_id}`}
           className={cn(
@@ -197,6 +199,30 @@ export function EventDetail({ creneau, onClose }: EventDetailProps) {
         >
           Voir la session →
         </Link>
+        {(onEdit || onDelete) && (
+          <div className="flex items-center gap-1">
+            {onEdit && (
+              <button
+                type="button"
+                onClick={() => { onClose(); onEdit(creneau); }}
+                className="rounded-md p-1.5 text-muted-foreground/60 hover:text-primary hover:bg-primary/10 transition-colors"
+                title="Modifier"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+            )}
+            {onDelete && (
+              <button
+                type="button"
+                onClick={() => { onClose(); onDelete(creneau); }}
+                className="rounded-md p-1.5 text-muted-foreground/60 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                title="Supprimer"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

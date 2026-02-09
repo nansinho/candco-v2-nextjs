@@ -7,17 +7,22 @@ import {
   Users,
   Layers,
   SlidersHorizontal,
+  Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/components/ui/toast";
 import type { PlanningCreneau, PlanningStats } from "@/actions/planning";
 import { getCreneauxByOrganisation, getPlanningFilterOptions } from "@/actions/planning";
+import { removeCreneau } from "@/actions/sessions";
+import { getDisponibilitesByOrganisation, type Disponibilite } from "@/actions/disponibilites";
 import { CalendarHeader, type ViewMode } from "./calendar-header";
 import { CalendarWeekView } from "./calendar-week-view";
 import { CalendarMonthView } from "./calendar-month-view";
 import { CalendarListView } from "./calendar-list-view";
 import { CalendarFilters, CalendarFiltersInline } from "./calendar-filters";
 import { CalendarLegend } from "./calendar-legend";
+import { CreneauFormModal } from "./creneau-form-modal";
 import {
   getWeekRange,
   getMonthRange,
@@ -28,7 +33,7 @@ import {
 
 function StatsBar({ stats }: { stats: PlanningStats }) {
   const items = [
-    { icon: Layers, label: "Créneaux", value: stats.totalCreneaux, color: "text-primary" },
+    { icon: Layers, label: "Creneaux", value: stats.totalCreneaux, color: "text-primary" },
     { icon: Clock, label: "Heures", value: `${stats.totalHeures}h`, color: "text-blue-400" },
     { icon: CalendarDays, label: "Sessions", value: stats.totalSessions, color: "text-emerald-400" },
     { icon: Users, label: "Formateurs", value: stats.totalFormateurs, color: "text-purple-400" },
@@ -87,13 +92,16 @@ interface FilterOptions {
 }
 
 export function PlanningClient() {
+  const { toast } = useToast();
   const [currentDate, setCurrentDate] = React.useState(new Date());
   const [viewMode, setViewMode] = React.useState<ViewMode>("week");
   const [showFilters, setShowFilters] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
+  const [refreshTick, setRefreshTick] = React.useState(0);
 
   // Data
   const [creneaux, setCreneaux] = React.useState<PlanningCreneau[]>([]);
+  const [disponibilites, setDisponibilites] = React.useState<Disponibilite[]>([]);
   const [stats, setStats] = React.useState<PlanningStats>({
     totalCreneaux: 0,
     totalHeures: 0,
@@ -113,6 +121,11 @@ export function PlanningClient() {
   const [type, setType] = React.useState("");
   const [statut, setStatut] = React.useState("");
 
+  // Modal state
+  const [modalOpen, setModalOpen] = React.useState(false);
+  const [editCreneau, setEditCreneau] = React.useState<PlanningCreneau | null>(null);
+  const [deletingId, setDeletingId] = React.useState<string | null>(null);
+
   const clearAllFilters = () => {
     setFormateurId("");
     setSalleId("");
@@ -126,7 +139,7 @@ export function PlanningClient() {
     getPlanningFilterOptions().then(setFilterOptions);
   }, []);
 
-  // Load creneaux when date/view/filters change
+  // Load creneaux + disponibilites when date/view/filters change
   React.useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -135,23 +148,30 @@ export function PlanningClient() {
       ? getMonthRange(currentDate)
       : getWeekRange(currentDate);
 
-    getCreneauxByOrganisation({
-      dateFrom: format(range.start, "yyyy-MM-dd"),
-      dateTo: format(range.end, "yyyy-MM-dd"),
-      formateurId: formateurId || undefined,
-      salleId: salleId || undefined,
-      sessionId: sessionId || undefined,
-      type: type || undefined,
-      statut: statut || undefined,
-    }).then((result) => {
+    const dateFrom = format(range.start, "yyyy-MM-dd");
+    const dateTo = format(range.end, "yyyy-MM-dd");
+
+    Promise.all([
+      getCreneauxByOrganisation({
+        dateFrom,
+        dateTo,
+        formateurId: formateurId || undefined,
+        salleId: salleId || undefined,
+        sessionId: sessionId || undefined,
+        type: type || undefined,
+        statut: statut || undefined,
+      }),
+      getDisponibilitesByOrganisation(dateFrom, dateTo, formateurId || undefined),
+    ]).then(([creneauxResult, dispoResult]) => {
       if (cancelled) return;
-      setCreneaux(result.data);
-      setStats(result.stats);
+      setCreneaux(creneauxResult.data);
+      setStats(creneauxResult.stats);
+      setDisponibilites(dispoResult.data);
       setLoading(false);
     });
 
     return () => { cancelled = true; };
-  }, [currentDate, viewMode, formateurId, salleId, sessionId, type, statut]);
+  }, [currentDate, viewMode, formateurId, salleId, sessionId, type, statut, refreshTick]);
 
   // Responsive: default to list on mobile
   React.useEffect(() => {
@@ -166,12 +186,57 @@ export function PlanningClient() {
     setViewMode("week");
   };
 
+  const triggerRefresh = () => {
+    setRefreshTick((t) => t + 1);
+  };
+
+  const handleOpenAddModal = () => {
+    setEditCreneau(null);
+    setModalOpen(true);
+  };
+
+  const handleEditCreneau = (creneau: PlanningCreneau) => {
+    setEditCreneau(creneau);
+    setModalOpen(true);
+  };
+
+  const handleDeleteCreneau = async (creneau: PlanningCreneau) => {
+    if (!confirm(`Supprimer le creneau du ${creneau.date} (${creneau.heure_debut.slice(0, 5)} - ${creneau.heure_fin.slice(0, 5)}) ?`)) {
+      return;
+    }
+
+    setDeletingId(creneau.id);
+    try {
+      const result = await removeCreneau(creneau.id, creneau.session_id);
+      if (result.error) {
+        toast({ variant: "destructive", title: typeof result.error === "string" ? result.error : "Erreur" });
+      } else {
+        toast({ variant: "success", title: "Creneau supprime" });
+        triggerRefresh();
+      }
+    } catch {
+      toast({ variant: "destructive", title: "Erreur inattendue" });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  // Group disponibilites by day for the week view overlay
+  const dispoByDay = React.useMemo(() => {
+    const map = new Map<string, Disponibilite[]>();
+    for (const d of disponibilites) {
+      if (!map.has(d.date)) map.set(d.date, []);
+      map.get(d.date)!.push(d);
+    }
+    return map;
+  }, [disponibilites]);
+
   return (
     <div className="flex flex-col gap-4 h-full">
       {/* Stats bar */}
       <StatsBar stats={stats} />
 
-      {/* Calendar header + filter toggle */}
+      {/* Calendar header + filter toggle + add button */}
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
           <div className="flex-1 min-w-0">
@@ -182,6 +247,16 @@ export function PlanningClient() {
               onViewModeChange={setViewMode}
             />
           </div>
+
+          {/* Add créneau button */}
+          <Button
+            size="sm"
+            className="h-8 text-xs"
+            onClick={handleOpenAddModal}
+          >
+            <Plus className="h-3.5 w-3.5 mr-1.5" />
+            Creneau
+          </Button>
 
           {/* Filter toggle — desktop */}
           <Button
@@ -219,8 +294,28 @@ export function PlanningClient() {
         </div>
       </div>
 
-      {/* Legend */}
-      {creneaux.length > 0 && <CalendarLegend creneaux={creneaux} />}
+      {/* Legend + disponibilite legend */}
+      {(creneaux.length > 0 || disponibilites.length > 0) && (
+        <div className="flex items-center gap-4 flex-wrap">
+          {creneaux.length > 0 && <CalendarLegend creneaux={creneaux} />}
+          {disponibilites.length > 0 && (
+            <div className="flex items-center gap-3 text-[11px] text-muted-foreground/60">
+              <div className="flex items-center gap-1.5">
+                <div className="h-2.5 w-2.5 rounded-sm bg-emerald-500/30 border border-emerald-500/40" />
+                Disponible
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="h-2.5 w-2.5 rounded-sm bg-red-500/30 border border-red-500/40" />
+                Indisponible
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="h-2.5 w-2.5 rounded-sm bg-amber-500/30 border border-amber-500/40" />
+                Sous reserve
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Main content area */}
       <div className="flex gap-4 flex-1 min-h-0">
@@ -258,6 +353,8 @@ export function PlanningClient() {
                 <CalendarWeekView
                   currentDate={currentDate}
                   creneaux={creneaux}
+                  onEditCreneau={handleEditCreneau}
+                  onDeleteCreneau={handleDeleteCreneau}
                 />
               )}
               {viewMode === "month" && (
@@ -265,6 +362,8 @@ export function PlanningClient() {
                   currentDate={currentDate}
                   creneaux={creneaux}
                   onDayClick={handleDayClickFromMonth}
+                  onEditCreneau={handleEditCreneau}
+                  onDeleteCreneau={handleDeleteCreneau}
                 />
               )}
               {viewMode === "list" && (
@@ -276,6 +375,17 @@ export function PlanningClient() {
           )}
         </div>
       </div>
+
+      {/* Créneau form modal */}
+      <CreneauFormModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        onSuccess={triggerRefresh}
+        editCreneau={editCreneau}
+        sessions={filterOptions.sessions}
+        formateurs={filterOptions.formateurs}
+        salles={filterOptions.salles}
+      />
     </div>
   );
 }

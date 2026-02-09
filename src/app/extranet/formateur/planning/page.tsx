@@ -1,6 +1,6 @@
 import { getExtranetUserContext } from "@/actions/extranet-context";
 import { redirect } from "next/navigation";
-import { CalendarDays } from "lucide-react";
+import { FormateurPlanningClient } from "./formateur-planning-client";
 
 export default async function FormateurPlanningPage() {
   const { data: ctx, error } = await getExtranetUserContext();
@@ -14,15 +14,7 @@ export default async function FormateurPlanningPage() {
           Vue calendrier de vos interventions
         </p>
       </div>
-      <div className="rounded-lg border border-border/60 bg-card p-12 text-center">
-        <CalendarDays className="mx-auto h-10 w-10 text-muted-foreground/20" />
-        <p className="mt-3 text-sm font-medium text-muted-foreground/60">
-          Le planning sera bientot disponible
-        </p>
-        <p className="mt-1 text-xs text-muted-foreground/40">
-          Vous pourrez visualiser vos creneaux sur un calendrier semaine/mois.
-        </p>
-      </div>
+      <FormateurPlanningClient formateurId={ctx.entiteId} />
     </div>
   );
 }
