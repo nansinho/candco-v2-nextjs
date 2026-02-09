@@ -278,11 +278,13 @@ export function HistoriqueTab({ entrepriseId }: HistoriqueTabProps) {
       if (filterDateFin) filters.date_fin = filterDateFin;
 
       const result = await getEntrepriseHistorique(entrepriseId, filters, page);
-      if (!result.error) {
-        setEvents(result.data);
-        setTotalCount(result.count);
+      if (result.error) {
+        setError(typeof result.error === "string" ? result.error : "Impossible de charger l'historique");
       }
-    } catch {
+      setEvents(result.data ?? []);
+      setTotalCount(result.count ?? 0);
+    } catch (err) {
+      console.error("[HistoriqueTab] Load error:", err);
       setError("Impossible de charger l'historique");
     } finally {
       setLoading(false);
