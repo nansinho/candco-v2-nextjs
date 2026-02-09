@@ -1,20 +1,16 @@
-import { CalendarDays } from "lucide-react";
+import { PlanningClient } from "@/components/planning/planning-client";
 
 export default function PlanningPage() {
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-4 h-[calc(100vh-100px)]">
       <div>
         <h1 className="text-xl font-semibold tracking-tight">Planning</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Visualisez le planning des sessions, creneaux et disponibilites des formateurs
+          Visualisez le planning des sessions, créneaux et disponibilités des formateurs
         </p>
       </div>
-      <div className="flex flex-col items-center justify-center rounded-lg border border-border/60 bg-card py-20">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-          <CalendarDays className="h-6 w-6 text-primary" />
-        </div>
-        <h2 className="mt-4 text-sm font-medium">Module en construction</h2>
-        <p className="mt-1 text-xs text-muted-foreground">Ce module sera bientot disponible</p>
+      <div className="flex-1 min-h-0">
+        <PlanningClient />
       </div>
     </div>
   );
