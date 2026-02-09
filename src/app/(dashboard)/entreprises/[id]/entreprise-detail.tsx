@@ -611,6 +611,7 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
   const { confirm: confirmAction, ConfirmDialog: ContactConfirmDialog } = useConfirm();
   const [items, setItems] = React.useState<UnifiedContact[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [loadError, setLoadError] = React.useState<string | null>(null);
   const [activePanel, setActivePanel] = React.useState<"none" | "create">("none");
   const [isCreating, setIsCreating] = React.useState(false);
   const [newContactFonction, setNewContactFonction] = React.useState("");
@@ -619,9 +620,17 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
 
   const fetchData = React.useCallback(async () => {
     setIsLoading(true);
+    setLoadError(null);
     try {
       const result = await getEntrepriseUnifiedContacts(entrepriseId);
-      setItems(result.data);
+      if (result.error) {
+        setLoadError(typeof result.error === "string" ? result.error : "Impossible de charger les contacts.");
+      }
+      setItems(result.data ?? []);
+    } catch (err) {
+      console.error("[ContactsTab] Fetch error:", err);
+      setLoadError("Impossible de charger les contacts. Veuillez réessayer.");
+      setItems([]);
     } finally {
       setIsLoading(false);
     }
@@ -789,6 +798,13 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
       {/* Content */}
       {isLoading ? (
         <div className="p-5 space-y-2">{[1, 2, 3].map((i) => <div key={i} className="h-10 animate-pulse rounded bg-muted/30" />)}</div>
+      ) : loadError ? (
+        <div className="flex flex-col items-center gap-3 py-12">
+          <p className="text-sm text-destructive">{loadError}</p>
+          <Button variant="outline" size="sm" onClick={fetchData} className="h-8 text-xs border-destructive/30 text-destructive hover:bg-destructive/10">
+            Réessayer
+          </Button>
+        </div>
       ) : items.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-16">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50"><Users className="h-6 w-6 text-muted-foreground/30" /></div>
@@ -915,16 +931,29 @@ function ApprenantsTab({ entrepriseId }: { entrepriseId: string }) {
   const { confirm: confirmAction, ConfirmDialog: ApprenantConfirmDialog } = useConfirm();
   const [apprenants, setApprenants] = React.useState<ApprenantLink[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [loadError, setLoadError] = React.useState<string | null>(null);
   const [showSearch, setShowSearch] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [searchResults, setSearchResults] = React.useState<ApprenantLink[]>([]);
   const [isSearching, setIsSearching] = React.useState(false);
 
+  // Use a ref to access current apprenants in search effect without triggering re-runs
+  const apprenantsRef = React.useRef<ApprenantLink[]>([]);
+  apprenantsRef.current = apprenants;
+
   const fetchApprenants = React.useCallback(async () => {
     setIsLoading(true);
+    setLoadError(null);
     try {
       const result = await getEntrepriseApprenants(entrepriseId);
-      setApprenants(result.data);
+      if (result.error) {
+        setLoadError(typeof result.error === "string" ? result.error : "Impossible de charger les apprenants.");
+      }
+      setApprenants(result.data ?? []);
+    } catch (err) {
+      console.error("[ApprenantsTab] Fetch error:", err);
+      setLoadError("Impossible de charger les apprenants. Veuillez réessayer.");
+      setApprenants([]);
     } finally {
       setIsLoading(false);
     }
@@ -932,17 +961,31 @@ function ApprenantsTab({ entrepriseId }: { entrepriseId: string }) {
 
   React.useEffect(() => { fetchApprenants(); }, [fetchApprenants]);
 
+  // Search effect: uses ref for apprenants to avoid re-triggering on apprenants changes
   React.useEffect(() => {
-    if (!searchQuery.trim()) { setSearchResults([]); return; }
+    if (!searchQuery.trim()) { setSearchResults([]); setIsSearching(false); return; }
+    let cancelled = false;
     const timer = setTimeout(async () => {
       setIsSearching(true);
-      const excludeIds = apprenants.map((a) => a.id);
-      const result = await searchApprenantsForLinking(searchQuery, excludeIds);
-      setSearchResults(result.data as ApprenantLink[]);
-      setIsSearching(false);
+      try {
+        const excludeIds = apprenantsRef.current.map((a) => a.id);
+        const result = await searchApprenantsForLinking(searchQuery, excludeIds);
+        if (!cancelled) {
+          setSearchResults((result.data ?? []) as ApprenantLink[]);
+        }
+      } catch (err) {
+        console.error("[ApprenantsTab] Search error:", err);
+        if (!cancelled) {
+          setSearchResults([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsSearching(false);
+        }
+      }
     }, 300);
-    return () => clearTimeout(timer);
-  }, [searchQuery, apprenants]);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [searchQuery]);
 
   const handleLink = async (apprenantId: string) => {
     const result = await linkApprenantToEntreprise(entrepriseId, apprenantId);
@@ -1000,6 +1043,13 @@ function ApprenantsTab({ entrepriseId }: { entrepriseId: string }) {
 
       {isLoading ? (
         <div className="p-5 space-y-2">{[1, 2, 3].map((i) => <div key={i} className="h-10 animate-pulse rounded bg-muted/30" />)}</div>
+      ) : loadError ? (
+        <div className="flex flex-col items-center gap-3 py-12">
+          <p className="text-sm text-destructive">{loadError}</p>
+          <Button variant="outline" size="sm" onClick={fetchApprenants} className="h-8 text-xs border-destructive/30 text-destructive hover:bg-destructive/10">
+            Réessayer
+          </Button>
+        </div>
       ) : apprenants.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-16">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50"><GraduationCap className="h-6 w-6 text-muted-foreground/30" /></div>

@@ -70,6 +70,7 @@ export function EmailTab({ entrepriseId }: { entrepriseId: string }) {
   const [agences, setAgences] = React.useState<Agence[]>([]);
   const [history, setHistory] = React.useState<EmailHistoryItem[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [loadError, setLoadError] = React.useState<string | null>(null);
 
   // Mode & Scope
   const [selectionMode, setSelectionMode] = React.useState<"all" | "filtered">("all");
@@ -93,15 +94,26 @@ export function EmailTab({ entrepriseId }: { entrepriseId: string }) {
 
   const loadData = React.useCallback(async () => {
     setIsLoading(true);
-    const [membresResult, agencesResult, historyResult] = await Promise.all([
-      getMembreEmails(entrepriseId),
-      getAgences(entrepriseId),
-      getEntrepriseEmailHistory(entrepriseId),
-    ]);
-    setMembres(membresResult.data);
-    setAgences(agencesResult.data ?? []);
-    setHistory(historyResult.data);
-    setIsLoading(false);
+    setLoadError(null);
+    try {
+      const [membresResult, agencesResult, historyResult] = await Promise.all([
+        getMembreEmails(entrepriseId),
+        getAgences(entrepriseId),
+        getEntrepriseEmailHistory(entrepriseId),
+      ]);
+      const errors = [membresResult.error, agencesResult.error, historyResult.error].filter(Boolean);
+      if (errors.length > 0) {
+        console.warn("[EmailTab] Partial load errors:", errors);
+      }
+      setMembres(membresResult.data ?? []);
+      setAgences(agencesResult.data ?? []);
+      setHistory(historyResult.data ?? []);
+    } catch (err) {
+      console.error("[EmailTab] Load error:", err);
+      setLoadError("Impossible de charger les données email. Veuillez réessayer.");
+    } finally {
+      setIsLoading(false);
+    }
   }, [entrepriseId]);
 
   React.useEffect(() => {
@@ -253,6 +265,22 @@ export function EmailTab({ entrepriseId }: { entrepriseId: string }) {
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
         <span className="ml-2 text-sm text-muted-foreground">Chargement...</span>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-5 py-8 text-center">
+        <p className="text-sm text-destructive">{loadError}</p>
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-3 h-8 text-xs border-destructive/30 text-destructive hover:bg-destructive/10"
+          onClick={() => loadData()}
+        >
+          Réessayer
+        </Button>
       </div>
     );
   }

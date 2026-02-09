@@ -119,12 +119,12 @@ export function OrganisationTab({ entrepriseId }: OrganisationTabProps) {
         getPoles(entrepriseId),
         getMembres(entrepriseId),
       ]);
-      if (agencesResult.error || polesResult.error || membresResult.error) {
-        console.error("[OrganisationTab] Load errors:", {
-          agences: agencesResult.error,
-          poles: polesResult.error,
-          membres: membresResult.error,
-        });
+      // Show error if ALL three queries failed
+      const errors = [agencesResult.error, polesResult.error, membresResult.error].filter(Boolean);
+      if (errors.length === 3) {
+        setLoadError(`Impossible de charger l'organisation : ${errors[0]}`);
+      } else if (errors.length > 0) {
+        console.warn("[OrganisationTab] Partial load errors:", errors);
       }
       setAgences(agencesResult.data ?? []);
       setPoles((polesResult.data ?? []) as (Pole & { agence_nom?: string })[]);

@@ -47,8 +47,12 @@ export function EntrepriseSessionsTab({ entrepriseId }: { entrepriseId: string }
     setError(null);
     try {
       const result = await getEntrepriseSessions(entrepriseId);
+      if (result.error) {
+        setError(typeof result.error === "string" ? result.error : "Impossible de charger les sessions");
+      }
       setSessions((result.data ?? []) as unknown as EntrepriseSession[]);
-    } catch {
+    } catch (err) {
+      console.error("[EntrepriseSessionsTab] Load error:", err);
       setError("Impossible de charger les sessions");
     } finally {
       setLoading(false);
