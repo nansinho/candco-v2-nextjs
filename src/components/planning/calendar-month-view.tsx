@@ -18,12 +18,14 @@ interface CalendarMonthViewProps {
   currentDate: Date;
   creneaux: PlanningCreneau[];
   onDayClick?: (date: Date) => void;
+  onEditCreneau?: (creneau: PlanningCreneau) => void;
+  onDeleteCreneau?: (creneau: PlanningCreneau) => void;
 }
 
 const MAX_VISIBLE_EVENTS = 3;
 const DAY_NAMES = ["lun.", "mar.", "mer.", "jeu.", "ven.", "sam.", "dim."];
 
-export function CalendarMonthView({ currentDate, creneaux, onDayClick }: CalendarMonthViewProps) {
+export function CalendarMonthView({ currentDate, creneaux, onDayClick, onEditCreneau, onDeleteCreneau }: CalendarMonthViewProps) {
   const days = getMonthDays(currentDate);
   const creneauxByDay = groupCreneauxByDay(creneaux);
   const weeks = chunkIntoWeeks(days);
@@ -52,7 +54,12 @@ export function CalendarMonthView({ currentDate, creneaux, onDayClick }: Calenda
               ),
             }}
           >
-            <EventDetail creneau={selectedCreneau} onClose={closePopover} />
+            <EventDetail
+              creneau={selectedCreneau}
+              onClose={closePopover}
+              onEdit={onEditCreneau}
+              onDelete={onDeleteCreneau}
+            />
           </div>
         </>
       )}

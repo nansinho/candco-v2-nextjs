@@ -20,9 +20,11 @@ import {
 interface CalendarWeekViewProps {
   currentDate: Date;
   creneaux: PlanningCreneau[];
+  onEditCreneau?: (creneau: PlanningCreneau) => void;
+  onDeleteCreneau?: (creneau: PlanningCreneau) => void;
 }
 
-export function CalendarWeekView({ currentDate, creneaux }: CalendarWeekViewProps) {
+export function CalendarWeekView({ currentDate, creneaux, onEditCreneau, onDeleteCreneau }: CalendarWeekViewProps) {
   const days = getWeekDays(currentDate);
   const creneauxByDay = groupCreneauxByDay(creneaux);
   const scrollRef = React.useRef<HTMLDivElement>(null);
@@ -133,7 +135,12 @@ export function CalendarWeekView({ currentDate, creneaux }: CalendarWeekViewProp
               className="absolute z-40"
               style={{ left: popoverPos.x, top: popoverPos.y }}
             >
-              <EventDetail creneau={selectedCreneau} onClose={closePopover} />
+              <EventDetail
+                creneau={selectedCreneau}
+                onClose={closePopover}
+                onEdit={onEditCreneau}
+                onDelete={onDeleteCreneau}
+              />
             </div>
           </>
         )}
