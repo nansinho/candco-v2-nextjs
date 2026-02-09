@@ -251,6 +251,55 @@ export async function createProduit(input: CreateProduitInput) {
   return { data };
 }
 
+// ─── Create draft product (empty, for manual creation) ──────────
+
+export async function createDraftProduit() {
+  const result = await getOrganisationId();
+  if ("error" in result) {
+    return { error: result.error };
+  }
+
+  const { organisationId, userId, role, supabase } = result;
+
+  const { data: numero } = await supabase.rpc("next_numero", {
+    p_organisation_id: organisationId,
+    p_entite: "PROD",
+  });
+
+  const intitule = "Nouvelle formation";
+
+  const { data, error } = await supabase
+    .from("produits_formation")
+    .insert({
+      organisation_id: organisationId,
+      numero_affichage: numero,
+      intitule,
+      slug: slugify(intitule),
+    })
+    .select()
+    .single();
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "produit",
+    action: "created",
+    entiteType: "produit",
+    entiteId: data.id,
+    entiteLabel: `${data.numero_affichage} — ${data.intitule}`,
+    description: `Produit de formation "${data.intitule}" créé (brouillon)`,
+    objetHref: `/produits/${data.id}`,
+  });
+
+  revalidatePath("/produits");
+  return { data };
+}
+
 // ─── Create full product from PDF AI extraction ──────────
 
 export interface PDFExtractedData {

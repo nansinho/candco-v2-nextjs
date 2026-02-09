@@ -316,10 +316,10 @@ function DynamicList({
                   if (e.key === "Escape") handleCancelEdit();
                 }}
               />
-              <Button variant="ghost" size="icon" className="h-6 w-6 text-emerald-500 hover:text-emerald-400 shrink-0" onClick={handleSaveEdit}>
+              <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-emerald-500 hover:text-emerald-400 shrink-0" onClick={handleSaveEdit}>
                 <Check className="h-3 w-3" />
               </Button>
-              <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground shrink-0" onClick={handleCancelEdit}>
+              <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground shrink-0" onClick={handleCancelEdit}>
                 <X className="h-3 w-3" />
               </Button>
             </>
@@ -327,6 +327,7 @@ function DynamicList({
             <>
               <p className="text-sm flex-1 min-w-0">{item.texte}</p>
               <Button
+                type="button"
                 variant="ghost"
                 size="icon"
                 className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground shrink-0"
@@ -335,6 +336,7 @@ function DynamicList({
                 <Pencil className="h-3 w-3" />
               </Button>
               <Button
+                type="button"
                 variant="ghost"
                 size="icon"
                 className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive shrink-0"
@@ -360,7 +362,7 @@ function DynamicList({
             }
           }}
         />
-        <Button size="sm" variant="outline" className="h-8 text-xs shrink-0" onClick={handleAdd} disabled={saving || !newItem.trim()}>
+        <Button type="button" size="sm" variant="outline" className="h-8 text-xs shrink-0" onClick={handleAdd} disabled={saving || !newItem.trim()}>
           {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3 mr-1" />}
           {addLabel}
         </Button>
@@ -404,6 +406,7 @@ export function ProduitDetail({
   const [isArchiving, setIsArchiving] = React.useState(false);
   const [previewOpen, setPreviewOpen] = React.useState(false);
   const [currentImageUrl, setCurrentImageUrl] = React.useState(produit.image_url);
+  const [activeTab, setActiveTab] = React.useState("general");
   const [isUploadingImage, setIsUploadingImage] = React.useState(false);
   const imageInputRef = React.useRef<HTMLInputElement>(null);
   const formRef = React.useRef<HTMLFormElement>(null);
@@ -689,7 +692,7 @@ export function ProduitDetail({
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Main content */}
           <div className="flex-1 min-w-0">
-            <Tabs defaultValue="general">
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
               <div className="overflow-x-auto thin-scrollbar -mx-1 px-1">
               <TabsList className="bg-muted/50 w-max sm:w-auto">
                 <TabsTrigger value="general" className="text-xs gap-1.5">
@@ -1378,6 +1381,9 @@ function FormationPreview({ open, onClose, produit, tarifs, objectifs, programme
                   {tarifs[0].prix_ht.toLocaleString("fr-FR")} € HT
                   {tarifs[0].unite ? ` / ${tarifs[0].unite}` : ""}
                 </p>
+                <p className="text-[10px] text-muted-foreground/60 mt-0.5">
+                  {(tarifs[0].prix_ht * (1 + tarifs[0].taux_tva / 100)).toLocaleString("fr-FR")} € TTC
+                </p>
               </div>
             )}
           </div>
@@ -1480,15 +1486,21 @@ function FormationPreview({ open, onClose, produit, tarifs, objectifs, programme
             <div>
               <h2 style={{ fontSize: "15px", fontWeight: 600, color: "#FF7C4C", marginBottom: "8px" }}>Tarifs</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {tarifs.map((t) => (
-                  <div key={t.id} className="rounded-lg border border-border/60 p-4 flex items-center justify-between">
-                    <div>
-                      <p className="text-[12px] font-medium">{t.nom || "Tarif"}</p>
-                      {t.unite && <p className="text-[11px] text-muted-foreground">Par {t.unite}</p>}
+                {tarifs.map((t) => {
+                  const ttcPreview = t.prix_ht * (1 + t.taux_tva / 100);
+                  return (
+                    <div key={t.id} className="rounded-lg border border-border/60 p-4 flex items-center justify-between">
+                      <div>
+                        <p className="text-[12px] font-medium">{t.nom || "Tarif"}</p>
+                        {t.unite && <p className="text-[11px] text-muted-foreground">Par {t.unite}</p>}
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-bold text-primary">{t.prix_ht.toLocaleString("fr-FR")} € <span className="text-[11px] font-normal text-muted-foreground">HT</span></p>
+                        <p className="text-[11px] text-muted-foreground/60">{ttcPreview.toLocaleString("fr-FR")} € TTC</p>
+                      </div>
                     </div>
-                    <p className="text-lg font-bold text-primary">{t.prix_ht.toLocaleString("fr-FR")} € <span className="text-[11px] font-normal text-muted-foreground">HT</span></p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -1682,18 +1694,75 @@ function TarifsSection({ produitId, tarifs }: { produitId: string; tarifs: Tarif
   const { confirm: confirmTarif, ConfirmDialog: ConfirmTarifDialog } = useConfirm();
   const [isAdding, setIsAdding] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
+  const [tarifNom, setTarifNom] = React.useState("");
+  const [tarifPrixHt, setTarifPrixHt] = React.useState("");
+  const [tarifTauxTva, setTarifTauxTva] = React.useState("0");
+  const [tarifPrixTtc, setTarifPrixTtc] = React.useState("");
+  const [tarifUnite, setTarifUnite] = React.useState("");
+  const lastEditedRef = React.useRef<"ht" | "ttc">("ht");
 
-  const handleAddTarif = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handlePrixHtChange = (value: string) => {
+    setTarifPrixHt(value);
+    lastEditedRef.current = "ht";
+    const ht = parseFloat(value);
+    const tva = parseFloat(tarifTauxTva) || 0;
+    if (!isNaN(ht) && value !== "") {
+      setTarifPrixTtc((ht * (1 + tva / 100)).toFixed(2));
+    } else {
+      setTarifPrixTtc("");
+    }
+  };
+
+  const handlePrixTtcChange = (value: string) => {
+    setTarifPrixTtc(value);
+    lastEditedRef.current = "ttc";
+    const ttc = parseFloat(value);
+    const tva = parseFloat(tarifTauxTva) || 0;
+    if (!isNaN(ttc) && value !== "") {
+      setTarifPrixHt((ttc / (1 + tva / 100)).toFixed(2));
+    } else {
+      setTarifPrixHt("");
+    }
+  };
+
+  const handleTauxTvaChange = (value: string) => {
+    setTarifTauxTva(value);
+    const tva = parseFloat(value) || 0;
+    if (lastEditedRef.current === "ht") {
+      const ht = parseFloat(tarifPrixHt);
+      if (!isNaN(ht) && tarifPrixHt !== "") {
+        setTarifPrixTtc((ht * (1 + tva / 100)).toFixed(2));
+      }
+    } else {
+      const ttc = parseFloat(tarifPrixTtc);
+      if (!isNaN(ttc) && tarifPrixTtc !== "") {
+        setTarifPrixHt((ttc / (1 + tva / 100)).toFixed(2));
+      }
+    }
+  };
+
+  const resetTarifForm = () => {
+    setTarifNom("");
+    setTarifPrixHt("");
+    setTarifTauxTva("0");
+    setTarifPrixTtc("");
+    setTarifUnite("");
+    lastEditedRef.current = "ht";
+  };
+
+  const handleAddTarif = async () => {
+    const prixHt = Number(tarifPrixHt);
+    if (isNaN(prixHt) || prixHt < 0 || tarifPrixHt === "") {
+      toast({ title: "Erreur", description: "Le prix HT est requis.", variant: "destructive" });
+      return;
+    }
     setSaving(true);
-    const fd = new FormData(e.currentTarget);
     const input: TarifInput = {
-      nom: (fd.get("tarif_nom") as string) || "",
-      prix_ht: Number(fd.get("tarif_prix_ht")),
-      taux_tva: Number(fd.get("tarif_taux_tva") || 0),
-      unite: (fd.get("tarif_unite") as TarifInput["unite"]) || "",
-      is_default: fd.get("tarif_is_default") === "on",
+      nom: tarifNom || "",
+      prix_ht: prixHt,
+      taux_tva: Number(tarifTauxTva) || 0,
+      unite: (tarifUnite as TarifInput["unite"]) || "",
+      is_default: false,
     };
     const result = await addTarif(produitId, input);
     setSaving(false);
@@ -1702,6 +1771,7 @@ function TarifsSection({ produitId, tarifs }: { produitId: string; tarifs: Tarif
       return;
     }
     setIsAdding(false);
+    resetTarifForm();
     toast({ title: "Tarif ajouté", variant: "success" });
     router.refresh();
   };
@@ -1727,23 +1797,27 @@ function TarifsSection({ produitId, tarifs }: { produitId: string; tarifs: Tarif
       </div>
 
       {isAdding && (
-        <form onSubmit={handleAddTarif} className="rounded-lg border border-primary/20 bg-muted/30 p-3 space-y-2">
-          <div className="grid grid-cols-4 gap-2">
+        <div className="rounded-lg border border-primary/20 bg-muted/30 p-3 space-y-2">
+          <div className="grid grid-cols-5 gap-2">
             <div className="space-y-1">
               <Label className="text-[10px]">Nom</Label>
-              <Input name="tarif_nom" placeholder="Inter-entreprise" className="h-7 text-[11px] border-border/60" />
+              <Input value={tarifNom} onChange={(e) => setTarifNom(e.target.value)} placeholder="Inter-entreprise" className="h-7 text-[11px] border-border/60" />
             </div>
             <div className="space-y-1">
               <Label className="text-[10px]">Prix HT</Label>
-              <Input name="tarif_prix_ht" type="number" step="0.01" min="0" required className="h-7 text-[11px] border-border/60" />
+              <Input value={tarifPrixHt} onChange={(e) => handlePrixHtChange(e.target.value)} type="number" step="0.01" min="0" className="h-7 text-[11px] border-border/60" />
             </div>
             <div className="space-y-1">
               <Label className="text-[10px]">TVA %</Label>
-              <Input name="tarif_taux_tva" type="number" step="0.01" defaultValue="0" className="h-7 text-[11px] border-border/60" />
+              <Input value={tarifTauxTva} onChange={(e) => handleTauxTvaChange(e.target.value)} type="number" step="0.01" className="h-7 text-[11px] border-border/60" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[10px]">Prix TTC</Label>
+              <Input value={tarifPrixTtc} onChange={(e) => handlePrixTtcChange(e.target.value)} type="number" step="0.01" min="0" className="h-7 text-[11px] border-border/60" />
             </div>
             <div className="space-y-1">
               <Label className="text-[10px]">Unité</Label>
-              <select name="tarif_unite" className="h-7 w-full rounded-md border border-input bg-muted px-2 text-[11px] text-foreground">
+              <select value={tarifUnite} onChange={(e) => setTarifUnite(e.target.value)} className="h-7 w-full rounded-md border border-input bg-muted px-2 text-[11px] text-foreground">
                 <option value="">--</option>
                 <option value="stagiaire">/ stagiaire</option>
                 <option value="groupe">/ groupe</option>
@@ -1754,12 +1828,12 @@ function TarifsSection({ produitId, tarifs }: { produitId: string; tarifs: Tarif
             </div>
           </div>
           <div className="flex items-center gap-2 justify-end">
-            <Button type="button" variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => setIsAdding(false)}>Annuler</Button>
-            <Button type="submit" size="sm" className="h-7 text-[11px]" disabled={saving}>
+            <Button type="button" variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => { setIsAdding(false); resetTarifForm(); }}>Annuler</Button>
+            <Button type="button" size="sm" className="h-7 text-[11px]" disabled={saving || !tarifPrixHt} onClick={handleAddTarif}>
               {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : "Ajouter"}
             </Button>
           </div>
-        </form>
+        </div>
       )}
 
       {tarifs.length > 0 && (
@@ -1783,7 +1857,9 @@ function TarifsSection({ produitId, tarifs }: { produitId: string; tarifs: Tarif
                 <div className="flex items-center gap-3">
                   <div className="text-right">
                     <p className="text-[13px] font-mono font-medium">{formatCurrency(t.prix_ht)} HT</p>
-                    {t.taux_tva > 0 && <p className="text-[11px] text-muted-foreground/60">{formatCurrency(ttc)} TTC</p>}
+                    <p className="text-[11px] text-muted-foreground/60">
+                      {formatCurrency(ttc)} TTC{t.taux_tva > 0 && ` (${t.taux_tva}%)`}
+                    </p>
                   </div>
                   <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive" onClick={() => handleDelete(t.id)} type="button">
                     <Trash2 className="h-3 w-3" />

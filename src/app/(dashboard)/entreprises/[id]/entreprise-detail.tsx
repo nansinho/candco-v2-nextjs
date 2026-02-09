@@ -55,7 +55,7 @@ import { createContactClient, type CreateContactClientInput } from "@/actions/co
 import { FonctionSelect } from "@/components/shared/fonction-select";
 import { OrganisationTab } from "@/components/entreprise/organisation-tab";
 import { EntrepriseSessionsTab } from "@/components/entreprise/sessions-tab";
-import { BesoinsFormationTab } from "@/components/entreprise/besoins-formation-tab";
+import { PlanFormationTab } from "@/components/entreprise/plan-formation-tab";
 import { EmailTab } from "@/components/entreprise/email-tab";
 import { HistoriqueTab } from "@/components/entreprise/historique-tab";
 
@@ -604,7 +604,7 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
 // ─── Suivi & Formation Tab (3 sub-tabs) ──────────────────
 
 function SuiviFormationTab({ entrepriseId, agences }: { entrepriseId: string; agences: { id: string; nom: string }[] }) {
-  const [subTab, setSubTab] = React.useState<"sessions" | "besoins" | "historique">("sessions");
+  const [subTab, setSubTab] = React.useState<"sessions" | "plan_formation" | "historique">("sessions");
 
   return (
     <div className="space-y-4">
@@ -621,14 +621,14 @@ function SuiviFormationTab({ entrepriseId, agences }: { entrepriseId: string; ag
           Sessions
         </button>
         <button
-          onClick={() => setSubTab("besoins")}
+          onClick={() => setSubTab("plan_formation")}
           className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-            subTab === "besoins"
+            subTab === "plan_formation"
               ? "bg-background text-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          Besoin de formation
+          Plan de formation
         </button>
         <button
           onClick={() => setSubTab("historique")}
@@ -646,8 +646,8 @@ function SuiviFormationTab({ entrepriseId, agences }: { entrepriseId: string; ag
       {subTab === "sessions" && (
         <EntrepriseSessionsTab entrepriseId={entrepriseId} />
       )}
-      {subTab === "besoins" && (
-        <BesoinsFormationTab entrepriseId={entrepriseId} agences={agences} />
+      {subTab === "plan_formation" && (
+        <PlanFormationTab entrepriseId={entrepriseId} agences={agences} />
       )}
       {subTab === "historique" && (
         <HistoriqueTab entrepriseId={entrepriseId} />

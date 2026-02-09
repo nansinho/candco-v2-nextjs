@@ -159,6 +159,7 @@ const ACTION_LABELS: Record<HistoriqueAction, string> = {
   generated: "Génération",
   replied: "Réponse",
   assigned: "Assignation",
+  alert_triggered: "Alerte budget",
 };
 
 const ORIGINE_LABELS: Record<HistoriqueOrigine, { label: string; class: string }> = {
