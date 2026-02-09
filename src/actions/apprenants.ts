@@ -293,20 +293,25 @@ export async function updateApprenant(id: string, input: UpdateApprenantInput) {
     bpf_categorie_id: parsed.data.bpf_categorie_id || null,
   };
 
-  const { data, error } = await supabase
+  const { error } = await admin
     .from("apprenants")
     .update({
       ...cleanedData,
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)
-    .eq("organisation_id", organisationId)
-    .select()
-    .single();
+    .eq("organisation_id", organisationId);
 
   if (error) {
     return { error: { _form: [error.message] } };
   }
+
+  // Re-fetch updated data
+  const { data } = await admin
+    .from("apprenants")
+    .select("*")
+    .eq("id", id)
+    .single();
 
   const metadata = oldData
     ? computeChanges(oldData as Record<string, unknown>, cleanedData as Record<string, unknown>, APPRENANT_FIELD_LABELS)

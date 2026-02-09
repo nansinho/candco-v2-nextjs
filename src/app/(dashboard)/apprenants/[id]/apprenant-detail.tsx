@@ -295,314 +295,128 @@ export function ApprenantDetail({
                 </div>
               )}
 
-              <div className="p-6 space-y-8">
-                {/* Identity + Contact — grouped together for quick overview */}
-                <fieldset className="space-y-4">
-                  <legend className="text-sm font-semibold text-muted-foreground/80 uppercase tracking-wider">
-                    Identité &amp; Contact
-                  </legend>
+              <div className="p-5">
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                  {/* ── COLONNE GAUCHE : Identité + Adresse ── */}
+                  <div className="space-y-5">
+                    <p className="text-[11px] font-medium text-muted-foreground/60 uppercase tracking-wider">Identité</p>
 
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-6">
-                    {/* Civilité — small column */}
-                    <div className="space-y-2 sm:col-span-1">
-                      <Label htmlFor="civilite" className="text-[13px]">
-                        Civilité
-                      </Label>
-                      <select
-                        id="civilite"
-                        name="civilite"
-                        defaultValue={apprenant.civilite ?? ""}
-                        className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
-                      >
-                        <option value="">--</option>
-                        <option value="Monsieur">Monsieur</option>
-                        <option value="Madame">Madame</option>
-                      </select>
-                      {errors.civilite && (
-                        <p className="text-xs text-destructive">
-                          {errors.civilite[0]}
-                        </p>
-                      )}
+                    {/* Civilité + Prénom + Nom */}
+                    <div className="grid grid-cols-[90px_1fr_1fr] gap-3">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="civilite" className="text-[13px] text-muted-foreground">Civilité</Label>
+                        <select id="civilite" name="civilite" defaultValue={apprenant.civilite ?? ""} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground">
+                          <option value="">--</option>
+                          <option value="Monsieur">M.</option>
+                          <option value="Madame">Mme</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="prenom" className="text-[13px] text-muted-foreground">Prénom <span className="text-destructive">*</span></Label>
+                        <Input id="prenom" name="prenom" defaultValue={apprenant.prenom} className="h-9 text-[13px] border-border/60" />
+                        {errors.prenom && <p className="text-xs text-destructive">{errors.prenom[0]}</p>}
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="nom" className="text-[13px] text-muted-foreground">Nom <span className="text-destructive">*</span></Label>
+                        <Input id="nom" name="nom" defaultValue={apprenant.nom} className="h-9 text-[13px] border-border/60" />
+                        {errors.nom && <p className="text-xs text-destructive">{errors.nom[0]}</p>}
+                      </div>
                     </div>
 
-                    {/* Prénom */}
-                    <div className="space-y-2 sm:col-span-2">
-                      <Label htmlFor="prenom" className="text-[13px]">
-                        Prénom <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="prenom"
-                        name="prenom"
-                        defaultValue={apprenant.prenom}
-                        className="h-9 text-[13px] border-border/60"
-                      />
-                      {errors.prenom && (
-                        <p className="text-xs text-destructive">
-                          {errors.prenom[0]}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Nom */}
-                    <div className="space-y-2 sm:col-span-3">
-                      <Label htmlFor="nom" className="text-[13px]">
-                        Nom <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="nom"
-                        name="nom"
-                        defaultValue={apprenant.nom}
-                        className="h-9 text-[13px] border-border/60"
-                      />
-                      {errors.nom && (
-                        <p className="text-xs text-destructive">
-                          {errors.nom[0]}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Email */}
-                    <div className="space-y-2 sm:col-span-3">
-                      <Label htmlFor="email" className="text-[13px]">
-                        Email
-                      </Label>
-                      <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        defaultValue={apprenant.email ?? ""}
-                        className="h-9 text-[13px] border-border/60"
-                      />
-                      {errors.email && (
-                        <p className="text-xs text-destructive">
-                          {errors.email[0]}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Téléphone */}
-                    <div className="space-y-2 sm:col-span-2">
-                      <Label htmlFor="telephone" className="text-[13px]">
-                        Téléphone
-                      </Label>
-                      <Input
-                        id="telephone"
-                        name="telephone"
-                        defaultValue={apprenant.telephone ?? ""}
-                        className="h-9 text-[13px] border-border/60"
-                      />
-                      {errors.telephone && (
-                        <p className="text-xs text-destructive">
-                          {errors.telephone[0]}
-                        </p>
-                      )}
+                    {/* Email + Téléphone */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="email" className="text-[13px] text-muted-foreground">Email</Label>
+                        <Input id="email" name="email" type="email" defaultValue={apprenant.email ?? ""} className="h-9 text-[13px] border-border/60" />
+                        {errors.email && <p className="text-xs text-destructive">{errors.email[0]}</p>}
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="telephone" className="text-[13px] text-muted-foreground">Téléphone</Label>
+                        <Input id="telephone" name="telephone" defaultValue={apprenant.telephone ?? ""} className="h-9 text-[13px] border-border/60" />
+                        {errors.telephone && <p className="text-xs text-destructive">{errors.telephone[0]}</p>}
+                      </div>
                     </div>
 
                     {/* Date de naissance */}
-                    <div className="space-y-2 sm:col-span-1">
-                      <Label htmlFor="date_naissance" className="text-[13px]">
-                        Naissance
-                      </Label>
-                      <DatePicker
-                        id="date_naissance"
-                        name="date_naissance"
-                        defaultValue={apprenant.date_naissance ?? ""}
-                      />
-                      {errors.date_naissance && (
-                        <p className="text-xs text-destructive">
-                          {errors.date_naissance[0]}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </fieldset>
-
-                {/* Activité */}
-                <fieldset className="space-y-4">
-                  <legend className="text-sm font-semibold text-muted-foreground/80 uppercase tracking-wider">
-                    Activité
-                  </legend>
-
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label className="text-[13px]">
-                        Fonction
-                      </Label>
-                      <FonctionSelect
-                        value={fonction}
-                        onChange={setFonction}
-                        placeholder="Sélectionner une fonction"
-                      />
-                      {errors.fonction && (
-                        <p className="text-xs text-destructive">
-                          {errors.fonction[0]}
-                        </p>
-                      )}
+                    <div className="w-1/2 space-y-1.5">
+                      <Label htmlFor="date_naissance" className="text-[13px] text-muted-foreground">Date de naissance</Label>
+                      <DatePicker id="date_naissance" name="date_naissance" defaultValue={apprenant.date_naissance ?? ""} />
+                      {errors.date_naissance && <p className="text-xs text-destructive">{errors.date_naissance[0]}</p>}
                     </div>
 
-                    <div className="space-y-2">
-                      <Label className="text-[13px]">
-                        Lieu d&apos;activité
-                      </Label>
-                      <CityAutocomplete
-                        value={lieuActivite}
-                        onChange={setLieuActivite}
-                        placeholder="Rechercher une ville..."
-                      />
-                      {errors.lieu_activite && (
-                        <p className="text-xs text-destructive">
-                          {errors.lieu_activite[0]}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </fieldset>
+                    {/* ── Adresse ── */}
+                    <div className="border-t border-border/40 pt-5">
+                      <p className="text-[11px] font-medium text-muted-foreground/60 uppercase tracking-wider mb-4">Adresse</p>
 
-                {/* Adresse */}
-                <fieldset className="space-y-4">
-                  <legend className="text-sm font-semibold text-muted-foreground/80 uppercase tracking-wider">
-                    Adresse
-                  </legend>
+                      <div className="space-y-3">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="adresse_rue" className="text-[13px] text-muted-foreground">Rue</Label>
+                          <AddressAutocomplete
+                            id="adresse_rue" name="adresse_rue" value={adresseRue}
+                            onChange={(val) => setAdresseRue(val)}
+                            onSelect={(r) => { setAdresseRue(r.rue); setAdresseCp(r.cp); setAdresseVille(r.ville); }}
+                            placeholder="Rechercher une adresse..."
+                          />
+                        </div>
 
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="adresse_rue" className="text-[13px]">
-                        Rue
-                      </Label>
-                      <AddressAutocomplete
-                        id="adresse_rue"
-                        name="adresse_rue"
-                        value={adresseRue}
-                        onChange={(val) => setAdresseRue(val)}
-                        onSelect={(r) => { setAdresseRue(r.rue); setAdresseCp(r.cp); setAdresseVille(r.ville); }}
-                        placeholder="Rechercher une adresse..."
-                      />
-                      {errors.adresse_rue && (
-                        <p className="text-xs text-destructive">
-                          {errors.adresse_rue[0]}
-                        </p>
-                      )}
-                    </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="adresse_complement" className="text-[13px] text-muted-foreground">Complément</Label>
+                          <Input id="adresse_complement" name="adresse_complement" defaultValue={apprenant.adresse_complement ?? ""} className="h-9 text-[13px] border-border/60" />
+                        </div>
 
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="adresse_complement"
-                        className="text-[13px]"
-                      >
-                        Complément d&apos;adresse
-                      </Label>
-                      <Input
-                        id="adresse_complement"
-                        name="adresse_complement"
-                        defaultValue={apprenant.adresse_complement ?? ""}
-                        className="h-9 text-[13px] border-border/60"
-                      />
-                      {errors.adresse_complement && (
-                        <p className="text-xs text-destructive">
-                          {errors.adresse_complement[0]}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                      <div className="space-y-2">
-                        <Label htmlFor="adresse_cp" className="text-[13px]">
-                          Code postal
-                        </Label>
-                        <Input
-                          id="adresse_cp"
-                          name="adresse_cp"
-                          value={adresseCp}
-                          onChange={(e) => setAdresseCp(e.target.value)}
-                          className="h-9 text-[13px] border-border/60"
-                        />
-                        {errors.adresse_cp && (
-                          <p className="text-xs text-destructive">
-                            {errors.adresse_cp[0]}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="col-span-2 space-y-2">
-                        <Label
-                          htmlFor="adresse_ville"
-                          className="text-[13px]"
-                        >
-                          Ville
-                        </Label>
-                        <Input
-                          id="adresse_ville"
-                          name="adresse_ville"
-                          value={adresseVille}
-                          onChange={(e) => setAdresseVille(e.target.value)}
-                          className="h-9 text-[13px] border-border/60"
-                        />
-                        {errors.adresse_ville && (
-                          <p className="text-xs text-destructive">
-                            {errors.adresse_ville[0]}
-                          </p>
-                        )}
+                        <div className="grid grid-cols-[110px_1fr] gap-3">
+                          <div className="space-y-1.5">
+                            <Label htmlFor="adresse_cp" className="text-[13px] text-muted-foreground">Code postal</Label>
+                            <Input id="adresse_cp" name="adresse_cp" value={adresseCp} onChange={(e) => setAdresseCp(e.target.value)} className="h-9 text-[13px] border-border/60" />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor="adresse_ville" className="text-[13px] text-muted-foreground">Ville</Label>
+                            <Input id="adresse_ville" name="adresse_ville" value={adresseVille} onChange={(e) => setAdresseVille(e.target.value)} className="h-9 text-[13px] border-border/60" />
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </fieldset>
 
-                {/* BPF & Comptabilité */}
-                <fieldset className="space-y-4">
-                  <legend className="text-sm font-semibold text-muted-foreground/80 uppercase tracking-wider">
-                    BPF &amp; Comptabilité
-                  </legend>
+                  {/* ── COLONNE DROITE : Activité + BPF ── */}
+                  <div className="space-y-5">
+                    <p className="text-[11px] font-medium text-muted-foreground/60 uppercase tracking-wider">Activité</p>
 
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    {/* Statut BPF */}
-                    <div className="space-y-2">
-                      <Label htmlFor="bpf_categorie_id" className="text-[13px]">
-                        Statut BPF
-                      </Label>
-                      <select
-                        id="bpf_categorie_id"
-                        name="bpf_categorie_id"
-                        defaultValue={apprenant.bpf_categorie_id ?? ""}
-                        className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
-                      >
-                        <option value="">-- Aucun --</option>
-                        {bpfCategories.map((cat) => (
-                          <option key={cat.id} value={cat.id}>
-                            {cat.code} — {cat.libelle}
-                          </option>
-                        ))}
-                      </select>
-                      {errors.bpf_categorie_id && (
-                        <p className="text-xs text-destructive">
-                          {errors.bpf_categorie_id[0]}
-                        </p>
-                      )}
+                    <div className="space-y-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-[13px] text-muted-foreground">Fonction</Label>
+                        <FonctionSelect value={fonction} onChange={setFonction} placeholder="Sélectionner une fonction" />
+                        {errors.fonction && <p className="text-xs text-destructive">{errors.fonction[0]}</p>}
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-[13px] text-muted-foreground">Lieu d&apos;activité</Label>
+                        <CityAutocomplete value={lieuActivite} onChange={setLieuActivite} placeholder="Rechercher une ville..." />
+                        {errors.lieu_activite && <p className="text-xs text-destructive">{errors.lieu_activite[0]}</p>}
+                      </div>
                     </div>
 
-                    {/* N° compte comptable */}
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="numero_compte_comptable"
-                        className="text-[13px]"
-                      >
-                        N° compte comptable
-                      </Label>
-                      <Input
-                        id="numero_compte_comptable"
-                        name="numero_compte_comptable"
-                        defaultValue={
-                          apprenant.numero_compte_comptable ?? ""
-                        }
-                        className="h-9 text-[13px] border-border/60"
-                      />
-                      {errors.numero_compte_comptable && (
-                        <p className="text-xs text-destructive">
-                          {errors.numero_compte_comptable[0]}
-                        </p>
-                      )}
+                    {/* ── BPF & Comptabilité ── */}
+                    <div className="border-t border-border/40 pt-5">
+                      <p className="text-[11px] font-medium text-muted-foreground/60 uppercase tracking-wider mb-4">BPF &amp; Comptabilité</p>
+
+                      <div className="space-y-3">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="bpf_categorie_id" className="text-[13px] text-muted-foreground">Statut BPF</Label>
+                          <select id="bpf_categorie_id" name="bpf_categorie_id" defaultValue={apprenant.bpf_categorie_id ?? ""} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground">
+                            <option value="">-- Aucun --</option>
+                            {bpfCategories.map((cat) => (
+                              <option key={cat.id} value={cat.id}>{cat.code} — {cat.libelle}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="numero_compte_comptable" className="text-[13px] text-muted-foreground">N° compte comptable</Label>
+                          <Input id="numero_compte_comptable" name="numero_compte_comptable" defaultValue={apprenant.numero_compte_comptable ?? ""} className="h-9 text-[13px] border-border/60" />
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </fieldset>
+                </div>
               </div>
 
               {/* Footer / Save */}
