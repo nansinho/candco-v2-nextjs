@@ -1,67 +1,170 @@
-import { createAdminClient } from "@/lib/supabase/admin";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+"use client";
+
+import * as React from "react";
+import { useRouter } from "next/navigation";
+import { Building2, Globe, Users, Calendar, GraduationCap } from "lucide-react";
+import { DataTable, type Column } from "@/components/data-table/DataTable";
 import { Badge } from "@/components/ui/badge";
+import { getAdminOrganisations, type AdminOrgRow } from "@/actions/admin";
+import { formatDate } from "@/lib/utils";
 
-export const dynamic = "force-dynamic";
+// ─── Columns ─────────────────────────────────────────────
 
-export default async function AdminOrganisationsPage() {
-  const admin = createAdminClient();
+const columns: Column<AdminOrgRow>[] = [
+  {
+    key: "nom",
+    label: "Organisation",
+    sortable: true,
+    minWidth: 240,
+    render: (item) => (
+      <div className="flex items-center gap-2.5">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/10">
+          <Building2 className="h-4 w-4 text-blue-400" />
+        </div>
+        <div className="min-w-0">
+          <span className="font-medium truncate block">{item.nom}</span>
+          {item.siret && (
+            <span className="text-xs text-muted-foreground">{item.siret}</span>
+          )}
+        </div>
+      </div>
+    ),
+  },
+  {
+    key: "nda",
+    label: "NDA",
+    minWidth: 120,
+    defaultVisible: false,
+    render: (item) =>
+      item.nda ? (
+        <span className="text-sm font-mono">{item.nda}</span>
+      ) : (
+        <span className="text-muted-foreground/40">--</span>
+      ),
+  },
+  {
+    key: "email",
+    label: "Email",
+    minWidth: 180,
+    render: (item) =>
+      item.email ? (
+        <span className="text-sm">{item.email}</span>
+      ) : (
+        <span className="text-muted-foreground/40">--</span>
+      ),
+  },
+  {
+    key: "users_count",
+    label: "Utilisateurs",
+    sortable: true,
+    minWidth: 120,
+    render: (item) => (
+      <div className="flex items-center gap-1.5">
+        <Users className="h-3 w-3 text-violet-400" />
+        <span className="text-sm font-medium">{item.users_count}</span>
+      </div>
+    ),
+  },
+  {
+    key: "sessions_count",
+    label: "Sessions",
+    sortable: true,
+    minWidth: 100,
+    render: (item) => (
+      <div className="flex items-center gap-1.5">
+        <Calendar className="h-3 w-3 text-emerald-400" />
+        <span className="text-sm font-medium">{item.sessions_count}</span>
+      </div>
+    ),
+  },
+  {
+    key: "apprenants_count",
+    label: "Apprenants",
+    sortable: true,
+    minWidth: 110,
+    render: (item) => (
+      <div className="flex items-center gap-1.5">
+        <GraduationCap className="h-3 w-3 text-amber-400" />
+        <span className="text-sm font-medium">{item.apprenants_count}</span>
+      </div>
+    ),
+  },
+  {
+    key: "vitrine_active",
+    label: "Vitrine",
+    minWidth: 80,
+    render: (item) =>
+      item.vitrine_active ? (
+        <Badge variant="success" className="gap-1">
+          <Globe className="h-3 w-3" />
+          Active
+        </Badge>
+      ) : (
+        <span className="text-muted-foreground/40 text-xs">Non</span>
+      ),
+  },
+  {
+    key: "created_at",
+    label: "Inscription",
+    sortable: true,
+    minWidth: 110,
+    render: (item) => (
+      <span className="text-muted-foreground text-sm">{formatDate(item.created_at)}</span>
+    ),
+  },
+];
 
-  const { data: organisations } = await admin
-    .from("organisations")
-    .select("id, nom, siret, nda, email, created_at")
-    .order("created_at", { ascending: false });
+// ─── Page ────────────────────────────────────────────────
 
-  // Get user counts per org
-  const { data: userCounts } = await admin
-    .from("utilisateurs")
-    .select("organisation_id");
+export default function AdminOrganisationsPage() {
+  const router = useRouter();
+  const [search, setSearch] = React.useState("");
+  const [debouncedSearch, setDebouncedSearch] = React.useState("");
+  const [page, setPage] = React.useState(1);
+  const [data, setData] = React.useState<AdminOrgRow[]>([]);
+  const [totalCount, setTotalCount] = React.useState(0);
+  const [isLoading, setIsLoading] = React.useState(true);
 
-  const orgUserCounts: Record<string, number> = {};
-  userCounts?.forEach((u: { organisation_id: string }) => {
-    orgUserCounts[u.organisation_id] = (orgUserCounts[u.organisation_id] || 0) + 1;
-  });
+  // Debounce search
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // Fetch data
+  const fetchData = React.useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const result = await getAdminOrganisations(page, debouncedSearch);
+      setData(result.data);
+      setTotalCount(result.count);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [page, debouncedSearch]);
+
+  React.useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">Organisations</h2>
-        <p className="text-muted-foreground">
-          {organisations?.length || 0} organismes de formation inscrits
-        </p>
-      </div>
-
-      <div className="grid gap-4">
-        {organisations?.map((org) => (
-          <Card key={org.id}>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base">{org.nom}</CardTitle>
-                <Badge variant="outline">
-                  {orgUserCounts[org.id] || 0} utilisateur(s)
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-6 text-sm text-muted-foreground">
-                {org.siret && <span>SIRET : {org.siret}</span>}
-                {org.nda && <span>NDA : {org.nda}</span>}
-                {org.email && <span>{org.email}</span>}
-                <span>
-                  Inscrit le{" "}
-                  {new Date(org.created_at).toLocaleDateString("fr-FR")}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-
-        {(!organisations || organisations.length === 0) && (
-          <p className="text-center text-muted-foreground py-8">
-            Aucune organisation inscrite
-          </p>
-        )}
-      </div>
-    </div>
+    <DataTable
+      title="Organisations"
+      tableId="admin-organisations"
+      columns={columns}
+      data={data}
+      totalCount={totalCount}
+      page={page}
+      onPageChange={setPage}
+      searchValue={search}
+      onSearchChange={setSearch}
+      onRowClick={(item) => router.push(`/admin/organisations/${item.id}`)}
+      getRowId={(item) => item.id}
+      isLoading={isLoading}
+      exportFilename="organisations"
+    />
   );
 }

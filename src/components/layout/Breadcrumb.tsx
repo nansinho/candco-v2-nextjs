@@ -24,6 +24,10 @@ const labelMap: Record<string, string> = {
   indicateurs: "Indicateurs",
   tickets: "Tickets",
   salles: "Salles",
+  admin: "Admin Plateforme",
+  organisations: "Organisations",
+  utilisateurs: "Utilisateurs",
+  activite: "Activité",
 };
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
