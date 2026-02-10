@@ -98,7 +98,7 @@ export interface TicketFilters {
 // ─── Helpers ─────────────────────────────────────────────
 
 async function getNextTicketNumero(admin: ReturnType<typeof createAdminClient>, organisationId: string): Promise<string> {
-  const { data } = await admin.rpc("increment_sequence", {
+  const { data } = await admin.rpc("next_numero", {
     p_organisation_id: organisationId,
     p_entite: "TIC",
   });
