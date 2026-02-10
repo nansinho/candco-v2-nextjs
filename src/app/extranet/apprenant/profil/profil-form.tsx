@@ -6,9 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Save, Loader2 } from "lucide-react";
-import { updateFormateurProfile } from "@/actions/extranet-context";
+import { updateApprenantProfile } from "@/actions/extranet-context";
 
-interface FormateurData {
+interface ApprenantData {
   id: string;
   numero_affichage: string;
   civilite: string | null;
@@ -20,34 +20,31 @@ interface FormateurData {
   adresse_complement: string | null;
   adresse_cp: string | null;
   adresse_ville: string | null;
-  statut_bpf: string;
-  nda: string | null;
-  siret: string | null;
 }
 
-export function FormateurProfilForm({ formateur }: { formateur: FormateurData }) {
-  const [telephone, setTelephone] = React.useState(formateur.telephone ?? "");
-  const [adresseRue, setAdresseRue] = React.useState(formateur.adresse_rue ?? "");
-  const [adresseComplement, setAdresseComplement] = React.useState(formateur.adresse_complement ?? "");
-  const [adresseCp, setAdresseCp] = React.useState(formateur.adresse_cp ?? "");
-  const [adresseVille, setAdresseVille] = React.useState(formateur.adresse_ville ?? "");
+export function ApprenantProfilForm({ apprenant }: { apprenant: ApprenantData }) {
+  const [telephone, setTelephone] = React.useState(apprenant.telephone ?? "");
+  const [adresseRue, setAdresseRue] = React.useState(apprenant.adresse_rue ?? "");
+  const [adresseComplement, setAdresseComplement] = React.useState(apprenant.adresse_complement ?? "");
+  const [adresseCp, setAdresseCp] = React.useState(apprenant.adresse_cp ?? "");
+  const [adresseVille, setAdresseVille] = React.useState(apprenant.adresse_ville ?? "");
   const [saving, setSaving] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   const hasChanges =
-    telephone !== (formateur.telephone ?? "") ||
-    adresseRue !== (formateur.adresse_rue ?? "") ||
-    adresseComplement !== (formateur.adresse_complement ?? "") ||
-    adresseCp !== (formateur.adresse_cp ?? "") ||
-    adresseVille !== (formateur.adresse_ville ?? "");
+    telephone !== (apprenant.telephone ?? "") ||
+    adresseRue !== (apprenant.adresse_rue ?? "") ||
+    adresseComplement !== (apprenant.adresse_complement ?? "") ||
+    adresseCp !== (apprenant.adresse_cp ?? "") ||
+    adresseVille !== (apprenant.adresse_ville ?? "");
 
   const handleSave = async () => {
     setSaving(true);
     setError(null);
     setSaved(false);
 
-    const result = await updateFormateurProfile(formateur.id, {
+    const result = await updateApprenantProfile(apprenant.id, {
       telephone,
       adresse_rue: adresseRue,
       adresse_complement: adresseComplement,
@@ -65,17 +62,15 @@ export function FormateurProfilForm({ formateur }: { formateur: FormateurData })
   };
 
   return (
-    <div className="space-y-6">
+    <>
       <div>
         <div className="flex items-center gap-2">
           <h1 className="text-xl font-semibold tracking-tight">Mon profil</h1>
-          <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[11px] font-mono">
-            {formateur.numero_affichage}
+          <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-[11px] font-mono">
+            {apprenant.numero_affichage}
           </Badge>
         </div>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Vos informations personnelles et professionnelles
-        </p>
+        <p className="mt-1 text-sm text-muted-foreground">Vos informations personnelles</p>
       </div>
 
       {/* Identity — read-only */}
@@ -84,15 +79,15 @@ export function FormateurProfilForm({ formateur }: { formateur: FormateurData })
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="space-y-2">
             <Label className="text-[13px]">Civilite</Label>
-            <Input value={formateur.civilite ?? ""} disabled className="h-9 text-[13px] border-border/60 bg-muted/50" />
+            <Input value={apprenant.civilite ?? ""} disabled className="h-9 text-[13px] border-border/60 bg-muted/50" />
           </div>
           <div className="space-y-2">
             <Label className="text-[13px]">Prenom</Label>
-            <Input value={formateur.prenom} disabled className="h-9 text-[13px] border-border/60 bg-muted/50" />
+            <Input value={apprenant.prenom} disabled className="h-9 text-[13px] border-border/60 bg-muted/50" />
           </div>
           <div className="space-y-2">
             <Label className="text-[13px]">Nom</Label>
-            <Input value={formateur.nom} disabled className="h-9 text-[13px] border-border/60 bg-muted/50" />
+            <Input value={apprenant.nom} disabled className="h-9 text-[13px] border-border/60 bg-muted/50" />
           </div>
         </div>
       </section>
@@ -103,7 +98,7 @@ export function FormateurProfilForm({ formateur }: { formateur: FormateurData })
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label className="text-[13px]">Email</Label>
-            <Input value={formateur.email ?? ""} disabled className="h-9 text-[13px] border-border/60 bg-muted/50" />
+            <Input value={apprenant.email ?? ""} disabled className="h-9 text-[13px] border-border/60 bg-muted/50" />
           </div>
           <div className="space-y-2">
             <Label className="text-[13px]">Telephone</Label>
@@ -158,30 +153,6 @@ export function FormateurProfilForm({ formateur }: { formateur: FormateurData })
         </div>
       </section>
 
-      {/* Professional — read-only */}
-      <section className="rounded-lg border border-border/60 bg-card p-5">
-        <h3 className="mb-4 text-sm font-semibold">Informations professionnelles</h3>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div className="space-y-2">
-            <Label className="text-[13px]">Statut</Label>
-            <Badge className={formateur.statut_bpf === "interne"
-              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-              : "bg-blue-500/10 text-blue-400 border-blue-500/20"
-            }>
-              {formateur.statut_bpf === "interne" ? "Interne (salarie)" : "Externe (sous-traitant)"}
-            </Badge>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-[13px]">NDA</Label>
-            <Input value={formateur.nda ?? ""} disabled className="h-9 text-[13px] border-border/60 bg-muted/50" />
-          </div>
-          <div className="space-y-2">
-            <Label className="text-[13px]">SIRET</Label>
-            <Input value={formateur.siret ?? ""} disabled className="h-9 text-[13px] border-border/60 bg-muted/50" />
-          </div>
-        </div>
-      </section>
-
       {/* Save bar */}
       {error && (
         <div className="rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2">
@@ -191,7 +162,7 @@ export function FormateurProfilForm({ formateur }: { formateur: FormateurData })
 
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted-foreground/40">
-          Civilite, nom, email, NDA et SIRET sont geres par l&apos;administrateur.
+          Civilite, nom et email sont geres par l&apos;administrateur.
         </p>
         <Button
           size="sm"
@@ -216,6 +187,6 @@ export function FormateurProfilForm({ formateur }: { formateur: FormateurData })
           )}
         </Button>
       </div>
-    </div>
+    </>
   );
 }
