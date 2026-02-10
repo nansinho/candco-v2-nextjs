@@ -1,5 +1,47 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { getRedis } from "@/lib/redis";
+
+/** Cache user type in Redis for 5 minutes to avoid DB lookups on every request */
+const USER_TYPE_TTL = 300;
+
+type UserTypeCache = {
+  type: "utilisateur" | "extranet";
+  role?: string;
+  isSuperAdmin?: boolean;
+};
+
+async function getCachedUserType(
+  userId: string
+): Promise<UserTypeCache | null> {
+  try {
+    const redis = getRedis();
+    if (!redis) return null;
+    const raw = await redis.get(`user:${userId}:type`);
+    if (!raw) return null;
+    return JSON.parse(raw) as UserTypeCache;
+  } catch {
+    return null;
+  }
+}
+
+async function setCachedUserType(
+  userId: string,
+  data: UserTypeCache
+): Promise<void> {
+  try {
+    const redis = getRedis();
+    if (!redis) return;
+    await redis.set(
+      `user:${userId}:type`,
+      JSON.stringify(data),
+      "EX",
+      USER_TYPE_TTL
+    );
+  } catch {
+    // Silently fail
+  }
+}
 
 export async function updateSession(request: NextRequest) {
   // Skip heavy middleware logic for server action POST requests.
@@ -87,33 +129,62 @@ export async function updateSession(request: NextRequest) {
 
   if (isDashboardRoute) {
     try {
-      const { data: utilisateur } = await supabase
-        .from("utilisateurs")
-        .select("id")
-        .eq("id", user!.id)
-        .single();
+      // Try Redis cache first
+      const cached = await getCachedUserType(user!.id);
 
-      if (!utilisateur) {
-        // Not an internal user — check if extranet user trying to access dashboard
-        const { data: acces } = await supabase
-          .from("extranet_acces")
-          .select("role")
-          .eq("user_id", user!.id)
-          .in("statut", ["actif", "invite", "en_attente"])
-          .limit(1)
-          .single();
-
-        if (acces) {
+      if (cached) {
+        // Cached as extranet user → redirect to their extranet space
+        if (cached.type === "extranet" && cached.role) {
           const routeMap: Record<string, string> = {
             formateur: "/extranet/formateur",
             apprenant: "/extranet/apprenant",
             contact_client: "/extranet/client",
           };
-          const dest = routeMap[acces.role];
+          const dest = routeMap[cached.role];
           if (dest) {
             const url = request.nextUrl.clone();
             url.pathname = dest;
             return NextResponse.redirect(url);
+          }
+        }
+        // Cached as utilisateur → let through (no redirect needed)
+      } else {
+        // No cache — query DB
+        const { data: utilisateur } = await supabase
+          .from("utilisateurs")
+          .select("id")
+          .eq("id", user!.id)
+          .single();
+
+        if (utilisateur) {
+          await setCachedUserType(user!.id, { type: "utilisateur" });
+        } else {
+          // Not an internal user — check if extranet user trying to access dashboard
+          const { data: acces } = await supabase
+            .from("extranet_acces")
+            .select("role")
+            .eq("user_id", user!.id)
+            .in("statut", ["actif", "invite", "en_attente"])
+            .limit(1)
+            .single();
+
+          if (acces) {
+            await setCachedUserType(user!.id, {
+              type: "extranet",
+              role: acces.role,
+            });
+
+            const routeMap: Record<string, string> = {
+              formateur: "/extranet/formateur",
+              apprenant: "/extranet/apprenant",
+              contact_client: "/extranet/client",
+            };
+            const dest = routeMap[acces.role];
+            if (dest) {
+              const url = request.nextUrl.clone();
+              url.pathname = dest;
+              return NextResponse.redirect(url);
+            }
           }
         }
       }
@@ -125,16 +196,38 @@ export async function updateSession(request: NextRequest) {
   // Protect admin routes — only super-admins
   if (user && pathname.startsWith("/admin")) {
     try {
-      const { data: utilisateur } = await supabase
-        .from("utilisateurs")
-        .select("id, is_super_admin")
-        .eq("id", user.id)
-        .single();
+      // Try Redis cache
+      const cached = await getCachedUserType(user.id);
 
-      if (!utilisateur || !utilisateur.is_super_admin) {
-        const url = request.nextUrl.clone();
-        url.pathname = "/";
-        return NextResponse.redirect(url);
+      if (cached && cached.type === "utilisateur") {
+        if (!cached.isSuperAdmin) {
+          const url = request.nextUrl.clone();
+          url.pathname = "/";
+          return NextResponse.redirect(url);
+        }
+      } else {
+        const { data: utilisateur } = await supabase
+          .from("utilisateurs")
+          .select("id, is_super_admin")
+          .eq("id", user.id)
+          .single();
+
+        if (!utilisateur || !utilisateur.is_super_admin) {
+          if (utilisateur) {
+            await setCachedUserType(user.id, {
+              type: "utilisateur",
+              isSuperAdmin: false,
+            });
+          }
+          const url = request.nextUrl.clone();
+          url.pathname = "/";
+          return NextResponse.redirect(url);
+        }
+
+        await setCachedUserType(user.id, {
+          type: "utilisateur",
+          isSuperAdmin: true,
+        });
       }
     } catch {
       const url = request.nextUrl.clone();
@@ -216,6 +309,22 @@ async function getRedirectPath(
   userId: string
 ): Promise<string> {
   try {
+    // Try Redis cache
+    const cached = await getCachedUserType(userId);
+    if (cached) {
+      if (cached.type === "extranet" && cached.role) {
+        const routeMap: Record<string, string> = {
+          formateur: "/extranet/formateur",
+          apprenant: "/extranet/apprenant",
+          contact_client: "/extranet/client",
+        };
+        return routeMap[cached.role] || "/login";
+      }
+      if (cached.type === "utilisateur") {
+        return "/";
+      }
+    }
+
     // 1. Check extranet_acces FIRST — extranet users must not land on dashboard
     const { data: acces } = await supabase
       .from("extranet_acces")
@@ -226,6 +335,11 @@ async function getRedirectPath(
       .single();
 
     if (acces) {
+      await setCachedUserType(userId, {
+        type: "extranet",
+        role: acces.role,
+      });
+
       const routeMap: Record<string, string> = {
         formateur: "/extranet/formateur",
         apprenant: "/extranet/apprenant",
@@ -242,6 +356,7 @@ async function getRedirectPath(
       .single();
 
     if (utilisateur) {
+      await setCachedUserType(userId, { type: "utilisateur" });
       return "/";
     }
 
