@@ -117,7 +117,7 @@ export function VueConsolideeAnnuelleTab({
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] text-muted-foreground/60">Budget total</span>
+              <span className="text-[11px] text-muted-foreground/60">Budget annuel</span>
               <span className="text-[14px] font-semibold">{formatCurrency(data.plan.budgetTotal)}</span>
             </div>
             <div className="flex items-center justify-between">

@@ -199,13 +199,13 @@ export function RepartitionBudgetaireTab({
         </div>
       )}
 
-      {/* Budget total summary */}
+      {/* Budget annuel summary */}
       <div className="rounded-lg border border-border/60 bg-card p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Wallet className="h-4 w-4 text-primary" />
             <span className="text-[13px] font-medium">
-              Budget total entreprise — {activePlan.nom || `Plan ${activePlan.annee}`}
+              Budget annuel entreprise — {activePlan.nom || `Plan ${activePlan.annee}`}
             </span>
           </div>
           <div className="flex items-center gap-3">

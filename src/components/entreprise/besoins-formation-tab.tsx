@@ -670,9 +670,9 @@ function PlanBudgetCard({
 
       {/* Budget KPIs */}
       <div className="grid grid-cols-3 gap-3 mb-3">
-        {/* Budget total */}
-        <div className="rounded-md border border-border/40 bg-muted/20 px-3 py-2">
-          <p className="text-[10px] text-muted-foreground/60 mb-0.5">Budget total</p>
+        {/* Budget annuel (editable) */}
+        <div className="rounded-md border border-dashed border-primary/30 bg-primary/5 px-3 py-2">
+          <p className="text-[10px] text-muted-foreground/60 mb-0.5">Budget annuel</p>
           {editing ? (
             <div className="flex items-center gap-1">
               <Input
@@ -709,13 +709,17 @@ function PlanBudgetCard({
               </button>
             </div>
           ) : (
-            <button
-              onClick={() => { setBudgetInput(String(plan.budget_total)); setEditing(true); }}
-              className="text-[15px] font-semibold text-foreground hover:text-primary transition-colors"
-              title="Cliquer pour modifier le budget total"
-            >
-              {formatCurrency(budget.budgetTotal)}
-            </button>
+            <div>
+              <button
+                onClick={() => { setBudgetInput(String(plan.budget_total)); setEditing(true); }}
+                className="group flex items-center gap-1.5 text-[15px] font-semibold text-foreground hover:text-primary transition-colors"
+                title="Cliquer pour modifier le budget annuel"
+              >
+                {formatCurrency(budget.budgetTotal)}
+                <Pencil className="h-3 w-3 text-muted-foreground/40 group-hover:text-primary transition-colors" />
+              </button>
+              <p className="text-[9px] text-muted-foreground/40 mt-0.5">Cliquer pour modifier</p>
+            </div>
           )}
         </div>
 
