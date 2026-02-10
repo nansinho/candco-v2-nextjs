@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { HistoriqueTimeline } from "@/components/shared/historique-timeline";
 import {
   getFinanceur,
   updateFinanceur,
@@ -271,203 +273,225 @@ export default function FinanceurDetailPage() {
         emailContextLabel={financeur.nom}
       />
 
-      {/* Informations générales */}
-      <div className="rounded-lg border border-border/60 bg-card">
-        <div className="border-b border-border/60 px-6 py-4">
-          <h2 className="text-sm font-semibold">Informations générales</h2>
-        </div>
-        <div className="space-y-6 p-6">
-          {/* Row 1: Nom + Type */}
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="nom" className="text-[13px]">
-                Nom <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="nom"
-                value={formNom}
-                onChange={(e) => setFormNom(e.target.value)}
-                className="h-9 text-[13px] border-border/60"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="type" className="text-[13px]">
-                Type
-              </Label>
-              <select
-                id="type"
-                value={formType}
-                onChange={(e) => setFormType(e.target.value)}
-                className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
-              >
-                <option value="">-- Sélectionner --</option>
-                {FINANCEUR_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+      <Tabs defaultValue="informations">
+        <TabsList>
+          <TabsTrigger value="informations" className="text-xs">
+            Informations
+          </TabsTrigger>
+          <TabsTrigger value="historique" className="text-xs">
+            Historique
+          </TabsTrigger>
+        </TabsList>
 
-          {/* Recherche INSEE */}
-          <div className="space-y-2">
-            <Label className="text-[13px]">Recherche INSEE (SIRET / Nom)</Label>
-            <SiretSearch
-              onSelect={(r) => {
-                setFormNom(r.nom || formNom);
-                setFormSiret(r.siret || formSiret);
-                setFormAdresseRue(r.adresse_rue || formAdresseRue);
-                setFormAdresseCp(r.adresse_cp || formAdresseCp);
-                setFormAdresseVille(r.adresse_ville || formAdresseVille);
-              }}
-              className="max-w-md"
-            />
-          </div>
-
-          {/* Row 2: SIRET */}
-          <div className="space-y-2">
-            <Label htmlFor="siret" className="text-[13px]">
-              SIRET
-            </Label>
-            <Input
-              id="siret"
-              value={formSiret}
-              onChange={(e) => setFormSiret(e.target.value)}
-              placeholder="Ex: 123 456 789 00012"
-              className="h-9 text-[13px] border-border/60 max-w-md"
-            />
-          </div>
-
-          {/* Row 3: Email + Téléphone */}
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-[13px]">
-                Email
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                value={formEmail}
-                onChange={(e) => setFormEmail(e.target.value)}
-                placeholder="contact@opco.fr"
-                className="h-9 text-[13px] border-border/60"
-              />
+        {/* Tab 1: Informations générales */}
+        <TabsContent value="informations" className="mt-6">
+          <div className="rounded-lg border border-border/60 bg-card">
+            <div className="border-b border-border/60 px-6 py-4">
+              <h2 className="text-sm font-semibold">Informations générales</h2>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="telephone" className="text-[13px]">
-                Téléphone
-              </Label>
-              <Input
-                id="telephone"
-                value={formTelephone}
-                onChange={(e) => setFormTelephone(e.target.value)}
-                placeholder="01 23 45 67 89"
-                className="h-9 text-[13px] border-border/60"
-              />
-            </div>
-          </div>
-
-          {/* Separator */}
-          <div className="border-t border-border/40 pt-6">
-            <h3 className="mb-4 text-[13px] font-medium text-muted-foreground">
-              Adresse
-            </h3>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="adresse_rue" className="text-[13px]">
-                  Rue
-                </Label>
-                <AddressAutocomplete
-                  id="adresse_rue"
-                  value={formAdresseRue}
-                  onChange={(val) => setFormAdresseRue(val)}
-                  onSelect={(r) => { setFormAdresseRue(r.rue); setFormAdresseCp(r.cp); setFormAdresseVille(r.ville); }}
-                  placeholder="Rechercher une adresse..."
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="adresse_complement" className="text-[13px]">
-                  Complément
-                </Label>
-                <Input
-                  id="adresse_complement"
-                  value={formAdresseComplement}
-                  onChange={(e) => setFormAdresseComplement(e.target.value)}
-                  placeholder="Bâtiment, étage, etc."
-                  className="h-9 text-[13px] border-border/60"
-                />
-              </div>
+            <div className="space-y-6 p-6">
+              {/* Row 1: Nom + Type */}
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="adresse_cp" className="text-[13px]">
-                    Code postal
+                  <Label htmlFor="nom" className="text-[13px]">
+                    Nom <span className="text-destructive">*</span>
                   </Label>
                   <Input
-                    id="adresse_cp"
-                    value={formAdresseCp}
-                    onChange={(e) => setFormAdresseCp(e.target.value)}
-                    placeholder="75001"
+                    id="nom"
+                    value={formNom}
+                    onChange={(e) => setFormNom(e.target.value)}
                     className="h-9 text-[13px] border-border/60"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="adresse_ville" className="text-[13px]">
-                    Ville
+                  <Label htmlFor="type" className="text-[13px]">
+                    Type
+                  </Label>
+                  <select
+                    id="type"
+                    value={formType}
+                    onChange={(e) => setFormType(e.target.value)}
+                    className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
+                  >
+                    <option value="">-- Sélectionner --</option>
+                    {FINANCEUR_TYPES.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Recherche INSEE */}
+              <div className="space-y-2">
+                <Label className="text-[13px]">Recherche INSEE (SIRET / Nom)</Label>
+                <SiretSearch
+                  onSelect={(r) => {
+                    setFormNom(r.nom || formNom);
+                    setFormSiret(r.siret || formSiret);
+                    setFormAdresseRue(r.adresse_rue || formAdresseRue);
+                    setFormAdresseCp(r.adresse_cp || formAdresseCp);
+                    setFormAdresseVille(r.adresse_ville || formAdresseVille);
+                  }}
+                  className="max-w-md"
+                />
+              </div>
+
+              {/* Row 2: SIRET */}
+              <div className="space-y-2">
+                <Label htmlFor="siret" className="text-[13px]">
+                  SIRET
+                </Label>
+                <Input
+                  id="siret"
+                  value={formSiret}
+                  onChange={(e) => setFormSiret(e.target.value)}
+                  placeholder="Ex: 123 456 789 00012"
+                  className="h-9 text-[13px] border-border/60 max-w-md"
+                />
+              </div>
+
+              {/* Row 3: Email + Téléphone */}
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-[13px]">
+                    Email
                   </Label>
                   <Input
-                    id="adresse_ville"
-                    value={formAdresseVille}
-                    onChange={(e) => setFormAdresseVille(e.target.value)}
-                    placeholder="Paris"
+                    id="email"
+                    type="email"
+                    value={formEmail}
+                    onChange={(e) => setFormEmail(e.target.value)}
+                    placeholder="contact@opco.fr"
+                    className="h-9 text-[13px] border-border/60"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="telephone" className="text-[13px]">
+                    Téléphone
+                  </Label>
+                  <Input
+                    id="telephone"
+                    value={formTelephone}
+                    onChange={(e) => setFormTelephone(e.target.value)}
+                    placeholder="01 23 45 67 89"
                     className="h-9 text-[13px] border-border/60"
                   />
                 </div>
               </div>
+
+              {/* Separator */}
+              <div className="border-t border-border/40 pt-6">
+                <h3 className="mb-4 text-[13px] font-medium text-muted-foreground">
+                  Adresse
+                </h3>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="adresse_rue" className="text-[13px]">
+                      Rue
+                    </Label>
+                    <AddressAutocomplete
+                      id="adresse_rue"
+                      value={formAdresseRue}
+                      onChange={(val) => setFormAdresseRue(val)}
+                      onSelect={(r) => { setFormAdresseRue(r.rue); setFormAdresseCp(r.cp); setFormAdresseVille(r.ville); }}
+                      placeholder="Rechercher une adresse..."
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="adresse_complement" className="text-[13px]">
+                      Complément
+                    </Label>
+                    <Input
+                      id="adresse_complement"
+                      value={formAdresseComplement}
+                      onChange={(e) => setFormAdresseComplement(e.target.value)}
+                      placeholder="Bâtiment, étage, etc."
+                      className="h-9 text-[13px] border-border/60"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="adresse_cp" className="text-[13px]">
+                        Code postal
+                      </Label>
+                      <Input
+                        id="adresse_cp"
+                        value={formAdresseCp}
+                        onChange={(e) => setFormAdresseCp(e.target.value)}
+                        placeholder="75001"
+                        className="h-9 text-[13px] border-border/60"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="adresse_ville" className="text-[13px]">
+                        Ville
+                      </Label>
+                      <Input
+                        id="adresse_ville"
+                        value={formAdresseVille}
+                        onChange={(e) => setFormAdresseVille(e.target.value)}
+                        placeholder="Paris"
+                        className="h-9 text-[13px] border-border/60"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Separator */}
+              <div className="border-t border-border/40 pt-6">
+                <h3 className="mb-4 text-[13px] font-medium text-muted-foreground">
+                  Comptabilité
+                </h3>
+                <div className="space-y-2">
+                  <Label htmlFor="compte_comptable" className="text-[13px]">
+                    Numéro de compte comptable
+                  </Label>
+                  <Input
+                    id="compte_comptable"
+                    value={formCompteComptable}
+                    onChange={(e) => setFormCompteComptable(e.target.value)}
+                    placeholder="411000"
+                    className="h-9 text-[13px] border-border/60 max-w-xs"
+                  />
+                </div>
+              </div>
+
+              {/* Save button */}
+              <div className="flex justify-end border-t border-border/40 pt-6">
+                <Button
+                  onClick={handleSave}
+                  disabled={saving || !formNom.trim()}
+                  className="text-[13px]"
+                >
+                  {saving ? (
+                    <>
+                      <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                      Enregistrement...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-1.5 h-3.5 w-3.5" />
+                      Enregistrer
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
+        </TabsContent>
 
-          {/* Separator */}
-          <div className="border-t border-border/40 pt-6">
-            <h3 className="mb-4 text-[13px] font-medium text-muted-foreground">
-              Comptabilité
-            </h3>
-            <div className="space-y-2">
-              <Label htmlFor="compte_comptable" className="text-[13px]">
-                Numéro de compte comptable
-              </Label>
-              <Input
-                id="compte_comptable"
-                value={formCompteComptable}
-                onChange={(e) => setFormCompteComptable(e.target.value)}
-                placeholder="411000"
-                className="h-9 text-[13px] border-border/60 max-w-xs"
-              />
-            </div>
-          </div>
-
-          {/* Save button */}
-          <div className="flex justify-end border-t border-border/40 pt-6">
-            <Button
-              onClick={handleSave}
-              disabled={saving || !formNom.trim()}
-              className="text-[13px]"
-            >
-              {saving ? (
-                <>
-                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                  Enregistrement...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-1.5 h-3.5 w-3.5" />
-                  Enregistrer
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
-      </div>
+        {/* Tab 2: Historique */}
+        <TabsContent value="historique" className="mt-6">
+          <HistoriqueTimeline
+            queryParams={{ mode: "entity", entiteType: "financeur", entiteId: id }}
+            emptyLabel="ce financeur"
+            headerDescription="Journal de traçabilité de toutes les actions liées à ce financeur"
+          />
+        </TabsContent>
+      </Tabs>
       <ConfirmDialog />
     </div>
   );

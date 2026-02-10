@@ -50,6 +50,7 @@ import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { TachesActivitesTab } from "@/components/shared/taches-activites";
+import { HistoriqueTimeline } from "@/components/shared/historique-timeline";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { useBreadcrumb } from "@/components/layout/breadcrumb-context";
 import {
@@ -729,6 +730,9 @@ export function ProduitDetail({
                 <TabsTrigger value="taches" className="text-xs">
                   Tâches
                 </TabsTrigger>
+                <TabsTrigger value="historique" className="text-xs">
+                  Historique
+                </TabsTrigger>
               </TabsList>
               </div>
 
@@ -1102,6 +1106,15 @@ export function ProduitDetail({
               {/* ═══ Tab: Tâches ═══ */}
               <TabsContent value="taches" className="mt-6">
                 <TachesActivitesTab entiteType="produit" entiteId={produit.id} />
+              </TabsContent>
+
+              {/* ═══ Tab: Historique ═══ */}
+              <TabsContent value="historique" className="mt-6">
+                <HistoriqueTimeline
+                  queryParams={{ mode: "entity", entiteType: "produit", entiteId: produit.id }}
+                  emptyLabel="ce produit"
+                  headerDescription="Journal de traçabilité de toutes les actions liées à ce produit"
+                />
               </TabsContent>
             </Tabs>
           </div>
