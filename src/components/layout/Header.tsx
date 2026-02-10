@@ -1,18 +1,31 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, Menu, Search, Sparkles } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Bell, LogOut, Menu, Search, Settings, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Breadcrumb } from "./Breadcrumb";
 import { useSidebar } from "./sidebar-context";
+import { createClient } from "@/lib/supabase/client";
 
 interface HeaderProps {
   aiCredits?: { monthly_limit: number; used: number; remaining: number } | null;
   userInitial?: string;
+  userName?: string;
+  userEmail?: string;
 }
 
-export function Header({ aiCredits, userInitial = "N" }: HeaderProps) {
+export function Header({ aiCredits, userInitial = "N", userName, userEmail }: HeaderProps) {
   const { setMobileOpen } = useSidebar();
+  const router = useRouter();
 
   const remaining = aiCredits?.remaining ?? 0;
   const limit = aiCredits?.monthly_limit ?? 0;
@@ -26,8 +39,15 @@ export function Header({ aiCredits, userInitial = "N" }: HeaderProps) {
         ? "text-orange-400"
         : "text-red-400";
 
+  async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  }
+
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-background/80 px-4 backdrop-blur-md sm:px-6">
+    <header className="fixed top-0 right-0 left-0 lg:left-[240px] z-30 flex h-14 items-center justify-between border-b border-border bg-background/80 px-4 backdrop-blur-md sm:px-6">
       <div className="flex items-center gap-2">
         {/* Hamburger menu - mobile only */}
         <Button
@@ -62,15 +82,43 @@ export function Header({ aiCredits, userInitial = "N" }: HeaderProps) {
             <span className={`text-xs font-medium tabular-nums ${creditColor}`}>
               {remaining}
             </span>
-            <span className="text-[10px] text-muted-foreground/40 hidden sm:inline">
+            <span className="text-xs text-muted-foreground/60 hidden sm:inline">
               /{limit}
             </span>
           </Link>
         )}
 
-        <div className="ml-1 flex h-8 w-8 items-center justify-center rounded-full bg-primary/15 text-xs font-medium text-primary">
-          {userInitial}
-        </div>
+        {/* User avatar dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="ml-1 flex h-8 w-8 items-center justify-center rounded-full bg-primary/15 text-xs font-medium text-primary hover:bg-primary/25 transition-colors cursor-pointer"
+            >
+              {userInitial}
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56 mt-1">
+            <DropdownMenuLabel className="font-normal">
+              <div className="flex flex-col space-y-1">
+                <p className="text-sm font-medium leading-none">{userName || "Utilisateur"}</p>
+                {userEmail && (
+                  <p className="text-xs leading-none text-muted-foreground">{userEmail}</p>
+                )}
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => router.push("/parametres")}>
+              <Settings className="mr-2 h-4 w-4" />
+              Paramètres
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleLogout} destructive>
+              <LogOut className="mr-2 h-4 w-4" />
+              Déconnexion
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );
