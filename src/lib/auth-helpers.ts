@@ -1,11 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { cookies } from "next/headers";
+import { cacheGet, cacheSet, CacheKeys } from "@/lib/cache";
 
 /**
  * Get the current user's organisation_id.
  * Supports multi-org: if a current_org_id cookie is set (super-admin switching),
  * use that org. Otherwise use the user's default org.
+ *
+ * Uses Redis to cache the utilisateur lookup (role, org, super-admin status).
  */
 export async function getOrganisationId() {
   try {
@@ -20,14 +23,30 @@ export async function getOrganisationId() {
 
     // Use admin client to bypass RLS for utilisateurs lookup
     const admin = createAdminClient();
-    const { data: utilisateur } = await admin
-      .from("utilisateurs")
-      .select("organisation_id, is_super_admin, role")
-      .eq("id", user.id)
-      .single();
+
+    // Try Redis cache first
+    type CachedUtilisateur = {
+      organisation_id: string;
+      is_super_admin: boolean;
+      role: string;
+    };
+    let utilisateur = await cacheGet<CachedUtilisateur>(
+      CacheKeys.userOrg(user.id)
+    );
 
     if (!utilisateur) {
-      return { error: "Utilisateur non trouvé" as const };
+      const { data } = await admin
+        .from("utilisateurs")
+        .select("organisation_id, is_super_admin, role")
+        .eq("id", user.id)
+        .single();
+
+      if (!data) {
+        return { error: "Utilisateur non trouvé" as const };
+      }
+
+      utilisateur = data;
+      await cacheSet(CacheKeys.userOrg(user.id), utilisateur, 300);
     }
 
     // Check if super-admin has selected a different org
@@ -71,6 +90,8 @@ export async function getOrganisationId() {
 
 /**
  * Get the current user's full profile (for sidebar, header, etc.)
+ *
+ * Uses Redis to cache the full profile for 5 minutes.
  */
 export async function getCurrentUser() {
   try {
@@ -80,6 +101,32 @@ export async function getCurrentUser() {
     } = await supabase.auth.getUser();
 
     if (!user) return null;
+
+    // Try Redis cache first
+    type CachedProfile = {
+      id: string;
+      organisation_id: string;
+      email: string;
+      prenom: string | null;
+      nom: string | null;
+      role: string;
+      is_super_admin: boolean;
+      avatar_url: string | null;
+      currentOrganisation: { id: string; nom: string } | null;
+      organisations: { id: string; nom: string }[];
+      hasMultiOrg: boolean;
+    };
+
+    const cookieStore = await cookies();
+    const currentOrgCookie = cookieStore.get("current_org_id")?.value;
+
+    // Cache key includes current org cookie to handle super-admin switching
+    const cacheKey = currentOrgCookie
+      ? `${CacheKeys.userProfile(user.id)}:${currentOrgCookie}`
+      : CacheKeys.userProfile(user.id);
+
+    const cached = await cacheGet<CachedProfile>(cacheKey);
+    if (cached) return cached;
 
     const admin = createAdminClient();
     const { data: utilisateur } = await admin
@@ -113,8 +160,7 @@ export async function getCurrentUser() {
     }
 
     // Get current org name
-    const cookieStore = await cookies();
-    const currentOrgId = cookieStore.get("current_org_id")?.value || utilisateur.organisation_id;
+    const currentOrgId = currentOrgCookie || utilisateur.organisation_id;
 
     const { data: currentOrg } = await admin
       .from("organisations")
@@ -122,15 +168,18 @@ export async function getCurrentUser() {
       .eq("id", currentOrgId)
       .single();
 
-    return {
+    const profile = {
       ...utilisateur,
       currentOrganisation: currentOrg,
       organisations,
       hasMultiOrg: organisations.length > 1 || utilisateur.is_super_admin,
     };
+
+    await cacheSet(cacheKey, profile, 300);
+
+    return profile;
   } catch (err) {
     console.error("[getCurrentUser] Unexpected error:", err);
     return null;
   }
 }
-

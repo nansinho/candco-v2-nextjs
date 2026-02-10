@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { cacheInvalidatePattern, CacheKeys } from "@/lib/cache";
 
 /**
  * Switch to a different organisation (super-admin or multi-org user).
@@ -54,6 +55,9 @@ export async function switchOrganisation(organisationId: string) {
     maxAge: 60 * 60 * 24 * 30, // 30 days
     path: "/",
   });
+
+  // Invalidate all Redis cache for this user (profile depends on current org)
+  await cacheInvalidatePattern(CacheKeys.userAll(user.id));
 
   // Invalidate cached server components so the layout re-fetches with new org
   revalidatePath("/", "layout");
