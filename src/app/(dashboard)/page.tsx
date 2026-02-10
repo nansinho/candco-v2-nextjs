@@ -13,6 +13,8 @@ import {
   SessionsActivesWidget,
   AccesRapidesWidget,
 } from "@/components/dashboard/widgets";
+import { TicketsWidget } from "@/components/dashboard/tickets-widget";
+import { getTicketStats } from "@/actions/tickets";
 
 // ─── Widget definitions ──────────────────────────────────
 
@@ -22,6 +24,7 @@ const DEFAULT_WIDGETS: WidgetConfig[] = [
   { id: "sessions", title: "Prochaines sessions", size: "medium", visible: true },
   { id: "sessions-actives", title: "Sessions actives", size: "small", visible: true },
   { id: "alertes", title: "Alertes", size: "medium", visible: true },
+  { id: "tickets", title: "Tickets support", size: "small", visible: true },
   { id: "acces-rapides", title: "Accès rapides", size: "small", visible: true },
   { id: "devis", title: "Derniers devis", size: "small", visible: true },
   { id: "factures", title: "Dernières factures", size: "medium", visible: true },
@@ -59,6 +62,9 @@ async function getDashboardData() {
   const caFacture = factures.reduce((sum, f) => sum + (Number(f.total_ttc) || 0), 0);
   const caEncaisse = factures.filter(f => f.statut === "payee").reduce((sum, f) => sum + (Number(f.total_ttc) || 0), 0);
 
+  // Fetch ticket stats in parallel
+  const ticketStats = await getTicketStats();
+
   return {
     stats: {
       apprenants: apprenantsRes.count ?? 0,
@@ -90,6 +96,7 @@ async function getDashboardData() {
       id: string; numero_affichage: string | null; objet: string | null;
       statut: string; total_ttc: number | null; date_emission: string; entreprises: { nom: string } | null;
     }>,
+    ticketStats,
   };
 }
 
@@ -133,6 +140,7 @@ async function DashboardContent() {
     "sessions": <SessionsWidget sessions={data.upcomingSessions} />,
     "devis": <DevisWidget devis={data.recentDevis} />,
     "factures": <FacturesWidget factures={data.recentFactures} />,
+    "tickets": <TicketsWidget stats={data.ticketStats} />,
   };
 
   return (

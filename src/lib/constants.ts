@@ -93,6 +93,7 @@ export const EXTRANET_FORMATEUR_NAV = [
   { label: "Documents", href: "/extranet/formateur/documents", icon: "FileText" },
   { label: "Facturation", href: "/extranet/formateur/facturation", icon: "Receipt" },
   { label: "Messagerie", href: "/extranet/formateur/messagerie", icon: "MessageSquare" },
+  { label: "Support", href: "/extranet/formateur/tickets", icon: "LifeBuoy" },
   { label: "Mon profil", href: "/extranet/formateur/profil", icon: "UserCog" },
 ] as const;
 
@@ -104,6 +105,7 @@ export const EXTRANET_APPRENANT_NAV = [
   { label: "Documents", href: "/extranet/apprenant/documents", icon: "FileText" },
   { label: "Questionnaires", href: "/extranet/apprenant/questionnaires", icon: "ClipboardList" },
   { label: "Messagerie", href: "/extranet/apprenant/messagerie", icon: "MessageSquare" },
+  { label: "Support", href: "/extranet/apprenant/tickets", icon: "LifeBuoy" },
   { label: "Mon profil", href: "/extranet/apprenant/profil", icon: "UserCog" },
 ] as const;
 
@@ -114,6 +116,7 @@ export const EXTRANET_CLIENT_NAV = [
   { label: "Factures", href: "/extranet/client/factures", icon: "Receipt" },
   { label: "Documents", href: "/extranet/client/documents", icon: "FileText" },
   { label: "Messagerie", href: "/extranet/client/messagerie", icon: "MessageSquare" },
+  { label: "Support", href: "/extranet/client/tickets", icon: "LifeBuoy" },
 ] as const;
 
 // Pagination

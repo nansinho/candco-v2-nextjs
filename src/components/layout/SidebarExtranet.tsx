@@ -14,6 +14,7 @@ import {
   UserCog,
   PenTool,
   ClipboardList,
+  LifeBuoy,
   ChevronLeft,
   ChevronRight,
   LogOut,
@@ -37,6 +38,7 @@ const iconMap: Record<string, React.ElementType> = {
   UserCog,
   PenTool,
   ClipboardList,
+  LifeBuoy,
 };
 
 interface SidebarExtranetProps {
