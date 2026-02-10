@@ -119,5 +119,15 @@ export const EXTRANET_CLIENT_NAV = [
   { label: "Support", href: "/extranet/client/tickets", icon: "LifeBuoy" },
 ] as const;
 
+// ─── Admin plateforme navigation ──────────────────────────
+
+export const ADMIN_NAV = [
+  { label: "Tableau de bord", href: "/admin", icon: "BarChart3" },
+  { label: "Organisations", href: "/admin/organisations", icon: "Building2" },
+  { label: "Utilisateurs", href: "/admin/utilisateurs", icon: "Users" },
+  { label: "Tickets", href: "/admin/tickets", icon: "LifeBuoy" },
+  { label: "Activité", href: "/admin/activite", icon: "Activity" },
+] as const;
+
 // Pagination
 export const ITEMS_PER_PAGE = 25;

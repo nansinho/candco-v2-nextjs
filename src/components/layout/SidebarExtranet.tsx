@@ -5,6 +5,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   BarChart3,
+  Building2,
+  Users,
   Calendar,
   CalendarDays,
   Clock,
@@ -15,6 +17,8 @@ import {
   PenTool,
   ClipboardList,
   LifeBuoy,
+  Activity,
+  ArrowLeft,
   ChevronLeft,
   ChevronRight,
   LogOut,
@@ -29,6 +33,8 @@ import { useSidebar } from "./sidebar-context";
 
 const iconMap: Record<string, React.ElementType> = {
   BarChart3,
+  Building2,
+  Users,
   Calendar,
   CalendarDays,
   Clock,
@@ -39,6 +45,8 @@ const iconMap: Record<string, React.ElementType> = {
   PenTool,
   ClipboardList,
   LifeBuoy,
+  Activity,
+  ArrowLeft,
 };
 
 interface SidebarExtranetProps {
@@ -50,9 +58,14 @@ interface SidebarExtranetProps {
   title: string;
   subtitle: string;
   accentColor?: string;
+  footerLinks?: ReadonlyArray<{
+    readonly label: string;
+    readonly href: string;
+    readonly icon: string;
+  }>;
 }
 
-export function SidebarExtranet({ navItems, title, subtitle, accentColor = "bg-primary" }: SidebarExtranetProps) {
+export function SidebarExtranet({ navItems, title, subtitle, accentColor = "bg-primary", footerLinks }: SidebarExtranetProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { collapsed, setCollapsed, mobileOpen, setMobileOpen } = useSidebar();
@@ -139,6 +152,29 @@ export function SidebarExtranet({ navItems, title, subtitle, accentColor = "bg-p
           })}
         </ul>
       </nav>
+
+      {/* Footer links */}
+      {footerLinks && footerLinks.length > 0 && (
+        <div className="border-t border-sidebar-border p-2 space-y-0.5">
+          {footerLinks.map((link) => {
+            const LinkIcon = iconMap[link.icon] ?? ArrowLeft;
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={cn(
+                  "flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13px] text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all",
+                  collapsed && "justify-center"
+                )}
+                title={collapsed ? link.label : undefined}
+              >
+                <LinkIcon className="h-4 w-4 shrink-0" />
+                {!collapsed && <span>{link.label}</span>}
+              </Link>
+            );
+          })}
+        </div>
+      )}
 
       {/* Bottom */}
       <div className="border-t border-sidebar-border p-2 space-y-0.5">
