@@ -228,9 +228,7 @@ export default function TicketDetailPage() {
         const formData = new FormData();
         formData.append("file", file);
         formData.append("ticketId", ticketId);
-        if (ticketData?.ticket.entreprise_id) {
-          formData.append("organisationId", "");
-        }
+        formData.append("organisationId", ticketData?.ticket.organisation_id || "");
 
         const res = await fetch("/api/tickets/upload", {
           method: "POST",
