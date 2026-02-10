@@ -1039,6 +1039,8 @@ export async function getExtranetTickets(
     assignee: null,
     entreprise: null,
     entreprise_id: t.entreprise_id as string | null,
+    organisation_id: t.organisation_id as string,
+    organisation_nom: null,
     message_count: messageCounts[t.id as string]?.count ?? 0,
     last_message_at: messageCounts[t.id as string]?.last ?? null,
     resolved_at: t.resolved_at as string | null,
