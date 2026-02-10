@@ -1,0 +1,328 @@
+"use client";
+
+import * as React from "react";
+import { Plus, Trash2, GripVertical } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { formatCurrency } from "@/lib/utils";
+
+export interface LigneItem {
+  id?: string;
+  designation: string;
+  description?: string;
+  quantite: number;
+  prix_unitaire_ht: number;
+  taux_tva: number;
+  montant_ht?: number;
+  ordre: number;
+}
+
+interface LignesEditorProps {
+  lignes: LigneItem[];
+  onChange: (lignes: LigneItem[]) => void;
+  readOnly?: boolean;
+}
+
+export function LignesEditor({ lignes, onChange, readOnly = false }: LignesEditorProps) {
+  const addLigne = () => {
+    onChange([
+      ...lignes,
+      {
+        designation: "",
+        description: "",
+        quantite: 1,
+        prix_unitaire_ht: 0,
+        taux_tva: 0,
+        ordre: lignes.length,
+      },
+    ]);
+  };
+
+  const updateLigne = (index: number, field: keyof LigneItem, value: string | number) => {
+    const updated = [...lignes];
+    updated[index] = { ...updated[index], [field]: value };
+    onChange(updated);
+  };
+
+  const removeLigne = (index: number) => {
+    onChange(lignes.filter((_, i) => i !== index));
+  };
+
+  const totalHT = lignes.reduce((sum, l) => sum + l.quantite * l.prix_unitaire_ht, 0);
+  const totalTVA = lignes.reduce(
+    (sum, l) => sum + l.quantite * l.prix_unitaire_ht * (l.taux_tva / 100),
+    0,
+  );
+  const totalTTC = totalHT + totalTVA;
+
+  return (
+    <div className="space-y-3">
+      {/* Header */}
+      <div className="grid grid-cols-[1fr_80px_100px_70px_100px_32px] gap-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wide px-1">
+        <span>Désignation</span>
+        <span className="text-right">Qté</span>
+        <span className="text-right">P.U. HT</span>
+        <span className="text-right">TVA %</span>
+        <span className="text-right">Total HT</span>
+        <span />
+      </div>
+
+      {/* Lines */}
+      {lignes.map((ligne, index) => {
+        const ligneHT = ligne.quantite * ligne.prix_unitaire_ht;
+        return (
+          <div
+            key={index}
+            className="grid grid-cols-[1fr_80px_100px_70px_100px_32px] gap-2 items-start"
+          >
+            <div className="space-y-1">
+              <Input
+                value={ligne.designation}
+                onChange={(e) => updateLigne(index, "designation", e.target.value)}
+                placeholder="Désignation"
+                className="h-8 text-[13px] border-border/60"
+                readOnly={readOnly}
+              />
+              <Input
+                value={ligne.description}
+                onChange={(e) => updateLigne(index, "description", e.target.value)}
+                placeholder="Description (optionnel)"
+                className="h-7 text-[11px] text-muted-foreground border-border/40"
+                readOnly={readOnly}
+              />
+            </div>
+            <Input
+              type="number"
+              value={ligne.quantite}
+              onChange={(e) => updateLigne(index, "quantite", Number(e.target.value))}
+              className="h-8 text-[13px] text-right border-border/60"
+              min="0"
+              step="0.01"
+              readOnly={readOnly}
+            />
+            <Input
+              type="number"
+              value={ligne.prix_unitaire_ht}
+              onChange={(e) => updateLigne(index, "prix_unitaire_ht", Number(e.target.value))}
+              className="h-8 text-[13px] text-right border-border/60"
+              min="0"
+              step="0.01"
+              readOnly={readOnly}
+            />
+            <Input
+              type="number"
+              value={ligne.taux_tva}
+              onChange={(e) => updateLigne(index, "taux_tva", Number(e.target.value))}
+              className="h-8 text-[13px] text-right border-border/60"
+              min="0"
+              step="0.01"
+              readOnly={readOnly}
+            />
+            <div className="flex h-8 items-center justify-end font-mono text-[13px]">
+              {formatCurrency(ligneHT)}
+            </div>
+            {!readOnly && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => removeLigne(index)}
+                className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            )}
+          </div>
+        );
+      })}
+
+      {/* Add button */}
+      {!readOnly && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={addLigne}
+          className="h-8 text-xs border-dashed border-border/60"
+        >
+          <Plus className="mr-1 h-3 w-3" />
+          Ajouter une ligne
+        </Button>
+      )}
+
+      {/* Totals */}
+      <div className="border-t border-border/40 pt-3 space-y-1">
+        <div className="flex justify-between text-[13px]">
+          <span className="text-muted-foreground">Total HT</span>
+          <span className="font-mono">{formatCurrency(totalHT)}</span>
+        </div>
+        <div className="flex justify-between text-[13px]">
+          <span className="text-muted-foreground">TVA</span>
+          <span className="font-mono">{formatCurrency(totalTVA)}</span>
+        </div>
+        <div className="flex justify-between text-sm font-semibold">
+          <span>Total TTC</span>
+          <span className="font-mono">{formatCurrency(totalTTC)}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── PDF-like Preview ────────────────────────────────────
+
+interface DocumentPreviewProps {
+  type: "devis" | "facture" | "avoir";
+  numero: string;
+  dateEmission: string;
+  dateEcheance?: string;
+  objet?: string;
+  destinataire?: {
+    nom: string;
+    adresse?: string;
+    siret?: string;
+    email?: string;
+  };
+  emetteur?: {
+    nom: string;
+    siret?: string;
+    nda?: string;
+    adresse?: string;
+  };
+  lignes: LigneItem[];
+  totalHT: number;
+  totalTVA: number;
+  totalTTC: number;
+  conditions?: string;
+  mentionsLegales?: string;
+}
+
+export function DocumentPreview({
+  type,
+  numero,
+  dateEmission,
+  dateEcheance,
+  objet,
+  destinataire,
+  emetteur,
+  lignes,
+  totalHT,
+  totalTVA,
+  totalTTC,
+  conditions,
+  mentionsLegales,
+}: DocumentPreviewProps) {
+  const title = type === "devis" ? "DEVIS" : type === "facture" ? "FACTURE" : "AVOIR";
+
+  return (
+    <div className="rounded-lg border border-border/40 bg-white text-black p-6 text-[12px] leading-relaxed shadow-sm min-h-[600px]">
+      {/* Header */}
+      <div className="flex justify-between mb-6">
+        <div>
+          {emetteur && (
+            <>
+              <p className="font-bold text-sm">{emetteur.nom}</p>
+              {emetteur.siret && <p className="text-gray-600">SIRET : {emetteur.siret}</p>}
+              {emetteur.nda && <p className="text-gray-600">NDA : {emetteur.nda}</p>}
+              {emetteur.adresse && <p className="text-gray-600">{emetteur.adresse}</p>}
+            </>
+          )}
+        </div>
+        <div className="text-right">
+          <p className="font-bold text-lg text-orange-600">{title}</p>
+          <p className="text-gray-600">N° {numero || "---"}</p>
+          <p className="text-gray-600">
+            Date : {dateEmission || "---"}
+          </p>
+          {dateEcheance && (
+            <p className="text-gray-600">Échéance : {dateEcheance}</p>
+          )}
+        </div>
+      </div>
+
+      {/* Destinataire */}
+      {destinataire && (
+        <div className="mb-4 p-3 bg-gray-50 rounded">
+          <p className="font-semibold">{destinataire.nom}</p>
+          {destinataire.adresse && <p>{destinataire.adresse}</p>}
+          {destinataire.siret && <p className="text-gray-600">SIRET : {destinataire.siret}</p>}
+        </div>
+      )}
+
+      {objet && (
+        <div className="mb-4">
+          <p className="font-semibold">Objet : {objet}</p>
+        </div>
+      )}
+
+      {/* Table */}
+      <table className="w-full mb-4 text-[11px]">
+        <thead>
+          <tr className="border-b border-gray-300">
+            <th className="text-left py-1.5 font-semibold">Désignation</th>
+            <th className="text-right py-1.5 font-semibold w-16">Qté</th>
+            <th className="text-right py-1.5 font-semibold w-20">P.U. HT</th>
+            <th className="text-right py-1.5 font-semibold w-14">TVA</th>
+            <th className="text-right py-1.5 font-semibold w-20">Total HT</th>
+          </tr>
+        </thead>
+        <tbody>
+          {lignes.map((l, i) => (
+            <tr key={i} className="border-b border-gray-100">
+              <td className="py-1.5">
+                <p className="font-medium">{l.designation || "..."}</p>
+                {l.description && (
+                  <p className="text-gray-500 text-[10px]">{l.description}</p>
+                )}
+              </td>
+              <td className="text-right py-1.5">{l.quantite}</td>
+              <td className="text-right py-1.5">{formatCurrency(l.prix_unitaire_ht)}</td>
+              <td className="text-right py-1.5">{l.taux_tva}%</td>
+              <td className="text-right py-1.5 font-medium">
+                {formatCurrency(l.quantite * l.prix_unitaire_ht)}
+              </td>
+            </tr>
+          ))}
+          {lignes.length === 0 && (
+            <tr>
+              <td colSpan={5} className="text-center py-8 text-gray-400">
+                Aucune ligne
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+
+      {/* Totals */}
+      <div className="flex justify-end mb-6">
+        <div className="w-48 space-y-1">
+          <div className="flex justify-between">
+            <span className="text-gray-600">Total HT</span>
+            <span className="font-medium">{formatCurrency(totalHT)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">TVA</span>
+            <span>{formatCurrency(totalTVA)}</span>
+          </div>
+          <div className="flex justify-between border-t border-gray-300 pt-1 font-bold">
+            <span>Total TTC</span>
+            <span>{formatCurrency(totalTTC)}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      {conditions && (
+        <div className="mb-3">
+          <p className="font-semibold text-[10px] text-gray-500 uppercase">Conditions</p>
+          <p className="text-gray-600">{conditions}</p>
+        </div>
+      )}
+      {mentionsLegales && (
+        <div className="text-[9px] text-gray-400 border-t border-gray-200 pt-2 mt-4">
+          {mentionsLegales}
+        </div>
+      )}
+    </div>
+  );
+}
