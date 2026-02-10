@@ -86,6 +86,7 @@ export interface TicketDetail {
   ticket: TicketRow;
   messages: TicketMessage[];
   historique: TicketHistoriqueEntry[];
+  currentUserId: string;
 }
 
 export interface TicketFilters {
@@ -276,7 +277,7 @@ export async function getTickets(
 export async function getTicket(ticketId: string): Promise<{ data?: TicketDetail; error?: string }> {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { organisationId, admin, isSuperAdmin } = result;
+  const { organisationId, userId, admin, isSuperAdmin } = result;
 
   // Fetch ticket — super-admin can access any org's tickets
   let ticketQuery = admin
@@ -349,6 +350,7 @@ export async function getTicket(ticketId: string): Promise<{ data?: TicketDetail
         created_at: m.created_at as string,
       })),
       historique: (historique || []) as TicketHistoriqueEntry[],
+      currentUserId: userId,
     },
   };
 }
@@ -584,8 +586,9 @@ export async function updateTicket(
 
         // Email notification to assignee
         if (assignee?.email) {
+          const emailOrgId = isSuperAdmin ? current.organisation_id : organisationId;
           await sendEmail({
-            organisationId,
+            organisationId: emailOrgId,
             to: assignee.email,
             toName: assigneeName,
             subject: `[${current.numero_affichage}] Ticket assigné : ${current.titre}`,
@@ -608,12 +611,13 @@ export async function updateTicket(
     }
   }
 
-  // Apply update
+  // Apply update — super-admin uses the ticket's actual org, not their own
+  const updateOrgId = isSuperAdmin ? current.organisation_id : organisationId;
   const { error } = await admin
     .from("tickets")
     .update(updateData)
     .eq("id", ticketId)
-    .eq("organisation_id", organisationId);
+    .eq("organisation_id", updateOrgId);
 
   if (error) {
     console.error("[updateTicket]", error);
@@ -628,7 +632,7 @@ export async function updateTicket(
   // Email notification to ticket author on status change
   if (parsed.data.statut && parsed.data.statut !== current.statut && current.auteur_email) {
     await sendEmail({
-      organisationId,
+      organisationId: updateOrgId,
       to: current.auteur_email,
       toName: current.auteur_nom || undefined,
       subject: `[${current.numero_affichage}] Statut mis à jour : ${STATUT_LABELS[parsed.data.statut] || parsed.data.statut}`,
@@ -1125,6 +1129,7 @@ export async function getExtranetTicket(ticketId: string): Promise<{ data?: Tick
         created_at: m.created_at as string,
       })),
       historique: (historique || []) as TicketHistoriqueEntry[],
+      currentUserId: userId,
     },
   };
 }
@@ -1249,15 +1254,18 @@ export async function getTicketStats(): Promise<{
 
 // ─── Helper: get org users for assignment dropdown ───────
 
-export async function getOrganisationUsers(): Promise<{ data: { id: string; nom: string; role: string }[] }> {
+export async function getOrganisationUsers(ticketOrganisationId?: string): Promise<{ data: { id: string; nom: string; role: string }[] }> {
   const result = await getOrganisationId();
   if ("error" in result) return { data: [] };
-  const { organisationId, admin } = result;
+  const { organisationId, admin, isSuperAdmin } = result;
+
+  // Super-admin viewing a cross-org ticket: use the ticket's org
+  const targetOrgId = (isSuperAdmin && ticketOrganisationId) ? ticketOrganisationId : organisationId;
 
   const { data } = await admin
     .from("utilisateurs")
     .select("id, prenom, nom, role")
-    .eq("organisation_id", organisationId)
+    .eq("organisation_id", targetOrgId)
     .eq("actif", true)
     .order("nom");
 
@@ -1272,15 +1280,18 @@ export async function getOrganisationUsers(): Promise<{ data: { id: string; nom:
 
 // ─── Helper: get enterprises for filtering ───────────────
 
-export async function getEntreprisesForFilter(): Promise<{ data: { id: string; nom: string }[] }> {
+export async function getEntreprisesForFilter(ticketOrganisationId?: string): Promise<{ data: { id: string; nom: string }[] }> {
   const result = await getOrganisationId();
   if ("error" in result) return { data: [] };
-  const { organisationId, admin } = result;
+  const { organisationId, admin, isSuperAdmin } = result;
+
+  // Super-admin viewing a cross-org ticket: use the ticket's org
+  const targetOrgId = (isSuperAdmin && ticketOrganisationId) ? ticketOrganisationId : organisationId;
 
   const { data } = await admin
     .from("entreprises")
     .select("id, nom")
-    .eq("organisation_id", organisationId)
+    .eq("organisation_id", targetOrgId)
     .is("archived_at", null)
     .order("nom")
     .limit(200);
