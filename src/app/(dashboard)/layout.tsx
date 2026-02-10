@@ -37,8 +37,13 @@ export default async function DashboardLayout({
               hasMultiOrg={user?.hasMultiOrg ?? false}
             />
             <div className="flex flex-1 flex-col lg:pl-[240px] transition-all duration-300 min-w-0">
-              <Header aiCredits={aiCredits} userInitial={userInitial} />
-              <main className="flex-1 px-4 py-4 sm:px-6 sm:py-6 lg:px-8 overflow-x-hidden">
+              <Header
+                aiCredits={aiCredits}
+                userInitial={userInitial}
+                userName={user ? `${user.prenom ?? ""} ${user.nom ?? ""}`.trim() || undefined : undefined}
+                userEmail={user?.email}
+              />
+              <main className="flex-1 mt-14 px-4 py-4 sm:px-6 sm:py-6 lg:px-8 overflow-x-hidden">
                 {children}
               </main>
             </div>
