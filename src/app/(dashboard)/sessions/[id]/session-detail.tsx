@@ -35,6 +35,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/alert-dialog";
 import { TachesActivitesTab } from "@/components/shared/taches-activites";
+import { HistoriqueTimeline } from "@/components/shared/historique-timeline";
 import {
   SessionStatusBadge,
   SESSION_STATUT_OPTIONS,
@@ -490,6 +491,7 @@ export function SessionDetail({
           <TabsTrigger value="evaluations" className="text-xs">Évaluations</TabsTrigger>
           <TabsTrigger value="financier" className="text-xs">Financier</TabsTrigger>
           <TabsTrigger value="taches" className="text-xs">Tâches</TabsTrigger>
+          <TabsTrigger value="historique" className="text-xs">Historique</TabsTrigger>
         </TabsList>
 
         {/* ═══ General Tab ═══ */}
@@ -1128,6 +1130,15 @@ export function SessionDetail({
         {/* ═══ Tâches Tab ═══ */}
         <TabsContent value="taches" className="mt-6">
           <TachesActivitesTab entiteType="session" entiteId={session.id} />
+        </TabsContent>
+
+        {/* ═══ Historique Tab ═══ */}
+        <TabsContent value="historique" className="mt-6">
+          <HistoriqueTimeline
+            queryParams={{ mode: "entity", entiteType: "session", entiteId: session.id }}
+            emptyLabel="cette session"
+            headerDescription="Journal de traçabilité de toutes les actions liées à cette session"
+          />
         </TabsContent>
       </Tabs>
       <ConfirmDialog />

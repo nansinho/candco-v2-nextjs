@@ -3,35 +3,21 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import {
-  Calendar,
+  Building2,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Clock,
   ExternalLink,
   Filter,
-  GraduationCap,
   Loader2,
-  MessageSquarePlus,
-  Building2,
-  Users,
-  CheckSquare,
   X,
-  FileText,
-  CreditCard,
-  Mail,
-  BookOpen,
-  DoorOpen,
-  Briefcase,
-  HelpCircle,
-  User,
-  Banknote,
-  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { DatePicker } from "@/components/ui/date-picker";
-import { getEntrepriseHistorique } from "@/actions/entreprise-historique";
+import { getHistorique, type HistoriqueParams } from "@/actions/historique";
 import type {
   HistoriqueEvent,
   HistoriqueModule,
@@ -39,223 +25,31 @@ import type {
   HistoriqueOrigine,
   HistoriqueFilters,
 } from "@/lib/historique";
+import {
+  MODULE_CONFIG,
+  ACTION_LABELS,
+  ORIGINE_LABELS,
+  ROLE_LABELS,
+  getModuleIcon,
+  formatDateTime,
+  formatChangedFields,
+} from "@/lib/historique-ui";
 
-// ─── Constants ──────────────────────────────────────────
+// ─── Props ──────────────────────────────────────────────
 
-const MODULE_CONFIG: Record<
-  HistoriqueModule,
-  { label: string; color: string; bgColor: string }
-> = {
-  entreprise: {
-    label: "Entreprise",
-    color: "text-orange-400",
-    bgColor: "bg-orange-500/15",
-  },
-  apprenant: {
-    label: "Apprenant",
-    color: "text-cyan-400",
-    bgColor: "bg-cyan-500/15",
-  },
-  contact_client: {
-    label: "Contact",
-    color: "text-amber-400",
-    bgColor: "bg-amber-500/15",
-  },
-  formateur: {
-    label: "Formateur",
-    color: "text-teal-400",
-    bgColor: "bg-teal-500/15",
-  },
-  financeur: {
-    label: "Financeur",
-    color: "text-lime-400",
-    bgColor: "bg-lime-500/15",
-  },
-  produit: {
-    label: "Produit",
-    color: "text-violet-400",
-    bgColor: "bg-violet-500/15",
-  },
-  session: {
-    label: "Session",
-    color: "text-purple-400",
-    bgColor: "bg-purple-500/15",
-  },
-  inscription: {
-    label: "Inscription",
-    color: "text-emerald-400",
-    bgColor: "bg-emerald-500/15",
-  },
-  devis: {
-    label: "Devis",
-    color: "text-sky-400",
-    bgColor: "bg-sky-500/15",
-  },
-  facture: {
-    label: "Facture",
-    color: "text-green-400",
-    bgColor: "bg-green-500/15",
-  },
-  avoir: {
-    label: "Avoir",
-    color: "text-red-400",
-    bgColor: "bg-red-500/15",
-  },
-  tache: {
-    label: "Tâche",
-    color: "text-pink-400",
-    bgColor: "bg-pink-500/15",
-  },
-  activite: {
-    label: "Activité",
-    color: "text-blue-400",
-    bgColor: "bg-blue-500/15",
-  },
-  salle: {
-    label: "Salle",
-    color: "text-stone-400",
-    bgColor: "bg-stone-500/15",
-  },
-  email: {
-    label: "Email",
-    color: "text-indigo-400",
-    bgColor: "bg-indigo-500/15",
-  },
-  organisation: {
-    label: "Organisation",
-    color: "text-orange-400",
-    bgColor: "bg-orange-500/15",
-  },
-  questionnaire: {
-    label: "Questionnaire",
-    color: "text-fuchsia-400",
-    bgColor: "bg-fuchsia-500/15",
-  },
-  opportunite: {
-    label: "Opportunité",
-    color: "text-yellow-400",
-    bgColor: "bg-yellow-500/15",
-  },
-  ticket: {
-    label: "Ticket",
-    color: "text-rose-400",
-    bgColor: "bg-rose-500/15",
-  },
-};
-
-const ACTION_LABELS: Record<HistoriqueAction, string> = {
-  created: "Création",
-  updated: "Modification",
-  archived: "Archivage",
-  unarchived: "Désarchivage",
-  deleted: "Suppression",
-  status_changed: "Changement de statut",
-  linked: "Association",
-  unlinked: "Dissociation",
-  imported: "Import",
-  sent: "Envoi",
-  signed: "Signature",
-  completed: "Terminé",
-  generated: "Génération",
-  replied: "Réponse",
-  assigned: "Assignation",
-  alert_triggered: "Alerte budget",
-};
-
-const ORIGINE_LABELS: Record<HistoriqueOrigine, { label: string; class: string }> = {
-  backoffice: {
-    label: "Back-office",
-    class: "border-transparent bg-gray-500/15 text-gray-400",
-  },
-  extranet: {
-    label: "Extranet",
-    class: "border-transparent bg-indigo-500/15 text-indigo-400",
-  },
-  systeme: {
-    label: "Système",
-    class: "border-transparent bg-gray-500/10 text-gray-500",
-  },
-};
-
-const ROLE_LABELS: Record<string, string> = {
-  admin: "Admin",
-  manager: "Manager",
-  user: "Utilisateur",
-  formateur: "Formateur",
-  apprenant: "Apprenant",
-  contact_client: "Contact client",
-};
-
-// ─── Helpers ────────────────────────────────────────────
-
-function formatDateTime(dateString: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleDateString("fr-FR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function getModuleIcon(module: HistoriqueModule) {
-  switch (module) {
-    case "entreprise":
-      return <Building2 className="h-3.5 w-3.5" />;
-    case "apprenant":
-      return <GraduationCap className="h-3.5 w-3.5" />;
-    case "contact_client":
-      return <Users className="h-3.5 w-3.5" />;
-    case "formateur":
-      return <User className="h-3.5 w-3.5" />;
-    case "financeur":
-      return <Banknote className="h-3.5 w-3.5" />;
-    case "produit":
-      return <BookOpen className="h-3.5 w-3.5" />;
-    case "session":
-      return <Calendar className="h-3.5 w-3.5" />;
-    case "inscription":
-      return <GraduationCap className="h-3.5 w-3.5" />;
-    case "devis":
-      return <FileText className="h-3.5 w-3.5" />;
-    case "facture":
-      return <CreditCard className="h-3.5 w-3.5" />;
-    case "avoir":
-      return <CreditCard className="h-3.5 w-3.5" />;
-    case "tache":
-      return <CheckSquare className="h-3.5 w-3.5" />;
-    case "activite":
-      return <MessageSquarePlus className="h-3.5 w-3.5" />;
-    case "salle":
-      return <DoorOpen className="h-3.5 w-3.5" />;
-    case "email":
-      return <Mail className="h-3.5 w-3.5" />;
-    case "organisation":
-      return <Building2 className="h-3.5 w-3.5" />;
-    case "questionnaire":
-      return <HelpCircle className="h-3.5 w-3.5" />;
-    case "opportunite":
-      return <Briefcase className="h-3.5 w-3.5" />;
-    default:
-      return <Clock className="h-3.5 w-3.5" />;
-  }
-}
-
-function formatChangedFields(metadata: Record<string, unknown> | null): string | null {
-  if (!metadata) return null;
-  const fields = metadata.changed_fields as string[] | undefined;
-  if (!fields || fields.length === 0) return null;
-  return fields.join(", ");
+interface HistoriqueTimelineProps {
+  queryParams: HistoriqueParams;
+  emptyLabel?: string;
+  headerDescription?: string;
 }
 
 // ─── Component ──────────────────────────────────────────
 
-interface HistoriqueTabProps {
-  entrepriseId: string;
-}
-
-export function HistoriqueTab({ entrepriseId }: HistoriqueTabProps) {
+export function HistoriqueTimeline({
+  queryParams,
+  emptyLabel = "cette entité",
+  headerDescription = "Journal de traçabilité de toutes les actions",
+}: HistoriqueTimelineProps) {
   const router = useRouter();
   const [events, setEvents] = React.useState<HistoriqueEvent[]>([]);
   const [totalCount, setTotalCount] = React.useState(0);
@@ -285,19 +79,19 @@ export function HistoriqueTab({ entrepriseId }: HistoriqueTabProps) {
       if (filterDateDebut) filters.date_debut = filterDateDebut;
       if (filterDateFin) filters.date_fin = filterDateFin;
 
-      const result = await getEntrepriseHistorique(entrepriseId, filters, page);
+      const result = await getHistorique(queryParams, filters, page);
       if (result.error) {
         setError(typeof result.error === "string" ? result.error : "Impossible de charger l'historique");
       }
       setEvents(result.data ?? []);
       setTotalCount(result.count ?? 0);
     } catch (err) {
-      console.error("[HistoriqueTab] Load error:", err);
+      console.error("[HistoriqueTimeline] Load error:", err);
       setError("Impossible de charger l'historique");
     } finally {
       setLoading(false);
     }
-  }, [entrepriseId, page, filterModule, filterAction, filterOrigine, filterDateDebut, filterDateFin]);
+  }, [queryParams, page, filterModule, filterAction, filterOrigine, filterDateDebut, filterDateFin]);
 
   React.useEffect(() => {
     fetchData();
@@ -337,7 +131,7 @@ export function HistoriqueTab({ entrepriseId }: HistoriqueTabProps) {
         <div>
           <h3 className="text-sm font-medium">Historique</h3>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Journal de traçabilité de toutes les actions liées à cette entreprise
+            {headerDescription}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -476,7 +270,7 @@ export function HistoriqueTab({ entrepriseId }: HistoriqueTabProps) {
           <p className="mt-3 text-sm text-muted-foreground">
             {activeFilterCount > 0
               ? "Aucun événement ne correspond aux filtres sélectionnés."
-              : "Aucun historique pour cette entreprise."}
+              : `Aucun historique pour ${emptyLabel}.`}
           </p>
         </div>
       ) : (
@@ -489,6 +283,7 @@ export function HistoriqueTab({ entrepriseId }: HistoriqueTabProps) {
               label: event.module,
               color: "text-gray-400",
               bgColor: "bg-gray-500/15",
+              icon: Clock,
             };
             const origineConf = ORIGINE_LABELS[event.origine] ?? ORIGINE_LABELS.backoffice;
             const changedFields = formatChangedFields(event.metadata);

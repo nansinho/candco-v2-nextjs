@@ -57,7 +57,7 @@ import { OrganisationTab } from "@/components/entreprise/organisation-tab";
 import { EntrepriseSessionsTab } from "@/components/entreprise/sessions-tab";
 import { PlanFormationTab } from "@/components/entreprise/plan-formation-tab";
 import { EmailTab } from "@/components/entreprise/email-tab";
-import { HistoriqueTab } from "@/components/entreprise/historique-tab";
+import { HistoriqueTimeline } from "@/components/shared/historique-timeline";
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -650,7 +650,11 @@ function SuiviFormationTab({ entrepriseId, agences }: { entrepriseId: string; ag
         <PlanFormationTab entrepriseId={entrepriseId} agences={agences} />
       )}
       {subTab === "historique" && (
-        <HistoriqueTab entrepriseId={entrepriseId} />
+        <HistoriqueTimeline
+          queryParams={{ mode: "entreprise", entrepriseId }}
+          emptyLabel="cette entreprise"
+          headerDescription="Journal de traçabilité de toutes les actions liées à cette entreprise"
+        />
       )}
     </div>
   );

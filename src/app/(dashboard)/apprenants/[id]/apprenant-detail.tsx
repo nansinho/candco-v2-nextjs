@@ -41,6 +41,7 @@ import {
   type ApprenantEntreprise,
 } from "@/actions/apprenants";
 import { TachesActivitesTab } from "@/components/shared/taches-activites";
+import { HistoriqueTimeline } from "@/components/shared/historique-timeline";
 import { useBreadcrumb } from "@/components/layout/breadcrumb-context";
 import { QuickActionsBar } from "@/components/shared/quick-actions-bar";
 import { ExtranetAccessPanel } from "@/components/shared/extranet-access-panel";
@@ -280,6 +281,9 @@ export function ApprenantDetail({
           <TabsTrigger value="taches" className="text-xs">
             Tâches et activités
           </TabsTrigger>
+          <TabsTrigger value="historique" className="text-xs">
+            Historique
+          </TabsTrigger>
         </TabsList>
 
         {/* Tab 1 -- Informations */}
@@ -462,6 +466,15 @@ export function ApprenantDetail({
         {/* Tab 3 -- Tâches et activités */}
         <TabsContent value="taches" className="mt-6">
           <TachesActivitesTab entiteType="apprenant" entiteId={apprenant.id} />
+        </TabsContent>
+
+        {/* Tab 4 -- Historique */}
+        <TabsContent value="historique" className="mt-6">
+          <HistoriqueTimeline
+            queryParams={{ mode: "entity", entiteType: "apprenant", entiteId: apprenant.id }}
+            emptyLabel="cet apprenant"
+            headerDescription="Journal de traçabilité de toutes les actions liées à cet apprenant"
+          />
         </TabsContent>
       </Tabs>
         </div>

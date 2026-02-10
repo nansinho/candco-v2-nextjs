@@ -20,6 +20,7 @@ import {
 } from "@/actions/formateurs";
 import { formatCurrency } from "@/lib/utils";
 import { TachesActivitesTab } from "@/components/shared/taches-activites";
+import { HistoriqueTimeline } from "@/components/shared/historique-timeline";
 import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
 import { SiretSearch } from "@/components/shared/siret-search";
 import { ExtranetAccessPanel } from "@/components/shared/extranet-access-panel";
@@ -296,6 +297,9 @@ export default function FormateurDetailPage() {
           </TabsTrigger>
           <TabsTrigger value="taches" className="text-xs">
             Tâches et activités
+          </TabsTrigger>
+          <TabsTrigger value="historique" className="text-xs">
+            Historique
           </TabsTrigger>
         </TabsList>
 
@@ -632,6 +636,15 @@ export default function FormateurDetailPage() {
         {/* Tab 3 - Tâches et activités */}
         <TabsContent value="taches" className="mt-6">
           <TachesActivitesTab entiteType="formateur" entiteId={formateur.id} />
+        </TabsContent>
+
+        {/* Tab: Historique */}
+        <TabsContent value="historique" className="mt-6">
+          <HistoriqueTimeline
+            queryParams={{ mode: "entity", entiteType: "formateur", entiteId: formateur.id }}
+            emptyLabel="ce formateur"
+            headerDescription="Journal de traçabilité de toutes les actions liées à ce formateur"
+          />
         </TabsContent>
       </Tabs>
         </div>

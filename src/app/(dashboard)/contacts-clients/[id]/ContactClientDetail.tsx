@@ -17,6 +17,7 @@ import {
   type UpdateContactClientInput,
 } from "@/actions/contacts-clients";
 import { TachesActivitesTab } from "@/components/shared/taches-activites";
+import { HistoriqueTimeline } from "@/components/shared/historique-timeline";
 import { ExtranetAccessPanel } from "@/components/shared/extranet-access-panel";
 import { formatDate } from "@/lib/utils";
 import { useBreadcrumb } from "@/components/layout/breadcrumb-context";
@@ -217,6 +218,9 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
           </TabsTrigger>
           <TabsTrigger value="taches" className="text-xs">
             Tâches et activités
+          </TabsTrigger>
+          <TabsTrigger value="historique" className="text-xs">
+            Historique
           </TabsTrigger>
         </TabsList>
 
@@ -421,6 +425,15 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
         {/* Tab 3: Tâches et activités */}
         <TabsContent value="taches" className="mt-6">
           <TachesActivitesTab entiteType="contact_client" entiteId={contact.id} />
+        </TabsContent>
+
+        {/* Tab 4: Historique */}
+        <TabsContent value="historique" className="mt-6">
+          <HistoriqueTimeline
+            queryParams={{ mode: "entity", entiteType: "contact_client", entiteId: contact.id }}
+            emptyLabel="ce contact client"
+            headerDescription="Journal de traçabilité de toutes les actions liées à ce contact client"
+          />
         </TabsContent>
       </Tabs>
         </div>
