@@ -49,6 +49,8 @@ export interface TicketRow {
   assignee?: { prenom: string; nom: string } | null;
   entreprise?: { id: string; nom: string } | null;
   entreprise_id: string | null;
+  organisation_id: string;
+  organisation_nom?: string | null;
   message_count: number;
   last_message_at: string | null;
   resolved_at: string | null;
@@ -93,6 +95,7 @@ export interface TicketFilters {
   entreprise_id?: string;
   assignee_id?: string;
   my_tickets?: boolean;
+  organisation_id?: string;
 }
 
 // ─── Helpers ─────────────────────────────────────────────
@@ -161,8 +164,8 @@ export async function getTickets(
   filters: TicketFilters = {},
 ) {
   const result = await getOrganisationId();
-  if ("error" in result) return { data: [], count: 0, error: result.error };
-  const { organisationId, userId, admin } = result;
+  if ("error" in result) return { data: [], count: 0, error: result.error, isSuperAdmin: false };
+  const { organisationId, userId, admin, isSuperAdmin } = result;
 
   const limit = 25;
   const offset = (page - 1) * limit;
@@ -173,13 +176,21 @@ export async function getTickets(
   let query = admin
     .from("tickets")
     .select(
-      `*, entreprises(id, nom), utilisateurs!tickets_assignee_id_fkey(prenom, nom)`,
+      `*, entreprises(id, nom), utilisateurs!tickets_assignee_id_fkey(prenom, nom), organisations(id, nom)`,
       { count: "exact" },
     )
-    .eq("organisation_id", organisationId)
     .is("archived_at", null)
     .order(col, { ascending: sortDir === "asc" })
     .range(offset, offset + limit - 1);
+
+  // Super-admin sees all orgs, regular users see only their org
+  if (isSuperAdmin) {
+    if (filters.organisation_id) {
+      query = query.eq("organisation_id", filters.organisation_id);
+    }
+  } else {
+    query = query.eq("organisation_id", organisationId);
+  }
 
   if (search) {
     query = query.or(`titre.ilike.%${search}%,numero_affichage.ilike.%${search}%,auteur_nom.ilike.%${search}%`);
@@ -249,6 +260,8 @@ export async function getTickets(
     assignee: t.utilisateurs as { prenom: string; nom: string } | null,
     entreprise: t.entreprises as { id: string; nom: string } | null,
     entreprise_id: t.entreprise_id as string | null,
+    organisation_id: t.organisation_id as string,
+    organisation_nom: (t.organisations as { id: string; nom: string } | null)?.nom ?? null,
     message_count: messageCounts[t.id as string]?.count ?? 0,
     last_message_at: messageCounts[t.id as string]?.last ?? null,
     resolved_at: t.resolved_at as string | null,
@@ -257,21 +270,25 @@ export async function getTickets(
     updated_at: t.updated_at as string,
   }));
 
-  return { data: rows, count: count || 0, error: null };
+  return { data: rows, count: count || 0, error: null, isSuperAdmin };
 }
 
 export async function getTicket(ticketId: string): Promise<{ data?: TicketDetail; error?: string }> {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { organisationId, admin } = result;
+  const { organisationId, admin, isSuperAdmin } = result;
 
-  // Fetch ticket
-  const { data: ticket, error } = await admin
+  // Fetch ticket — super-admin can access any org's tickets
+  let ticketQuery = admin
     .from("tickets")
-    .select(`*, entreprises(id, nom), utilisateurs!tickets_assignee_id_fkey(prenom, nom)`)
-    .eq("id", ticketId)
-    .eq("organisation_id", organisationId)
-    .single();
+    .select(`*, entreprises(id, nom), utilisateurs!tickets_assignee_id_fkey(prenom, nom), organisations(id, nom)`)
+    .eq("id", ticketId);
+
+  if (!isSuperAdmin) {
+    ticketQuery = ticketQuery.eq("organisation_id", organisationId);
+  }
+
+  const { data: ticket, error } = await ticketQuery.single();
 
   if (error || !ticket) {
     return { error: "Ticket non trouvé" };
@@ -307,6 +324,8 @@ export async function getTicket(ticketId: string): Promise<{ data?: TicketDetail
     assignee: ticket.utilisateurs as { prenom: string; nom: string } | null,
     entreprise: ticket.entreprises as { id: string; nom: string } | null,
     entreprise_id: ticket.entreprise_id,
+    organisation_id: ticket.organisation_id,
+    organisation_nom: (ticket.organisations as { id: string; nom: string } | null)?.nom ?? null,
     message_count: (messages || []).length,
     last_message_at: messages && messages.length > 0 ? messages[messages.length - 1].created_at : null,
     resolved_at: ticket.resolved_at,
@@ -439,18 +458,22 @@ export async function updateTicket(
 ): Promise<{ error?: string }> {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { organisationId, userId, role, admin } = result;
+  const { organisationId, userId, role, admin, isSuperAdmin } = result;
 
   const parsed = UpdateTicketSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  // Get current ticket
-  const { data: current } = await admin
+  // Get current ticket — super-admin can access any org's tickets
+  let ticketQuery = admin
     .from("tickets")
     .select("*")
-    .eq("id", ticketId)
-    .eq("organisation_id", organisationId)
-    .single();
+    .eq("id", ticketId);
+
+  if (!isSuperAdmin) {
+    ticketQuery = ticketQuery.eq("organisation_id", organisationId);
+  }
+
+  const { data: current } = await ticketQuery.single();
 
   if (!current) return { error: "Ticket non trouvé" };
 
@@ -626,13 +649,18 @@ export async function updateTicket(
 export async function archiveTickets(ids: string[]): Promise<{ error?: string }> {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { organisationId, admin } = result;
+  const { organisationId, admin, isSuperAdmin } = result;
 
-  const { error } = await admin
+  let query = admin
     .from("tickets")
     .update({ archived_at: new Date().toISOString() })
-    .eq("organisation_id", organisationId)
     .in("id", ids);
+
+  if (!isSuperAdmin) {
+    query = query.eq("organisation_id", organisationId);
+  }
+
+  const { error } = await query;
 
   if (error) return { error: error.message };
 
@@ -651,17 +679,21 @@ export async function addTicketMessage(
 ): Promise<{ data?: { id: string }; error?: string }> {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { organisationId, userId, role, admin } = result;
+  const { organisationId, userId, role, admin, isSuperAdmin } = result;
 
   if (!contenu.trim()) return { error: "Le message ne peut pas être vide" };
 
-  // Verify ticket exists and belongs to org
-  const { data: ticket } = await admin
+  // Verify ticket exists — super-admin can access any org's tickets
+  let ticketQuery = admin
     .from("tickets")
     .select("id, titre, numero_affichage, auteur_email, auteur_nom, auteur_user_id, organisation_id")
-    .eq("id", ticketId)
-    .eq("organisation_id", organisationId)
-    .single();
+    .eq("id", ticketId);
+
+  if (!isSuperAdmin) {
+    ticketQuery = ticketQuery.eq("organisation_id", organisationId);
+  }
+
+  const { data: ticket } = await ticketQuery.single();
 
   if (!ticket) return { error: "Ticket non trouvé" };
 
@@ -1066,6 +1098,8 @@ export async function getExtranetTicket(ticketId: string): Promise<{ data?: Tick
     assignee: null,
     entreprise: null,
     entreprise_id: ticket.entreprise_id,
+    organisation_id: ticket.organisation_id,
+    organisation_nom: null,
     message_count: (messages || []).length,
     last_message_at: messages && messages.length > 0 ? messages[messages.length - 1].created_at : null,
     resolved_at: ticket.resolved_at,
