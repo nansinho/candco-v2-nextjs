@@ -106,6 +106,7 @@ export function ExtranetTicketDetail({ ticketId, basePath }: ExtranetTicketDetai
         const formData = new FormData();
         formData.append("file", file);
         formData.append("ticketId", ticketId);
+        formData.append("organisationId", ticketData?.ticket.organisation_id || "");
 
         const res = await fetch("/api/tickets/upload", { method: "POST", body: formData });
         const data = await res.json();
