@@ -40,6 +40,11 @@ import {
   ArrowDown,
   ChevronsUpDown,
   Hash,
+  ClipboardList,
+  Send,
+  CalendarClock,
+  ToggleLeft,
+  ToggleRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -82,6 +87,10 @@ import {
   type OuvrageInput,
   type ArticleInput,
 } from "@/actions/produits";
+import {
+  upsertProductPlanification,
+  type PlanificationConfig,
+} from "@/actions/questionnaires";
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -181,6 +190,25 @@ interface BpfSpecialite {
   code: string | null;
   libelle: string;
   ordre: number | null;
+}
+
+interface ProduitQuestionnaire {
+  id: string;
+  nom: string;
+  type: string;
+  statut: string;
+  public_cible: string | null;
+}
+
+interface ProductPlanification {
+  id: string;
+  questionnaire_id: string;
+  envoi_auto: boolean;
+  declencheur: string;
+  delai_jours: number;
+  heure_envoi: string;
+  jours_ouvres_uniquement: boolean;
+  repli_weekend: string;
 }
 
 // ─── Shared UI ──────────────────────────────────────────
@@ -398,6 +426,8 @@ export function ProduitDetail({
   ouvrages: Ouvrage[];
   articles: Article[];
   bpfSpecialites: BpfSpecialite[];
+  questionnaires: ProduitQuestionnaire[];
+  planifications: ProductPlanification[];
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -727,6 +757,15 @@ export function ProduitDetail({
                     Biblio
                   </TabsTrigger>
                 )}
+                <TabsTrigger value="questionnaires" className="text-xs gap-1.5">
+                  <ClipboardList className="h-3 w-3" />
+                  Questionnaires
+                  {questionnaires.length > 0 && (
+                    <span className="ml-0.5 inline-flex items-center justify-center rounded-full bg-primary/10 text-primary text-[9px] font-medium h-4 min-w-4 px-1">
+                      {questionnaires.length}
+                    </span>
+                  )}
+                </TabsTrigger>
                 <TabsTrigger value="taches" className="text-xs">
                   Tâches
                 </TabsTrigger>
@@ -1102,6 +1141,15 @@ export function ProduitDetail({
                   <BiblioTab produitId={produit.id} ouvrages={initialOuvrages} articles={initialArticles} />
                 </TabsContent>
               )}
+
+              {/* ═══ Tab: Questionnaires ═══ */}
+              <TabsContent value="questionnaires" className="mt-6">
+                <QuestionnairesTab
+                  produitId={produit.id}
+                  questionnaires={questionnaires}
+                  planifications={planifications}
+                />
+              </TabsContent>
 
               {/* ═══ Tab: Tâches ═══ */}
               <TabsContent value="taches" className="mt-6">
@@ -2778,6 +2826,337 @@ function BiblioTab({
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+// ─── Questionnaires Tab ──────────────────────────────────
+
+const Q_TYPE_LABELS: Record<string, string> = {
+  satisfaction_chaud: "Satisfaction à chaud",
+  satisfaction_froid: "Satisfaction à froid",
+  pedagogique_pre: "Péda. pré-formation",
+  pedagogique_post: "Péda. post-formation",
+  standalone: "Standalone",
+};
+
+const Q_TYPE_COLORS: Record<string, string> = {
+  satisfaction_chaud: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+  satisfaction_froid: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+  pedagogique_pre: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+  pedagogique_post: "bg-violet-500/10 text-violet-400 border-violet-500/20",
+  standalone: "bg-gray-500/10 text-gray-400 border-gray-500/20",
+};
+
+const DECLENCHEUR_LABELS: Record<string, string> = {
+  avant_debut: "Avant le début de session",
+  apres_debut: "Après le début de session",
+  apres_fin: "Après la fin de session",
+};
+
+function QuestionnairesTab({
+  produitId,
+  questionnaires,
+  planifications,
+}: {
+  produitId: string;
+  questionnaires: ProduitQuestionnaire[];
+  planifications: ProductPlanification[];
+}) {
+  const router = useRouter();
+
+  if (questionnaires.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border/60 py-12">
+        <ClipboardList className="h-8 w-8 text-muted-foreground/30" />
+        <p className="mt-3 text-sm text-muted-foreground/60">Aucun questionnaire lié à ce programme</p>
+        <p className="text-[11px] text-muted-foreground/40 mt-1">
+          Créez un questionnaire et associez-le à ce programme via le module Questionnaires.
+        </p>
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-4 h-8 text-xs"
+          onClick={() => router.push("/questionnaires")}
+        >
+          Aller aux questionnaires
+        </Button>
+      </div>
+    );
+  }
+
+  const planifMap = new Map(planifications.map((p) => [p.questionnaire_id, p]));
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-medium">{questionnaires.length} questionnaire(s) lié(s)</h2>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 text-xs"
+          onClick={() => router.push("/questionnaires")}
+        >
+          Gérer les questionnaires
+        </Button>
+      </div>
+
+      <div className="space-y-3">
+        {questionnaires.map((q) => (
+          <QuestionnaireCard
+            key={q.id}
+            questionnaire={q}
+            planification={planifMap.get(q.id) ?? null}
+            produitId={produitId}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function QuestionnaireCard({
+  questionnaire,
+  planification,
+  produitId,
+}: {
+  questionnaire: ProduitQuestionnaire;
+  planification: ProductPlanification | null;
+  produitId: string;
+}) {
+  const router = useRouter();
+  const { toast } = useToast();
+  const [expanded, setExpanded] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
+
+  // Local state for the scheduling form
+  const [config, setConfig] = React.useState<PlanificationConfig>({
+    envoi_auto: planification?.envoi_auto ?? false,
+    declencheur: (planification?.declencheur as PlanificationConfig["declencheur"]) ?? "apres_fin",
+    delai_jours: planification?.delai_jours ?? 0,
+    heure_envoi: planification?.heure_envoi ?? "09:00",
+    jours_ouvres_uniquement: planification?.jours_ouvres_uniquement ?? false,
+    repli_weekend: (planification?.repli_weekend as PlanificationConfig["repli_weekend"]) ?? "lundi_suivant",
+  });
+
+  const handleSave = async () => {
+    setSaving(true);
+    const result = await upsertProductPlanification(questionnaire.id, config);
+    setSaving(false);
+    if (result.error) {
+      toast({ title: "Erreur", description: String(result.error), variant: "destructive" });
+      return;
+    }
+    toast({ title: "Configuration sauvegardée", variant: "success" });
+    router.refresh();
+  };
+
+  // Build human-readable summary
+  const summary = planification?.envoi_auto
+    ? `${DECLENCHEUR_LABELS[planification.declencheur] ?? planification.declencheur}${planification.delai_jours > 0 ? ` (J${planification.declencheur === "avant_debut" ? "-" : "+"}${planification.delai_jours})` : " (Jour J)"} à ${planification.heure_envoi}`
+    : null;
+
+  return (
+    <div className="rounded-lg border border-border/60 bg-card overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between p-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <ClipboardList className="h-4 w-4 text-muted-foreground/50 shrink-0" />
+          <div className="min-w-0">
+            <p className="text-[13px] font-medium truncate">{questionnaire.nom}</p>
+            <div className="flex items-center gap-2 mt-0.5">
+              <Badge variant="outline" className={`text-[10px] ${Q_TYPE_COLORS[questionnaire.type] ?? ""}`}>
+                {Q_TYPE_LABELS[questionnaire.type] ?? questionnaire.type}
+              </Badge>
+              <span className="text-[10px] text-muted-foreground">
+                {questionnaire.statut === "actif" ? "Actif" : questionnaire.statut === "brouillon" ? "Brouillon" : "Archivé"}
+              </span>
+              {planification?.envoi_auto && (
+                <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20 gap-1">
+                  <Send className="h-2.5 w-2.5" />
+                  Envoi auto
+                </Badge>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => router.push(`/questionnaires/${questionnaire.id}`)}
+            title="Voir le questionnaire"
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs gap-1"
+            onClick={() => setExpanded(!expanded)}
+          >
+            <CalendarClock className="h-3.5 w-3.5" />
+            {expanded ? "Fermer" : "Envoi auto"}
+            {expanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+          </Button>
+        </div>
+      </div>
+
+      {/* Summary line */}
+      {summary && !expanded && (
+        <div className="px-4 pb-3 -mt-1">
+          <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+            <CalendarClock className="h-3 w-3 text-primary/60" />
+            {summary}
+            {planification.jours_ouvres_uniquement && (
+              <span className="text-[10px] text-muted-foreground/60">(jours ouvrés)</span>
+            )}
+          </p>
+        </div>
+      )}
+
+      {/* Expanded scheduling form */}
+      {expanded && (
+        <div className="border-t border-border/60 bg-muted/20 p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <h4 className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wide">
+              Paramètres d&apos;envoi automatique
+            </h4>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={config.envoi_auto}
+                onChange={(e) => setConfig((c) => ({ ...c, envoi_auto: e.target.checked }))}
+                className="sr-only peer"
+              />
+              <div className="w-9 h-5 bg-muted rounded-full peer peer-checked:bg-primary transition-colors after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
+              <span className="ml-2 text-[12px] text-muted-foreground">
+                {config.envoi_auto ? "Activé" : "Désactivé"}
+              </span>
+            </label>
+          </div>
+
+          {config.envoi_auto && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] text-muted-foreground">Déclencheur</Label>
+                  <select
+                    value={config.declencheur}
+                    onChange={(e) =>
+                      setConfig((c) => ({
+                        ...c,
+                        declencheur: e.target.value as PlanificationConfig["declencheur"],
+                      }))
+                    }
+                    className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
+                  >
+                    <option value="avant_debut">Avant le début de session</option>
+                    <option value="apres_debut">Après le début de session</option>
+                    <option value="apres_fin">Après la fin de session</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] text-muted-foreground">Délai (jours)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={config.delai_jours}
+                    onChange={(e) =>
+                      setConfig((c) => ({ ...c, delai_jours: parseInt(e.target.value) || 0 }))
+                    }
+                    className="h-9 text-[13px] border-border/60"
+                    placeholder="0 = jour J"
+                  />
+                  <p className="text-[10px] text-muted-foreground/50">
+                    0 = le jour même
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] text-muted-foreground">Heure d&apos;envoi</Label>
+                  <Input
+                    type="time"
+                    value={config.heure_envoi}
+                    onChange={(e) =>
+                      setConfig((c) => ({ ...c, heure_envoi: e.target.value }))
+                    }
+                    className="h-9 text-[13px] border-border/60"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-x-6 gap-y-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={config.jours_ouvres_uniquement}
+                    onChange={(e) =>
+                      setConfig((c) => ({
+                        ...c,
+                        jours_ouvres_uniquement: e.target.checked,
+                      }))
+                    }
+                    className="rounded border-border/60"
+                  />
+                  <span className="text-[12px] text-muted-foreground">Jours ouvrés uniquement</span>
+                </label>
+
+                {config.jours_ouvres_uniquement && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-muted-foreground">Si week-end :</span>
+                    <select
+                      value={config.repli_weekend}
+                      onChange={(e) =>
+                        setConfig((c) => ({
+                          ...c,
+                          repli_weekend: e.target.value as PlanificationConfig["repli_weekend"],
+                        }))
+                      }
+                      className="h-7 rounded-md border border-input bg-muted px-2 py-0.5 text-[11px] text-foreground"
+                    >
+                      <option value="lundi_suivant">Lundi suivant</option>
+                      <option value="vendredi_precedent">Vendredi précédent</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              {/* Preview */}
+              <div className="rounded-md bg-muted/50 border border-border/40 px-3 py-2">
+                <p className="text-[11px] text-muted-foreground">
+                  <strong>Aperçu :</strong>{" "}
+                  {config.declencheur === "avant_debut" && (
+                    <>Envoi <strong>J-{config.delai_jours}</strong> avant le début de session à <strong>{config.heure_envoi}</strong></>
+                  )}
+                  {config.declencheur === "apres_debut" && (
+                    <>Envoi <strong>J+{config.delai_jours}</strong> après le début de session à <strong>{config.heure_envoi}</strong></>
+                  )}
+                  {config.declencheur === "apres_fin" && (
+                    <>Envoi <strong>J+{config.delai_jours}</strong> après la fin de session à <strong>{config.heure_envoi}</strong></>
+                  )}
+                  {config.delai_jours === 0 && <> (le jour même)</>}
+                  {config.jours_ouvres_uniquement && (
+                    <> — jours ouvrés ({config.repli_weekend === "lundi_suivant" ? "reporté au lundi" : "avancé au vendredi"} si week-end)</>
+                  )}
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 pt-1">
+            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setExpanded(false)}>
+              Annuler
+            </Button>
+            <Button size="sm" className="h-7 text-xs" disabled={saving} onClick={handleSave}>
+              {saving ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Save className="mr-1 h-3 w-3" />}
+              Enregistrer
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

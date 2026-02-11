@@ -1,4 +1,5 @@
 import { getProduit, getBpfSpecialites } from "@/actions/produits";
+import { getQuestionnairesByProduit, getProductPlanifications } from "@/actions/questionnaires";
 import { notFound } from "next/navigation";
 import { ProduitDetail } from "./produit-detail";
 
@@ -8,14 +9,19 @@ interface PageProps {
 
 export default async function ProduitDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const [result, bpfResult] = await Promise.all([
+  const [result, bpfResult, questionnairesResult] = await Promise.all([
     getProduit(id),
     getBpfSpecialites(),
+    getQuestionnairesByProduit(id),
   ]);
 
   if (!result.data) {
     notFound();
   }
+
+  // Fetch planifications for the linked questionnaires
+  const qIds = (questionnairesResult.data ?? []).map((q) => q.id);
+  const planificationsResult = await getProductPlanifications(qIds);
 
   return (
     <ProduitDetail
@@ -30,6 +36,8 @@ export default async function ProduitDetailPage({ params }: PageProps) {
       ouvrages={result.ouvrages}
       articles={result.articles}
       bpfSpecialites={bpfResult.data}
+      questionnaires={questionnairesResult.data}
+      planifications={planificationsResult.data}
     />
   );
 }

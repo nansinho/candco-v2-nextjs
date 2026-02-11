@@ -1,5 +1,5 @@
 import { getSession, getSessionFormateurs, getSessionCommanditaires, getInscriptions, getCreneaux, getSessionFinancials, getSessionEmargements, getSessionDocuments } from "@/actions/sessions";
-import { getSessionEvaluations, getAllQuestionnaires } from "@/actions/questionnaires";
+import { getSessionEvaluations, getAllQuestionnaires, getSessionPlanifications } from "@/actions/questionnaires";
 import { getAllSalles } from "@/actions/salles";
 import { getAllFormateurs } from "@/actions/formateurs";
 import { getAllEntreprises } from "@/actions/entreprises";
@@ -27,6 +27,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
     documentsResult,
     evaluationsResult,
     allQuestionnairesResult,
+    planificationsResult,
     sallesResult,
     allFormateursResult,
     allEntreprisesResult,
@@ -44,6 +45,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
     getSessionDocuments(id),
     getSessionEvaluations(id),
     getAllQuestionnaires(),
+    getSessionPlanifications(id),
     getAllSalles(),
     getAllFormateurs(),
     getAllEntreprises(),
@@ -68,6 +70,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
       documents={documentsResult.data}
       evaluations={evaluationsResult.data}
       allQuestionnaires={allQuestionnairesResult.data}
+      planifications={planificationsResult.data}
       salles={sallesResult.data}
       allFormateurs={allFormateursResult.data}
       allEntreprises={allEntreprisesResult.data}

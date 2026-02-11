@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { QueryFilter } from "@/lib/utils";
 import { sendInscriptionEmail } from "@/actions/emails";
+import { inheritProductPlanifications, recalculateSessionPlanifications } from "@/actions/questionnaires";
 import { logHistorique, logHistoriqueBatch } from "@/lib/historique";
 
 // ─── Schemas ─────────────────────────────────────────────
@@ -87,6 +88,11 @@ export async function createSession(input: CreateSessionInput) {
     description: `Session "${data.nom}" créée`,
     objetHref: `/sessions/${data.id}`,
   });
+
+  // Auto-inherit questionnaires and planifications from product
+  if (data.produit_id) {
+    await inheritProductPlanifications(data.id, data.produit_id);
+  }
 
   revalidatePath("/sessions");
   return { data };
@@ -187,8 +193,15 @@ export async function updateSession(id: string, input: UpdateSessionInput) {
   if ("error" in result) {
     return { error: { _form: [result.error] } };
   }
-  const { organisationId, userId, role, supabase } = result;
+  const { organisationId, userId, role, supabase, admin } = result;
   requirePermission(role as UserRole, canManageSessions, "modifier une session");
+
+  // Fetch old session to detect date/product changes
+  const { data: oldSession } = await admin
+    .from("sessions")
+    .select("date_debut, date_fin, produit_id")
+    .eq("id", id)
+    .single();
 
   const { data, error } = await supabase
     .from("sessions")
@@ -226,6 +239,23 @@ export async function updateSession(id: string, input: UpdateSessionInput) {
     description: `Session "${data.nom}" modifiée`,
     objetHref: `/sessions/${id}`,
   });
+
+  // If product changed, inherit planifications from new product
+  const newProduitId = parsed.data.produit_id || null;
+  const oldProduitId = oldSession?.produit_id || null;
+  if (newProduitId && newProduitId !== oldProduitId) {
+    await inheritProductPlanifications(id, newProduitId);
+  }
+
+  // If dates changed, recalculate non-customized planifications
+  const newDateDebut = parsed.data.date_debut || null;
+  const newDateFin = parsed.data.date_fin || null;
+  const datesChanged =
+    newDateDebut !== (oldSession?.date_debut || null) ||
+    newDateFin !== (oldSession?.date_fin || null);
+  if (datesChanged) {
+    await recalculateSessionPlanifications(id, newDateDebut, newDateFin);
+  }
 
   revalidatePath("/sessions");
   revalidatePath(`/sessions/${id}`);
