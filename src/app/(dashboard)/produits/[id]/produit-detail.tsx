@@ -80,6 +80,9 @@ import {
   addArticle,
   updateArticle,
   deleteArticle,
+  addReferenceBiblio,
+  updateReferenceBiblio,
+  deleteReferenceBiblio,
   addProduitQuestionnaire,
   updateProduitQuestionnaire,
   removeProduitQuestionnaire,
@@ -88,8 +91,16 @@ import {
   type ProgrammeModuleInput,
   type OuvrageInput,
   type ArticleInput,
+  type ReferenceBiblioInput,
   type ProduitQuestionnaire,
 } from "@/actions/produits";
+import {
+  formatAPA7,
+  sortReferencesAPA7,
+  REFERENCE_TYPE_LABELS,
+  type ReferenceBiblio,
+  type ReferenceType,
+} from "@/lib/apa7";
 import {
   upsertProductPlanification,
   type PlanificationConfig,
@@ -431,6 +442,7 @@ export function ProduitDetail({
   financement: initialFinancement,
   ouvrages: initialOuvrages,
   articles: initialArticles,
+  referencesBiblio: initialReferencesBiblio,
   bpfSpecialites,
   produitQuestionnaires: initialProduitQuestionnaires,
   allQuestionnaires: initialAllQuestionnaires,
@@ -447,6 +459,7 @@ export function ProduitDetail({
   financement: ListItem[];
   ouvrages: Ouvrage[];
   articles: Article[];
+  referencesBiblio: ReferenceBiblio[];
   bpfSpecialites: BpfSpecialite[];
   produitQuestionnaires: ProduitQuestionnaire[];
   allQuestionnaires: AllQuestionnaire[];
@@ -466,8 +479,8 @@ export function ProduitDetail({
   const imageInputRef = React.useRef<HTMLInputElement>(null);
   const formRef = React.useRef<HTMLFormElement>(null);
 
-  // Whether biblio tab should show (only if there are ouvrages or articles)
-  const hasBiblio = initialOuvrages.length > 0 || initialArticles.length > 0;
+  // Whether legacy biblio data exists
+  const hasLegacyBiblio = initialOuvrages.length > 0 || initialArticles.length > 0;
 
   // ─── Hierarchical categories state ─────────────────────
   const hasCatalogueCategories = catalogueCategories.length > 0;
@@ -806,12 +819,15 @@ export function ProduitDetail({
                     </span>
                   )}
                 </TabsTrigger>
-                {hasBiblio && (
-                  <TabsTrigger value="biblio" className="text-xs gap-1.5">
-                    <BookMarked className="h-3 w-3" />
-                    Biblio
-                  </TabsTrigger>
-                )}
+                <TabsTrigger value="biblio" className="text-xs gap-1.5">
+                  <BookMarked className="h-3 w-3" />
+                  Biblio
+                  {initialReferencesBiblio.length > 0 && (
+                    <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary/10 px-1 text-[10px] font-medium text-primary">
+                      {initialReferencesBiblio.length}
+                    </span>
+                  )}
+                </TabsTrigger>
                 <TabsTrigger value="taches" className="text-xs">
                   Tâches
                 </TabsTrigger>
@@ -1292,11 +1308,15 @@ export function ProduitDetail({
               </TabsContent>
 
               {/* ═══ Tab: Biblio ═══ */}
-              {hasBiblio && (
-                <TabsContent value="biblio" className="mt-6">
-                  <BiblioTab produitId={produit.id} ouvrages={initialOuvrages} articles={initialArticles} />
-                </TabsContent>
-              )}
+              <TabsContent value="biblio" className="mt-6">
+                <BiblioTab
+                  produitId={produit.id}
+                  ouvrages={initialOuvrages}
+                  articles={initialArticles}
+                  referencesBiblio={initialReferencesBiblio}
+                  hasLegacyBiblio={hasLegacyBiblio}
+                />
+              </TabsContent>
 
               {/* ═══ Tab: Tâches ═══ */}
               <TabsContent value="taches" className="mt-6">
@@ -3139,31 +3159,173 @@ function SchedulingConfigPanel({
 
 // ─── Biblio Tab ─────────────────────────────────────────
 
+const EMPTY_REF_FORM: ReferenceBiblioInput = {
+  type_reference: "livre",
+  auteurs: "",
+  auteur_institutionnel: false,
+  annee: "",
+  titre: "",
+  titre_ouvrage_parent: "",
+  editeurs: "",
+  titre_revue: "",
+  editeur: "",
+  volume: "",
+  numero: "",
+  pages: "",
+  edition: "",
+  doi: "",
+  url: "",
+  date_consultation: "",
+  notes: "",
+};
+
+/** Which fields are visible for each reference type */
+const FIELD_VISIBILITY: Record<ReferenceType, Set<string>> = {
+  livre: new Set(["auteurs", "auteur_institutionnel", "annee", "titre", "editeur", "edition", "doi", "url", "notes"]),
+  article_revue: new Set(["auteurs", "auteur_institutionnel", "annee", "titre", "titre_revue", "volume", "numero", "pages", "doi", "url", "notes"]),
+  chapitre_livre: new Set(["auteurs", "auteur_institutionnel", "annee", "titre", "titre_ouvrage_parent", "editeurs", "editeur", "edition", "pages", "doi", "url", "notes"]),
+  rapport: new Set(["auteurs", "auteur_institutionnel", "annee", "titre", "editeur", "doi", "url", "notes"]),
+  site_web: new Set(["auteurs", "auteur_institutionnel", "annee", "titre", "editeur", "url", "date_consultation", "notes"]),
+  these: new Set(["auteurs", "annee", "titre", "doi", "url", "notes"]),
+  conference: new Set(["auteurs", "annee", "titre", "doi", "url", "notes"]),
+};
+
 function BiblioTab({
   produitId,
   ouvrages,
   articles,
+  referencesBiblio,
+  hasLegacyBiblio,
 }: {
   produitId: string;
   ouvrages: Ouvrage[];
   articles: Article[];
+  referencesBiblio: ReferenceBiblio[];
+  hasLegacyBiblio: boolean;
 }) {
   const router = useRouter();
   const { toast } = useToast();
 
-  // Ouvrages state
+  // ─── APA 7 References state ─────────────────────────────
+  const [addDialogOpen, setAddDialogOpen] = React.useState(false);
+  const [savingRef, setSavingRef] = React.useState(false);
+  const [refForm, setRefForm] = React.useState<ReferenceBiblioInput>({ ...EMPTY_REF_FORM });
+  const [editingRefId, setEditingRefId] = React.useState<string | null>(null);
+  const [legacyExpanded, setLegacyExpanded] = React.useState(false);
+
+  // Legacy ouvrages state
   const [addingOuvrage, setAddingOuvrage] = React.useState(false);
   const [savingOuvrage, setSavingOuvrage] = React.useState(false);
   const [editingOuvrageId, setEditingOuvrageId] = React.useState<string | null>(null);
   const [editingOuvrageData, setEditingOuvrageData] = React.useState<OuvrageInput>({ titre: "" });
 
-  // Articles state
+  // Legacy articles state
   const [addingArticle, setAddingArticle] = React.useState(false);
   const [savingArticle, setSavingArticle] = React.useState(false);
   const [editingArticleId, setEditingArticleId] = React.useState<string | null>(null);
   const [editingArticleData, setEditingArticleData] = React.useState<ArticleInput>({ titre: "" });
 
-  // Ouvrages handlers
+  const visibleFields = FIELD_VISIBILITY[(refForm.type_reference || "livre") as ReferenceType] ?? FIELD_VISIBILITY.livre;
+  const isFieldVisible = (field: string) => visibleFields.has(field);
+
+  const sortedRefs = React.useMemo(() => sortReferencesAPA7(referencesBiblio), [referencesBiblio]);
+
+  // Build live preview
+  const livePreview = React.useMemo(() => {
+    if (!refForm.titre?.trim()) return "";
+    const previewRef: ReferenceBiblio = {
+      id: "preview",
+      type_reference: (refForm.type_reference || "livre") as ReferenceType,
+      auteurs: refForm.auteurs || null,
+      auteur_institutionnel: refForm.auteur_institutionnel ?? false,
+      annee: refForm.annee || null,
+      titre: refForm.titre || "",
+      titre_ouvrage_parent: refForm.titre_ouvrage_parent || null,
+      editeurs: refForm.editeurs || null,
+      titre_revue: refForm.titre_revue || null,
+      editeur: refForm.editeur || null,
+      volume: refForm.volume || null,
+      numero: refForm.numero || null,
+      pages: refForm.pages || null,
+      edition: refForm.edition || null,
+      doi: refForm.doi || null,
+      url: refForm.url || null,
+      date_consultation: refForm.date_consultation || null,
+      ordre: 0,
+      notes: null,
+    };
+    return formatAPA7(previewRef);
+  }, [refForm]);
+
+  // ─── APA 7 handlers ─────────────────────────────────────
+
+  const handleOpenAddRef = () => {
+    setRefForm({ ...EMPTY_REF_FORM });
+    setEditingRefId(null);
+    setAddDialogOpen(true);
+  };
+
+  const handleOpenEditRef = (ref: ReferenceBiblio) => {
+    setRefForm({
+      type_reference: ref.type_reference,
+      auteurs: ref.auteurs ?? "",
+      auteur_institutionnel: ref.auteur_institutionnel,
+      annee: ref.annee ?? "",
+      titre: ref.titre,
+      titre_ouvrage_parent: ref.titre_ouvrage_parent ?? "",
+      editeurs: ref.editeurs ?? "",
+      titre_revue: ref.titre_revue ?? "",
+      editeur: ref.editeur ?? "",
+      volume: ref.volume ?? "",
+      numero: ref.numero ?? "",
+      pages: ref.pages ?? "",
+      edition: ref.edition ?? "",
+      doi: ref.doi ?? "",
+      url: ref.url ?? "",
+      date_consultation: ref.date_consultation ?? "",
+      notes: ref.notes ?? "",
+    });
+    setEditingRefId(ref.id);
+    setAddDialogOpen(true);
+  };
+
+  const handleSaveRef = async () => {
+    if (!refForm.titre?.trim()) {
+      toast({ title: "Le titre est requis", variant: "destructive" });
+      return;
+    }
+    setSavingRef(true);
+    if (editingRefId) {
+      const result = await updateReferenceBiblio(editingRefId, produitId, refForm);
+      setSavingRef(false);
+      if (result.error) {
+        toast({ title: "Erreur", description: result.error, variant: "destructive" });
+        return;
+      }
+    } else {
+      const result = await addReferenceBiblio(produitId, refForm);
+      setSavingRef(false);
+      if (result.error) {
+        toast({ title: "Erreur", description: result.error, variant: "destructive" });
+        return;
+      }
+    }
+    setAddDialogOpen(false);
+    setEditingRefId(null);
+    router.refresh();
+  };
+
+  const handleDeleteRef = async (refId: string) => {
+    const result = await deleteReferenceBiblio(refId, produitId);
+    if (result.error) {
+      toast({ title: "Erreur", variant: "destructive" });
+      return;
+    }
+    router.refresh();
+  };
+
+  // ─── Legacy ouvrages handlers ───────────────────────────
+
   const handleAddOuvrage = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     e.stopPropagation();
@@ -3187,12 +3349,7 @@ function BiblioTab({
 
   const handleStartEditOuvrage = (o: Ouvrage) => {
     setEditingOuvrageId(o.id);
-    setEditingOuvrageData({
-      auteurs: o.auteurs ?? "",
-      titre: o.titre,
-      annee: o.annee ?? "",
-      source_editeur: o.source_editeur ?? "",
-    });
+    setEditingOuvrageData({ auteurs: o.auteurs ?? "", titre: o.titre, annee: o.annee ?? "", source_editeur: o.source_editeur ?? "" });
   };
 
   const handleSaveEditOuvrage = async () => {
@@ -3207,7 +3364,8 @@ function BiblioTab({
     router.refresh();
   };
 
-  // Articles handlers
+  // ─── Legacy articles handlers ───────────────────────────
+
   const handleAddArticle = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     e.stopPropagation();
@@ -3232,13 +3390,7 @@ function BiblioTab({
 
   const handleStartEditArticle = (a: Article) => {
     setEditingArticleId(a.id);
-    setEditingArticleData({
-      auteurs: a.auteurs ?? "",
-      titre: a.titre,
-      source_revue: a.source_revue ?? "",
-      annee: a.annee ?? "",
-      doi: a.doi ?? "",
-    });
+    setEditingArticleData({ auteurs: a.auteurs ?? "", titre: a.titre, source_revue: a.source_revue ?? "", annee: a.annee ?? "", doi: a.doi ?? "" });
   };
 
   const handleSaveEditArticle = async () => {
@@ -3253,262 +3405,602 @@ function BiblioTab({
     router.refresh();
   };
 
+  const updateRefField = (field: string, value: string | boolean) => {
+    setRefForm((prev) => ({ ...prev, [field]: value }));
+  };
+
   return (
     <div className="space-y-8">
-      {/* Ouvrages et traités de référence */}
-      <div className="rounded-lg border border-border/60 bg-card p-6 space-y-5">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <SectionTitle icon={<BookOpen className="h-4 w-4 text-primary" />}>
-                Ouvrages et traités de référence
-              </SectionTitle>
-              <Badge variant="outline" className="text-[10px]">{ouvrages.length} référence{ouvrages.length > 1 ? "s" : ""}</Badge>
-            </div>
-            <p className="text-xs text-muted-foreground/60 mt-1">Livres et manuels de référence utilisés pour cette formation</p>
-          </div>
-          <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setAddingOuvrage(true)} type="button">
-            <Plus className="mr-1 h-3 w-3" />
-            Ajouter un ouvrage
-          </Button>
-        </div>
-
-        {addingOuvrage && (
-          <form onSubmit={handleAddOuvrage} className="rounded-lg border border-primary/20 bg-muted/30 p-4 space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-[11px]">Auteur(s)</Label>
-                <Input name="ouvrage_auteurs" placeholder="Elsevier Masson." className="h-8 text-sm border-border/60" />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-[11px]">Titre *</Label>
-                <Input name="ouvrage_titre" required placeholder="Titre de l'ouvrage" className="h-8 text-sm border-border/60" />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-[11px]">Année</Label>
-                <Input name="ouvrage_annee" placeholder="2021" className="h-8 text-sm border-border/60" />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-[11px]">Source / Éditeur</Label>
-                <Input name="ouvrage_source" placeholder="Dans EMC Podologie, EM Consulte." className="h-8 text-sm border-border/60" />
-              </div>
-            </div>
-            <div className="flex items-center gap-2 justify-end">
-              <Button type="button" variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => setAddingOuvrage(false)}>Annuler</Button>
-              <Button type="submit" size="sm" className="h-7 text-[11px]" disabled={savingOuvrage}>
-                {savingOuvrage ? <Loader2 className="h-3 w-3 animate-spin" /> : "Ajouter"}
-              </Button>
-            </div>
-          </form>
-        )}
-
-        {ouvrages.map((o, idx) => (
-          <div key={o.id} className="rounded-lg border border-border/60 bg-muted/20 p-4 space-y-3 group">
-            <div className="flex items-center justify-between">
-              <h4 className="text-xs font-semibold text-muted-foreground">Ouvrage {idx + 1}</h4>
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => handleStartEditOuvrage(o)} type="button">
-                  <Pencil className="h-3 w-3" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteOuvrage(o.id)} type="button">
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              </div>
-            </div>
-            {editingOuvrageId === o.id ? (
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-[11px]">Auteur(s)</Label>
-                    <Input value={editingOuvrageData.auteurs ?? ""} onChange={(e) => setEditingOuvrageData((p) => ({ ...p, auteurs: e.target.value }))} className="h-8 text-sm border-border/60" />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[11px]">Titre</Label>
-                    <Input value={editingOuvrageData.titre} onChange={(e) => setEditingOuvrageData((p) => ({ ...p, titre: e.target.value }))} className="h-8 text-sm border-border/60" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-[11px]">Année</Label>
-                    <Input value={editingOuvrageData.annee ?? ""} onChange={(e) => setEditingOuvrageData((p) => ({ ...p, annee: e.target.value }))} className="h-8 text-sm border-border/60" />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[11px]">Source / Éditeur</Label>
-                    <Input value={editingOuvrageData.source_editeur ?? ""} onChange={(e) => setEditingOuvrageData((p) => ({ ...p, source_editeur: e.target.value }))} className="h-8 text-sm border-border/60" />
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 justify-end">
-                  <Button type="button" variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => setEditingOuvrageId(null)}>Annuler</Button>
-                  <Button type="button" size="sm" className="h-7 text-[11px]" onClick={handleSaveEditOuvrage}>
-                    <Check className="h-3 w-3 mr-1" />
-                    Enregistrer
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-[10px] text-muted-foreground/60">Auteur(s)</Label>
-                  <p className="text-sm">{o.auteurs || <span className="text-muted-foreground/40 italic">—</span>}</p>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px] text-muted-foreground/60">Titre</Label>
-                  <p className="text-sm">{o.titre}</p>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px] text-muted-foreground/60">Année</Label>
-                  <p className="text-sm">{o.annee || <span className="text-muted-foreground/40 italic">—</span>}</p>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px] text-muted-foreground/60">Source / Éditeur</Label>
-                  <p className="text-sm">{o.source_editeur || <span className="text-muted-foreground/40 italic">—</span>}</p>
-                </div>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* Articles scientifiques */}
+      {/* ═══ Section 1 — Références bibliographiques APA 7 ═══ */}
       <div className="rounded-lg border border-border/60 bg-card p-6 space-y-5">
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
               <SectionTitle icon={<BookMarked className="h-4 w-4 text-primary" />}>
-                Articles scientifiques
+                Références bibliographiques
               </SectionTitle>
-              <Badge variant="outline" className="text-[10px]">{articles.length} article{articles.length > 1 ? "s" : ""}</Badge>
+              <Badge variant="outline" className="text-[10px]">
+                {referencesBiblio.length} référence{referencesBiblio.length > 1 ? "s" : ""}
+              </Badge>
             </div>
-            <p className="text-xs text-muted-foreground/60 mt-1">Publications et articles de recherche</p>
+            <p className="text-xs text-muted-foreground/60 mt-1">
+              Norme APA 7e édition — tri alphabétique automatique
+            </p>
           </div>
-          <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setAddingArticle(true)} type="button">
+          <Button size="sm" variant="outline" className="h-8 text-xs" onClick={handleOpenAddRef} type="button">
             <Plus className="mr-1 h-3 w-3" />
-            Ajouter un article
+            Ajouter une référence
           </Button>
         </div>
 
-        {addingArticle && (
-          <form onSubmit={handleAddArticle} className="rounded-lg border border-primary/20 bg-muted/30 p-4 space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-[11px]">Auteur(s)</Label>
-                <Input name="article_auteurs" placeholder="Chevallier, T. L., Hodgins, H., ..." className="h-8 text-sm border-border/60" />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-[11px]">Titre de l&apos;article *</Label>
-                <Input name="article_titre" required placeholder="Titre de l'article" className="h-8 text-sm border-border/60" />
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="space-y-1">
-                <Label className="text-[11px]">Source / Revue</Label>
-                <Input name="article_source" placeholder="Clinical Biomechanics, 18(8), 679-687." className="h-8 text-sm border-border/60" />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-[11px]">Année</Label>
-                <Input name="article_annee" placeholder="2010" className="h-8 text-sm border-border/60" />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-[11px]">DOI</Label>
-                <Input name="article_doi" placeholder="https://doi.org/10.1016/..." className="h-8 text-sm border-border/60" />
-              </div>
-            </div>
-            <div className="flex items-center gap-2 justify-end">
-              <Button type="button" variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => setAddingArticle(false)}>Annuler</Button>
-              <Button type="submit" size="sm" className="h-7 text-[11px]" disabled={savingArticle}>
-                {savingArticle ? <Loader2 className="h-3 w-3 animate-spin" /> : "Ajouter"}
-              </Button>
-            </div>
-          </form>
+        {sortedRefs.length === 0 && (
+          <div className="rounded-lg border border-dashed border-border/40 p-8 text-center">
+            <BookMarked className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground/60">Aucune référence bibliographique</p>
+            <p className="text-xs text-muted-foreground/40 mt-1">Ajoutez des références pour renforcer la crédibilité académique de cette formation</p>
+          </div>
         )}
 
-        {articles.map((a, idx) => (
-          <div key={a.id} className="rounded-lg border border-border/60 bg-muted/20 p-4 space-y-3 group">
-            <div className="flex items-center justify-between">
-              <h4 className="text-xs font-semibold text-muted-foreground">Article {idx + 1}</h4>
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => handleStartEditArticle(a)} type="button">
+        {sortedRefs.map((ref) => (
+          <div key={ref.id} className="rounded-lg border border-border/60 bg-muted/20 p-4 group">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge variant="secondary" className="text-[10px] shrink-0">
+                    {REFERENCE_TYPE_LABELS[ref.type_reference] || ref.type_reference}
+                  </Badge>
+                </div>
+                <p
+                  className="text-sm leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: formatAPA7(ref) }}
+                />
+                {ref.notes && (
+                  <p className="text-xs text-muted-foreground/50 mt-2 italic">{ref.notes}</p>
+                )}
+              </div>
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => handleOpenEditRef(ref)} type="button">
                   <Pencil className="h-3 w-3" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteArticle(a.id)} type="button">
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteRef(ref.id)} type="button">
                   <Trash2 className="h-3 w-3" />
                 </Button>
               </div>
             </div>
-            {editingArticleId === a.id ? (
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-[11px]">Auteur(s)</Label>
-                    <Input value={editingArticleData.auteurs ?? ""} onChange={(e) => setEditingArticleData((p) => ({ ...p, auteurs: e.target.value }))} className="h-8 text-sm border-border/60" />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[11px]">Titre de l&apos;article</Label>
-                    <Input value={editingArticleData.titre} onChange={(e) => setEditingArticleData((p) => ({ ...p, titre: e.target.value }))} className="h-8 text-sm border-border/60" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-[11px]">Source / Revue</Label>
-                    <Input value={editingArticleData.source_revue ?? ""} onChange={(e) => setEditingArticleData((p) => ({ ...p, source_revue: e.target.value }))} className="h-8 text-sm border-border/60" />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[11px]">Année</Label>
-                    <Input value={editingArticleData.annee ?? ""} onChange={(e) => setEditingArticleData((p) => ({ ...p, annee: e.target.value }))} className="h-8 text-sm border-border/60" />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[11px]">DOI</Label>
-                    <Input value={editingArticleData.doi ?? ""} onChange={(e) => setEditingArticleData((p) => ({ ...p, doi: e.target.value }))} className="h-8 text-sm border-border/60" />
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 justify-end">
-                  <Button type="button" variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => setEditingArticleId(null)}>Annuler</Button>
-                  <Button type="button" size="sm" className="h-7 text-[11px]" onClick={handleSaveEditArticle}>
-                    <Check className="h-3 w-3 mr-1" />
-                    Enregistrer
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-[10px] text-muted-foreground/60">Auteur(s)</Label>
-                    <p className="text-sm">{a.auteurs || <span className="text-muted-foreground/40 italic">—</span>}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[10px] text-muted-foreground/60">Titre de l&apos;article</Label>
-                    <p className="text-sm">{a.titre}</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-[10px] text-muted-foreground/60">Source / Revue</Label>
-                    <p className="text-sm">{a.source_revue || <span className="text-muted-foreground/40 italic">—</span>}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[10px] text-muted-foreground/60">Année</Label>
-                    <p className="text-sm">{a.annee || <span className="text-muted-foreground/40 italic">—</span>}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[10px] text-muted-foreground/60">DOI</Label>
-                    {a.doi ? (
-                      <a href={a.doi.startsWith("http") ? a.doi : `https://doi.org/${a.doi}`} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1">
-                        {a.doi}
-                        <ExternalLink className="h-3 w-3 shrink-0" />
-                      </a>
-                    ) : (
-                      <p className="text-sm text-muted-foreground/40 italic">—</p>
-                    )}
-                  </div>
-                </div>
-              </>
-            )}
           </div>
         ))}
       </div>
+
+      {/* ═══ Dialog: Ajouter / Modifier une référence ═══ */}
+      <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogTitle className="text-base font-semibold">
+            {editingRefId ? "Modifier la référence" : "Ajouter une référence bibliographique"}
+          </DialogTitle>
+
+          <div className="space-y-4 mt-4">
+            {/* Type de référence */}
+            <div className="space-y-1">
+              <Label className="text-[11px]">Type de référence</Label>
+              <select
+                value={refForm.type_reference}
+                onChange={(e) => updateRefField("type_reference", e.target.value)}
+                className="h-8 w-full rounded-md border border-border/60 bg-background px-3 text-sm"
+              >
+                {(Object.entries(REFERENCE_TYPE_LABELS) as [ReferenceType, string][]).map(([value, label]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Auteur(s) + toggle institutionnel */}
+            {isFieldVisible("auteurs") && (
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <Label className="text-[11px]">Auteur(s)</Label>
+                  {isFieldVisible("auteur_institutionnel") && (
+                    <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={refForm.auteur_institutionnel ?? false}
+                        onChange={(e) => updateRefField("auteur_institutionnel", e.target.checked)}
+                        className="h-3 w-3 rounded"
+                      />
+                      Auteur institutionnel
+                    </label>
+                  )}
+                </div>
+                <Input
+                  value={refForm.auteurs ?? ""}
+                  onChange={(e) => updateRefField("auteurs", e.target.value)}
+                  placeholder={refForm.auteur_institutionnel ? "Organisation mondiale de la Santé" : "Dupont, J., & Martin, A. B."}
+                  className="h-8 text-sm border-border/60"
+                />
+              </div>
+            )}
+
+            {/* Année */}
+            {isFieldVisible("annee") && (
+              <div className="space-y-1">
+                <Label className="text-[11px]">Année de publication</Label>
+                <Input
+                  value={refForm.annee ?? ""}
+                  onChange={(e) => updateRefField("annee", e.target.value)}
+                  placeholder="2023 (ou s.d. si inconnue)"
+                  className="h-8 text-sm border-border/60 w-40"
+                />
+              </div>
+            )}
+
+            {/* Titre */}
+            {isFieldVisible("titre") && (
+              <div className="space-y-1">
+                <Label className="text-[11px]">Titre *</Label>
+                <Input
+                  value={refForm.titre ?? ""}
+                  onChange={(e) => updateRefField("titre", e.target.value)}
+                  placeholder="Titre de l'ouvrage / article"
+                  required
+                  className="h-8 text-sm border-border/60"
+                />
+              </div>
+            )}
+
+            {/* Titre revue (article_revue) */}
+            {isFieldVisible("titre_revue") && (
+              <div className="space-y-1">
+                <Label className="text-[11px]">Titre de la revue</Label>
+                <Input
+                  value={refForm.titre_revue ?? ""}
+                  onChange={(e) => updateRefField("titre_revue", e.target.value)}
+                  placeholder="Clinical Biomechanics"
+                  className="h-8 text-sm border-border/60"
+                />
+              </div>
+            )}
+
+            {/* Volume / Numéro / Pages (en ligne) */}
+            {(isFieldVisible("volume") || isFieldVisible("numero") || isFieldVisible("pages")) && (
+              <div className="grid grid-cols-3 gap-3">
+                {isFieldVisible("volume") && (
+                  <div className="space-y-1">
+                    <Label className="text-[11px]">Volume</Label>
+                    <Input
+                      value={refForm.volume ?? ""}
+                      onChange={(e) => updateRefField("volume", e.target.value)}
+                      placeholder="18"
+                      className="h-8 text-sm border-border/60"
+                    />
+                  </div>
+                )}
+                {isFieldVisible("numero") && (
+                  <div className="space-y-1">
+                    <Label className="text-[11px]">Numéro</Label>
+                    <Input
+                      value={refForm.numero ?? ""}
+                      onChange={(e) => updateRefField("numero", e.target.value)}
+                      placeholder="8"
+                      className="h-8 text-sm border-border/60"
+                    />
+                  </div>
+                )}
+                {isFieldVisible("pages") && (
+                  <div className="space-y-1">
+                    <Label className="text-[11px]">Pages</Label>
+                    <Input
+                      value={refForm.pages ?? ""}
+                      onChange={(e) => updateRefField("pages", e.target.value)}
+                      placeholder="679-687"
+                      className="h-8 text-sm border-border/60"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Titre ouvrage parent (chapitre) */}
+            {isFieldVisible("titre_ouvrage_parent") && (
+              <div className="space-y-1">
+                <Label className="text-[11px]">Titre de l&apos;ouvrage contenant</Label>
+                <Input
+                  value={refForm.titre_ouvrage_parent ?? ""}
+                  onChange={(e) => updateRefField("titre_ouvrage_parent", e.target.value)}
+                  placeholder="Manuel de médecine"
+                  className="h-8 text-sm border-border/60"
+                />
+              </div>
+            )}
+
+            {/* Éditeurs / Directeurs (chapitre) */}
+            {isFieldVisible("editeurs") && (
+              <div className="space-y-1">
+                <Label className="text-[11px]">Directeur(s) de l&apos;ouvrage</Label>
+                <Input
+                  value={refForm.editeurs ?? ""}
+                  onChange={(e) => updateRefField("editeurs", e.target.value)}
+                  placeholder="A. Bernard & C. Petit (Éds.)"
+                  className="h-8 text-sm border-border/60"
+                />
+              </div>
+            )}
+
+            {/* Éditeur / Édition */}
+            {(isFieldVisible("editeur") || isFieldVisible("edition")) && (
+              <div className="grid grid-cols-2 gap-3">
+                {isFieldVisible("editeur") && (
+                  <div className="space-y-1">
+                    <Label className="text-[11px]">Éditeur / Maison d&apos;édition</Label>
+                    <Input
+                      value={refForm.editeur ?? ""}
+                      onChange={(e) => updateRefField("editeur", e.target.value)}
+                      placeholder="Elsevier Masson"
+                      className="h-8 text-sm border-border/60"
+                    />
+                  </div>
+                )}
+                {isFieldVisible("edition") && (
+                  <div className="space-y-1">
+                    <Label className="text-[11px]">Édition</Label>
+                    <Input
+                      value={refForm.edition ?? ""}
+                      onChange={(e) => updateRefField("edition", e.target.value)}
+                      placeholder="2e éd."
+                      className="h-8 text-sm border-border/60"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* DOI / URL */}
+            {(isFieldVisible("doi") || isFieldVisible("url")) && (
+              <div className="grid grid-cols-2 gap-3">
+                {isFieldVisible("doi") && (
+                  <div className="space-y-1">
+                    <Label className="text-[11px]">DOI</Label>
+                    <Input
+                      value={refForm.doi ?? ""}
+                      onChange={(e) => updateRefField("doi", e.target.value)}
+                      placeholder="10.1016/j.clinbiomech.2003.06.001"
+                      className="h-8 text-sm border-border/60"
+                    />
+                  </div>
+                )}
+                {isFieldVisible("url") && (
+                  <div className="space-y-1">
+                    <Label className="text-[11px]">URL</Label>
+                    <Input
+                      value={refForm.url ?? ""}
+                      onChange={(e) => updateRefField("url", e.target.value)}
+                      placeholder="https://..."
+                      className="h-8 text-sm border-border/60"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Date de consultation (site_web) */}
+            {isFieldVisible("date_consultation") && (
+              <div className="space-y-1">
+                <Label className="text-[11px]">Date de consultation</Label>
+                <Input
+                  type="date"
+                  value={refForm.date_consultation ?? ""}
+                  onChange={(e) => updateRefField("date_consultation", e.target.value)}
+                  className="h-8 text-sm border-border/60 w-48"
+                />
+              </div>
+            )}
+
+            {/* Notes */}
+            {isFieldVisible("notes") && (
+              <div className="space-y-1">
+                <Label className="text-[11px]">Notes (optionnel)</Label>
+                <Input
+                  value={refForm.notes ?? ""}
+                  onChange={(e) => updateRefField("notes", e.target.value)}
+                  placeholder="Notes internes (non incluses dans la citation)"
+                  className="h-8 text-sm border-border/60"
+                />
+              </div>
+            )}
+
+            {/* Live APA 7 preview */}
+            {livePreview && (
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-1">
+                <Label className="text-[10px] text-primary/70 uppercase tracking-wider">Aperçu APA 7</Label>
+                <p
+                  className="text-sm leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: livePreview }}
+                />
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex items-center gap-2 justify-end pt-2">
+              <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={() => setAddDialogOpen(false)}>
+                Annuler
+              </Button>
+              <Button type="button" size="sm" className="h-8 text-xs" onClick={handleSaveRef} disabled={savingRef}>
+                {savingRef ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+                {editingRefId ? "Enregistrer" : "Ajouter"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ═══ Section 2 — Anciennes références (legacy) ═══ */}
+      {hasLegacyBiblio && (
+        <div className="rounded-lg border border-border/40 bg-card/50 overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setLegacyExpanded(!legacyExpanded)}
+            className="w-full flex items-center justify-between px-6 py-3 text-xs text-muted-foreground/70 hover:text-muted-foreground transition-colors"
+          >
+            <span>Anciennes références ({ouvrages.length + articles.length})</span>
+            {legacyExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+          </button>
+
+          {legacyExpanded && (
+            <div className="px-6 pb-6 space-y-8">
+              {/* Legacy Ouvrages */}
+              <div className="space-y-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <SectionTitle icon={<BookOpen className="h-4 w-4 text-primary" />}>
+                        Ouvrages et traités de référence
+                      </SectionTitle>
+                      <Badge variant="outline" className="text-[10px]">{ouvrages.length} référence{ouvrages.length > 1 ? "s" : ""}</Badge>
+                    </div>
+                  </div>
+                  <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setAddingOuvrage(true)} type="button">
+                    <Plus className="mr-1 h-3 w-3" />
+                    Ajouter un ouvrage
+                  </Button>
+                </div>
+
+                {addingOuvrage && (
+                  <form onSubmit={handleAddOuvrage} className="rounded-lg border border-primary/20 bg-muted/30 p-4 space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-[11px]">Auteur(s)</Label>
+                        <Input name="ouvrage_auteurs" placeholder="Elsevier Masson." className="h-8 text-sm border-border/60" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[11px]">Titre *</Label>
+                        <Input name="ouvrage_titre" required placeholder="Titre de l'ouvrage" className="h-8 text-sm border-border/60" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-[11px]">Année</Label>
+                        <Input name="ouvrage_annee" placeholder="2021" className="h-8 text-sm border-border/60" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[11px]">Source / Éditeur</Label>
+                        <Input name="ouvrage_source" placeholder="Dans EMC Podologie, EM Consulte." className="h-8 text-sm border-border/60" />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 justify-end">
+                      <Button type="button" variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => setAddingOuvrage(false)}>Annuler</Button>
+                      <Button type="submit" size="sm" className="h-7 text-[11px]" disabled={savingOuvrage}>
+                        {savingOuvrage ? <Loader2 className="h-3 w-3 animate-spin" /> : "Ajouter"}
+                      </Button>
+                    </div>
+                  </form>
+                )}
+
+                {ouvrages.map((o, idx) => (
+                  <div key={o.id} className="rounded-lg border border-border/60 bg-muted/20 p-4 space-y-3 group">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-semibold text-muted-foreground">Ouvrage {idx + 1}</h4>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => handleStartEditOuvrage(o)} type="button">
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteOuvrage(o.id)} type="button">
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                    {editingOuvrageId === o.id ? (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label className="text-[11px]">Auteur(s)</Label>
+                            <Input value={editingOuvrageData.auteurs ?? ""} onChange={(e) => setEditingOuvrageData((p) => ({ ...p, auteurs: e.target.value }))} className="h-8 text-sm border-border/60" />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-[11px]">Titre</Label>
+                            <Input value={editingOuvrageData.titre} onChange={(e) => setEditingOuvrageData((p) => ({ ...p, titre: e.target.value }))} className="h-8 text-sm border-border/60" />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label className="text-[11px]">Année</Label>
+                            <Input value={editingOuvrageData.annee ?? ""} onChange={(e) => setEditingOuvrageData((p) => ({ ...p, annee: e.target.value }))} className="h-8 text-sm border-border/60" />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-[11px]">Source / Éditeur</Label>
+                            <Input value={editingOuvrageData.source_editeur ?? ""} onChange={(e) => setEditingOuvrageData((p) => ({ ...p, source_editeur: e.target.value }))} className="h-8 text-sm border-border/60" />
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 justify-end">
+                          <Button type="button" variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => setEditingOuvrageId(null)}>Annuler</Button>
+                          <Button type="button" size="sm" className="h-7 text-[11px]" onClick={handleSaveEditOuvrage}>
+                            <Check className="h-3 w-3 mr-1" />
+                            Enregistrer
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-[10px] text-muted-foreground/60">Auteur(s)</Label>
+                          <p className="text-sm">{o.auteurs || <span className="text-muted-foreground/40 italic">—</span>}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[10px] text-muted-foreground/60">Titre</Label>
+                          <p className="text-sm">{o.titre}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[10px] text-muted-foreground/60">Année</Label>
+                          <p className="text-sm">{o.annee || <span className="text-muted-foreground/40 italic">—</span>}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[10px] text-muted-foreground/60">Source / Éditeur</Label>
+                          <p className="text-sm">{o.source_editeur || <span className="text-muted-foreground/40 italic">—</span>}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Legacy Articles */}
+              <div className="space-y-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <SectionTitle icon={<BookMarked className="h-4 w-4 text-primary" />}>
+                        Articles scientifiques
+                      </SectionTitle>
+                      <Badge variant="outline" className="text-[10px]">{articles.length} article{articles.length > 1 ? "s" : ""}</Badge>
+                    </div>
+                  </div>
+                  <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setAddingArticle(true)} type="button">
+                    <Plus className="mr-1 h-3 w-3" />
+                    Ajouter un article
+                  </Button>
+                </div>
+
+                {addingArticle && (
+                  <form onSubmit={handleAddArticle} className="rounded-lg border border-primary/20 bg-muted/30 p-4 space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-[11px]">Auteur(s)</Label>
+                        <Input name="article_auteurs" placeholder="Chevallier, T. L., Hodgins, H., ..." className="h-8 text-sm border-border/60" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[11px]">Titre de l&apos;article *</Label>
+                        <Input name="article_titre" required placeholder="Titre de l'article" className="h-8 text-sm border-border/60" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-[11px]">Source / Revue</Label>
+                        <Input name="article_source" placeholder="Clinical Biomechanics, 18(8), 679-687." className="h-8 text-sm border-border/60" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[11px]">Année</Label>
+                        <Input name="article_annee" placeholder="2010" className="h-8 text-sm border-border/60" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[11px]">DOI</Label>
+                        <Input name="article_doi" placeholder="https://doi.org/10.1016/..." className="h-8 text-sm border-border/60" />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 justify-end">
+                      <Button type="button" variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => setAddingArticle(false)}>Annuler</Button>
+                      <Button type="submit" size="sm" className="h-7 text-[11px]" disabled={savingArticle}>
+                        {savingArticle ? <Loader2 className="h-3 w-3 animate-spin" /> : "Ajouter"}
+                      </Button>
+                    </div>
+                  </form>
+                )}
+
+                {articles.map((a, idx) => (
+                  <div key={a.id} className="rounded-lg border border-border/60 bg-muted/20 p-4 space-y-3 group">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-semibold text-muted-foreground">Article {idx + 1}</h4>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => handleStartEditArticle(a)} type="button">
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteArticle(a.id)} type="button">
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                    {editingArticleId === a.id ? (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label className="text-[11px]">Auteur(s)</Label>
+                            <Input value={editingArticleData.auteurs ?? ""} onChange={(e) => setEditingArticleData((p) => ({ ...p, auteurs: e.target.value }))} className="h-8 text-sm border-border/60" />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-[11px]">Titre de l&apos;article</Label>
+                            <Input value={editingArticleData.titre} onChange={(e) => setEditingArticleData((p) => ({ ...p, titre: e.target.value }))} className="h-8 text-sm border-border/60" />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-3">
+                          <div className="space-y-1">
+                            <Label className="text-[11px]">Source / Revue</Label>
+                            <Input value={editingArticleData.source_revue ?? ""} onChange={(e) => setEditingArticleData((p) => ({ ...p, source_revue: e.target.value }))} className="h-8 text-sm border-border/60" />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-[11px]">Année</Label>
+                            <Input value={editingArticleData.annee ?? ""} onChange={(e) => setEditingArticleData((p) => ({ ...p, annee: e.target.value }))} className="h-8 text-sm border-border/60" />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-[11px]">DOI</Label>
+                            <Input value={editingArticleData.doi ?? ""} onChange={(e) => setEditingArticleData((p) => ({ ...p, doi: e.target.value }))} className="h-8 text-sm border-border/60" />
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 justify-end">
+                          <Button type="button" variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => setEditingArticleId(null)}>Annuler</Button>
+                          <Button type="button" size="sm" className="h-7 text-[11px]" onClick={handleSaveEditArticle}>
+                            <Check className="h-3 w-3 mr-1" />
+                            Enregistrer
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label className="text-[10px] text-muted-foreground/60">Auteur(s)</Label>
+                            <p className="text-sm">{a.auteurs || <span className="text-muted-foreground/40 italic">—</span>}</p>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-[10px] text-muted-foreground/60">Titre de l&apos;article</Label>
+                            <p className="text-sm">{a.titre}</p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-3">
+                          <div className="space-y-1">
+                            <Label className="text-[10px] text-muted-foreground/60">Source / Revue</Label>
+                            <p className="text-sm">{a.source_revue || <span className="text-muted-foreground/40 italic">—</span>}</p>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-[10px] text-muted-foreground/60">Année</Label>
+                            <p className="text-sm">{a.annee || <span className="text-muted-foreground/40 italic">—</span>}</p>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-[10px] text-muted-foreground/60">DOI</Label>
+                            {a.doi ? (
+                              <a href={a.doi.startsWith("http") ? a.doi : `https://doi.org/${a.doi}`} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1">
+                                {a.doi}
+                                <ExternalLink className="h-3 w-3 shrink-0" />
+                              </a>
+                            ) : (
+                              <p className="text-sm text-muted-foreground/40 italic">—</p>
+                            )}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

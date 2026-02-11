@@ -7,6 +7,7 @@ import { logHistorique, logHistoriqueBatch } from "@/lib/historique";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { QueryFilter } from "@/lib/utils";
+import type { ReferenceBiblio } from "@/lib/apa7";
 
 // ─── Schemas ─────────────────────────────────────────────
 
@@ -655,7 +656,7 @@ export async function getProduits(
 export async function getProduit(id: string) {
   const orgResult = await getOrganisationId();
   if ("error" in orgResult) {
-    return { data: null, tarifs: [], objectifs: [], programme: [], prerequis: [], publicVise: [], competences: [], financement: [], ouvrages: [], articles: [], error: orgResult.error };
+    return { data: null, tarifs: [], objectifs: [], programme: [], prerequis: [], publicVise: [], competences: [], financement: [], ouvrages: [], articles: [], referencesBiblio: [], error: orgResult.error };
   }
   const { admin } = orgResult;
 
@@ -666,7 +667,7 @@ export async function getProduit(id: string) {
     .single();
 
   if (error) {
-    return { data: null, tarifs: [], objectifs: [], programme: [], prerequis: [], publicVise: [], competences: [], financement: [], ouvrages: [], articles: [], error: error.message };
+    return { data: null, tarifs: [], objectifs: [], programme: [], prerequis: [], publicVise: [], competences: [], financement: [], ouvrages: [], articles: [], referencesBiblio: [], error: error.message };
   }
 
   // Fetch core related data (tables from migration 00002)
@@ -712,6 +713,20 @@ export async function getProduit(id: string) {
     // Migration 00017 not applied yet
   }
 
+  // Fetch APA 7 references (table from migration 00034) — graceful fallback
+  let referencesBiblio: ReferenceBiblio[] = [];
+
+  try {
+    const refsResult = await admin
+      .from("produit_references_biblio")
+      .select("*")
+      .eq("produit_id", id)
+      .order("ordre", { ascending: true });
+    referencesBiblio = (refsResult.data ?? []) as ReferenceBiblio[];
+  } catch {
+    // Migration 00034 not applied yet
+  }
+
   return {
     data: produit,
     tarifs: tarifsResult.data ?? [],
@@ -723,6 +738,7 @@ export async function getProduit(id: string) {
     financement,
     ouvrages,
     articles,
+    referencesBiblio,
   };
 }
 
@@ -2064,6 +2080,176 @@ export async function deleteArticle(articleId: string, produitId: string) {
     entiteType: "produit",
     entiteId: produitId,
     description: `Article "${article?.titre ?? articleId}" supprimé de la bibliographie`,
+    objetHref: `/produits/${produitId}`,
+  });
+
+  revalidatePath(`/produits/${produitId}`);
+  return { success: true };
+}
+
+// ─── Bibliography: Références APA 7 ──────────────────────
+
+export interface ReferenceBiblioInput {
+  type_reference: string;
+  auteurs?: string;
+  auteur_institutionnel?: boolean;
+  annee?: string;
+  titre: string;
+  titre_ouvrage_parent?: string;
+  editeurs?: string;
+  titre_revue?: string;
+  editeur?: string;
+  volume?: string;
+  numero?: string;
+  pages?: string;
+  edition?: string;
+  doi?: string;
+  url?: string;
+  date_consultation?: string;
+  notes?: string;
+}
+
+export async function addReferenceBiblio(produitId: string, input: ReferenceBiblioInput) {
+  const orgResult = await getOrganisationId();
+  if ("error" in orgResult) return { error: orgResult.error };
+  const { organisationId, userId, role, supabase } = orgResult;
+  requirePermission(role as UserRole, canEdit, "gérer les références bibliographiques");
+
+  const { data: existing } = await supabase
+    .from("produit_references_biblio")
+    .select("ordre")
+    .eq("produit_id", produitId)
+    .order("ordre", { ascending: false })
+    .limit(1);
+
+  const nextOrdre = existing && existing.length > 0 ? ((existing[0] as { ordre: number }).ordre ?? 0) + 1 : 0;
+
+  const { data, error } = await supabase
+    .from("produit_references_biblio")
+    .insert({
+      produit_id: produitId,
+      type_reference: input.type_reference || "livre",
+      auteurs: input.auteurs || null,
+      auteur_institutionnel: input.auteur_institutionnel ?? false,
+      annee: input.annee || null,
+      titre: input.titre,
+      titre_ouvrage_parent: input.titre_ouvrage_parent || null,
+      editeurs: input.editeurs || null,
+      titre_revue: input.titre_revue || null,
+      editeur: input.editeur || null,
+      volume: input.volume || null,
+      numero: input.numero || null,
+      pages: input.pages || null,
+      edition: input.edition || null,
+      doi: input.doi || null,
+      url: input.url || null,
+      date_consultation: input.date_consultation || null,
+      notes: input.notes || null,
+      ordre: nextOrdre,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "produit",
+    action: "updated",
+    entiteType: "produit",
+    entiteId: produitId,
+    description: `Référence bibliographique "${input.titre}" ajoutée (${input.type_reference})`,
+    objetHref: `/produits/${produitId}`,
+  });
+
+  revalidatePath(`/produits/${produitId}`);
+  return { data };
+}
+
+export async function updateReferenceBiblio(referenceId: string, produitId: string, input: ReferenceBiblioInput) {
+  const orgResult = await getOrganisationId();
+  if ("error" in orgResult) return { error: orgResult.error };
+  const { organisationId, userId, role, supabase } = orgResult;
+  requirePermission(role as UserRole, canEdit, "gérer les références bibliographiques");
+
+  const { error } = await supabase
+    .from("produit_references_biblio")
+    .update({
+      type_reference: input.type_reference || "livre",
+      auteurs: input.auteurs || null,
+      auteur_institutionnel: input.auteur_institutionnel ?? false,
+      annee: input.annee || null,
+      titre: input.titre,
+      titre_ouvrage_parent: input.titre_ouvrage_parent || null,
+      editeurs: input.editeurs || null,
+      titre_revue: input.titre_revue || null,
+      editeur: input.editeur || null,
+      volume: input.volume || null,
+      numero: input.numero || null,
+      pages: input.pages || null,
+      edition: input.edition || null,
+      doi: input.doi || null,
+      url: input.url || null,
+      date_consultation: input.date_consultation || null,
+      notes: input.notes || null,
+    })
+    .eq("id", referenceId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "produit",
+    action: "updated",
+    entiteType: "produit",
+    entiteId: produitId,
+    description: `Référence bibliographique "${input.titre}" mise à jour`,
+    objetHref: `/produits/${produitId}`,
+  });
+
+  revalidatePath(`/produits/${produitId}`);
+  return { success: true };
+}
+
+export async function deleteReferenceBiblio(referenceId: string, produitId: string) {
+  const orgResult = await getOrganisationId();
+  if ("error" in orgResult) return { error: orgResult.error };
+  const { organisationId, userId, role, supabase } = orgResult;
+  requirePermission(role as UserRole, canEdit, "gérer les références bibliographiques");
+
+  // Fetch title before deletion for logging
+  const { data: ref } = await supabase
+    .from("produit_references_biblio")
+    .select("titre")
+    .eq("id", referenceId)
+    .single();
+
+  const { error } = await supabase
+    .from("produit_references_biblio")
+    .delete()
+    .eq("id", referenceId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "produit",
+    action: "updated",
+    entiteType: "produit",
+    entiteId: produitId,
+    description: `Référence bibliographique "${ref?.titre ?? referenceId}" supprimée`,
     objetHref: `/produits/${produitId}`,
   });
 
