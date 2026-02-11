@@ -286,6 +286,13 @@ export function BesoinsFormationTab({
           annee,
           budget_total: 0,
         });
+        if (planRes.error) {
+          const msg = typeof planRes.error === "string" ? planRes.error : "Impossible de créer le plan de formation.";
+          console.error("[Besoin] createPlanFormation error:", planRes.error);
+          toast({ title: "Erreur", description: msg, variant: "destructive" });
+          setSaving(false);
+          return;
+        }
         if (planRes.data) {
           input.plan_formation_id = planRes.data.id;
         }
@@ -293,14 +300,21 @@ export function BesoinsFormationTab({
 
       const res = await createBesoinFormation(input);
       if (res.error) {
-        toast({ title: "Erreur", description: "Impossible d'ajouter la formation au plan.", variant: "destructive" });
+        const errorMsg = typeof res.error === "string"
+          ? res.error
+          : Object.entries(res.error as Record<string, string[]>)
+              .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(", ") : msgs}`)
+              .join(" | ");
+        console.error("[Besoin] createBesoinFormation error:", res.error);
+        toast({ title: "Erreur", description: errorMsg || "Impossible d'ajouter la formation au plan.", variant: "destructive" });
         return;
       }
       toast({ title: isPonctuel ? "Formation ponctuelle ajoutée" : "Formation ajoutée au plan", variant: "success" });
       setShowForm(false);
       loadData();
-    } catch {
-      toast({ title: "Erreur", description: "Impossible d'ajouter la formation au plan.", variant: "destructive" });
+    } catch (err) {
+      console.error("[Besoin] Exception:", err);
+      toast({ title: "Erreur", description: err instanceof Error ? err.message : "Impossible d'ajouter la formation au plan.", variant: "destructive" });
     } finally {
       setSaving(false);
     }
