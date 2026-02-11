@@ -136,8 +136,22 @@ interface Produit {
   organise_par_logo_url: string | null;
   organise_par_actif: boolean;
   programme_numerotation: string | null;
+  domaine_categorie_id: string | null;
+  categorie_id: string | null;
+  sous_categorie_id: string | null;
   created_at: string;
   updated_at: string | null;
+}
+
+interface CatalogueCategory {
+  id: string;
+  organisation_id: string;
+  parent_id: string | null;
+  nom: string;
+  code: string | null;
+  niveau: number;
+  ordre: number;
+  actif: boolean;
 }
 
 interface Tarif {
@@ -421,6 +435,7 @@ export function ProduitDetail({
   produitQuestionnaires: initialProduitQuestionnaires,
   allQuestionnaires: initialAllQuestionnaires,
   planifications: initialPlanifications,
+  catalogueCategories = [],
 }: {
   produit: Produit;
   tarifs: Tarif[];
@@ -436,6 +451,7 @@ export function ProduitDetail({
   produitQuestionnaires: ProduitQuestionnaire[];
   allQuestionnaires: AllQuestionnaire[];
   planifications: ProductPlanification[];
+  catalogueCategories?: CatalogueCategory[];
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -452,6 +468,22 @@ export function ProduitDetail({
 
   // Whether biblio tab should show (only if there are ouvrages or articles)
   const hasBiblio = initialOuvrages.length > 0 || initialArticles.length > 0;
+
+  // ─── Hierarchical categories state ─────────────────────
+  const hasCatalogueCategories = catalogueCategories.length > 0;
+  const poles = React.useMemo(() => catalogueCategories.filter((c) => c.niveau === 1 && c.actif), [catalogueCategories]);
+  const [selectedPoleId, setSelectedPoleId] = React.useState<string>(produit.domaine_categorie_id ?? "");
+  const [selectedCategorieId, setSelectedCategorieId] = React.useState<string>(produit.categorie_id ?? "");
+  const [selectedSousCategorieId, setSelectedSousCategorieId] = React.useState<string>(produit.sous_categorie_id ?? "");
+
+  const categoriesForPole = React.useMemo(
+    () => catalogueCategories.filter((c) => c.niveau === 2 && c.actif && c.parent_id === selectedPoleId),
+    [catalogueCategories, selectedPoleId],
+  );
+  const sousCategoriesForCategorie = React.useMemo(
+    () => catalogueCategories.filter((c) => c.niveau === 3 && c.actif && c.parent_id === selectedCategorieId),
+    [catalogueCategories, selectedCategorieId],
+  );
 
   // ─── Dynamic field tracking for real-time completion ────
   const TRACKABLE_FIELDS = [
@@ -589,6 +621,10 @@ export function ProduitDetail({
       organise_par_actif: fd.get("organise_par_actif") === "on",
       // Programme display
       programme_numerotation: (fd.get("programme_numerotation") as "arabic" | "roman" | "letters" | "none") || undefined,
+      // Category references
+      domaine_categorie_id: (fd.get("domaine_categorie_id") as string) || undefined,
+      categorie_id: (fd.get("categorie_id") as string) || undefined,
+      sous_categorie_id: (fd.get("sous_categorie_id") as string) || undefined,
     };
 
     const result = await updateProduit(produit.id, input);
@@ -821,22 +857,118 @@ export function ProduitDetail({
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Label htmlFor="domaine" className="text-[13px]">Pôle</Label>
-                        <FieldBadge filled={isFilled("domaine")} />
+                  {hasCatalogueCategories ? (
+                    <>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor="domaine_categorie_id" className="text-[13px]">Pôle</Label>
+                            <FieldBadge filled={!!selectedPoleId} />
+                          </div>
+                          <select
+                            id="domaine_categorie_id"
+                            name="domaine_categorie_id"
+                            value={selectedPoleId}
+                            onChange={(e) => {
+                              setSelectedPoleId(e.target.value);
+                              setSelectedCategorieId("");
+                              setSelectedSousCategorieId("");
+                              // Also update text fields for backward compat
+                              const pole = poles.find((p) => p.id === e.target.value);
+                              const domaineInput = formRef.current?.querySelector<HTMLInputElement>('[name="domaine"]');
+                              if (domaineInput) domaineInput.value = pole?.nom ?? "";
+                            }}
+                            className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
+                          >
+                            <option value="">-- Sélectionner un pôle --</option>
+                            {poles.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.code ? `${p.code} — ${p.nom}` : p.nom}
+                              </option>
+                            ))}
+                          </select>
+                          <input type="hidden" name="domaine" value={poles.find((p) => p.id === selectedPoleId)?.nom ?? produit.domaine ?? ""} />
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor="categorie_id" className="text-[13px]">Catégorie</Label>
+                            <FieldBadge filled={!!selectedCategorieId} />
+                          </div>
+                          {selectedPoleId && categoriesForPole.length > 0 ? (
+                            <select
+                              id="categorie_id"
+                              name="categorie_id"
+                              value={selectedCategorieId}
+                              onChange={(e) => {
+                                setSelectedCategorieId(e.target.value);
+                                setSelectedSousCategorieId("");
+                                const cat = categoriesForPole.find((c) => c.id === e.target.value);
+                                const catInput = formRef.current?.querySelector<HTMLInputElement>('[name="categorie"]');
+                                if (catInput) catInput.value = cat?.nom ?? "";
+                              }}
+                              className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
+                            >
+                              <option value="">-- Sélectionner une catégorie --</option>
+                              {categoriesForPole.map((c) => (
+                                <option key={c.id} value={c.id}>
+                                  {c.code ? `${c.code} — ${c.nom}` : c.nom}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <select
+                              disabled
+                              className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-muted-foreground"
+                            >
+                              <option>{selectedPoleId ? "Aucune catégorie disponible" : "Sélectionnez d'abord un pôle"}</option>
+                            </select>
+                          )}
+                          <input type="hidden" name="categorie" value={categoriesForPole.find((c) => c.id === selectedCategorieId)?.nom ?? produit.categorie ?? ""} />
+                        </div>
                       </div>
-                      <Input id="domaine" name="domaine" defaultValue={produit.domaine ?? ""} placeholder="Santé, Sécurité, Management..." className="h-9 text-[13px] border-border/60" />
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Label htmlFor="categorie" className="text-[13px]">Catégorie</Label>
-                        <FieldBadge filled={isFilled("categorie")} />
+                      {selectedCategorieId && sousCategoriesForCategorie.length > 0 && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <Label htmlFor="sous_categorie_id" className="text-[13px]">Sous-catégorie</Label>
+                              <Badge variant="outline" className="text-[10px] font-normal text-muted-foreground/60 px-1.5 py-0">Facultatif</Badge>
+                            </div>
+                            <select
+                              id="sous_categorie_id"
+                              name="sous_categorie_id"
+                              value={selectedSousCategorieId}
+                              onChange={(e) => setSelectedSousCategorieId(e.target.value)}
+                              className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
+                            >
+                              <option value="">-- Aucune sous-catégorie --</option>
+                              {sousCategoriesForCategorie.map((sc) => (
+                                <option key={sc.id} value={sc.id}>
+                                  {sc.code ? `${sc.code} — ${sc.nom}` : sc.nom}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor="domaine" className="text-[13px]">Pôle</Label>
+                          <FieldBadge filled={isFilled("domaine")} />
+                        </div>
+                        <Input id="domaine" name="domaine" defaultValue={produit.domaine ?? ""} placeholder="Santé, Sécurité, Management..." className="h-9 text-[13px] border-border/60" />
                       </div>
-                      <Input id="categorie" name="categorie" defaultValue={produit.categorie ?? ""} placeholder="Pratiques cliniques et techniques..." className="h-9 text-[13px] border-border/60" />
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor="categorie" className="text-[13px]">Catégorie</Label>
+                          <FieldBadge filled={isFilled("categorie")} />
+                        </div>
+                        <Input id="categorie" name="categorie" defaultValue={produit.categorie ?? ""} placeholder="Pratiques cliniques et techniques..." className="h-9 text-[13px] border-border/60" />
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Classification */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

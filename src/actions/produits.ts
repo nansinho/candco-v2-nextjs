@@ -80,6 +80,10 @@ const UpdateProduitSchema = z.object({
   organise_par_actif: z.boolean().optional(),
   // Programme display
   programme_numerotation: z.enum(["arabic", "roman", "letters", "none"]).optional(),
+  // Category references
+  domaine_categorie_id: z.string().uuid().optional().or(z.literal("")),
+  categorie_id: z.string().uuid().optional().or(z.literal("")),
+  sous_categorie_id: z.string().uuid().optional().or(z.literal("")),
 });
 
 export type UpdateProduitInput = z.infer<typeof UpdateProduitSchema>;
@@ -624,7 +628,7 @@ export async function getProduits(
 
   if (search) {
     query = query.or(
-      `intitule.ilike.%${search}%,domaine.ilike.%${search}%,identifiant_interne.ilike.%${search}%`
+      `intitule.ilike.%${search}%,domaine.ilike.%${search}%,identifiant_interne.ilike.%${search}%,categorie.ilike.%${search}%`
     );
   }
 
@@ -791,6 +795,7 @@ export async function updateProduit(id: string, input: UpdateProduitInput) {
       "modalites_paiement", "equipe_pedagogique", "meta_titre", "meta_description",
       "organise_par_nom", "organise_par_logo_url", "organise_par_actif",
       "programme_numerotation",
+      "domaine_categorie_id", "categorie_id", "sous_categorie_id",
     ];
     const coreData = { ...cleanedData, completion_pct };
     for (const key of extendedKeys) {

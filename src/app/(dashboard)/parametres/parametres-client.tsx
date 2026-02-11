@@ -19,6 +19,13 @@ import {
   Bot,
   Zap,
   FileText,
+  FolderTree,
+  Plus,
+  Pencil,
+  Check,
+  X,
+  ChevronRight,
+  ChevronDown,
 } from "lucide-react";
 import type { OrganisationSettings } from "@/actions/parametres";
 import {
@@ -32,10 +39,17 @@ import {
 import { SiretSearch } from "@/components/shared/siret-search";
 import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
 import { AI_COSTS } from "@/lib/ai-providers";
+import type { CatalogueCategory } from "@/actions/catalogue-categories";
+import {
+  createCatalogueCategory,
+  updateCatalogueCategory,
+  deleteCatalogueCategory,
+} from "@/actions/catalogue-categories";
+import { Badge } from "@/components/ui/badge";
 
 // ─── Main Component ─────────────────────────────────────
 
-export function ParametresClient({ settings }: { settings: OrganisationSettings }) {
+export function ParametresClient({ settings, catalogueCategories = [] }: { settings: OrganisationSettings; catalogueCategories?: CatalogueCategory[] }) {
   return (
     <div className="space-y-6">
       <div>
@@ -54,6 +68,10 @@ export function ParametresClient({ settings }: { settings: OrganisationSettings 
             <Building2 className="h-3.5 w-3.5" />
             Général
           </TabsTrigger>
+          <TabsTrigger value="catalogue" className="text-xs gap-1.5">
+            <FolderTree className="h-3.5 w-3.5" />
+            Catalogue
+          </TabsTrigger>
           <TabsTrigger value="facturation" className="text-xs gap-1.5">
             <CreditCard className="h-3.5 w-3.5" />
             Facturation
@@ -70,6 +88,9 @@ export function ParametresClient({ settings }: { settings: OrganisationSettings 
 
         <TabsContent value="general">
           <GeneralTab settings={settings} />
+        </TabsContent>
+        <TabsContent value="catalogue">
+          <CatalogueTab initialCategories={catalogueCategories} />
         </TabsContent>
         <TabsContent value="facturation">
           <FacturationTab settings={settings} />
@@ -559,6 +580,334 @@ function AITab({ settings }: { settings: OrganisationSettings }) {
                 Importez un programme de formation au format PDF. L&apos;IA (Claude) extrait automatiquement les modules, objectifs et durees pour pre-remplir votre produit de formation.
               </p>
             </div>
+          </div>
+        </div>
+      </SettingsCard>
+    </div>
+  );
+}
+
+// ─── Catalogue Tab ─────────────────────────────────────
+
+const NIVEAU_LABELS: Record<number, string> = {
+  1: "Pôle",
+  2: "Catégorie",
+  3: "Sous-catégorie",
+};
+
+function CatalogueTab({ initialCategories }: { initialCategories: CatalogueCategory[] }) {
+  const { toast } = useToast();
+  const [categories, setCategories] = React.useState<CatalogueCategory[]>(initialCategories);
+  const [expandedIds, setExpandedIds] = React.useState<Set<string>>(new Set());
+  const [addingParentId, setAddingParentId] = React.useState<string | null>(null);
+  const [addingNiveau, setAddingNiveau] = React.useState<number>(1);
+  const [newNom, setNewNom] = React.useState("");
+  const [newCode, setNewCode] = React.useState("");
+  const [editingId, setEditingId] = React.useState<string | null>(null);
+  const [editNom, setEditNom] = React.useState("");
+  const [editCode, setEditCode] = React.useState("");
+  const [saving, setSaving] = React.useState(false);
+
+  const poles = categories.filter((c) => c.niveau === 1);
+
+  function getChildren(parentId: string) {
+    return categories.filter((c) => c.parent_id === parentId).sort((a, b) => a.ordre - b.ordre || a.nom.localeCompare(b.nom));
+  }
+
+  function toggleExpand(id: string) {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function handleAdd() {
+    if (!newNom.trim()) return;
+    setSaving(true);
+    const result = await createCatalogueCategory({
+      nom: newNom.trim(),
+      code: newCode.trim() || undefined,
+      parent_id: addingParentId || undefined,
+      niveau: addingNiveau,
+      ordre: categories.filter((c) => c.niveau === addingNiveau && c.parent_id === addingParentId).length,
+    });
+    setSaving(false);
+
+    if ("error" in result) {
+      const err = result.error;
+      const msg = typeof err === "string" ? err : (err && typeof err === "object" ? Object.values(err).flat().join(", ") : "Erreur inconnue");
+      toast({ title: "Erreur", description: msg, variant: "destructive" });
+      return;
+    }
+    if (result.data) {
+      setCategories((prev) => [...prev, result.data]);
+      if (addingParentId) {
+        setExpandedIds((prev) => new Set(prev).add(addingParentId));
+      }
+    }
+    setNewNom("");
+    setNewCode("");
+    setAddingParentId(null);
+    toast({ title: `${NIVEAU_LABELS[addingNiveau]} ajouté(e)`, variant: "success" });
+  }
+
+  async function handleUpdate(id: string) {
+    if (!editNom.trim()) return;
+    setSaving(true);
+    const result = await updateCatalogueCategory(id, {
+      nom: editNom.trim(),
+      code: editCode.trim() || undefined,
+    });
+    setSaving(false);
+
+    if ("error" in result) {
+      toast({ title: "Erreur", description: "Impossible de modifier", variant: "destructive" });
+      return;
+    }
+    if (result.data) {
+      const updated = result.data;
+      setCategories((prev) => prev.map((c) => (c.id === id ? { ...c, nom: updated.nom, code: updated.code } : c)));
+    }
+    setEditingId(null);
+    toast({ title: "Modifié", variant: "success" });
+  }
+
+  async function handleDelete(id: string) {
+    setSaving(true);
+    const result = await deleteCatalogueCategory(id);
+    setSaving(false);
+
+    if ("error" in result) {
+      toast({ title: "Erreur", description: result.error, variant: "destructive" });
+      return;
+    }
+    setCategories((prev) => prev.filter((c) => c.id !== id));
+    toast({ title: "Supprimé", variant: "success" });
+  }
+
+  function startEdit(cat: CatalogueCategory) {
+    setEditingId(cat.id);
+    setEditNom(cat.nom);
+    setEditCode(cat.code ?? "");
+  }
+
+  function startAdd(parentId: string | null, niveau: number) {
+    setAddingParentId(parentId);
+    setAddingNiveau(niveau);
+    setNewNom("");
+    setNewCode("");
+    if (parentId) {
+      setExpandedIds((prev) => new Set(prev).add(parentId));
+    }
+  }
+
+  function renderCategory(cat: CatalogueCategory, depth: number) {
+    const children = getChildren(cat.id);
+    const isExpanded = expandedIds.has(cat.id);
+    const isEditing = editingId === cat.id;
+    const canHaveChildren = cat.niveau < 3;
+    const isAddingChild = addingParentId === cat.id;
+
+    return (
+      <div key={cat.id}>
+        <div
+          className="group flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/50"
+          style={{ paddingLeft: `${depth * 20 + 8}px` }}
+        >
+          {/* Expand toggle */}
+          {canHaveChildren ? (
+            <button
+              type="button"
+              onClick={() => toggleExpand(cat.id)}
+              className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground shrink-0"
+            >
+              {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+            </button>
+          ) : (
+            <span className="w-5 shrink-0" />
+          )}
+
+          {isEditing ? (
+            <div className="flex flex-1 items-center gap-2">
+              <Input
+                autoFocus
+                value={editCode}
+                onChange={(e) => setEditCode(e.target.value)}
+                placeholder="Code"
+                className="h-7 w-20 text-[12px] border-border/60"
+              />
+              <Input
+                value={editNom}
+                onChange={(e) => setEditNom(e.target.value)}
+                placeholder="Nom"
+                className="h-7 flex-1 text-[12px] border-border/60"
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleUpdate(cat.id); } }}
+              />
+              <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-emerald-500" onClick={() => handleUpdate(cat.id)} disabled={saving}>
+                <Check className="h-3.5 w-3.5" />
+              </Button>
+              <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground" onClick={() => setEditingId(null)}>
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          ) : (
+            <>
+              <div className="flex flex-1 items-center gap-2 min-w-0">
+                {cat.code && (
+                  <Badge variant="outline" className="text-[10px] font-mono px-1.5 py-0 shrink-0">
+                    {cat.code}
+                  </Badge>
+                )}
+                <span className="text-[13px] truncate">{cat.nom}</span>
+                <Badge variant="outline" className="text-[10px] font-normal text-muted-foreground/50 px-1.5 py-0 shrink-0">
+                  {NIVEAU_LABELS[cat.niveau]}
+                </Badge>
+              </div>
+              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                {canHaveChildren && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                    onClick={() => startAdd(cat.id, cat.niveau + 1)}
+                    title={`Ajouter ${NIVEAU_LABELS[cat.niveau + 1]?.toLowerCase()}`}
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+                <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => startEdit(cat)}>
+                  <Pencil className="h-3 w-3" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                  onClick={() => handleDelete(cat.id)}
+                  disabled={saving}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Add child inline form */}
+        {isAddingChild && (
+          <div className="flex items-center gap-2 py-1.5" style={{ paddingLeft: `${(depth + 1) * 20 + 8 + 28}px` }}>
+            <Input
+              autoFocus
+              value={newCode}
+              onChange={(e) => setNewCode(e.target.value)}
+              placeholder="Code"
+              className="h-7 w-20 text-[12px] border-border/60"
+            />
+            <Input
+              value={newNom}
+              onChange={(e) => setNewNom(e.target.value)}
+              placeholder={`Nom du/de la ${NIVEAU_LABELS[cat.niveau + 1]?.toLowerCase()}`}
+              className="h-7 flex-1 text-[12px] border-border/60"
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAdd(); } }}
+            />
+            <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-emerald-500" onClick={handleAdd} disabled={saving || !newNom.trim()}>
+              <Check className="h-3.5 w-3.5" />
+            </Button>
+            <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground" onClick={() => setAddingParentId(null)}>
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        )}
+
+        {/* Children */}
+        {isExpanded && children.map((child) => renderCategory(child, depth + 1))}
+      </div>
+    );
+  }
+
+  const isAddingRoot = addingParentId === null && addingNiveau === 1 && (newNom !== "" || newCode !== "" || addingParentId === null);
+
+  return (
+    <div className="space-y-6 mt-4">
+      <SettingsCard
+        title="Catégories du catalogue"
+        description="Organisez vos formations en Pôles, Catégories et Sous-catégories. Cette hiérarchie est utilisée dans les fiches produits et les filtres."
+      >
+        <div className="space-y-3">
+          {poles.length === 0 && !isAddingRoot && (
+            <div className="text-center py-8 text-muted-foreground">
+              <FolderTree className="h-8 w-8 mx-auto mb-2 text-muted-foreground/40" />
+              <p className="text-sm">Aucune catégorie définie</p>
+              <p className="text-xs mt-1">Commencez par créer un pôle pour structurer votre catalogue</p>
+            </div>
+          )}
+
+          {/* Tree view */}
+          <div className="space-y-0.5">
+            {poles.sort((a, b) => a.ordre - b.ordre || a.nom.localeCompare(b.nom)).map((pole) => renderCategory(pole, 0))}
+          </div>
+
+          {/* Add root (Pôle) */}
+          {addingParentId === null && addingNiveau === 1 ? (
+            <div className="flex items-center gap-2 pt-2 border-t border-border/40">
+              <Input
+                autoFocus
+                value={newCode}
+                onChange={(e) => setNewCode(e.target.value)}
+                placeholder="Code (ex: SAN)"
+                className="h-8 w-24 text-[12px] border-border/60"
+              />
+              <Input
+                value={newNom}
+                onChange={(e) => setNewNom(e.target.value)}
+                placeholder="Nom du pôle (ex: Santé)"
+                className="h-8 flex-1 text-[12px] border-border/60"
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAdd(); } }}
+              />
+              <Button type="button" size="sm" className="h-8 text-xs gap-1" onClick={handleAdd} disabled={saving || !newNom.trim()}>
+                {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                Ajouter
+              </Button>
+              <Button type="button" variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setNewNom(""); setNewCode(""); setAddingNiveau(0); }}>
+                Annuler
+              </Button>
+            </div>
+          ) : (
+            <div className="pt-2 border-t border-border/40">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs gap-1.5 border-border/60"
+                onClick={() => startAdd(null, 1)}
+              >
+                <Plus className="h-3 w-3" />
+                Ajouter un pôle
+              </Button>
+            </div>
+          )}
+        </div>
+      </SettingsCard>
+
+      <SettingsCard title="Hiérarchie" description="Structure de classification des formations">
+        <div className="space-y-2 text-[13px] text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px]">Niveau 1</Badge>
+            <span>Pôle</span>
+            <span className="text-muted-foreground/50">— Domaine principal (ex: Santé, Management)</span>
+          </div>
+          <div className="flex items-center gap-2 pl-4">
+            <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20 text-[10px]">Niveau 2</Badge>
+            <span>Catégorie</span>
+            <span className="text-muted-foreground/50">— Regroupement thématique (ex: Pratiques cliniques)</span>
+          </div>
+          <div className="flex items-center gap-2 pl-8">
+            <Badge className="bg-violet-500/10 text-violet-500 border-violet-500/20 text-[10px]">Niveau 3</Badge>
+            <span>Sous-catégorie</span>
+            <span className="text-muted-foreground/50">— Détail fin (ex: Soins infirmiers)</span>
           </div>
         </div>
       </SettingsCard>

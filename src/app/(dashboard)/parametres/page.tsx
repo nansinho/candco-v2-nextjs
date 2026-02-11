@@ -1,8 +1,12 @@
 import { getOrganisationSettings } from "@/actions/parametres";
+import { getCatalogueCategories } from "@/actions/catalogue-categories";
 import { ParametresClient } from "./parametres-client";
 
 export default async function ParametresPage() {
-  const { data: settings, error } = await getOrganisationSettings();
+  const [{ data: settings, error }, categoriesResult] = await Promise.all([
+    getOrganisationSettings(),
+    getCatalogueCategories(),
+  ]);
 
   if (error || !settings) {
     return (
@@ -15,5 +19,5 @@ export default async function ParametresPage() {
     );
   }
 
-  return <ParametresClient settings={settings} />;
+  return <ParametresClient settings={settings} catalogueCategories={categoriesResult.data} />;
 }

@@ -24,6 +24,7 @@ interface Produit {
   numero_affichage: string;
   intitule: string;
   domaine: string | null;
+  categorie: string | null;
   type_action: string | null;
   modalite: string | null;
   formule: string | null;
@@ -82,9 +83,9 @@ const columns: Column<Produit>[] = [
         </div>
         <div className="min-w-0">
           <span className="block truncate font-medium">{item.intitule}</span>
-          {item.domaine && (
+          {(item.domaine || item.categorie) && (
             <span className="block truncate text-[11px] text-muted-foreground/60">
-              {item.domaine}
+              {[item.domaine, item.categorie].filter(Boolean).join(" › ")}
             </span>
           )}
         </div>
@@ -127,6 +128,21 @@ const columns: Column<Produit>[] = [
       item.formule ? (
         <span className="text-[13px] text-muted-foreground">
           {FORMULE_LABELS[item.formule] ?? item.formule}
+        </span>
+      ) : (
+        <span className="text-muted-foreground/40">--</span>
+      ),
+  },
+  {
+    key: "categorie",
+    label: "Catégorie",
+    filterType: "text",
+    minWidth: 140,
+    defaultVisible: false,
+    render: (item: Produit) =>
+      item.categorie ? (
+        <span className="text-[13px] text-muted-foreground truncate block max-w-[160px]">
+          {item.categorie}
         </span>
       ) : (
         <span className="text-muted-foreground/40">--</span>
