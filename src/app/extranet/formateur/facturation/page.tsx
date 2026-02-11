@@ -97,7 +97,7 @@ export default async function FormateurFacturationPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">Facturation</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Facturation</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Recapitulatif de vos interventions et montants
         </p>
@@ -109,21 +109,21 @@ export default async function FormateurFacturationPage() {
         <div className="flex items-center gap-6">
           <div>
             <p className="text-lg font-semibold font-mono">{formatCurrency(tarifJour)}</p>
-            <p className="text-[11px] text-muted-foreground/50">par jour HT ({heuresParJour}h)</p>
+            <p className="text-xs text-muted-foreground/50">par jour HT ({heuresParJour}h)</p>
           </div>
           <div className="h-8 w-px bg-border/40" />
           <div>
             <p className="text-lg font-semibold font-mono">
               {formatCurrency(Math.round((tarifJour / heuresParJour) * 100) / 100)}
             </p>
-            <p className="text-[11px] text-muted-foreground/50">par heure HT</p>
+            <p className="text-xs text-muted-foreground/50">par heure HT</p>
           </div>
           {tauxTva > 0 && (
             <>
               <div className="h-8 w-px bg-border/40" />
               <div>
                 <p className="text-lg font-semibold font-mono">{tauxTva}%</p>
-                <p className="text-[11px] text-muted-foreground/50">TVA</p>
+                <p className="text-xs text-muted-foreground/50">TVA</p>
               </div>
             </>
           )}
@@ -137,7 +137,7 @@ export default async function FormateurFacturationPage() {
             <CalendarDays className="h-4 w-4 text-emerald-400" />
           </div>
           <div>
-            <p className="text-[11px] text-muted-foreground/60">Sessions</p>
+            <p className="text-xs text-muted-foreground/60">Sessions</p>
             <p className="text-sm font-semibold font-mono">{sessionsWithTotals.length}</p>
           </div>
         </div>
@@ -146,7 +146,7 @@ export default async function FormateurFacturationPage() {
             <Clock className="h-4 w-4 text-blue-400" />
           </div>
           <div>
-            <p className="text-[11px] text-muted-foreground/60">Heures totales</p>
+            <p className="text-xs text-muted-foreground/60">Heures totales</p>
             <p className="text-sm font-semibold font-mono">{grandTotalHeures}h</p>
           </div>
         </div>
@@ -155,7 +155,7 @@ export default async function FormateurFacturationPage() {
             <Euro className="h-4 w-4 text-primary" />
           </div>
           <div>
-            <p className="text-[11px] text-muted-foreground/60">Total HT</p>
+            <p className="text-xs text-muted-foreground/60">Total HT</p>
             <p className="text-sm font-semibold font-mono">{formatCurrency(grandTotalHT)}</p>
           </div>
         </div>
@@ -183,9 +183,9 @@ export default async function FormateurFacturationPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-[11px] text-muted-foreground/50 font-mono">{s.numero_affichage}</span>
+                      <span className="text-xs text-muted-foreground/50 font-mono">{s.numero_affichage}</span>
                       <span className={cn(
-                        "text-[10px] px-1.5 py-0.5 rounded-full font-medium",
+                        "text-xs px-1.5 py-0.5 rounded-full font-medium",
                         s.statut === "validee" && "bg-emerald-500/15 text-emerald-400",
                         s.statut === "en_creation" && "bg-amber-500/15 text-amber-400",
                         s.statut === "a_facturer" && "bg-blue-500/15 text-blue-400",
@@ -196,7 +196,7 @@ export default async function FormateurFacturationPage() {
                     </div>
                     <p className="text-sm font-medium mt-0.5">{s.nom}</p>
                     {s.date_debut && (
-                      <p className="text-[11px] text-muted-foreground/50 mt-1">
+                      <p className="text-xs text-muted-foreground/50 mt-1">
                         {new Date(s.date_debut).toLocaleDateString("fr-FR")}
                         {s.date_fin && ` — ${new Date(s.date_fin).toLocaleDateString("fr-FR")}`}
                       </p>
@@ -204,10 +204,10 @@ export default async function FormateurFacturationPage() {
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-sm font-semibold font-mono">{formatCurrency(s.montantHT)}</p>
-                    <p className="text-[11px] text-muted-foreground/50">HT</p>
+                    <p className="text-xs text-muted-foreground/50">HT</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border/30 text-[11px] text-muted-foreground/50">
+                <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border/30 text-xs text-muted-foreground/50">
                   <span>{s.creneauxCount} creneau{s.creneauxCount > 1 ? "x" : ""}</span>
                   <span>{s.totalHeures}h</span>
                   <span>{s.totalJours} jour{s.totalJours > 1 ? "s" : ""}</span>

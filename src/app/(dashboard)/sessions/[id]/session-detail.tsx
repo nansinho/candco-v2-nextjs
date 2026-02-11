@@ -421,8 +421,8 @@ export function SessionDetail({
           </Button>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-xl font-semibold tracking-tight truncate">{session.nom}</h1>
-              <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[11px] font-mono shrink-0">
+              <h1 className="text-2xl font-semibold tracking-tight truncate">{session.nom}</h1>
+              <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-xs font-mono shrink-0">
                 {session.numero_affichage}
               </Badge>
               <SessionStatusBadge statut={session.statut} archived={isArchived} />
@@ -439,17 +439,17 @@ export function SessionDetail({
           {/* Financial summary */}
           <div className="hidden md:flex items-center gap-4 rounded-lg border border-border/60 bg-card px-4 py-2">
             <div className="text-center">
-              <p className="text-[10px] text-muted-foreground/60 uppercase">Budget</p>
+              <p className="text-xs text-muted-foreground/60 uppercase">Budget</p>
               <p className="text-sm font-mono font-medium">{formatCurrency(financials.budget)}</p>
             </div>
             <div className="h-6 w-px bg-border/60" />
             <div className="text-center">
-              <p className="text-[10px] text-muted-foreground/60 uppercase">Coût</p>
+              <p className="text-xs text-muted-foreground/60 uppercase">Coût</p>
               <p className="text-sm font-mono text-muted-foreground">{formatCurrency(financials.cout)}</p>
             </div>
             <div className="h-6 w-px bg-border/60" />
             <div className="text-center">
-              <p className="text-[10px] text-muted-foreground/60 uppercase">Rentabilité</p>
+              <p className="text-xs text-muted-foreground/60 uppercase">Rentabilité</p>
               <p className={`text-sm font-mono font-medium ${financials.rentabilite >= 0 ? "text-emerald-400" : "text-destructive"}`}>
                 {formatCurrency(financials.rentabilite)}
               </p>
@@ -472,15 +472,15 @@ export function SessionDetail({
       {/* Mobile financial summary */}
       <div className="grid grid-cols-3 gap-2 md:hidden">
         <div className="rounded-lg border border-border/60 bg-card p-3 text-center">
-          <p className="text-[10px] text-muted-foreground/60 uppercase">Budget</p>
+          <p className="text-xs text-muted-foreground/60 uppercase">Budget</p>
           <p className="text-sm font-mono font-medium">{formatCurrency(financials.budget)}</p>
         </div>
         <div className="rounded-lg border border-border/60 bg-card p-3 text-center">
-          <p className="text-[10px] text-muted-foreground/60 uppercase">Coût</p>
+          <p className="text-xs text-muted-foreground/60 uppercase">Coût</p>
           <p className="text-sm font-mono text-muted-foreground">{formatCurrency(financials.cout)}</p>
         </div>
         <div className="rounded-lg border border-border/60 bg-card p-3 text-center">
-          <p className="text-[10px] text-muted-foreground/60 uppercase">Rentabilité</p>
+          <p className="text-xs text-muted-foreground/60 uppercase">Rentabilité</p>
           <p className={`text-sm font-mono font-medium ${financials.rentabilite >= 0 ? "text-emerald-400" : "text-destructive"}`}>
             {formatCurrency(financials.rentabilite)}
           </p>
@@ -494,7 +494,7 @@ export function SessionDetail({
           <TabsTrigger value="commanditaires" className="text-xs">
             Commanditaires
             {commanditaires.length > 0 && (
-              <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[11px] font-medium text-primary">
+              <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">
                 {commanditaires.length}
               </span>
             )}
@@ -502,7 +502,7 @@ export function SessionDetail({
           <TabsTrigger value="apprenants" className="text-xs">
             Apprenants
             {inscriptions.length > 0 && (
-              <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[11px] font-medium text-primary">
+              <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">
                 {inscriptions.length}
               </span>
             )}
@@ -510,7 +510,7 @@ export function SessionDetail({
           <TabsTrigger value="creneaux" className="text-xs">
             Créneaux
             {creneaux.length > 0 && (
-              <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[11px] font-medium text-primary">
+              <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">
                 {creneaux.length}
               </span>
             )}
@@ -521,7 +521,7 @@ export function SessionDetail({
           <TabsTrigger value="documents" className="text-xs">
             Documents
             {documents.length > 0 && (
-              <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[11px] font-medium text-primary">
+              <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">
                 {documents.length}
               </span>
             )}
@@ -543,12 +543,12 @@ export function SessionDetail({
                   </legend>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="nom" className="text-[13px]">Nom <span className="text-destructive">*</span></Label>
-                      <Input id="nom" name="nom" defaultValue={session.nom} className="h-9 text-[13px] border-border/60" />
+                      <Label htmlFor="nom" className="text-sm">Nom <span className="text-destructive">*</span></Label>
+                      <Input id="nom" name="nom" defaultValue={session.nom} className="h-9 text-sm border-border/60" />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="statut" className="text-[13px]">Statut</Label>
-                      <select id="statut" name="statut" defaultValue={session.statut} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground">
+                      <Label htmlFor="statut" className="text-sm">Statut</Label>
+                      <select id="statut" name="statut" defaultValue={session.statut} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground">
                         {SESSION_STATUT_OPTIONS.map((opt) => (
                           <option key={opt.value} value={opt.value}>{opt.label}</option>
                         ))}
@@ -557,22 +557,22 @@ export function SessionDetail({
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="date_debut" className="text-[13px]">Date début</Label>
+                      <Label htmlFor="date_debut" className="text-sm">Date début</Label>
                       <DatePicker id="date_debut" name="date_debut" defaultValue={session.date_debut ?? ""} />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="date_fin" className="text-[13px]">Date fin</Label>
+                      <Label htmlFor="date_fin" className="text-sm">Date fin</Label>
                       <DatePicker id="date_fin" name="date_fin" defaultValue={session.date_fin ?? ""} />
                     </div>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="places_min" className="text-[13px]">Places min</Label>
-                      <Input id="places_min" name="places_min" type="number" min="0" defaultValue={session.places_min ?? ""} className="h-9 text-[13px] border-border/60" />
+                      <Label htmlFor="places_min" className="text-sm">Places min</Label>
+                      <Input id="places_min" name="places_min" type="number" min="0" defaultValue={session.places_min ?? ""} className="h-9 text-sm border-border/60" />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="places_max" className="text-[13px]">Places max</Label>
-                      <Input id="places_max" name="places_max" type="number" min="0" defaultValue={session.places_max ?? ""} className="h-9 text-[13px] border-border/60" />
+                      <Label htmlFor="places_max" className="text-sm">Places max</Label>
+                      <Input id="places_max" name="places_max" type="number" min="0" defaultValue={session.places_max ?? ""} className="h-9 text-sm border-border/60" />
                     </div>
                   </div>
                 </fieldset>
@@ -581,8 +581,8 @@ export function SessionDetail({
                   <legend className="text-sm font-semibold text-muted-foreground/80 uppercase tracking-wider">Lieu</legend>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="lieu_type" className="text-[13px]">Type</Label>
-                      <select id="lieu_type" name="lieu_type" defaultValue={session.lieu_type ?? ""} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground">
+                      <Label htmlFor="lieu_type" className="text-sm">Type</Label>
+                      <select id="lieu_type" name="lieu_type" defaultValue={session.lieu_type ?? ""} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground">
                         <option value="">--</option>
                         <option value="presentiel">Présentiel</option>
                         <option value="distanciel">Distanciel</option>
@@ -590,8 +590,8 @@ export function SessionDetail({
                       </select>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="lieu_salle_id" className="text-[13px]">Salle</Label>
-                      <select id="lieu_salle_id" name="lieu_salle_id" defaultValue={session.lieu_salle_id ?? ""} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground">
+                      <Label htmlFor="lieu_salle_id" className="text-sm">Salle</Label>
+                      <select id="lieu_salle_id" name="lieu_salle_id" defaultValue={session.lieu_salle_id ?? ""} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground">
                         <option value="">-- Aucune --</option>
                         {salles.map((s) => (
                           <option key={s.id} value={s.id}>
@@ -602,7 +602,7 @@ export function SessionDetail({
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="lieu_adresse" className="text-[13px]">Adresse libre</Label>
+                    <Label htmlFor="lieu_adresse" className="text-sm">Adresse libre</Label>
                     <AddressAutocomplete
                       id="lieu_adresse"
                       name="lieu_adresse"
@@ -614,7 +614,7 @@ export function SessionDetail({
                   </div>
                   <div className="flex items-center gap-3">
                     <input type="checkbox" id="emargement_auto" name="emargement_auto" defaultChecked={session.emargement_auto} className="h-4 w-4 rounded border-border accent-primary" />
-                    <Label htmlFor="emargement_auto" className="text-[13px] cursor-pointer">Émargement automatique</Label>
+                    <Label htmlFor="emargement_auto" className="text-sm cursor-pointer">Émargement automatique</Label>
                   </div>
                 </fieldset>
 
@@ -656,8 +656,8 @@ export function SessionDetail({
                         <div key={f.id} className="flex items-center justify-between rounded-md border border-border/40 bg-muted/20 px-3 py-2 group">
                           <div className="flex items-center gap-2">
                             <Users className="h-3.5 w-3.5 text-muted-foreground/50" />
-                            <span className="text-[13px]">{f.formateurs?.prenom} {f.formateurs?.nom}</span>
-                            <Badge variant="outline" className="text-[10px]">{f.role}</Badge>
+                            <span className="text-sm">{f.formateurs?.prenom} {f.formateurs?.nom}</span>
+                            <Badge variant="outline" className="text-xs">{f.role}</Badge>
                           </div>
                           <Button
                             type="button"
@@ -680,8 +680,8 @@ export function SessionDetail({
 
               <div className="flex items-center justify-between border-t border-border/60 px-6 py-4">
                 <div className="flex items-center gap-4">
-                  <p className="text-[11px] text-muted-foreground/50">Créé le {formatDate(session.created_at)}</p>
-                  {session.updated_at && <p className="text-[11px] text-muted-foreground/50">Modifié le {formatDate(session.updated_at)}</p>}
+                  <p className="text-xs text-muted-foreground/50">Créé le {formatDate(session.created_at)}</p>
+                  {session.updated_at && <p className="text-xs text-muted-foreground/50">Modifié le {formatDate(session.updated_at)}</p>}
                 </div>
                 <Button type="submit" size="sm" className="h-8 text-xs" disabled={isPending}>
                   {isPending ? (
@@ -738,9 +738,9 @@ export function SessionDetail({
                       <div>
                         <div className="flex items-center gap-2">
                           <Building2 className="h-4 w-4 text-muted-foreground/50" />
-                          <span className="text-[13px] font-medium">{c.entreprises?.nom ?? "Commanditaire"}</span>
+                          <span className="text-sm font-medium">{c.entreprises?.nom ?? "Commanditaire"}</span>
                           {c.financeurs && (
-                            <Badge variant="outline" className="text-[10px]">{c.financeurs.nom}</Badge>
+                            <Badge variant="outline" className="text-xs">{c.financeurs.nom}</Badge>
                           )}
                         </div>
                         {c.contacts_clients && (
@@ -787,13 +787,13 @@ export function SessionDetail({
                       })}
                     </div>
                     <div className="flex items-center justify-between">
-                      <p className="text-[11px] text-muted-foreground/60">{WORKFLOW_LABELS[c.statut_workflow] ?? c.statut_workflow}</p>
+                      <p className="text-xs text-muted-foreground/60">{WORKFLOW_LABELS[c.statut_workflow] ?? c.statut_workflow}</p>
                       <div className="flex items-center gap-1.5">
                         {/* Generate convention */}
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-6 text-[10px] px-2 text-muted-foreground"
+                          className="h-6 text-xs px-2 text-muted-foreground"
                           onClick={async () => {
                             const res = await generateSessionConvention(session.id, c.id);
                             if ("error" in res && res.error) {
@@ -812,7 +812,7 @@ export function SessionDetail({
                           <Button
                             variant="outline"
                             size="sm"
-                            className="h-6 text-[10px] px-2 border-primary/30 text-primary"
+                            className="h-6 text-xs px-2 border-primary/30 text-primary"
                             onClick={async () => {
                               const res = await sendConventionForSignature(session.id, c.id);
                               if ("error" in res && res.error) {
@@ -832,7 +832,7 @@ export function SessionDetail({
                           <Button
                             variant="outline"
                             size="sm"
-                            className="h-6 text-[10px] px-2 border-amber-500/30 text-amber-400"
+                            className="h-6 text-xs px-2 border-amber-500/30 text-amber-400"
                             onClick={async () => {
                               await checkConventionSignatureStatus(c.id);
                               router.refresh();
@@ -844,14 +844,14 @@ export function SessionDetail({
                         )}
                         {/* Signed badge */}
                         {c.documenso_status === "signed" && (
-                          <Badge variant="outline" className="h-6 text-[10px] border-emerald-500/30 text-emerald-400">
+                          <Badge variant="outline" className="h-6 text-xs border-emerald-500/30 text-emerald-400">
                             <CheckCircle2 className="mr-1 h-3 w-3" />
                             Signee
                           </Badge>
                         )}
                         {/* Rejected badge */}
                         {c.documenso_status === "rejected" && (
-                          <Badge variant="outline" className="h-6 text-[10px] border-red-500/30 text-red-400">
+                          <Badge variant="outline" className="h-6 text-xs border-red-500/30 text-red-400">
                             <XCircle className="mr-1 h-3 w-3" />
                             Refusee
                           </Badge>
@@ -908,22 +908,22 @@ export function SessionDetail({
                   <table className="w-full min-w-[600px]">
                     <thead>
                       <tr className="border-b border-border/60 bg-muted/30">
-                        <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Apprenant</th>
-                        <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Email</th>
-                        <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Commanditaire</th>
-                        <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Statut</th>
+                        <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">Apprenant</th>
+                        <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">Email</th>
+                        <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">Commanditaire</th>
+                        <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">Statut</th>
                         <th className="px-4 py-2.5 w-12" />
                       </tr>
                     </thead>
                     <tbody>
                       {inscriptions.map((insc) => (
                         <tr key={insc.id} className="border-b border-border/40 hover:bg-muted/20 group">
-                          <td className="px-4 py-2.5 text-[13px] font-medium">
+                          <td className="px-4 py-2.5 text-sm font-medium">
                             {insc.apprenants?.prenom} {insc.apprenants?.nom}
-                            <span className="ml-2 text-[11px] font-mono text-muted-foreground/50">{insc.apprenants?.numero_affichage}</span>
+                            <span className="ml-2 text-xs font-mono text-muted-foreground/50">{insc.apprenants?.numero_affichage}</span>
                           </td>
-                          <td className="px-4 py-2.5 text-[13px] text-muted-foreground">{insc.apprenants?.email || "--"}</td>
-                          <td className="px-4 py-2.5 text-[13px] text-muted-foreground">
+                          <td className="px-4 py-2.5 text-sm text-muted-foreground">{insc.apprenants?.email || "--"}</td>
+                          <td className="px-4 py-2.5 text-sm text-muted-foreground">
                             {insc.session_commanditaires?.entreprises?.nom || "--"}
                           </td>
                           <td className="px-4 py-2.5">
@@ -933,7 +933,7 @@ export function SessionDetail({
                                 await updateInscriptionStatut(insc.id, session.id, e.target.value);
                                 router.refresh();
                               }}
-                              className="h-7 rounded border border-input bg-muted px-2 text-[11px] text-foreground"
+                              className="h-7 rounded border border-input bg-muted px-2 text-xs text-foreground"
                             >
                               <option value="inscrit">Inscrit</option>
                               <option value="confirme">Confirmé</option>
@@ -1004,33 +1004,33 @@ export function SessionDetail({
                   <div key={c.id} className="flex flex-wrap items-center gap-3 sm:gap-4 rounded-lg border border-border/60 bg-card px-4 py-3 group">
                     <div className="flex items-center gap-2 min-w-[130px]">
                       <CalendarDays className="h-3.5 w-3.5 text-muted-foreground/50" />
-                      <span className="text-[13px] font-medium">{formatDate(c.date)}</span>
+                      <span className="text-sm font-medium">{formatDate(c.date)}</span>
                     </div>
                     <div className="flex items-center gap-1.5 min-w-[120px]">
                       <Clock className="h-3 w-3 text-muted-foreground/50" />
-                      <span className="text-[13px] text-muted-foreground">
+                      <span className="text-sm text-muted-foreground">
                         {c.heure_debut.slice(0, 5)} — {c.heure_fin.slice(0, 5)}
                       </span>
                       {c.duree_minutes && (
-                        <span className="text-[11px] text-muted-foreground/50">
+                        <span className="text-xs text-muted-foreground/50">
                           ({formatDuration(c.duree_minutes)})
                         </span>
                       )}
                     </div>
-                    <Badge variant="outline" className="text-[10px] capitalize">{c.type}</Badge>
+                    <Badge variant="outline" className="text-xs capitalize">{c.type}</Badge>
                     {c.formateurs && (
-                      <span className="text-[13px] text-muted-foreground">
+                      <span className="text-sm text-muted-foreground">
                         {c.formateurs.prenom} {c.formateurs.nom}
                       </span>
                     )}
                     {c.salles && (
-                      <span className="text-[11px] text-muted-foreground/60">{c.salles.nom}</span>
+                      <span className="text-xs text-muted-foreground/60">{c.salles.nom}</span>
                     )}
                     <div className="flex-1" />
                     <button
                       type="button"
                       title={c.emargement_ouvert ? "Fermer l'émargement" : "Ouvrir l'émargement"}
-                      className={`flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium transition-colors ${
+                      className={`flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium transition-colors ${
                         c.emargement_ouvert
                           ? "bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25"
                           : "bg-muted/50 text-muted-foreground hover:bg-muted"
@@ -1089,28 +1089,28 @@ export function SessionDetail({
                       <div className="flex flex-wrap items-center gap-3 px-4 py-3 border-b border-border/60 bg-muted/20">
                         <div className="flex items-center gap-2">
                           <CalendarDays className="h-3.5 w-3.5 text-muted-foreground/50" />
-                          <span className="text-[13px] font-medium">{formatDate(ec.date)}</span>
+                          <span className="text-sm font-medium">{formatDate(ec.date)}</span>
                         </div>
                         <div className="flex items-center gap-1.5">
                           <Clock className="h-3 w-3 text-muted-foreground/50" />
-                          <span className="text-[13px] text-muted-foreground">
+                          <span className="text-sm text-muted-foreground">
                             {ec.heure_debut.slice(0, 5)} — {ec.heure_fin.slice(0, 5)}
                           </span>
                         </div>
-                        <Badge variant="outline" className="text-[10px] capitalize">{ec.type}</Badge>
+                        <Badge variant="outline" className="text-xs capitalize">{ec.type}</Badge>
                         {ec.formateurs && (
-                          <span className="text-[12px] text-muted-foreground">{ec.formateurs.prenom} {ec.formateurs.nom}</span>
+                          <span className="text-xs text-muted-foreground">{ec.formateurs.prenom} {ec.formateurs.nom}</span>
                         )}
                         <div className="flex-1" />
-                        <div className="flex items-center gap-3 text-[11px]">
+                        <div className="flex items-center gap-3 text-xs">
                           <span className="text-emerald-400">{presents} présent(s)</span>
                           <span className="text-destructive">{absents} absent(s)</span>
                           <span className="text-muted-foreground">{totalInscrits - presents - absents} non pointé(s)</span>
                         </div>
                         {ec.emargement_ouvert ? (
-                          <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/20 text-[10px]">Ouvert</Badge>
+                          <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/20 text-xs">Ouvert</Badge>
                         ) : (
-                          <Badge variant="outline" className="text-[10px] text-muted-foreground">Fermé</Badge>
+                          <Badge variant="outline" className="text-xs text-muted-foreground">Fermé</Badge>
                         )}
                       </div>
 
@@ -1133,14 +1133,14 @@ export function SessionDetail({
                                   {isPresent && <CheckCircle2 className="h-4 w-4 text-emerald-400" />}
                                   {isAbsent && <XCircle className="h-4 w-4 text-destructive" />}
                                   {notMarked && <div className="h-4 w-4 rounded-full border-2 border-muted-foreground/30" />}
-                                  <span className="text-[13px]">{insc.apprenants?.prenom} {insc.apprenants?.nom}</span>
-                                  <span className="text-[11px] font-mono text-muted-foreground/50">{insc.apprenants?.numero_affichage}</span>
+                                  <span className="text-sm">{insc.apprenants?.prenom} {insc.apprenants?.nom}</span>
+                                  <span className="text-xs font-mono text-muted-foreground/50">{insc.apprenants?.numero_affichage}</span>
                                 </div>
                                 <div className="flex items-center gap-1.5">
                                   <Button
                                     variant={isPresent ? "default" : "outline"}
                                     size="sm"
-                                    className={`h-6 text-[10px] px-2 ${isPresent ? "bg-emerald-600 hover:bg-emerald-700" : "border-border/60"}`}
+                                    className={`h-6 text-xs px-2 ${isPresent ? "bg-emerald-600 hover:bg-emerald-700" : "border-border/60"}`}
                                     onClick={async () => {
                                       await toggleEmargementPresence(ec.id, insc.apprenant_id, true, session.id);
                                       router.refresh();
@@ -1151,7 +1151,7 @@ export function SessionDetail({
                                   <Button
                                     variant={isAbsent ? "destructive" : "outline"}
                                     size="sm"
-                                    className={`h-6 text-[10px] px-2 ${!isAbsent ? "border-border/60" : ""}`}
+                                    className={`h-6 text-xs px-2 ${!isAbsent ? "border-border/60" : ""}`}
                                     onClick={async () => {
                                       await toggleEmargementPresence(ec.id, insc.apprenant_id, false, session.id);
                                       router.refresh();
@@ -1160,7 +1160,7 @@ export function SessionDetail({
                                     Absent
                                   </Button>
                                   {emargement?.heure_signature && (
-                                    <span className="text-[10px] text-muted-foreground/50 ml-2">
+                                    <span className="text-xs text-muted-foreground/50 ml-2">
                                       {new Date(emargement.heure_signature).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
                                     </span>
                                   )}
@@ -1195,19 +1195,19 @@ export function SessionDetail({
               <div className="rounded-lg border border-border/60 bg-card p-6 text-center">
                 <p className="text-xs text-muted-foreground/60 uppercase font-semibold tracking-wider">Total Budget</p>
                 <p className="mt-2 text-2xl font-mono font-semibold">{formatCurrency(financials.budget)}</p>
-                <p className="mt-1 text-[11px] text-muted-foreground">{commanditaires.length} commanditaire(s)</p>
+                <p className="mt-1 text-xs text-muted-foreground">{commanditaires.length} commanditaire(s)</p>
               </div>
               <div className="rounded-lg border border-border/60 bg-card p-6 text-center">
                 <p className="text-xs text-muted-foreground/60 uppercase font-semibold tracking-wider">Coût de revient</p>
                 <p className="mt-2 text-2xl font-mono font-semibold text-muted-foreground">{formatCurrency(financials.cout)}</p>
-                <p className="mt-1 text-[11px] text-muted-foreground">{creneaux.length} créneau(x)</p>
+                <p className="mt-1 text-xs text-muted-foreground">{creneaux.length} créneau(x)</p>
               </div>
               <div className="rounded-lg border border-border/60 bg-card p-6 text-center">
                 <p className="text-xs text-muted-foreground/60 uppercase font-semibold tracking-wider">Rentabilité</p>
                 <p className={`mt-2 text-2xl font-mono font-semibold ${financials.rentabilite >= 0 ? "text-emerald-400" : "text-destructive"}`}>
                   {formatCurrency(financials.rentabilite)}
                 </p>
-                <p className="mt-1 text-[11px] text-muted-foreground">
+                <p className="mt-1 text-xs text-muted-foreground">
                   {financials.budget > 0 ? `${Math.round((financials.rentabilite / financials.budget) * 100)}% de marge` : "--"}
                 </p>
               </div>
@@ -1224,10 +1224,10 @@ export function SessionDetail({
                     <div key={c.id} className="flex items-center justify-between px-4 py-3">
                       <div className="flex items-center gap-2">
                         <Building2 className="h-3.5 w-3.5 text-muted-foreground/50" />
-                        <span className="text-[13px]">{c.entreprises?.nom ?? "Commanditaire"}</span>
-                        <Badge variant="outline" className="text-[10px]">{WORKFLOW_LABELS[c.statut_workflow] ?? c.statut_workflow}</Badge>
+                        <span className="text-sm">{c.entreprises?.nom ?? "Commanditaire"}</span>
+                        <Badge variant="outline" className="text-xs">{WORKFLOW_LABELS[c.statut_workflow] ?? c.statut_workflow}</Badge>
                       </div>
-                      <span className="font-mono text-[13px] font-medium">{formatCurrency(Number(c.budget))}</span>
+                      <span className="font-mono text-sm font-medium">{formatCurrency(Number(c.budget))}</span>
                     </div>
                   ))}
                 </div>
@@ -1350,7 +1350,7 @@ function AddFormateurInline({
     onSuccess();
   };
 
-  const selectClass = "h-8 w-full rounded-md border border-input bg-muted px-2 text-[13px] text-foreground";
+  const selectClass = "h-8 w-full rounded-md border border-input bg-muted px-2 text-sm text-foreground";
 
   return (
     <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
@@ -1396,7 +1396,7 @@ function AddFormateurInline({
           {/* Identity */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <div className="space-y-1">
-              <Label className="text-[11px] text-muted-foreground">Civilité</Label>
+              <Label className="text-xs text-muted-foreground">Civilité</Label>
               <select value={newForm.civilite} onChange={(e) => setNewForm((p) => ({ ...p, civilite: e.target.value }))} className={selectClass}>
                 <option value="">--</option>
                 <option value="Monsieur">Monsieur</option>
@@ -1404,42 +1404,42 @@ function AddFormateurInline({
               </select>
             </div>
             <div className="space-y-1">
-              <Label className="text-[11px] text-muted-foreground">Prénom *</Label>
-              <Input value={newForm.prenom} onChange={(e) => setNewForm((p) => ({ ...p, prenom: e.target.value }))} placeholder="Prénom" className="h-8 text-[13px] border-border/60" />
+              <Label className="text-xs text-muted-foreground">Prénom *</Label>
+              <Input value={newForm.prenom} onChange={(e) => setNewForm((p) => ({ ...p, prenom: e.target.value }))} placeholder="Prénom" className="h-8 text-sm border-border/60" />
             </div>
             <div className="space-y-1">
-              <Label className="text-[11px] text-muted-foreground">Nom *</Label>
-              <Input value={newForm.nom} onChange={(e) => setNewForm((p) => ({ ...p, nom: e.target.value }))} placeholder="Nom" className="h-8 text-[13px] border-border/60" />
+              <Label className="text-xs text-muted-foreground">Nom *</Label>
+              <Input value={newForm.nom} onChange={(e) => setNewForm((p) => ({ ...p, nom: e.target.value }))} placeholder="Nom" className="h-8 text-sm border-border/60" />
             </div>
           </div>
 
           {/* Contact */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div className="space-y-1">
-              <Label className="text-[11px] text-muted-foreground">Email</Label>
-              <Input type="email" value={newForm.email} onChange={(e) => setNewForm((p) => ({ ...p, email: e.target.value }))} placeholder="email@exemple.fr" className="h-8 text-[13px] border-border/60" />
+              <Label className="text-xs text-muted-foreground">Email</Label>
+              <Input type="email" value={newForm.email} onChange={(e) => setNewForm((p) => ({ ...p, email: e.target.value }))} placeholder="email@exemple.fr" className="h-8 text-sm border-border/60" />
             </div>
             <div className="space-y-1">
-              <Label className="text-[11px] text-muted-foreground">Téléphone</Label>
-              <Input value={newForm.telephone} onChange={(e) => setNewForm((p) => ({ ...p, telephone: e.target.value }))} placeholder="06 12 34 56 78" className="h-8 text-[13px] border-border/60" />
+              <Label className="text-xs text-muted-foreground">Téléphone</Label>
+              <Input value={newForm.telephone} onChange={(e) => setNewForm((p) => ({ ...p, telephone: e.target.value }))} placeholder="06 12 34 56 78" className="h-8 text-sm border-border/60" />
             </div>
           </div>
 
           {/* Professional */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <div className="space-y-1">
-              <Label className="text-[11px] text-muted-foreground">Statut BPF</Label>
+              <Label className="text-xs text-muted-foreground">Statut BPF</Label>
               <select value={newForm.statut_bpf} onChange={(e) => setNewForm((p) => ({ ...p, statut_bpf: e.target.value as "interne" | "externe" }))} className={selectClass}>
                 <option value="externe">Externe (sous-traitant)</option>
                 <option value="interne">Interne (salarié)</option>
               </select>
             </div>
             <div className="space-y-1">
-              <Label className="text-[11px] text-muted-foreground">Tarif journalier HT (€)</Label>
-              <Input type="number" step="0.01" min="0" value={newForm.tarif_journalier} onChange={(e) => setNewForm((p) => ({ ...p, tarif_journalier: e.target.value }))} placeholder="350" className="h-8 text-[13px] border-border/60" />
+              <Label className="text-xs text-muted-foreground">Tarif journalier HT (€)</Label>
+              <Input type="number" step="0.01" min="0" value={newForm.tarif_journalier} onChange={(e) => setNewForm((p) => ({ ...p, tarif_journalier: e.target.value }))} placeholder="350" className="h-8 text-sm border-border/60" />
             </div>
             <div className="space-y-1">
-              <Label className="text-[11px] text-muted-foreground">Rôle dans la session</Label>
+              <Label className="text-xs text-muted-foreground">Rôle dans la session</Label>
               <select value={role} onChange={(e) => setRole(e.target.value)} className={selectClass}>
                 <option value="principal">Principal</option>
                 <option value="intervenant">Intervenant</option>
@@ -1450,28 +1450,28 @@ function AddFormateurInline({
           {/* SIRET / NDA */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div className="space-y-1">
-              <Label className="text-[11px] text-muted-foreground">SIRET</Label>
-              <Input value={newForm.siret} onChange={(e) => setNewForm((p) => ({ ...p, siret: e.target.value }))} placeholder="123 456 789 00012" className="h-8 text-[13px] border-border/60" />
+              <Label className="text-xs text-muted-foreground">SIRET</Label>
+              <Input value={newForm.siret} onChange={(e) => setNewForm((p) => ({ ...p, siret: e.target.value }))} placeholder="123 456 789 00012" className="h-8 text-sm border-border/60" />
             </div>
             <div className="space-y-1">
-              <Label className="text-[11px] text-muted-foreground">NDA (sous-traitant)</Label>
-              <Input value={newForm.nda} onChange={(e) => setNewForm((p) => ({ ...p, nda: e.target.value }))} placeholder="N° déclaration d'activité" className="h-8 text-[13px] border-border/60" />
+              <Label className="text-xs text-muted-foreground">NDA (sous-traitant)</Label>
+              <Input value={newForm.nda} onChange={(e) => setNewForm((p) => ({ ...p, nda: e.target.value }))} placeholder="N° déclaration d'activité" className="h-8 text-sm border-border/60" />
             </div>
           </div>
 
           {/* Address with autocomplete */}
           <div className="space-y-2">
-            <Label className="text-[11px] text-muted-foreground">Adresse</Label>
+            <Label className="text-xs text-muted-foreground">Adresse</Label>
             <AddressAutocomplete
               value={newForm.adresse_rue}
               onChange={(val) => setNewForm((p) => ({ ...p, adresse_rue: val }))}
               onSelect={(r) => setNewForm((p) => ({ ...p, adresse_rue: r.rue, adresse_cp: r.cp, adresse_ville: r.ville }))}
               placeholder="Rechercher une adresse..."
             />
-            <Input value={newForm.adresse_complement} onChange={(e) => setNewForm((p) => ({ ...p, adresse_complement: e.target.value }))} placeholder="Complément (bâtiment, étage...)" className="h-8 text-[13px] border-border/60" />
+            <Input value={newForm.adresse_complement} onChange={(e) => setNewForm((p) => ({ ...p, adresse_complement: e.target.value }))} placeholder="Complément (bâtiment, étage...)" className="h-8 text-sm border-border/60" />
             <div className="grid grid-cols-[120px_1fr] gap-2">
-              <Input value={newForm.adresse_cp} onChange={(e) => setNewForm((p) => ({ ...p, adresse_cp: e.target.value }))} placeholder="CP" className="h-8 text-[13px] border-border/60" />
-              <Input value={newForm.adresse_ville} onChange={(e) => setNewForm((p) => ({ ...p, adresse_ville: e.target.value }))} placeholder="Ville" className="h-8 text-[13px] border-border/60" />
+              <Input value={newForm.adresse_cp} onChange={(e) => setNewForm((p) => ({ ...p, adresse_cp: e.target.value }))} placeholder="CP" className="h-8 text-sm border-border/60" />
+              <Input value={newForm.adresse_ville} onChange={(e) => setNewForm((p) => ({ ...p, adresse_ville: e.target.value }))} placeholder="Ville" className="h-8 text-sm border-border/60" />
             </div>
           </div>
 
@@ -1547,8 +1547,8 @@ function AddCommanditaireForm({
       <form onSubmit={handleSubmit} className="space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <Label className="text-[12px]">Entreprise</Label>
-            <select name="entreprise_id" className="h-8 w-full rounded-md border border-input bg-muted px-2 text-[13px] text-foreground">
+            <Label className="text-xs">Entreprise</Label>
+            <select name="entreprise_id" className="h-8 w-full rounded-md border border-input bg-muted px-2 text-sm text-foreground">
               <option value="">-- Sélectionner --</option>
               {entreprises.map((e) => (
                 <option key={e.id} value={e.id}>{e.nom}</option>
@@ -1556,8 +1556,8 @@ function AddCommanditaireForm({
             </select>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[12px]">Contact client</Label>
-            <select name="contact_client_id" className="h-8 w-full rounded-md border border-input bg-muted px-2 text-[13px] text-foreground">
+            <Label className="text-xs">Contact client</Label>
+            <select name="contact_client_id" className="h-8 w-full rounded-md border border-input bg-muted px-2 text-sm text-foreground">
               <option value="">-- Sélectionner --</option>
               {contacts.map((c) => (
                 <option key={c.id} value={c.id}>{c.prenom} {c.nom}</option>
@@ -1565,8 +1565,8 @@ function AddCommanditaireForm({
             </select>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[12px]">Financeur</Label>
-            <select name="financeur_id" className="h-8 w-full rounded-md border border-input bg-muted px-2 text-[13px] text-foreground">
+            <Label className="text-xs">Financeur</Label>
+            <select name="financeur_id" className="h-8 w-full rounded-md border border-input bg-muted px-2 text-sm text-foreground">
               <option value="">-- Aucun --</option>
               {financeurs.map((f) => (
                 <option key={f.id} value={f.id}>{f.nom}{f.type ? ` (${f.type})` : ""}</option>
@@ -1574,13 +1574,13 @@ function AddCommanditaireForm({
             </select>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[12px]">Budget (€)</Label>
-            <Input name="budget" type="number" step="0.01" min="0" defaultValue="0" className="h-8 text-[13px] border-border/60" />
+            <Label className="text-xs">Budget (€)</Label>
+            <Input name="budget" type="number" step="0.01" min="0" defaultValue="0" className="h-8 text-sm border-border/60" />
           </div>
         </div>
         <div className="space-y-1.5">
-          <Label className="text-[12px]">Notes</Label>
-          <Input name="notes" placeholder="Notes optionnelles..." className="h-8 text-[13px] border-border/60" />
+          <Label className="text-xs">Notes</Label>
+          <Input name="notes" placeholder="Notes optionnelles..." className="h-8 text-sm border-border/60" />
         </div>
         <div className="flex justify-end gap-2">
           <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={onClose}>
@@ -1685,7 +1685,7 @@ function AddApprenantInline({
     onSuccess();
   };
 
-  const selectClass = "h-8 w-full rounded-md border border-input bg-muted px-2 text-[13px] text-foreground";
+  const selectClass = "h-8 w-full rounded-md border border-input bg-muted px-2 text-sm text-foreground";
 
   return (
     <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
@@ -1737,7 +1737,7 @@ function AddApprenantInline({
           {/* Identity */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <div className="space-y-1">
-              <Label className="text-[11px] text-muted-foreground">Civilité</Label>
+              <Label className="text-xs text-muted-foreground">Civilité</Label>
               <select value={newForm.civilite} onChange={(e) => setNewForm((p) => ({ ...p, civilite: e.target.value }))} className={selectClass}>
                 <option value="">--</option>
                 <option value="Monsieur">Monsieur</option>
@@ -1745,43 +1745,43 @@ function AddApprenantInline({
               </select>
             </div>
             <div className="space-y-1">
-              <Label className="text-[11px] text-muted-foreground">Prénom *</Label>
-              <Input value={newForm.prenom} onChange={(e) => setNewForm((p) => ({ ...p, prenom: e.target.value }))} placeholder="Prénom" className="h-8 text-[13px] border-border/60" />
+              <Label className="text-xs text-muted-foreground">Prénom *</Label>
+              <Input value={newForm.prenom} onChange={(e) => setNewForm((p) => ({ ...p, prenom: e.target.value }))} placeholder="Prénom" className="h-8 text-sm border-border/60" />
             </div>
             <div className="space-y-1">
-              <Label className="text-[11px] text-muted-foreground">Nom *</Label>
-              <Input value={newForm.nom} onChange={(e) => setNewForm((p) => ({ ...p, nom: e.target.value }))} placeholder="Nom" className="h-8 text-[13px] border-border/60" />
+              <Label className="text-xs text-muted-foreground">Nom *</Label>
+              <Input value={newForm.nom} onChange={(e) => setNewForm((p) => ({ ...p, nom: e.target.value }))} placeholder="Nom" className="h-8 text-sm border-border/60" />
             </div>
           </div>
 
           {/* Contact */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div className="space-y-1">
-              <Label className="text-[11px] text-muted-foreground">Email</Label>
-              <Input type="email" value={newForm.email} onChange={(e) => setNewForm((p) => ({ ...p, email: e.target.value }))} placeholder="email@exemple.fr" className="h-8 text-[13px] border-border/60" />
+              <Label className="text-xs text-muted-foreground">Email</Label>
+              <Input type="email" value={newForm.email} onChange={(e) => setNewForm((p) => ({ ...p, email: e.target.value }))} placeholder="email@exemple.fr" className="h-8 text-sm border-border/60" />
             </div>
             <div className="space-y-1">
-              <Label className="text-[11px] text-muted-foreground">Téléphone</Label>
-              <Input value={newForm.telephone} onChange={(e) => setNewForm((p) => ({ ...p, telephone: e.target.value }))} placeholder="06 12 34 56 78" className="h-8 text-[13px] border-border/60" />
+              <Label className="text-xs text-muted-foreground">Téléphone</Label>
+              <Input value={newForm.telephone} onChange={(e) => setNewForm((p) => ({ ...p, telephone: e.target.value }))} placeholder="06 12 34 56 78" className="h-8 text-sm border-border/60" />
             </div>
           </div>
 
           {/* Professional + Birth */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div className="space-y-1">
-              <Label className="text-[11px] text-muted-foreground">Date de naissance</Label>
+              <Label className="text-xs text-muted-foreground">Date de naissance</Label>
               <DatePicker value={newForm.date_naissance} onChange={(val) => setNewForm((p) => ({ ...p, date_naissance: val }))} className="h-8" />
             </div>
             <div className="space-y-1">
-              <Label className="text-[11px] text-muted-foreground">Fonction</Label>
-              <Input value={newForm.fonction} onChange={(e) => setNewForm((p) => ({ ...p, fonction: e.target.value }))} placeholder="Poste occupé" className="h-8 text-[13px] border-border/60" />
+              <Label className="text-xs text-muted-foreground">Fonction</Label>
+              <Input value={newForm.fonction} onChange={(e) => setNewForm((p) => ({ ...p, fonction: e.target.value }))} placeholder="Poste occupé" className="h-8 text-sm border-border/60" />
             </div>
           </div>
 
           {/* Commanditaire */}
           {commanditaires.length > 0 && (
             <div className="space-y-1">
-              <Label className="text-[11px] text-muted-foreground">Commanditaire (optionnel)</Label>
+              <Label className="text-xs text-muted-foreground">Commanditaire (optionnel)</Label>
               <select value={commanditaireId} onChange={(e) => setCommanditaireId(e.target.value)} className={selectClass}>
                 <option value="">-- Aucun --</option>
                 {commanditaires.map((c) => (
@@ -1795,7 +1795,7 @@ function AddApprenantInline({
 
           {/* Address with autocomplete */}
           <div className="space-y-2">
-            <Label className="text-[11px] text-muted-foreground">Adresse</Label>
+            <Label className="text-xs text-muted-foreground">Adresse</Label>
             <AddressAutocomplete
               value={newForm.adresse_rue}
               onChange={(val) => setNewForm((p) => ({ ...p, adresse_rue: val }))}
@@ -1803,8 +1803,8 @@ function AddApprenantInline({
               placeholder="Rechercher une adresse..."
             />
             <div className="grid grid-cols-[120px_1fr] gap-2">
-              <Input value={newForm.adresse_cp} onChange={(e) => setNewForm((p) => ({ ...p, adresse_cp: e.target.value }))} placeholder="CP" className="h-8 text-[13px] border-border/60" />
-              <Input value={newForm.adresse_ville} onChange={(e) => setNewForm((p) => ({ ...p, adresse_ville: e.target.value }))} placeholder="Ville" className="h-8 text-[13px] border-border/60" />
+              <Input value={newForm.adresse_cp} onChange={(e) => setNewForm((p) => ({ ...p, adresse_cp: e.target.value }))} placeholder="CP" className="h-8 text-sm border-border/60" />
+              <Input value={newForm.adresse_ville} onChange={(e) => setNewForm((p) => ({ ...p, adresse_ville: e.target.value }))} placeholder="Ville" className="h-8 text-sm border-border/60" />
             </div>
           </div>
 
@@ -1958,11 +1958,11 @@ function DocumentsTab({
             </button>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[12px]">Catégorie</Label>
+            <Label className="text-xs">Catégorie</Label>
             <select
               value={categorie}
               onChange={(e) => setCategorie(e.target.value)}
-              className="h-8 w-full rounded-md border border-input bg-muted px-2 text-[13px] text-foreground sm:w-64"
+              className="h-8 w-full rounded-md border border-input bg-muted px-2 text-sm text-foreground sm:w-64"
             >
               {DOCUMENT_CATEGORIES.map((cat) => (
                 <option key={cat.value} value={cat.value}>{cat.label}</option>
@@ -1973,7 +1973,7 @@ function DocumentsTab({
             <input
               ref={fileInputRef}
               type="file"
-              className="text-[13px] text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-primary-foreground hover:file:bg-primary/90"
+              className="text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-primary-foreground hover:file:bg-primary/90"
               accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.zip"
               onChange={(e) => {
                 const f = e.target.files?.[0];
@@ -1983,7 +1983,7 @@ function DocumentsTab({
             />
             {uploading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
           </div>
-          <p className="text-[11px] text-muted-foreground/60">PDF, Word, Excel, images, ZIP — max 20 Mo</p>
+          <p className="text-xs text-muted-foreground/60">PDF, Word, Excel, images, ZIP — max 20 Mo</p>
         </div>
       )}
 
@@ -1998,10 +1998,10 @@ function DocumentsTab({
             <table className="w-full min-w-[500px]">
               <thead>
                 <tr className="border-b border-border/60 bg-muted/30">
-                  <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Document</th>
-                  <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Catégorie</th>
-                  <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Taille</th>
-                  <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Date</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">Document</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">Catégorie</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">Taille</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">Date</th>
                   <th className="px-4 py-2.5 w-20" />
                 </tr>
               </thead>
@@ -2011,16 +2011,16 @@ function DocumentsTab({
                     <td className="px-4 py-2.5">
                       <div className="flex items-center gap-2">
                         <FileText className="h-4 w-4 text-muted-foreground/50 shrink-0" />
-                        <span className="text-[13px] font-medium truncate max-w-[250px]">{doc.nom}</span>
+                        <span className="text-sm font-medium truncate max-w-[250px]">{doc.nom}</span>
                       </div>
                     </td>
                     <td className="px-4 py-2.5">
-                      <Badge variant="outline" className="text-[10px] capitalize">
+                      <Badge variant="outline" className="text-xs capitalize">
                         {DOCUMENT_CATEGORIES.find((c) => c.value === doc.categorie)?.label ?? doc.categorie ?? "Autre"}
                       </Badge>
                     </td>
-                    <td className="px-4 py-2.5 text-[13px] text-muted-foreground">{formatSize(doc.taille_octets)}</td>
-                    <td className="px-4 py-2.5 text-[13px] text-muted-foreground">{formatDate(doc.created_at)}</td>
+                    <td className="px-4 py-2.5 text-sm text-muted-foreground">{formatSize(doc.taille_octets)}</td>
+                    <td className="px-4 py-2.5 text-sm text-muted-foreground">{formatDate(doc.created_at)}</td>
                     <td className="px-4 py-2.5">
                       <div className="flex items-center gap-1">
                         <a
@@ -2104,22 +2104,22 @@ function AddCreneauForm({
       <form onSubmit={handleSubmit} className="space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="space-y-1.5">
-            <Label className="text-[12px]">Date <span className="text-destructive">*</span></Label>
+            <Label className="text-xs">Date <span className="text-destructive">*</span></Label>
             <DatePicker name="date" className="h-8" />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[12px]">Début <span className="text-destructive">*</span></Label>
-            <Input name="heure_debut" type="time" required defaultValue="09:00" className="h-8 text-[13px] border-border/60" />
+            <Label className="text-xs">Début <span className="text-destructive">*</span></Label>
+            <Input name="heure_debut" type="time" required defaultValue="09:00" className="h-8 text-sm border-border/60" />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[12px]">Fin <span className="text-destructive">*</span></Label>
-            <Input name="heure_fin" type="time" required defaultValue="17:00" className="h-8 text-[13px] border-border/60" />
+            <Label className="text-xs">Fin <span className="text-destructive">*</span></Label>
+            <Input name="heure_fin" type="time" required defaultValue="17:00" className="h-8 text-sm border-border/60" />
           </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="space-y-1.5">
-            <Label className="text-[12px]">Type</Label>
-            <select name="type" defaultValue="presentiel" className="h-8 w-full rounded-md border border-input bg-muted px-2 text-[13px] text-foreground">
+            <Label className="text-xs">Type</Label>
+            <select name="type" defaultValue="presentiel" className="h-8 w-full rounded-md border border-input bg-muted px-2 text-sm text-foreground">
               <option value="presentiel">Présentiel</option>
               <option value="distanciel">Distanciel</option>
               <option value="elearning">E-learning</option>
@@ -2127,8 +2127,8 @@ function AddCreneauForm({
             </select>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[12px]">Formateur</Label>
-            <select name="formateur_id" className="h-8 w-full rounded-md border border-input bg-muted px-2 text-[13px] text-foreground">
+            <Label className="text-xs">Formateur</Label>
+            <select name="formateur_id" className="h-8 w-full rounded-md border border-input bg-muted px-2 text-sm text-foreground">
               <option value="">-- Aucun --</option>
               {formateurs.map((f) => (
                 <option key={f.id} value={f.id}>{f.prenom} {f.nom}</option>
@@ -2136,8 +2136,8 @@ function AddCreneauForm({
             </select>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[12px]">Salle</Label>
-            <select name="salle_id" className="h-8 w-full rounded-md border border-input bg-muted px-2 text-[13px] text-foreground">
+            <Label className="text-xs">Salle</Label>
+            <select name="salle_id" className="h-8 w-full rounded-md border border-input bg-muted px-2 text-sm text-foreground">
               <option value="">-- Aucune --</option>
               {salles.map((s) => (
                 <option key={s.id} value={s.id}>{s.nom}</option>
@@ -2269,11 +2269,11 @@ function EvaluationsTab({
         <div className="rounded-lg border border-border/60 bg-card p-4 space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label className="text-[11px] text-muted-foreground">Questionnaire</Label>
+              <Label className="text-xs text-muted-foreground">Questionnaire</Label>
               <select
                 value={selectedQId}
                 onChange={(e) => setSelectedQId(e.target.value)}
-                className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
+                className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
               >
                 <option value="">-- Sélectionner --</option>
                 {available.map((q) => (
@@ -2284,11 +2284,11 @@ function EvaluationsTab({
               </select>
             </div>
             <div className="space-y-1">
-              <Label className="text-[11px] text-muted-foreground">Type d&apos;évaluation</Label>
+              <Label className="text-xs text-muted-foreground">Type d&apos;évaluation</Label>
               <select
                 value={selectedType}
                 onChange={(e) => setSelectedType(e.target.value)}
-                className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
+                className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
               >
                 <option value="satisfaction_chaud">Satisfaction à chaud</option>
                 <option value="satisfaction_froid">Satisfaction à froid</option>
@@ -2313,7 +2313,7 @@ function EvaluationsTab({
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border/60 py-12">
           <ClipboardList className="h-8 w-8 text-muted-foreground/30" />
           <p className="mt-3 text-sm text-muted-foreground/60">Aucune évaluation rattachée</p>
-          <p className="text-[11px] text-muted-foreground/40 mt-1">
+          <p className="text-xs text-muted-foreground/40 mt-1">
             Rattachez des questionnaires de satisfaction ou pédagogiques à cette session.
           </p>
         </div>
@@ -2422,25 +2422,25 @@ function SessionEvaluationCard({
         <div className="flex items-center gap-3 min-w-0">
           <ClipboardList className="h-4 w-4 text-muted-foreground/50 shrink-0" />
           <div className="min-w-0">
-            <p className="text-[13px] font-medium truncate">
+            <p className="text-sm font-medium truncate">
               {ev.questionnaires?.nom ?? "Questionnaire supprimé"}
             </p>
             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-              <Badge variant="outline" className={`text-[10px] ${EVAL_TYPE_COLORS[ev.type ?? ""] ?? ""}`}>
+              <Badge variant="outline" className={`text-xs ${EVAL_TYPE_COLORS[ev.type ?? ""] ?? ""}`}>
                 {EVAL_TYPE_LABELS[ev.type ?? ""] ?? ev.type}
               </Badge>
               {ev.questionnaires?.statut && (
-                <span className="text-[10px] text-muted-foreground">
+                <span className="text-xs text-muted-foreground">
                   {ev.questionnaires.statut === "actif" ? "Actif" : ev.questionnaires.statut === "brouillon" ? "Brouillon" : "Archivé"}
                 </span>
               )}
               {planification && (
-                <Badge variant="outline" className={`text-[10px] ${PLANIF_STATUT_COLORS[planification.statut] ?? ""}`}>
+                <Badge variant="outline" className={`text-xs ${PLANIF_STATUT_COLORS[planification.statut] ?? ""}`}>
                   {PLANIF_STATUT_LABELS[planification.statut] ?? planification.statut}
                 </Badge>
               )}
               {planification?.herite_du_produit && !planification.personnalise && (
-                <span className="text-[9px] text-muted-foreground/50">Hérité du programme</span>
+                <span className="text-xs text-muted-foreground/50">Hérité du programme</span>
               )}
             </div>
           </div>
@@ -2501,7 +2501,7 @@ function SessionEvaluationCard({
       {/* Scheduling summary */}
       {planification && !expanded && planification.envoi_auto && (
         <div className="px-4 pb-3 -mt-1">
-          <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+          <p className="text-xs text-muted-foreground flex items-center gap-1.5">
             <CalendarClock className="h-3 w-3 text-primary/60" />
             {planification.date_envoi_calculee ? (
               <>
@@ -2526,13 +2526,13 @@ function SessionEvaluationCard({
       {/* Expanded editing form */}
       {expanded && planification && (
         <div className="border-t border-border/60 bg-muted/20 p-4 space-y-4">
-          <h4 className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wide">
+          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
             Modifier la planification d&apos;envoi
           </h4>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-[11px] text-muted-foreground">Déclencheur</Label>
+              <Label className="text-xs text-muted-foreground">Déclencheur</Label>
               <select
                 value={config.declencheur}
                 onChange={(e) =>
@@ -2541,7 +2541,7 @@ function SessionEvaluationCard({
                     declencheur: e.target.value as PlanificationConfig["declencheur"],
                   }))
                 }
-                className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
+                className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
               >
                 <option value="avant_debut">Avant le début de session</option>
                 <option value="apres_debut">Après le début de session</option>
@@ -2549,7 +2549,7 @@ function SessionEvaluationCard({
               </select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[11px] text-muted-foreground">Délai (jours)</Label>
+              <Label className="text-xs text-muted-foreground">Délai (jours)</Label>
               <Input
                 type="number"
                 min={0}
@@ -2557,19 +2557,19 @@ function SessionEvaluationCard({
                 onChange={(e) =>
                   setConfig((c) => ({ ...c, delai_jours: parseInt(e.target.value) || 0 }))
                 }
-                className="h-9 text-[13px] border-border/60"
+                className="h-9 text-sm border-border/60"
                 placeholder="0 = jour J"
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[11px] text-muted-foreground">Heure d&apos;envoi</Label>
+              <Label className="text-xs text-muted-foreground">Heure d&apos;envoi</Label>
               <Input
                 type="time"
                 value={config.heure_envoi}
                 onChange={(e) =>
                   setConfig((c) => ({ ...c, heure_envoi: e.target.value }))
                 }
-                className="h-9 text-[13px] border-border/60"
+                className="h-9 text-sm border-border/60"
               />
             </div>
           </div>
@@ -2587,12 +2587,12 @@ function SessionEvaluationCard({
                 }
                 className="rounded border-border/60"
               />
-              <span className="text-[12px] text-muted-foreground">Jours ouvrés uniquement</span>
+              <span className="text-xs text-muted-foreground">Jours ouvrés uniquement</span>
             </label>
 
             {config.jours_ouvres_uniquement && (
               <div className="flex items-center gap-2">
-                <span className="text-[11px] text-muted-foreground">Si week-end :</span>
+                <span className="text-xs text-muted-foreground">Si week-end :</span>
                 <select
                   value={config.repli_weekend}
                   onChange={(e) =>
@@ -2601,7 +2601,7 @@ function SessionEvaluationCard({
                       repli_weekend: e.target.value as PlanificationConfig["repli_weekend"],
                     }))
                   }
-                  className="h-7 rounded-md border border-input bg-muted px-2 py-0.5 text-[11px] text-foreground"
+                  className="h-7 rounded-md border border-input bg-muted px-2 py-0.5 text-xs text-foreground"
                 >
                   <option value="lundi_suivant">Lundi suivant</option>
                   <option value="vendredi_precedent">Vendredi précédent</option>
@@ -2618,7 +2618,7 @@ function SessionEvaluationCard({
                 }
                 className="rounded border-border/60"
               />
-              <span className="text-[12px] text-muted-foreground">Envoi automatique activé</span>
+              <span className="text-xs text-muted-foreground">Envoi automatique activé</span>
             </label>
           </div>
 

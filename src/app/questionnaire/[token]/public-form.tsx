@@ -75,7 +75,7 @@ export function PublicQuestionnaireForm({
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Header */}
       <div className="rounded-lg border border-border/60 bg-card p-6">
-        <h1 className="text-xl font-semibold">{questionnaire.nom}</h1>
+        <h1 className="text-2xl font-semibold">{questionnaire.nom}</h1>
         {respondentName && (
           <p className="mt-1 text-sm text-muted-foreground">
             Bonjour {respondentName}
@@ -98,7 +98,7 @@ export function PublicQuestionnaireForm({
       {questions.map((q, i) => (
         <div key={q.id} className="rounded-lg border border-border/60 bg-card p-5">
           <div className="flex items-start gap-3">
-            <span className="text-[12px] font-mono text-muted-foreground/50 pt-0.5">{i + 1}.</span>
+            <span className="text-xs font-mono text-muted-foreground/50 pt-0.5">{i + 1}.</span>
             <div className="flex-1 space-y-3">
               <p className="text-[14px] font-medium">
                 {q.texte}
@@ -111,7 +111,7 @@ export function PublicQuestionnaireForm({
                   rows={3}
                   value={(answers[q.id] as string) ?? ""}
                   onChange={(e) => setAnswer(q.id, e.target.value)}
-                  className="w-full rounded-md border border-input bg-muted px-3 py-2 text-[13px] text-foreground resize-none"
+                  className="w-full rounded-md border border-input bg-muted px-3 py-2 text-sm text-foreground resize-none"
                   placeholder="Votre reponse..."
                   required={q.obligatoire}
                 />
@@ -124,7 +124,7 @@ export function PublicQuestionnaireForm({
                     <button
                       key={n}
                       type="button"
-                      className={`h-9 w-9 rounded-md border text-[13px] font-mono transition-colors ${
+                      className={`h-9 w-9 rounded-md border text-sm font-mono transition-colors ${
                         answers[q.id] === n
                           ? "bg-primary text-primary-foreground border-primary"
                           : "border-border/60 bg-muted hover:bg-muted/80 text-foreground"
@@ -151,7 +151,7 @@ export function PublicQuestionnaireForm({
                         className="h-4 w-4 accent-primary"
                         required={q.obligatoire}
                       />
-                      <span className="text-[13px]">{opt.label}</span>
+                      <span className="text-sm">{opt.label}</span>
                     </label>
                   ))}
                 </div>
@@ -176,7 +176,7 @@ export function PublicQuestionnaireForm({
                           }}
                           className="h-4 w-4 rounded accent-primary"
                         />
-                        <span className="text-[13px]">{opt.label}</span>
+                        <span className="text-sm">{opt.label}</span>
                       </label>
                     );
                   })}
@@ -197,7 +197,7 @@ export function PublicQuestionnaireForm({
                         className="h-4 w-4 accent-primary"
                         required={q.obligatoire}
                       />
-                      <span className="text-[13px] font-medium">{opt.label}</span>
+                      <span className="text-sm font-medium">{opt.label}</span>
                     </label>
                   ))}
                 </div>

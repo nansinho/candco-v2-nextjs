@@ -68,8 +68,8 @@ export function FormateurProfilForm({ formateur }: { formateur: FormateurData })
     <div className="space-y-6">
       <div>
         <div className="flex items-center gap-2">
-          <h1 className="text-xl font-semibold tracking-tight">Mon profil</h1>
-          <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[11px] font-mono">
+          <h1 className="text-2xl font-semibold tracking-tight">Mon profil</h1>
+          <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-xs font-mono">
             {formateur.numero_affichage}
           </Badge>
         </div>
@@ -83,16 +83,16 @@ export function FormateurProfilForm({ formateur }: { formateur: FormateurData })
         <h3 className="mb-4 text-sm font-semibold">Identite</h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="space-y-2">
-            <Label className="text-[13px]">Civilite</Label>
-            <Input value={formateur.civilite ?? ""} disabled className="h-9 text-[13px] border-border/60 bg-muted/50" />
+            <Label className="text-sm">Civilite</Label>
+            <Input value={formateur.civilite ?? ""} disabled className="h-9 text-sm border-border/60 bg-muted/50" />
           </div>
           <div className="space-y-2">
-            <Label className="text-[13px]">Prenom</Label>
-            <Input value={formateur.prenom} disabled className="h-9 text-[13px] border-border/60 bg-muted/50" />
+            <Label className="text-sm">Prenom</Label>
+            <Input value={formateur.prenom} disabled className="h-9 text-sm border-border/60 bg-muted/50" />
           </div>
           <div className="space-y-2">
-            <Label className="text-[13px]">Nom</Label>
-            <Input value={formateur.nom} disabled className="h-9 text-[13px] border-border/60 bg-muted/50" />
+            <Label className="text-sm">Nom</Label>
+            <Input value={formateur.nom} disabled className="h-9 text-sm border-border/60 bg-muted/50" />
           </div>
         </div>
       </section>
@@ -102,15 +102,15 @@ export function FormateurProfilForm({ formateur }: { formateur: FormateurData })
         <h3 className="mb-4 text-sm font-semibold">Contact</h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label className="text-[13px]">Email</Label>
-            <Input value={formateur.email ?? ""} disabled className="h-9 text-[13px] border-border/60 bg-muted/50" />
+            <Label className="text-sm">Email</Label>
+            <Input value={formateur.email ?? ""} disabled className="h-9 text-sm border-border/60 bg-muted/50" />
           </div>
           <div className="space-y-2">
-            <Label className="text-[13px]">Telephone</Label>
+            <Label className="text-sm">Telephone</Label>
             <Input
               value={telephone}
               onChange={(e) => setTelephone(e.target.value)}
-              className="h-9 text-[13px] border-border/60"
+              className="h-9 text-sm border-border/60"
               placeholder="06 12 34 56 78"
             />
           </div>
@@ -122,36 +122,36 @@ export function FormateurProfilForm({ formateur }: { formateur: FormateurData })
         <h3 className="mb-4 text-sm font-semibold">Adresse</h3>
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label className="text-[13px]">Rue</Label>
+            <Label className="text-sm">Rue</Label>
             <Input
               value={adresseRue}
               onChange={(e) => setAdresseRue(e.target.value)}
-              className="h-9 text-[13px] border-border/60"
+              className="h-9 text-sm border-border/60"
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-[13px]">Complement</Label>
+            <Label className="text-sm">Complement</Label>
             <Input
               value={adresseComplement}
               onChange={(e) => setAdresseComplement(e.target.value)}
-              className="h-9 text-[13px] border-border/60"
+              className="h-9 text-sm border-border/60"
             />
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label className="text-[13px]">Code postal</Label>
+              <Label className="text-sm">Code postal</Label>
               <Input
                 value={adresseCp}
                 onChange={(e) => setAdresseCp(e.target.value)}
-                className="h-9 text-[13px] border-border/60"
+                className="h-9 text-sm border-border/60"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-[13px]">Ville</Label>
+              <Label className="text-sm">Ville</Label>
               <Input
                 value={adresseVille}
                 onChange={(e) => setAdresseVille(e.target.value)}
-                className="h-9 text-[13px] border-border/60"
+                className="h-9 text-sm border-border/60"
               />
             </div>
           </div>
@@ -163,7 +163,7 @@ export function FormateurProfilForm({ formateur }: { formateur: FormateurData })
         <h3 className="mb-4 text-sm font-semibold">Informations professionnelles</h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="space-y-2">
-            <Label className="text-[13px]">Statut</Label>
+            <Label className="text-sm">Statut</Label>
             <Badge className={formateur.statut_bpf === "interne"
               ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
               : "bg-blue-500/10 text-blue-400 border-blue-500/20"
@@ -172,12 +172,12 @@ export function FormateurProfilForm({ formateur }: { formateur: FormateurData })
             </Badge>
           </div>
           <div className="space-y-2">
-            <Label className="text-[13px]">NDA</Label>
-            <Input value={formateur.nda ?? ""} disabled className="h-9 text-[13px] border-border/60 bg-muted/50" />
+            <Label className="text-sm">NDA</Label>
+            <Input value={formateur.nda ?? ""} disabled className="h-9 text-sm border-border/60 bg-muted/50" />
           </div>
           <div className="space-y-2">
-            <Label className="text-[13px]">SIRET</Label>
-            <Input value={formateur.siret ?? ""} disabled className="h-9 text-[13px] border-border/60 bg-muted/50" />
+            <Label className="text-sm">SIRET</Label>
+            <Input value={formateur.siret ?? ""} disabled className="h-9 text-sm border-border/60 bg-muted/50" />
           </div>
         </div>
       </section>
@@ -185,7 +185,7 @@ export function FormateurProfilForm({ formateur }: { formateur: FormateurData })
       {/* Save bar */}
       {error && (
         <div className="rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2">
-          <p className="text-[12px] text-destructive">{error}</p>
+          <p className="text-xs text-destructive">{error}</p>
         </div>
       )}
 

@@ -477,14 +477,14 @@ export default function FactureDetailPage() {
           <div className="overflow-y-auto pr-2 space-y-6">
             {/* Basic info */}
             <div className="rounded-lg border border-border/40 bg-card p-4">
-              <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-3 block">
+              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 block">
                 Informations générales
               </Label>
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label className="text-xs">Entreprise *</Label>
                   <Select value={entrepriseId} onValueChange={setEntrepriseId}>
-                    <SelectTrigger className="h-9 text-[13px] border-border/60">
+                    <SelectTrigger className="h-9 text-sm border-border/60">
                       <SelectValue placeholder="Sélectionner une entreprise" />
                     </SelectTrigger>
                     <SelectContent>
@@ -500,7 +500,7 @@ export default function FactureDetailPage() {
                 <div className="space-y-2">
                   <Label className="text-xs">Contact client</Label>
                   <Select value={contactId} onValueChange={setContactId}>
-                    <SelectTrigger className="h-9 text-[13px] border-border/60">
+                    <SelectTrigger className="h-9 text-sm border-border/60">
                       <SelectValue placeholder="Sélectionner un contact" />
                     </SelectTrigger>
                     <SelectContent>
@@ -531,7 +531,7 @@ export default function FactureDetailPage() {
                     value={objet}
                     onChange={(e) => setObjet(e.target.value)}
                     placeholder="Objet de la facture"
-                    className="h-9 text-[13px] border-border/60"
+                    className="h-9 text-sm border-border/60"
                   />
                 </div>
               </div>
@@ -539,7 +539,7 @@ export default function FactureDetailPage() {
 
             {/* Lignes */}
             <div className="rounded-lg border border-border/40 bg-card p-4">
-              <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-3 block">
+              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 block">
                 Lignes de la facture
               </Label>
               <LignesEditor lignes={lignes} onChange={setLignes} />
@@ -547,7 +547,7 @@ export default function FactureDetailPage() {
 
             {/* Conditions & Mentions */}
             <div className="rounded-lg border border-border/40 bg-card p-4">
-              <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-3 block">
+              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 block">
                 Conditions & mentions
               </Label>
               <div className="space-y-4">
@@ -558,7 +558,7 @@ export default function FactureDetailPage() {
                     onChange={(e) => setConditionsPaiement(e.target.value)}
                     placeholder="Ex: Paiement à 30 jours"
                     rows={2}
-                    className="min-h-[60px] text-[13px] border-border/60 resize-none"
+                    className="min-h-[60px] text-sm border-border/60 resize-none"
                   />
                 </div>
 
@@ -569,7 +569,7 @@ export default function FactureDetailPage() {
                     onChange={(e) => setMentionsLegales(e.target.value)}
                     placeholder="Mentions légales obligatoires (NDA, SIRET, TVA...)"
                     rows={3}
-                    className="min-h-[80px] text-[13px] border-border/60 resize-none"
+                    className="min-h-[80px] text-sm border-border/60 resize-none"
                   />
                 </div>
               </div>
@@ -578,7 +578,7 @@ export default function FactureDetailPage() {
             {/* Payments section */}
             <div className="rounded-lg border border-border/40 bg-card p-4">
               <div className="flex items-center justify-between mb-4">
-                <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                   Paiements
                 </Label>
                 <Dialog open={paiementDialogOpen} onOpenChange={setPaiementDialogOpen}>
@@ -597,22 +597,22 @@ export default function FactureDetailPage() {
                     </DialogHeader>
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <Label className="text-[13px]">Date *</Label>
+                        <Label className="text-sm">Date *</Label>
                         <DatePicker value={newPaiementDate} onChange={setNewPaiementDate} />
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-[13px]">Montant (€) *</Label>
+                        <Label className="text-sm">Montant (€) *</Label>
                         <Input
                           type="number"
                           step="0.01"
                           value={newPaiementMontant}
                           onChange={(e) => setNewPaiementMontant(e.target.value)}
                           placeholder="0.00"
-                          className="h-9 text-[13px]"
+                          className="h-9 text-sm"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-[13px]">Mode de paiement *</Label>
+                        <Label className="text-sm">Mode de paiement *</Label>
                         <Select value={newPaiementMode} onValueChange={setNewPaiementMode}>
                           <SelectTrigger className="h-9">
                             <SelectValue />
@@ -627,22 +627,22 @@ export default function FactureDetailPage() {
                         </Select>
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-[13px]">Référence</Label>
+                        <Label className="text-sm">Référence</Label>
                         <Input
                           value={newPaiementReference}
                           onChange={(e) => setNewPaiementReference(e.target.value)}
                           placeholder="Numéro de transaction, chèque..."
-                          className="h-9 text-[13px]"
+                          className="h-9 text-sm"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-[13px]">Notes</Label>
+                        <Label className="text-sm">Notes</Label>
                         <Textarea
                           value={newPaiementNotes}
                           onChange={(e) => setNewPaiementNotes(e.target.value)}
                           placeholder="Notes optionnelles"
                           rows={2}
-                          className="text-[13px] resize-none"
+                          className="text-sm resize-none"
                         />
                       </div>
                     </div>
@@ -667,7 +667,7 @@ export default function FactureDetailPage() {
 
               {paiements.length > 0 ? (
                 <div className="border border-border/60 rounded-lg overflow-hidden">
-                  <table className="w-full text-[13px]">
+                  <table className="w-full text-sm">
                     <thead className="border-b border-border/40 bg-muted/30">
                       <tr>
                         <th className="px-3 py-2 text-left font-medium text-muted-foreground">Date</th>
@@ -715,18 +715,18 @@ export default function FactureDetailPage() {
             <div className="rounded-lg border border-border/40 bg-card p-4">
               <div className="flex items-center gap-2 mb-4">
                 <CreditCard className="w-4 h-4 text-muted-foreground" />
-                <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                   Suivi des paiements
                 </Label>
               </div>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-[13px] text-muted-foreground">Total TTC</span>
-                  <span className="text-[13px] font-semibold">{formatCurrency(totalTTC)}</span>
+                  <span className="text-sm text-muted-foreground">Total TTC</span>
+                  <span className="text-sm font-semibold">{formatCurrency(totalTTC)}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-[13px] text-muted-foreground">Montant payé</span>
-                  <span className="text-[13px] font-semibold text-green-500">{formatCurrency(montantPaye)}</span>
+                  <span className="text-sm text-muted-foreground">Montant payé</span>
+                  <span className="text-sm font-semibold text-green-500">{formatCurrency(montantPaye)}</span>
                 </div>
                 <div className="h-2 bg-secondary rounded-full overflow-hidden">
                   <div
@@ -735,7 +735,7 @@ export default function FactureDetailPage() {
                   />
                 </div>
                 <div className="flex justify-between items-center pt-2 border-t border-border/60">
-                  <span className="text-[13px] font-semibold">Solde restant</span>
+                  <span className="text-sm font-semibold">Solde restant</span>
                   <span className={`text-sm font-bold ${soldeColor}`}>{formatCurrency(soldeRestant)}</span>
                 </div>
               </div>

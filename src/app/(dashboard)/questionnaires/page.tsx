@@ -88,7 +88,7 @@ const columns: Column<Questionnaire>[] = [
         <div className="min-w-0">
           <span className="font-medium truncate block">{item.nom}</span>
           {item.produits_formation && (
-            <span className="text-[11px] text-muted-foreground/50 truncate block">
+            <span className="text-xs text-muted-foreground/50 truncate block">
               {item.produits_formation.intitule}
             </span>
           )}
@@ -102,7 +102,7 @@ const columns: Column<Questionnaire>[] = [
     sortable: true,
     minWidth: 180,
     render: (item) => (
-      <Badge variant="outline" className={`text-[11px] ${TYPE_COLORS[item.type] ?? ""}`}>
+      <Badge variant="outline" className={`text-xs ${TYPE_COLORS[item.type] ?? ""}`}>
         {TYPE_LABELS[item.type] ?? item.type}
       </Badge>
     ),
@@ -113,7 +113,7 @@ const columns: Column<Questionnaire>[] = [
     minWidth: 120,
     render: (item) =>
       item.public_cible ? (
-        <span className="text-[13px]">{PUBLIC_LABELS[item.public_cible] ?? item.public_cible}</span>
+        <span className="text-sm">{PUBLIC_LABELS[item.public_cible] ?? item.public_cible}</span>
       ) : (
         <span className="text-muted-foreground/40">--</span>
       ),
@@ -124,7 +124,7 @@ const columns: Column<Questionnaire>[] = [
     sortable: true,
     minWidth: 100,
     render: (item) => (
-      <Badge variant="outline" className={`text-[11px] ${STATUT_COLORS[item.statut] ?? ""}`}>
+      <Badge variant="outline" className={`text-xs ${STATUT_COLORS[item.statut] ?? ""}`}>
         {item.statut === "brouillon" ? "Brouillon" : item.statut === "actif" ? "Actif" : "Archivé"}
       </Badge>
     ),
@@ -134,7 +134,7 @@ const columns: Column<Questionnaire>[] = [
     label: "Questions",
     minWidth: 80,
     render: (item) => (
-      <span className="text-[13px] text-muted-foreground">
+      <span className="text-sm text-muted-foreground">
         {item.questionnaire_questions?.length ?? 0}
       </span>
     ),
@@ -144,7 +144,7 @@ const columns: Column<Questionnaire>[] = [
     label: "Réponses",
     minWidth: 80,
     render: (item) => (
-      <span className="text-[13px] text-muted-foreground">
+      <span className="text-sm text-muted-foreground">
         {item.questionnaire_reponses?.length ?? 0}
       </span>
     ),
@@ -368,28 +368,28 @@ function CreateQuestionnaireForm({
       )}
 
       <div className="space-y-2">
-        <Label htmlFor="nom" className="text-[13px]">
+        <Label htmlFor="nom" className="text-sm">
           Nom <span className="text-destructive">*</span>
         </Label>
         <Input
           id="nom"
           name="nom"
           placeholder="Enquête de satisfaction formation..."
-          className="h-9 text-[13px] border-border/60"
+          className="h-9 text-sm border-border/60"
         />
         {errors.nom && <p className="text-xs text-destructive">{errors.nom[0]}</p>}
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label htmlFor="type" className="text-[13px]">
+          <Label htmlFor="type" className="text-sm">
             Type <span className="text-destructive">*</span>
           </Label>
           <select
             id="type"
             name="type"
             defaultValue="satisfaction_chaud"
-            className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
+            className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
           >
             <option value="satisfaction_chaud">Satisfaction à chaud</option>
             <option value="satisfaction_froid">Satisfaction à froid</option>
@@ -400,14 +400,14 @@ function CreateQuestionnaireForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="public_cible" className="text-[13px]">
+          <Label htmlFor="public_cible" className="text-sm">
             Public cible
           </Label>
           <select
             id="public_cible"
             name="public_cible"
             defaultValue="apprenant"
-            className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
+            className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
           >
             <option value="">-- Tous --</option>
             <option value="apprenant">Apprenant</option>
@@ -419,7 +419,7 @@ function CreateQuestionnaireForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="introduction" className="text-[13px]">
+        <Label htmlFor="introduction" className="text-sm">
           Introduction (optionnelle)
         </Label>
         <textarea
@@ -427,7 +427,7 @@ function CreateQuestionnaireForm({
           name="introduction"
           rows={3}
           placeholder="Merci de prendre quelques minutes pour répondre à ce questionnaire..."
-          className="w-full rounded-md border border-input bg-muted px-3 py-2 text-[13px] text-foreground placeholder:text-muted-foreground/50 resize-none"
+          className="w-full rounded-md border border-input bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 resize-none"
         />
       </div>
 
@@ -666,7 +666,7 @@ function PromptGenerateForm({
       )}
 
       <div className="space-y-2">
-        <Label htmlFor="ai-prompt" className="text-[13px]">
+        <Label htmlFor="ai-prompt" className="text-sm">
           Décrivez le questionnaire souhaité
         </Label>
         <textarea
@@ -675,7 +675,7 @@ function PromptGenerateForm({
           onChange={(e) => setPrompt(e.target.value)}
           rows={4}
           placeholder={`Ex: Créer un questionnaire de satisfaction à chaud pour une formation en management de 2 jours, 10 questions variées couvrant la pédagogie, le contenu, le formateur et la logistique`}
-          className="w-full rounded-md border border-input bg-muted px-3 py-2 text-[13px] text-foreground placeholder:text-muted-foreground/40 resize-none"
+          className="w-full rounded-md border border-input bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 resize-none"
           disabled={isLoading}
         />
         <p className="text-xs text-muted-foreground/60">

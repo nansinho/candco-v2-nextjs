@@ -476,7 +476,7 @@ export function BesoinsFormationTab({
             return (
               <div
                 key={i}
-                className={`rounded-md border px-3 py-2 text-[12px] flex items-center gap-2 ${
+                className={`rounded-md border px-3 py-2 text-xs flex items-center gap-2 ${
                   isOverspend
                     ? "border-destructive/30 bg-destructive/5 text-destructive"
                     : "border-amber-500/30 bg-amber-500/5 text-amber-400"
@@ -500,15 +500,15 @@ export function BesoinsFormationTab({
           <div className="rounded-lg border border-border/60 bg-card p-4">
             <div className="flex items-center gap-2 mb-2">
               <Wallet className="h-4 w-4 text-amber-400" />
-              <span className="text-[13px] font-medium">Budget formations ponctuelles</span>
+              <span className="text-sm font-medium">Budget formations ponctuelles</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-[11px] text-muted-foreground/60">
+              <span className="text-xs text-muted-foreground/60">
                 {ponctuelBudget.nbFormations} formation{ponctuelBudget.nbFormations > 1 ? "s" : ""} ponctuelle{ponctuelBudget.nbFormations > 1 ? "s" : ""}
               </span>
               <span className="text-[15px] font-semibold">{formatCurrency(ponctuelBudget.budgetTotal)}</span>
             </div>
-            <p className="text-[10px] text-muted-foreground/40 mt-1">
+            <p className="text-xs text-muted-foreground/40 mt-1">
               Calculé automatiquement — n'impacte pas le budget du plan annuel
             </p>
           </div>
@@ -544,7 +544,7 @@ export function BesoinsFormationTab({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Wallet className="h-4 w-4 text-muted-foreground/40" />
-                <span className="text-[13px] text-muted-foreground/60">
+                <span className="text-sm text-muted-foreground/60">
                   Aucun budget défini pour {targetYear}
                 </span>
               </div>
@@ -696,10 +696,10 @@ function PlanBudgetCard({
       <div className="flex items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-2">
           <Wallet className="h-4 w-4 text-primary" />
-          <span className="text-[13px] font-medium">Budget — {plan.nom || `Plan ${plan.annee}`}</span>
-          <Badge variant="outline" className="text-[10px]">{plan.annee}</Badge>
+          <span className="text-sm font-medium">Budget — {plan.nom || `Plan ${plan.annee}`}</span>
+          <Badge variant="outline" className="text-xs">{plan.annee}</Badge>
         </div>
-        <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <span>{budget.nbBesoins} formation{budget.nbBesoins > 1 ? "s" : ""}</span>
           <span>{budget.nbValides} validée{budget.nbValides > 1 ? "s" : ""}</span>
           <span>{budget.nbTransformes} transformée{budget.nbTransformes > 1 ? "s" : ""}</span>
@@ -710,14 +710,14 @@ function PlanBudgetCard({
       <div className="grid grid-cols-3 gap-3 mb-3">
         {/* Budget annuel (editable) */}
         <div className="rounded-md border border-dashed border-primary/30 bg-primary/5 px-3 py-2">
-          <p className="text-[10px] text-muted-foreground/60 mb-0.5">Budget annuel</p>
+          <p className="text-xs text-muted-foreground/60 mb-0.5">Budget annuel</p>
           {editing ? (
             <div className="flex items-center gap-1">
               <Input
                 type="number"
                 value={budgetInput}
                 onChange={(e) => setBudgetInput(e.target.value)}
-                className="h-6 w-28 text-[13px] font-semibold px-1"
+                className="h-6 w-28 text-sm font-semibold px-1"
                 min={0}
                 step={100}
                 autoFocus
@@ -729,7 +729,7 @@ function PlanBudgetCard({
                   if (e.key === "Escape") setEditing(false);
                 }}
               />
-              <span className="text-[10px] text-muted-foreground/60">€</span>
+              <span className="text-xs text-muted-foreground/60">€</span>
               <button
                 className="text-emerald-400 hover:text-emerald-300"
                 onClick={() => {
@@ -756,14 +756,14 @@ function PlanBudgetCard({
                 {formatCurrency(budget.budgetTotal)}
                 <Pencil className="h-3 w-3 text-muted-foreground/40 group-hover:text-primary transition-colors" />
               </button>
-              <p className="text-[9px] text-muted-foreground/40 mt-0.5">Cliquer pour modifier</p>
+              <p className="text-xs text-muted-foreground/40 mt-0.5">Cliquer pour modifier</p>
             </div>
           )}
         </div>
 
         {/* Budget engagé */}
         <div className="rounded-md border border-border/40 bg-muted/20 px-3 py-2">
-          <p className="text-[10px] text-muted-foreground/60 mb-0.5">Budget engagé</p>
+          <p className="text-xs text-muted-foreground/60 mb-0.5">Budget engagé</p>
           <p className="text-[15px] font-semibold text-foreground">
             {formatCurrency(budget.budgetEngage)}
           </p>
@@ -775,7 +775,7 @@ function PlanBudgetCard({
             ? "border-destructive/30 bg-destructive/5"
             : "border-border/40 bg-muted/20"
         }`}>
-          <p className="text-[10px] text-muted-foreground/60 mb-0.5">Budget restant</p>
+          <p className="text-xs text-muted-foreground/60 mb-0.5">Budget restant</p>
           <p className={`text-[15px] font-semibold ${isOverBudget ? "text-destructive" : "text-emerald-400"}`}>
             {formatCurrency(budget.budgetRestant)}
           </p>
@@ -793,7 +793,7 @@ function PlanBudgetCard({
               style={{ width: `${Math.min(pct, 100)}%` }}
             />
           </div>
-          <p className="text-[10px] text-muted-foreground/50 text-right">{pct}% engagé</p>
+          <p className="text-xs text-muted-foreground/50 text-right">{pct}% engagé</p>
         </div>
       )}
     </div>
@@ -915,14 +915,14 @@ function CreateFormationPlanForm({
 
         {/* Programme de formation (mandatory) */}
         <div className="space-y-1.5">
-          <Label className="text-[12px]">Programme de formation <span className="text-destructive">*</span></Label>
+          <Label className="text-xs">Programme de formation <span className="text-destructive">*</span></Label>
           {selectedProduit ? (
             <div className="flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
               <BookOpen className="h-3.5 w-3.5 text-primary shrink-0" />
-              <span className="text-[12px] font-medium truncate">{selectedProduit.intitule}</span>
-              <span className="text-[10px] font-mono text-muted-foreground/50">{selectedProduit.numero_affichage}</span>
+              <span className="text-xs font-medium truncate">{selectedProduit.intitule}</span>
+              <span className="text-xs font-mono text-muted-foreground/50">{selectedProduit.numero_affichage}</span>
               {selectedTarif && (
-                <Badge variant="outline" className="text-[10px] ml-auto shrink-0 text-emerald-400 border-emerald-500/20">
+                <Badge variant="outline" className="text-xs ml-auto shrink-0 text-emerald-400 border-emerald-500/20">
                   <TrendingUp className="h-2.5 w-2.5 mr-0.5" />
                   {formatCurrency(selectedTarif.prix_ht)}
                   {selectedTarif.unite && ` / ${selectedTarif.unite}`}
@@ -941,7 +941,7 @@ function CreateFormationPlanForm({
               <button
                 type="button"
                 onClick={() => setShowProduitSearch(!showProduitSearch)}
-                className="flex items-center gap-2 w-full rounded-md border border-border/60 bg-muted px-3 py-2 text-[12px] text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+                className="flex items-center gap-2 w-full rounded-md border border-border/60 bg-muted px-3 py-2 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
               >
                 <Search className="h-3 w-3" />
                 Rechercher un programme de formation...
@@ -953,7 +953,7 @@ function CreateFormationPlanForm({
                       value={searchProduit}
                       onChange={(e) => handleProduitSearch(e.target.value)}
                       placeholder="Rechercher par intitulé..."
-                      className="h-7 text-[12px]"
+                      className="h-7 text-xs"
                       autoFocus
                     />
                   </div>
@@ -963,7 +963,7 @@ function CreateFormationPlanForm({
                         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                       </div>
                     ) : produitResults.length === 0 ? (
-                      <p className="text-center py-4 text-[11px] text-muted-foreground/60">Aucun programme trouvé</p>
+                      <p className="text-center py-4 text-xs text-muted-foreground/60">Aucun programme trouvé</p>
                     ) : (
                       produitResults.map((p) => (
                         <button
@@ -973,8 +973,8 @@ function CreateFormationPlanForm({
                           className="flex items-center gap-2 w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors"
                         >
                           <BookOpen className="h-3 w-3 text-muted-foreground/50 shrink-0" />
-                          <span className="text-[12px] truncate">{p.intitule}</span>
-                          <span className="text-[10px] font-mono text-muted-foreground/40 shrink-0">{p.numero_affichage}</span>
+                          <span className="text-xs truncate">{p.intitule}</span>
+                          <span className="text-xs font-mono text-muted-foreground/40 shrink-0">{p.numero_affichage}</span>
                         </button>
                       ))
                     )}
@@ -988,25 +988,25 @@ function CreateFormationPlanForm({
         {/* Tariff selection */}
         {selectedProduit && (
           <div className="space-y-1.5">
-            <Label className="text-[12px]">
+            <Label className="text-xs">
               Tarif <span className="text-destructive">*</span>
             </Label>
             {tarifsLoading ? (
               <div className="flex items-center gap-2 py-2">
                 <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
-                <span className="text-[11px] text-muted-foreground/60">Chargement des tarifs...</span>
+                <span className="text-xs text-muted-foreground/60">Chargement des tarifs...</span>
               </div>
             ) : availableTarifs.length === 0 ? (
-              <p className="text-[11px] text-amber-400">
+              <p className="text-xs text-amber-400">
                 Aucun tarif configuré pour ce programme.
               </p>
             ) : availableTarifs.length === 1 ? (
               <div className="flex items-center gap-2 rounded-md border border-emerald-500/20 bg-emerald-500/5 px-3 py-2">
                 <TrendingUp className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                <span className="text-[12px] font-medium">
+                <span className="text-xs font-medium">
                   {selectedTarif?.nom || "Tarif unique"}
                 </span>
-                <span className="text-[12px] text-emerald-400 font-semibold ml-auto">
+                <span className="text-xs text-emerald-400 font-semibold ml-auto">
                   {formatCurrency(selectedTarif?.prix_ht ?? 0)}
                   {selectedTarif?.unite && ` / ${selectedTarif.unite}`}
                 </span>
@@ -1032,13 +1032,13 @@ function CreateFormationPlanForm({
                       }`}>
                         {isSelected && <div className="h-1.5 w-1.5 rounded-full bg-primary" />}
                       </div>
-                      <span className="text-[12px] font-medium truncate">
+                      <span className="text-xs font-medium truncate">
                         {tarif.nom || "Tarif"}
                         {tarif.is_default && (
-                          <span className="ml-1 text-[10px] text-muted-foreground/50">(défaut)</span>
+                          <span className="ml-1 text-xs text-muted-foreground/50">(défaut)</span>
                         )}
                       </span>
-                      <div className="ml-auto flex items-center gap-2 shrink-0 text-[11px]">
+                      <div className="ml-auto flex items-center gap-2 shrink-0 text-xs">
                         <span className="font-semibold">{formatCurrency(tarif.prix_ht)} HT</span>
                         {tarif.taux_tva > 0 && (
                           <span className="text-muted-foreground/50">
@@ -1060,10 +1060,10 @@ function CreateFormationPlanForm({
         {/* Intitulé (editable, auto-filled from programme) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <Label className="text-[12px]">
+            <Label className="text-xs">
               Intitulé <span className="text-destructive">*</span>
               {selectedProduit && (
-                <span className="ml-1 text-[10px] text-muted-foreground/60">(modifiable)</span>
+                <span className="ml-1 text-xs text-muted-foreground/60">(modifiable)</span>
               )}
             </Label>
             <Input
@@ -1072,23 +1072,23 @@ function CreateFormationPlanForm({
               value={intitule}
               onChange={(e) => setIntitule(e.target.value)}
               placeholder="Ex: SST – nouveaux embauchés"
-              className="h-8 text-[13px] border-border/60"
+              className="h-8 text-sm border-border/60"
             />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[12px]">Public cible</Label>
-            <Input name="public_cible" placeholder="Ex: Équipe commerciale" className="h-8 text-[13px] border-border/60" />
+            <Label className="text-xs">Public cible</Label>
+            <Input name="public_cible" placeholder="Ex: Équipe commerciale" className="h-8 text-sm border-border/60" />
           </div>
         </div>
 
         {/* Périmètre: siège + agences — always visible */}
         <div className="space-y-1.5">
-          <Label className="text-[12px]">Périmètre</Label>
+          <Label className="text-xs">Périmètre</Label>
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => setSiegeSocial(!siegeSocial)}
-              className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[11px] font-medium transition-colors ${
+              className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
                 siegeSocial
                   ? "border-primary bg-primary/10 text-primary"
                   : "border-border/40 bg-muted/30 text-muted-foreground/60 hover:border-border/80"
@@ -1102,7 +1102,7 @@ function CreateFormationPlanForm({
                 key={a.id}
                 type="button"
                 onClick={() => toggleAgence(a.id)}
-                className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[11px] font-medium transition-colors ${
+                className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
                   selectedAgences.includes(a.id)
                     ? "border-primary bg-primary/10 text-primary"
                     : "border-border/40 bg-muted/30 text-muted-foreground/60 hover:border-border/80"
@@ -1117,20 +1117,20 @@ function CreateFormationPlanForm({
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="space-y-1.5">
-            <Label className="text-[12px]">Priorité</Label>
-            <select name="priorite" defaultValue="moyenne" className="h-8 w-full rounded-md border border-input bg-muted px-2 text-[13px] text-foreground">
+            <Label className="text-xs">Priorité</Label>
+            <select name="priorite" defaultValue="moyenne" className="h-8 w-full rounded-md border border-input bg-muted px-2 text-sm text-foreground">
               <option value="faible">Faible</option>
               <option value="moyenne">Moyenne</option>
               <option value="haute">Haute</option>
             </select>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[12px]">Année cible <span className="text-destructive">*</span></Label>
+            <Label className="text-xs">Année cible <span className="text-destructive">*</span></Label>
             <select
               name="annee_cible"
               value={selectedAnnee}
               onChange={(e) => setSelectedAnnee(Number(e.target.value))}
-              className="h-8 w-full rounded-md border border-input bg-muted px-2 text-[13px] text-foreground"
+              className="h-8 w-full rounded-md border border-input bg-muted px-2 text-sm text-foreground"
             >
               {anneeOptions.map((yr) => (
                 <option key={yr} value={yr}>{yr}</option>
@@ -1138,19 +1138,19 @@ function CreateFormationPlanForm({
             </select>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[12px]">Date prévisionnelle</Label>
-            <Input type="date" name="date_echeance" className="h-8 text-[13px] border-border/60" />
+            <Label className="text-xs">Date prévisionnelle</Label>
+            <Input type="date" name="date_echeance" className="h-8 text-sm border-border/60" />
           </div>
         </div>
 
         <div className="space-y-1.5">
-          <Label className="text-[12px]">Description / Notes</Label>
-          <Input name="description" placeholder="Détails complémentaires..." className="h-8 text-[13px] border-border/60" />
+          <Label className="text-xs">Description / Notes</Label>
+          <Input name="description" placeholder="Détails complémentaires..." className="h-8 text-sm border-border/60" />
         </div>
 
         {/* Budget impact preview — only for plan mode */}
         {!isPonctuel && selectedTarif && activeBudget && activeBudget.budgetTotal > 0 && (
-          <div className={`rounded-md border px-3 py-2 text-[11px] ${
+          <div className={`rounded-md border px-3 py-2 text-xs ${
             previewRemaining < 0
               ? "border-destructive/30 bg-destructive/5 text-destructive"
               : "border-emerald-500/20 bg-emerald-500/5 text-emerald-400"
@@ -1308,12 +1308,12 @@ function EditFormationModal({
 
       {/* Programme */}
       <div className="space-y-1.5">
-        <Label className="text-[12px]">Programme de formation</Label>
+        <Label className="text-xs">Programme de formation</Label>
         {selectedProduit ? (
           <div className="flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
             <BookOpen className="h-3.5 w-3.5 text-primary shrink-0" />
-            <span className="text-[12px] font-medium truncate">{selectedProduit.intitule}</span>
-            <span className="text-[10px] font-mono text-muted-foreground/50">{selectedProduit.numero_affichage}</span>
+            <span className="text-xs font-medium truncate">{selectedProduit.intitule}</span>
+            <span className="text-xs font-mono text-muted-foreground/50">{selectedProduit.numero_affichage}</span>
             <button
               type="button"
               onClick={() => { setSelectedProduit(null); setShowProduitSearch(true); }}
@@ -1327,7 +1327,7 @@ function EditFormationModal({
             <button
               type="button"
               onClick={() => setShowProduitSearch(!showProduitSearch)}
-              className="flex items-center gap-2 w-full rounded-md border border-border/60 bg-muted px-3 py-2 text-[12px] text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+              className="flex items-center gap-2 w-full rounded-md border border-border/60 bg-muted px-3 py-2 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
             >
               <Search className="h-3 w-3" />
               Rechercher un programme...
@@ -1339,7 +1339,7 @@ function EditFormationModal({
                     value={searchProduit}
                     onChange={(e) => handleProduitSearch(e.target.value)}
                     placeholder="Rechercher par intitulé..."
-                    className="h-7 text-[12px]"
+                    className="h-7 text-xs"
                     autoFocus
                   />
                 </div>
@@ -1349,7 +1349,7 @@ function EditFormationModal({
                       <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                     </div>
                   ) : produitResults.length === 0 ? (
-                    <p className="text-center py-4 text-[11px] text-muted-foreground/60">Aucun programme trouvé</p>
+                    <p className="text-center py-4 text-xs text-muted-foreground/60">Aucun programme trouvé</p>
                   ) : (
                     produitResults.map((p) => (
                       <button
@@ -1359,8 +1359,8 @@ function EditFormationModal({
                         className="flex items-center gap-2 w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors"
                       >
                         <BookOpen className="h-3 w-3 text-muted-foreground/50 shrink-0" />
-                        <span className="text-[12px] truncate">{p.intitule}</span>
-                        <span className="text-[10px] font-mono text-muted-foreground/40 shrink-0">{p.numero_affichage}</span>
+                        <span className="text-xs truncate">{p.intitule}</span>
+                        <span className="text-xs font-mono text-muted-foreground/40 shrink-0">{p.numero_affichage}</span>
                       </button>
                     ))
                   )}
@@ -1374,23 +1374,23 @@ function EditFormationModal({
       {/* Tariff selection */}
       {selectedProduit && (
         <div className="space-y-1.5">
-          <Label className="text-[12px]">Tarif</Label>
+          <Label className="text-xs">Tarif</Label>
           {tarifsLoading ? (
             <div className="flex items-center gap-2 py-2">
               <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
-              <span className="text-[11px] text-muted-foreground/60">Chargement des tarifs...</span>
+              <span className="text-xs text-muted-foreground/60">Chargement des tarifs...</span>
             </div>
           ) : availableTarifs.length === 0 ? (
-            <p className="text-[11px] text-amber-400">
+            <p className="text-xs text-amber-400">
               Aucun tarif configuré pour ce programme.
             </p>
           ) : availableTarifs.length === 1 ? (
             <div className="flex items-center gap-2 rounded-md border border-emerald-500/20 bg-emerald-500/5 px-3 py-2">
               <TrendingUp className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-              <span className="text-[12px] font-medium">
+              <span className="text-xs font-medium">
                 {selectedTarif?.nom || "Tarif unique"}
               </span>
-              <span className="text-[12px] text-emerald-400 font-semibold ml-auto">
+              <span className="text-xs text-emerald-400 font-semibold ml-auto">
                 {formatCurrency(selectedTarif?.prix_ht ?? 0)}
                 {selectedTarif?.unite && ` / ${selectedTarif.unite}`}
               </span>
@@ -1416,13 +1416,13 @@ function EditFormationModal({
                     }`}>
                       {isSelected && <div className="h-1.5 w-1.5 rounded-full bg-primary" />}
                     </div>
-                    <span className="text-[12px] font-medium truncate">
+                    <span className="text-xs font-medium truncate">
                       {tarif.nom || "Tarif"}
                       {tarif.is_default && (
-                        <span className="ml-1 text-[10px] text-muted-foreground/50">(défaut)</span>
+                        <span className="ml-1 text-xs text-muted-foreground/50">(défaut)</span>
                       )}
                     </span>
-                    <div className="ml-auto flex items-center gap-2 shrink-0 text-[11px]">
+                    <div className="ml-auto flex items-center gap-2 shrink-0 text-xs">
                       <span className="font-semibold">{formatCurrency(tarif.prix_ht)} HT</span>
                       {tarif.taux_tva > 0 && (
                         <span className="text-muted-foreground/50">
@@ -1443,23 +1443,23 @@ function EditFormationModal({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <Label className="text-[12px]">Intitulé</Label>
-          <Input value={intitule} onChange={(e) => setIntitule(e.target.value)} className="h-8 text-[13px] border-border/60" />
+          <Label className="text-xs">Intitulé</Label>
+          <Input value={intitule} onChange={(e) => setIntitule(e.target.value)} className="h-8 text-sm border-border/60" />
         </div>
         <div className="space-y-1.5">
-          <Label className="text-[12px]">Public cible</Label>
-          <Input value={publicCible} onChange={(e) => setPublicCible(e.target.value)} className="h-8 text-[13px] border-border/60" />
+          <Label className="text-xs">Public cible</Label>
+          <Input value={publicCible} onChange={(e) => setPublicCible(e.target.value)} className="h-8 text-sm border-border/60" />
         </div>
       </div>
 
       {/* Périmètre — always visible */}
       <div className="space-y-1.5">
-        <Label className="text-[12px]">Périmètre</Label>
+        <Label className="text-xs">Périmètre</Label>
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => setSiegeSocial(!siegeSocial)}
-            className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[11px] font-medium transition-colors ${
+            className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
               siegeSocial
                 ? "border-primary bg-primary/10 text-primary"
                 : "border-border/40 bg-muted/30 text-muted-foreground/60 hover:border-border/80"
@@ -1473,7 +1473,7 @@ function EditFormationModal({
               key={a.id}
               type="button"
               onClick={() => toggleAgence(a.id)}
-              className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[11px] font-medium transition-colors ${
+              className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
                 selectedAgences.includes(a.id)
                   ? "border-primary bg-primary/10 text-primary"
                   : "border-border/40 bg-muted/30 text-muted-foreground/60 hover:border-border/80"
@@ -1488,22 +1488,22 @@ function EditFormationModal({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <Label className="text-[12px]">Priorité</Label>
-          <select value={priorite} onChange={(e) => setPriorite(e.target.value)} className="h-8 w-full rounded-md border border-input bg-muted px-2 text-[13px] text-foreground">
+          <Label className="text-xs">Priorité</Label>
+          <select value={priorite} onChange={(e) => setPriorite(e.target.value)} className="h-8 w-full rounded-md border border-input bg-muted px-2 text-sm text-foreground">
             <option value="faible">Faible</option>
             <option value="moyenne">Moyenne</option>
             <option value="haute">Haute</option>
           </select>
         </div>
         <div className="space-y-1.5">
-          <Label className="text-[12px]">Date prévisionnelle</Label>
-          <Input type="date" value={dateEcheance} onChange={(e) => setDateEcheance(e.target.value)} className="h-8 text-[13px] border-border/60" />
+          <Label className="text-xs">Date prévisionnelle</Label>
+          <Input type="date" value={dateEcheance} onChange={(e) => setDateEcheance(e.target.value)} className="h-8 text-sm border-border/60" />
         </div>
       </div>
 
       <div className="space-y-1.5">
-        <Label className="text-[12px]">Description / Notes</Label>
-        <Input value={description} onChange={(e) => setDescription(e.target.value)} className="h-8 text-[13px] border-border/60" />
+        <Label className="text-xs">Description / Notes</Label>
+        <Input value={description} onChange={(e) => setDescription(e.target.value)} className="h-8 text-sm border-border/60" />
       </div>
 
       <div className="flex justify-end gap-2">
@@ -1571,7 +1571,7 @@ function FormationPlanCard({
               <Input
                 value={editIntitule}
                 onChange={(e) => onEditIntituleChange(e.target.value)}
-                className="h-6 text-[13px] font-medium w-60"
+                className="h-6 text-sm font-medium w-60"
                 autoFocus
                 onKeyDown={(e) => {
                   if (e.key === "Enter") { e.preventDefault(); onRenameSave(b.id); }
@@ -1588,7 +1588,7 @@ function FormationPlanCard({
           ) : (
             <button
               onClick={() => onRenameStart(b)}
-              className="text-[13px] font-medium truncate hover:text-primary transition-colors text-left"
+              className="text-sm font-medium truncate hover:text-primary transition-colors text-left"
               title="Cliquer pour renommer"
             >
               {b.intitule}
@@ -1596,18 +1596,18 @@ function FormationPlanCard({
           )}
 
           {/* Priority badge */}
-          <Badge className={`text-[10px] font-normal border shrink-0 ${prio.className}`}>
+          <Badge className={`text-xs font-normal border shrink-0 ${prio.className}`}>
             {prio.label}
           </Badge>
 
           {/* Year badge */}
-          <Badge variant="outline" className="text-[10px] shrink-0">
+          <Badge variant="outline" className="text-xs shrink-0">
             {b.annee_cible}
           </Badge>
 
           {/* Cost badge from programme tarif */}
           {tarifPrixHt != null && tarifPrixHt > 0 && (
-            <Badge variant="outline" className="text-[10px] shrink-0 text-emerald-400 border-emerald-500/20">
+            <Badge variant="outline" className="text-xs shrink-0 text-emerald-400 border-emerald-500/20">
               {formatCurrency(tarifPrixHt)}
             </Badge>
           )}
@@ -1617,7 +1617,7 @@ function FormationPlanCard({
           <select
             value={b.statut}
             onChange={(e) => onStatutChange(b.id, e.target.value)}
-            className="h-6 rounded border border-border/40 bg-transparent px-1.5 text-[10px] text-muted-foreground"
+            className="h-6 rounded border border-border/40 bg-transparent px-1.5 text-xs text-muted-foreground"
           >
             {Object.entries(STATUT_CONFIG).map(([val, { label }]) => (
               <option key={val} value={val}>{label}</option>
@@ -1661,7 +1661,7 @@ function FormationPlanCard({
 
       {/* Programme linked info */}
       {b.produits_formation && (
-        <div className="flex items-center gap-2 text-[10px] text-muted-foreground/50">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground/50">
           <BookOpen className="h-3 w-3" />
           <span>Programme : {b.produits_formation.intitule}</span>
           <span className="font-mono">{b.produits_formation.numero_affichage}</span>
@@ -1669,7 +1669,7 @@ function FormationPlanCard({
       )}
 
       {/* Details row */}
-      <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground/60">
+      <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground/60">
         {b.public_cible && <span>Public: {b.public_cible}</span>}
         {/* Périmètre */}
         {(b.siege_social || agenceNames.length > 0) && (
@@ -1700,9 +1700,9 @@ function FormationPlanCard({
       {b.sessions ? (
         <div className="flex items-center gap-2 rounded-md bg-muted/30 px-3 py-1.5">
           <Link2 className="h-3 w-3 text-muted-foreground/40" />
-          <span className="text-[11px] text-muted-foreground/60">Session liée :</span>
-          <span className="text-[12px] font-medium">{b.sessions.nom}</span>
-          <span className="text-[10px] font-mono text-muted-foreground/50">
+          <span className="text-xs text-muted-foreground/60">Session liée :</span>
+          <span className="text-xs font-medium">{b.sessions.nom}</span>
+          <span className="text-xs font-mono text-muted-foreground/50">
             {b.sessions.numero_affichage}
           </span>
           <SessionStatusBadge statut={b.sessions.statut} size="sm" />
@@ -1718,7 +1718,7 @@ function FormationPlanCard({
       ) : b.statut !== "realise" && b.statut !== "transforme" ? (
         <div className="flex items-center gap-2">
           <Link2 className="h-3 w-3 text-muted-foreground/30" />
-          <span className="text-[11px] text-muted-foreground/40">Pas de session liée</span>
+          <span className="text-xs text-muted-foreground/40">Pas de session liée</span>
         </div>
       ) : null}
     </div>

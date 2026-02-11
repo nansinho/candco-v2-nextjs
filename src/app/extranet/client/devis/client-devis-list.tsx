@@ -84,7 +84,7 @@ export function ClientDevisList({ devis }: ClientDevisListProps) {
                   <span className="text-sm font-semibold text-white">
                     {d.numero_affichage || "Devis"}
                   </span>
-                  <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${statusCfg.className}`}>
+                  <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${statusCfg.className}`}>
                     <StatusIcon size={10} />
                     {statusCfg.label}
                   </span>
@@ -92,7 +92,7 @@ export function ClientDevisList({ devis }: ClientDevisListProps) {
                 {d.objet && (
                   <p className="mt-1 truncate text-xs text-[#a0a0a0]">{d.objet}</p>
                 )}
-                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-[#666]">
+                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#666]">
                   <span>Émis le {formatDate(d.date_emission)}</span>
                   {d.date_echeance && <span>Échéance : {formatDate(d.date_echeance)}</span>}
                   {d.entreprises?.nom && <span>{d.entreprises.nom}</span>}
@@ -101,11 +101,11 @@ export function ClientDevisList({ devis }: ClientDevisListProps) {
                 {sigStatus && (
                   <div className="mt-2 flex items-center gap-2">
                     <PenLine size={12} className={sigStatus.className} />
-                    <span className={`text-[11px] font-medium ${sigStatus.className}`}>
+                    <span className={`text-xs font-medium ${sigStatus.className}`}>
                       {sigStatus.label}
                     </span>
                     {d.signe_le && (
-                      <span className="text-[10px] text-[#666]">
+                      <span className="text-xs text-[#666]">
                         — {formatDate(d.signe_le)}
                       </span>
                     )}
@@ -118,14 +118,14 @@ export function ClientDevisList({ devis }: ClientDevisListProps) {
                 <span className="text-sm font-bold text-white">
                   {formatMontant(d.total_ttc)}
                 </span>
-                <span className="text-[10px] text-[#666]">TTC</span>
+                <span className="text-xs text-[#666]">TTC</span>
 
                 {/* Refresh status if pending */}
                 {d.documenso_status === "pending" && (
                   <button
                     onClick={() => handleRefreshStatus(d.id)}
                     disabled={refreshing === d.id}
-                    className="flex items-center gap-1 rounded-md border border-[#2a2a2a] px-2 py-1 text-[10px] text-[#a0a0a0] transition hover:border-[#F97316] hover:text-[#F97316] disabled:opacity-50"
+                    className="flex items-center gap-1 rounded-md border border-[#2a2a2a] px-2 py-1 text-xs text-[#a0a0a0] transition hover:border-[#F97316] hover:text-[#F97316] disabled:opacity-50"
                   >
                     {refreshing === d.id ? (
                       <div className="h-3 w-3 animate-spin rounded-full border border-[#F97316] border-t-transparent" />

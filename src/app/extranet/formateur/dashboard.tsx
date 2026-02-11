@@ -51,7 +51,7 @@ export function FormateurDashboard({
     <div className="space-y-6">
       {/* Welcome */}
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">
+        <h1 className="text-2xl font-semibold tracking-tight">
           Bonjour {context.prenom} !
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -109,7 +109,7 @@ export function FormateurDashboard({
                       {session.numero_affichage}
                     </span>
                     <Badge
-                      className={`text-[10px] ${STATUT_BADGES[session.statut] ?? "bg-muted text-muted-foreground"}`}
+                      className={`text-xs ${STATUT_BADGES[session.statut] ?? "bg-muted text-muted-foreground"}`}
                     >
                       {session.statut.replace("_", " ")}
                     </Badge>
@@ -126,7 +126,7 @@ export function FormateurDashboard({
                     </p>
                   )}
                   {session.lieu_type && (
-                    <p className="text-[11px] text-muted-foreground/60">
+                    <p className="text-xs text-muted-foreground/60">
                       {session.lieu_type === "presentiel"
                         ? "Presentiel"
                         : session.lieu_type === "distanciel"
@@ -159,7 +159,7 @@ export function FormateurDashboard({
                     {session.nom}
                   </p>
                 </div>
-                <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-[10px]">
+                <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-xs">
                   En cours
                 </Badge>
               </div>
@@ -188,7 +188,7 @@ function StatCard({
         <Icon className="h-4 w-4 text-muted-foreground/40" />
       </div>
       <p className={`mt-2 text-2xl font-semibold ${color ?? ""}`}>{value}</p>
-      <p className="text-[11px] text-muted-foreground/60">{label}</p>
+      <p className="text-xs text-muted-foreground/60">{label}</p>
     </div>
   );
 }

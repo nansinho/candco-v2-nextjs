@@ -235,12 +235,12 @@ interface ProductPlanification {
 
 function FieldBadge({ filled }: { filled: boolean }) {
   return filled ? (
-    <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[10px] font-normal gap-1 px-1.5 py-0">
+    <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-xs font-normal gap-1 px-1.5 py-0">
       <CheckCircle2 className="h-2.5 w-2.5" />
       Renseigné
     </Badge>
   ) : (
-    <Badge className="bg-destructive/10 text-destructive border-destructive/20 text-[10px] font-normal gap-1 px-1.5 py-0">
+    <Badge className="bg-destructive/10 text-destructive border-destructive/20 text-xs font-normal gap-1 px-1.5 py-0">
       <XCircle className="h-2.5 w-2.5" />
       Non renseigné
     </Badge>
@@ -261,7 +261,7 @@ function TabBadge({ missing }: { missing: number }) {
     return <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />;
   }
   return (
-    <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive/10 px-1 text-[10px] font-medium text-destructive">
+    <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive/10 px-1 text-xs font-medium text-destructive">
       {missing}
     </span>
   );
@@ -734,11 +734,11 @@ export function ProduitDetail({
                   </span>
                 </div>
                 {totalMissing > 0 ? (
-                  <span className="text-[11px] text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                     {totalMissing} manquant{totalMissing > 1 ? "s" : ""}
                   </span>
                 ) : (
-                  <span className="text-[11px] text-emerald-500 flex items-center gap-1">
+                  <span className="text-xs text-emerald-500 flex items-center gap-1">
                     <CheckCircle2 className="h-3 w-3" /> Complet
                   </span>
                 )}
@@ -814,7 +814,7 @@ export function ProduitDetail({
                   <ClipboardList className="h-3 w-3" />
                   Questionnaires
                   {initialProduitQuestionnaires.filter(pq => pq.actif).length > 0 && (
-                    <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary/10 px-1 text-[10px] font-medium text-primary">
+                    <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary/10 px-1 text-xs font-medium text-primary">
                       {initialProduitQuestionnaires.filter(pq => pq.actif).length}
                     </span>
                   )}
@@ -823,7 +823,7 @@ export function ProduitDetail({
                   <BookMarked className="h-3 w-3" />
                   Biblio
                   {initialReferencesBiblio.length > 0 && (
-                    <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary/10 px-1 text-[10px] font-medium text-primary">
+                    <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary/10 px-1 text-xs font-medium text-primary">
                       {initialReferencesBiblio.length}
                     </span>
                   )}
@@ -845,23 +845,23 @@ export function ProduitDetail({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <Label htmlFor="intitule" className="text-[13px]">Titre <span className="text-destructive">*</span></Label>
+                        <Label htmlFor="intitule" className="text-sm">Titre <span className="text-destructive">*</span></Label>
                         <FieldBadge filled={isFilled("intitule")} />
                       </div>
-                      <Input id="intitule" name="intitule" defaultValue={produit.intitule} className="h-9 text-[13px] border-border/60" />
+                      <Input id="intitule" name="intitule" defaultValue={produit.intitule} className="h-9 text-sm border-border/60" />
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <Label htmlFor="sous_titre" className="text-[13px]">Sous-titre</Label>
+                        <Label htmlFor="sous_titre" className="text-sm">Sous-titre</Label>
                         <FieldBadge filled={isFilled("sous_titre")} />
                       </div>
-                      <Input id="sous_titre" name="sous_titre" defaultValue={produit.sous_titre ?? ""} className="h-9 text-[13px] border-border/60" />
+                      <Input id="sous_titre" name="sous_titre" defaultValue={produit.sous_titre ?? ""} className="h-9 text-sm border-border/60" />
                     </div>
                   </div>
 
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <Label htmlFor="description" className="text-[13px]">Description</Label>
+                      <Label htmlFor="description" className="text-sm">Description</Label>
                       <FieldBadge filled={isFilled("description")} />
                     </div>
                     <textarea
@@ -869,7 +869,7 @@ export function ProduitDetail({
                       name="description"
                       rows={4}
                       defaultValue={produit.description ?? ""}
-                      className="w-full rounded-md border border-input bg-muted px-3 py-2 text-[13px] text-foreground resize-y"
+                      className="w-full rounded-md border border-input bg-muted px-3 py-2 text-sm text-foreground resize-y"
                     />
                   </div>
 
@@ -878,7 +878,7 @@ export function ProduitDetail({
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
-                            <Label htmlFor="domaine_categorie_id" className="text-[13px]">Pôle</Label>
+                            <Label htmlFor="domaine_categorie_id" className="text-sm">Pôle</Label>
                             <FieldBadge filled={!!selectedPoleId} />
                           </div>
                           <select
@@ -894,7 +894,7 @@ export function ProduitDetail({
                               const domaineInput = formRef.current?.querySelector<HTMLInputElement>('[name="domaine"]');
                               if (domaineInput) domaineInput.value = pole?.nom ?? "";
                             }}
-                            className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
+                            className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
                           >
                             <option value="">-- Sélectionner un pôle --</option>
                             {poles.map((p) => (
@@ -907,7 +907,7 @@ export function ProduitDetail({
                         </div>
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
-                            <Label htmlFor="categorie_id" className="text-[13px]">Catégorie</Label>
+                            <Label htmlFor="categorie_id" className="text-sm">Catégorie</Label>
                             <FieldBadge filled={!!selectedCategorieId} />
                           </div>
                           {selectedPoleId && categoriesForPole.length > 0 ? (
@@ -922,7 +922,7 @@ export function ProduitDetail({
                                 const catInput = formRef.current?.querySelector<HTMLInputElement>('[name="categorie"]');
                                 if (catInput) catInput.value = cat?.nom ?? "";
                               }}
-                              className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
+                              className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
                             >
                               <option value="">-- Sélectionner une catégorie --</option>
                               {categoriesForPole.map((c) => (
@@ -934,7 +934,7 @@ export function ProduitDetail({
                           ) : (
                             <select
                               disabled
-                              className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-muted-foreground"
+                              className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-muted-foreground"
                             >
                               <option>{selectedPoleId ? "Aucune catégorie disponible" : "Sélectionnez d'abord un pôle"}</option>
                             </select>
@@ -946,15 +946,15 @@ export function ProduitDetail({
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div className="space-y-2">
                             <div className="flex items-center gap-2">
-                              <Label htmlFor="sous_categorie_id" className="text-[13px]">Sous-catégorie</Label>
-                              <Badge variant="outline" className="text-[10px] font-normal text-muted-foreground/60 px-1.5 py-0">Facultatif</Badge>
+                              <Label htmlFor="sous_categorie_id" className="text-sm">Sous-catégorie</Label>
+                              <Badge variant="outline" className="text-xs font-normal text-muted-foreground/60 px-1.5 py-0">Facultatif</Badge>
                             </div>
                             <select
                               id="sous_categorie_id"
                               name="sous_categorie_id"
                               value={selectedSousCategorieId}
                               onChange={(e) => setSelectedSousCategorieId(e.target.value)}
-                              className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
+                              className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
                             >
                               <option value="">-- Aucune sous-catégorie --</option>
                               {sousCategoriesForCategorie.map((sc) => (
@@ -971,17 +971,17 @@ export function ProduitDetail({
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
-                          <Label htmlFor="domaine" className="text-[13px]">Pôle</Label>
+                          <Label htmlFor="domaine" className="text-sm">Pôle</Label>
                           <FieldBadge filled={isFilled("domaine")} />
                         </div>
-                        <Input id="domaine" name="domaine" defaultValue={produit.domaine ?? ""} placeholder="Santé, Sécurité, Management..." className="h-9 text-[13px] border-border/60" />
+                        <Input id="domaine" name="domaine" defaultValue={produit.domaine ?? ""} placeholder="Santé, Sécurité, Management..." className="h-9 text-sm border-border/60" />
                       </div>
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
-                          <Label htmlFor="categorie" className="text-[13px]">Catégorie</Label>
+                          <Label htmlFor="categorie" className="text-sm">Catégorie</Label>
                           <FieldBadge filled={isFilled("categorie")} />
                         </div>
-                        <Input id="categorie" name="categorie" defaultValue={produit.categorie ?? ""} placeholder="Pratiques cliniques et techniques..." className="h-9 text-[13px] border-border/60" />
+                        <Input id="categorie" name="categorie" defaultValue={produit.categorie ?? ""} placeholder="Pratiques cliniques et techniques..." className="h-9 text-sm border-border/60" />
                       </div>
                     </div>
                   )}
@@ -990,10 +990,10 @@ export function ProduitDetail({
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <Label htmlFor="type_action" className="text-[13px]">Type d&apos;action</Label>
+                        <Label htmlFor="type_action" className="text-sm">Type d&apos;action</Label>
                         <FieldBadge filled={isFilled("type_action")} />
                       </div>
-                      <select id="type_action" name="type_action" defaultValue={produit.type_action ?? ""} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground">
+                      <select id="type_action" name="type_action" defaultValue={produit.type_action ?? ""} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground">
                         <option value="">--</option>
                         <option value="action_formation">Action de formation</option>
                         <option value="bilan_competences">Bilan de compétences</option>
@@ -1003,10 +1003,10 @@ export function ProduitDetail({
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <Label htmlFor="modalite" className="text-[13px]">Modalité</Label>
+                        <Label htmlFor="modalite" className="text-sm">Modalité</Label>
                         <FieldBadge filled={isFilled("modalite")} />
                       </div>
-                      <select id="modalite" name="modalite" defaultValue={produit.modalite ?? ""} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground">
+                      <select id="modalite" name="modalite" defaultValue={produit.modalite ?? ""} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground">
                         <option value="">--</option>
                         <option value="presentiel">Présentiel</option>
                         <option value="distanciel">Distanciel</option>
@@ -1016,10 +1016,10 @@ export function ProduitDetail({
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <Label htmlFor="formule" className="text-[13px]">Formule</Label>
+                        <Label htmlFor="formule" className="text-sm">Formule</Label>
                         <FieldBadge filled={isFilled("formule")} />
                       </div>
-                      <select id="formule" name="formule" defaultValue={produit.formule ?? ""} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground">
+                      <select id="formule" name="formule" defaultValue={produit.formule ?? ""} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground">
                         <option value="">--</option>
                         <option value="inter">Inter</option>
                         <option value="intra">Intra</option>
@@ -1034,8 +1034,8 @@ export function ProduitDetail({
                   <SectionTitle>BPF (Bilan Pédagogique et Financier)</SectionTitle>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="bpf_specialite_id" className="text-[13px]">Spécialité</Label>
-                      <select id="bpf_specialite_id" name="bpf_specialite_id" defaultValue={produit.bpf_specialite_id ?? ""} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground">
+                      <Label htmlFor="bpf_specialite_id" className="text-sm">Spécialité</Label>
+                      <select id="bpf_specialite_id" name="bpf_specialite_id" defaultValue={produit.bpf_specialite_id ?? ""} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground">
                         <option value="">-- Aucune --</option>
                         {bpfSpecialites.map((s) => (
                           <option key={s.id} value={s.id}>{s.code ? `${s.code} — ` : ""}{s.libelle}</option>
@@ -1043,8 +1043,8 @@ export function ProduitDetail({
                       </select>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="bpf_categorie" className="text-[13px]">Catégorie BPF</Label>
-                      <select id="bpf_categorie" name="bpf_categorie" defaultValue={produit.bpf_categorie ?? ""} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground">
+                      <Label htmlFor="bpf_categorie" className="text-sm">Catégorie BPF</Label>
+                      <select id="bpf_categorie" name="bpf_categorie" defaultValue={produit.bpf_categorie ?? ""} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground">
                         <option value="">--</option>
                         <option value="A">A — Actions de formation</option>
                         <option value="B">B — Bilans de compétences</option>
@@ -1052,8 +1052,8 @@ export function ProduitDetail({
                       </select>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="bpf_niveau" className="text-[13px]">Niveau</Label>
-                      <select id="bpf_niveau" name="bpf_niveau" defaultValue={produit.bpf_niveau ?? ""} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground">
+                      <Label htmlFor="bpf_niveau" className="text-sm">Niveau</Label>
+                      <select id="bpf_niveau" name="bpf_niveau" defaultValue={produit.bpf_niveau ?? ""} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground">
                         <option value="">--</option>
                         <option value="I">Niveau I</option>
                         <option value="II">Niveau II</option>
@@ -1074,20 +1074,20 @@ export function ProduitDetail({
 
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <Label className="text-[13px]">Durée <span className="text-destructive">*</span></Label>
+                      <Label className="text-sm">Durée <span className="text-destructive">*</span></Label>
                       <FieldBadge filled={isFilled("duree_h")} />
                     </div>
                     <div className="grid grid-cols-[1fr_auto_1fr_1fr] gap-2 items-center">
                       <div className="flex items-center gap-2">
-                        <Input id="duree_h" name="duree_h" type="number" step="1" min="0" defaultValue={splitHoursMinutes(produit.duree_heures).hours || ""} placeholder="14" className="h-9 text-[13px] border-border/60" />
+                        <Input id="duree_h" name="duree_h" type="number" step="1" min="0" defaultValue={splitHoursMinutes(produit.duree_heures).hours || ""} placeholder="14" className="h-9 text-sm border-border/60" />
                         <span className="text-xs text-muted-foreground shrink-0">h</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Input id="duree_m" name="duree_m" type="number" step="5" min="0" max="59" defaultValue={splitHoursMinutes(produit.duree_heures).minutes || ""} placeholder="30" className="h-9 text-[13px] border-border/60 w-[70px]" />
+                        <Input id="duree_m" name="duree_m" type="number" step="5" min="0" max="59" defaultValue={splitHoursMinutes(produit.duree_heures).minutes || ""} placeholder="30" className="h-9 text-sm border-border/60 w-[70px]" />
                         <span className="text-xs text-muted-foreground shrink-0">min</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Input id="duree_jours" name="duree_jours" type="number" step="0.5" min="0" defaultValue={produit.duree_jours ?? ""} placeholder="2" className="h-9 text-[13px] border-border/60" />
+                        <Input id="duree_jours" name="duree_jours" type="number" step="0.5" min="0" defaultValue={produit.duree_jours ?? ""} placeholder="2" className="h-9 text-sm border-border/60" />
                         <span className="text-xs text-muted-foreground shrink-0">jours</span>
                       </div>
                     </div>
@@ -1103,38 +1103,38 @@ export function ProduitDetail({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <Label className="text-[13px]">Nombre de participants</Label>
+                        <Label className="text-sm">Nombre de participants</Label>
                         <FieldBadge filled={isFilled("nombre_participants_min") || isFilled("nombre_participants_max")} />
                       </div>
                       <div className="flex items-center gap-2">
-                        <Input name="nombre_participants_min" type="number" min="0" defaultValue={produit.nombre_participants_min ?? ""} placeholder="Min" className="h-9 text-[13px] border-border/60" />
+                        <Input name="nombre_participants_min" type="number" min="0" defaultValue={produit.nombre_participants_min ?? ""} placeholder="Min" className="h-9 text-sm border-border/60" />
                         <span className="text-xs text-muted-foreground">à</span>
-                        <Input name="nombre_participants_max" type="number" min="0" defaultValue={produit.nombre_participants_max ?? ""} placeholder="Max" className="h-9 text-[13px] border-border/60" />
+                        <Input name="nombre_participants_max" type="number" min="0" defaultValue={produit.nombre_participants_max ?? ""} placeholder="Max" className="h-9 text-sm border-border/60" />
                       </div>
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <Label htmlFor="lieu_format" className="text-[13px]">Format et lieu</Label>
+                        <Label htmlFor="lieu_format" className="text-sm">Format et lieu</Label>
                         <FieldBadge filled={isFilled("lieu_format")} />
                       </div>
-                      <Input id="lieu_format" name="lieu_format" defaultValue={produit.lieu_format ?? ""} placeholder="Présentiel, Sur site..." className="h-9 text-[13px] border-border/60" />
+                      <Input id="lieu_format" name="lieu_format" defaultValue={produit.lieu_format ?? ""} placeholder="Présentiel, Sur site..." className="h-9 text-sm border-border/60" />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <Label htmlFor="delai_acces" className="text-[13px]">Délai d&apos;accès</Label>
+                        <Label htmlFor="delai_acces" className="text-sm">Délai d&apos;accès</Label>
                         <FieldBadge filled={isFilled("delai_acces")} />
                       </div>
-                      <Input id="delai_acces" name="delai_acces" defaultValue={produit.delai_acces ?? ""} placeholder="Inscription jusqu'au matin de la formation" className="h-9 text-[13px] border-border/60" />
+                      <Input id="delai_acces" name="delai_acces" defaultValue={produit.delai_acces ?? ""} placeholder="Inscription jusqu'au matin de la formation" className="h-9 text-sm border-border/60" />
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <Label htmlFor="certification" className="text-[13px]">Certification</Label>
+                        <Label htmlFor="certification" className="text-sm">Certification</Label>
                         <FieldBadge filled={isFilled("certification")} />
                       </div>
-                      <Input id="certification" name="certification" defaultValue={produit.certification ?? ""} placeholder="Certificat de réalisation" className="h-9 text-[13px] border-border/60" />
+                      <Input id="certification" name="certification" defaultValue={produit.certification ?? ""} placeholder="Certificat de réalisation" className="h-9 text-sm border-border/60" />
                     </div>
                   </div>
                 </div>
@@ -1175,14 +1175,14 @@ export function ProduitDetail({
                   />
 
                   <div className="space-y-2">
-                    <Label htmlFor="modalites_paiement" className="text-[13px]">Modalités de paiement</Label>
+                    <Label htmlFor="modalites_paiement" className="text-sm">Modalités de paiement</Label>
                     <textarea
                       id="modalites_paiement"
                       name="modalites_paiement"
                       rows={2}
                       defaultValue={produit.modalites_paiement ?? ""}
                       placeholder="Paiement à réception de la facture."
-                      className="w-full rounded-md border border-input bg-muted px-3 py-2 text-[13px] text-foreground resize-y"
+                      className="w-full rounded-md border border-input bg-muted px-3 py-2 text-sm text-foreground resize-y"
                     />
                   </div>
                 </div>
@@ -1218,7 +1218,7 @@ export function ProduitDetail({
 
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <Label htmlFor="modalites_pedagogiques" className="text-[13px]">Méthodes pédagogiques</Label>
+                      <Label htmlFor="modalites_pedagogiques" className="text-sm">Méthodes pédagogiques</Label>
                       <FieldBadge filled={isFilled("modalites_pedagogiques")} />
                     </div>
                     <textarea
@@ -1227,13 +1227,13 @@ export function ProduitDetail({
                       rows={3}
                       defaultValue={produit.modalites_pedagogiques ?? ""}
                       placeholder="Cours magistral, exercices pratiques, études de cas..."
-                      className="w-full rounded-md border border-input bg-muted px-3 py-2 text-[13px] text-foreground resize-y"
+                      className="w-full rounded-md border border-input bg-muted px-3 py-2 text-sm text-foreground resize-y"
                     />
                   </div>
 
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <Label htmlFor="moyens_pedagogiques" className="text-[13px]">Moyens pédagogiques</Label>
+                      <Label htmlFor="moyens_pedagogiques" className="text-sm">Moyens pédagogiques</Label>
                       <FieldBadge filled={isFilled("moyens_pedagogiques")} />
                     </div>
                     <textarea
@@ -1242,13 +1242,13 @@ export function ProduitDetail({
                       rows={3}
                       defaultValue={produit.moyens_pedagogiques ?? ""}
                       placeholder="Supports de cours, matériel de pratique, salle équipée..."
-                      className="w-full rounded-md border border-input bg-muted px-3 py-2 text-[13px] text-foreground resize-y"
+                      className="w-full rounded-md border border-input bg-muted px-3 py-2 text-sm text-foreground resize-y"
                     />
                   </div>
 
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <Label htmlFor="modalites_evaluation" className="text-[13px]">Modalités d&apos;évaluation</Label>
+                      <Label htmlFor="modalites_evaluation" className="text-sm">Modalités d&apos;évaluation</Label>
                       <FieldBadge filled={isFilled("modalites_evaluation")} />
                     </div>
                     <textarea
@@ -1257,7 +1257,7 @@ export function ProduitDetail({
                       rows={3}
                       defaultValue={produit.modalites_evaluation ?? ""}
                       placeholder="Évaluation des acquis par questionnaire, exercices pratiques..."
-                      className="w-full rounded-md border border-input bg-muted px-3 py-2 text-[13px] text-foreground resize-y"
+                      className="w-full rounded-md border border-input bg-muted px-3 py-2 text-sm text-foreground resize-y"
                     />
                   </div>
                 </div>
@@ -1267,7 +1267,7 @@ export function ProduitDetail({
 
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <Label htmlFor="equipe_pedagogique" className="text-[13px]">Équipe pédagogique</Label>
+                      <Label htmlFor="equipe_pedagogique" className="text-sm">Équipe pédagogique</Label>
                       <FieldBadge filled={isFilled("equipe_pedagogique")} />
                     </div>
                     <textarea
@@ -1276,13 +1276,13 @@ export function ProduitDetail({
                       rows={2}
                       defaultValue={produit.equipe_pedagogique ?? ""}
                       placeholder="Formation animée par un formateur spécialisé..."
-                      className="w-full rounded-md border border-input bg-muted px-3 py-2 text-[13px] text-foreground resize-y"
+                      className="w-full rounded-md border border-input bg-muted px-3 py-2 text-sm text-foreground resize-y"
                     />
                   </div>
 
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <Label htmlFor="accessibilite" className="text-[13px]">Accessibilité</Label>
+                      <Label htmlFor="accessibilite" className="text-sm">Accessibilité</Label>
                       <FieldBadge filled={isFilled("accessibilite")} />
                     </div>
                     <textarea
@@ -1291,7 +1291,7 @@ export function ProduitDetail({
                       rows={2}
                       defaultValue={produit.accessibilite ?? ""}
                       placeholder="Formation accessible aux personnes en situation de handicap..."
-                      className="w-full rounded-md border border-input bg-muted px-3 py-2 text-[13px] text-foreground resize-y"
+                      className="w-full rounded-md border border-input bg-muted px-3 py-2 text-sm text-foreground resize-y"
                     />
                   </div>
                 </div>
@@ -1340,14 +1340,14 @@ export function ProduitDetail({
             <div className="rounded-lg border border-border/60 bg-card p-5 space-y-4">
               <h3 className="text-sm font-semibold">Publication</h3>
               <div className="flex items-center justify-between">
-                <Label htmlFor="publie" className="text-[13px] cursor-pointer">Formation active</Label>
+                <Label htmlFor="publie" className="text-sm cursor-pointer">Formation active</Label>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input type="checkbox" id="publie" name="publie" defaultChecked={produit.publie} className="sr-only peer" />
                   <div className="w-9 h-5 bg-muted rounded-full peer peer-checked:bg-primary transition-colors after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
                 </label>
               </div>
               <div className="flex items-center justify-between">
-                <Label htmlFor="populaire" className="text-[13px] cursor-pointer">Populaire</Label>
+                <Label htmlFor="populaire" className="text-sm cursor-pointer">Populaire</Label>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input type="checkbox" id="populaire" name="populaire" defaultChecked={produit.populaire} className="sr-only peer" />
                   <div className="w-9 h-5 bg-muted rounded-full peer peer-checked:bg-primary transition-colors after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
@@ -1362,11 +1362,11 @@ export function ProduitDetail({
             <div className="rounded-lg border border-border/60 bg-card p-5 space-y-4">
               <h3 className="text-sm font-semibold">URL & Identifiants</h3>
               <div className="space-y-2">
-                <Label htmlFor="identifiant_interne" className="text-[11px] text-muted-foreground">Identifiant interne</Label>
+                <Label htmlFor="identifiant_interne" className="text-xs text-muted-foreground">Identifiant interne</Label>
                 <Input id="identifiant_interne" name="identifiant_interne" defaultValue={produit.identifiant_interne ?? ""} className="h-8 text-xs border-border/60" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="slug" className="text-[11px] text-muted-foreground">Slug URL</Label>
+                <Label htmlFor="slug" className="text-xs text-muted-foreground">Slug URL</Label>
                 <Input id="slug" name="slug" defaultValue={produit.slug ?? ""} placeholder={produit.intitule ? produit.intitule.toLowerCase().replace(/\s+/g, "-") : ""} className="h-8 text-xs border-border/60" />
               </div>
             </div>
@@ -1378,7 +1378,7 @@ export function ProduitDetail({
                 <div className="relative overflow-hidden rounded-lg border border-border/60">
                   <img src={currentImageUrl} alt={produit.intitule} className="w-full h-36 object-cover" />
                   <div className="absolute bottom-2 right-2">
-                    <Button type="button" size="sm" variant="outline" className="h-7 text-[11px] bg-background/80 backdrop-blur-sm" onClick={() => imageInputRef.current?.click()} disabled={isUploadingImage}>
+                    <Button type="button" size="sm" variant="outline" className="h-7 text-xs bg-background/80 backdrop-blur-sm" onClick={() => imageInputRef.current?.click()} disabled={isUploadingImage}>
                       {isUploadingImage ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : null}
                       {isUploadingImage ? "Upload..." : "Changer"}
                     </Button>
@@ -1400,18 +1400,18 @@ export function ProduitDetail({
                   if (file) handleImageUpload(file);
                 }}
               />
-              <p className="text-[10px] text-muted-foreground/40">PNG, JPG ou WebP. Max 2 Mo.</p>
+              <p className="text-xs text-muted-foreground/40">PNG, JPG ou WebP. Max 2 Mo.</p>
             </div>
 
             {/* SEO */}
             <div className="rounded-lg border border-border/60 bg-card p-5 space-y-4">
               <h3 className="text-sm font-semibold">SEO</h3>
               <div className="space-y-2">
-                <Label htmlFor="meta_titre" className="text-[11px] text-muted-foreground">Meta titre</Label>
+                <Label htmlFor="meta_titre" className="text-xs text-muted-foreground">Meta titre</Label>
                 <Input id="meta_titre" name="meta_titre" defaultValue={produit.meta_titre ?? ""} className="h-8 text-xs border-border/60" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="meta_description" className="text-[11px] text-muted-foreground">Meta description</Label>
+                <Label htmlFor="meta_description" className="text-xs text-muted-foreground">Meta description</Label>
                 <textarea
                   id="meta_description"
                   name="meta_description"
@@ -1424,11 +1424,11 @@ export function ProduitDetail({
 
             {/* Timestamps */}
             <div className="px-1 space-y-1">
-              <p className="text-[10px] text-muted-foreground/40">
+              <p className="text-xs text-muted-foreground/40">
                 Créé le {formatDate(produit.created_at)}
               </p>
               {produit.updated_at && (
-                <p className="text-[10px] text-muted-foreground/40">
+                <p className="text-xs text-muted-foreground/40">
                   Modifié le {formatDate(produit.updated_at)}
                 </p>
               )}
@@ -1537,11 +1537,11 @@ function FormationPreview({ open, onClose, produit, tarifs, objectifs, programme
         <div className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-border bg-card px-6 py-3">
           <DialogTitle className="text-sm font-semibold">Aperçu de la formation</DialogTitle>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={handleShareEmail} type="button">
+            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={handleShareEmail} type="button">
               <Share2 className="mr-1.5 h-3 w-3" />
               Email
             </Button>
-            <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={handlePrint} type="button">
+            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={handlePrint} type="button">
               <FileDown className="mr-1.5 h-3 w-3" />
               PDF
             </Button>
@@ -1562,13 +1562,13 @@ function FormationPreview({ open, onClose, produit, tarifs, objectifs, programme
               {produit.sous_titre && <p className="text-muted-foreground mt-1 text-sm">{produit.sous_titre}</p>}
               <div className="flex flex-wrap items-center gap-2 mt-3">
                 {produit.domaine && (
-                  <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-medium text-primary">{produit.domaine}</span>
+                  <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">{produit.domaine}</span>
                 )}
                 {produit.categorie && (
-                  <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">{produit.categorie}</span>
+                  <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">{produit.categorie}</span>
                 )}
                 {produit.certification && (
-                  <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-500">Certifiante</span>
+                  <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-500">Certifiante</span>
                 )}
               </div>
               {produit.organise_par_actif && produit.organise_par_nom && (
@@ -1586,30 +1586,30 @@ function FormationPreview({ open, onClose, produit, tarifs, objectifs, programme
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {produit.type_action && (
               <div className="rounded-lg border border-border/60 p-3">
-                <p className="text-[10px] text-muted-foreground">Type</p>
-                <p className="text-[12px] font-medium mt-0.5">{typeActionLabel[produit.type_action] ?? produit.type_action}</p>
+                <p className="text-xs text-muted-foreground">Type</p>
+                <p className="text-xs font-medium mt-0.5">{typeActionLabel[produit.type_action] ?? produit.type_action}</p>
               </div>
             )}
             {produit.modalite && (
               <div className="rounded-lg border border-border/60 p-3">
-                <p className="text-[10px] text-muted-foreground">Modalité</p>
-                <p className="text-[12px] font-medium mt-0.5">{modaliteLabel[produit.modalite] ?? produit.modalite}</p>
+                <p className="text-xs text-muted-foreground">Modalité</p>
+                <p className="text-xs font-medium mt-0.5">{modaliteLabel[produit.modalite] ?? produit.modalite}</p>
               </div>
             )}
             {produit.duree_heures && (
               <div className="rounded-lg border border-border/60 p-3">
-                <p className="text-[10px] text-muted-foreground">Durée</p>
-                <p className="text-[12px] font-medium mt-0.5">{formatHoursMinutes(produit.duree_heures)}{produit.duree_jours ? ` (${produit.duree_jours}j)` : ""}</p>
+                <p className="text-xs text-muted-foreground">Durée</p>
+                <p className="text-xs font-medium mt-0.5">{formatHoursMinutes(produit.duree_heures)}{produit.duree_jours ? ` (${produit.duree_jours}j)` : ""}</p>
               </div>
             )}
             {tarifs.length > 0 && (
               <div className="rounded-lg border border-border/60 p-3">
-                <p className="text-[10px] text-muted-foreground">Tarif</p>
-                <p className="text-[12px] font-medium mt-0.5 text-primary">
+                <p className="text-xs text-muted-foreground">Tarif</p>
+                <p className="text-xs font-medium mt-0.5 text-primary">
                   {tarifs[0].prix_ht.toLocaleString("fr-FR")} € HT
                   {tarifs[0].unite ? ` / ${tarifs[0].unite}` : ""}
                 </p>
-                <p className="text-[10px] text-muted-foreground/60 mt-0.5">
+                <p className="text-xs text-muted-foreground/60 mt-0.5">
                   {(tarifs[0].prix_ht * (1 + tarifs[0].taux_tva / 100)).toLocaleString("fr-FR")} € TTC
                 </p>
               </div>
@@ -1620,7 +1620,7 @@ function FormationPreview({ open, onClose, produit, tarifs, objectifs, programme
           {produit.description && (
             <div>
               <h2 style={{ fontSize: "15px", fontWeight: 600, color: "#FF7C4C", marginBottom: "8px" }}>Description</h2>
-              <div className="text-[13px] text-muted-foreground leading-relaxed" dangerouslySetInnerHTML={{ __html: produit.description }} />
+              <div className="text-sm text-muted-foreground leading-relaxed" dangerouslySetInnerHTML={{ __html: produit.description }} />
             </div>
           )}
 
@@ -1630,7 +1630,7 @@ function FormationPreview({ open, onClose, produit, tarifs, objectifs, programme
               <h2 style={{ fontSize: "15px", fontWeight: 600, color: "#FF7C4C", marginBottom: "8px" }}>Objectifs de la formation</h2>
               <ul className="space-y-1.5">
                 {objectifs.map((o) => (
-                  <li key={o.id} className="flex items-start gap-2 text-[13px]">
+                  <li key={o.id} className="flex items-start gap-2 text-sm">
                     <CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5 shrink-0" />
                     <span>{o.objectif}</span>
                   </li>
@@ -1645,7 +1645,7 @@ function FormationPreview({ open, onClose, produit, tarifs, objectifs, programme
               <h2 style={{ fontSize: "15px", fontWeight: 600, color: "#FF7C4C", marginBottom: "8px" }}>Compétences visées</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {competences.map((c) => (
-                  <div key={c.id} className="flex items-start gap-2 text-[13px] rounded-lg border border-border/40 p-3">
+                  <div key={c.id} className="flex items-start gap-2 text-sm rounded-lg border border-border/40 p-3">
                     <Award className="h-4 w-4 text-primary mt-0.5 shrink-0" />
                     <span>{c.texte}</span>
                   </div>
@@ -1662,7 +1662,7 @@ function FormationPreview({ open, onClose, produit, tarifs, objectifs, programme
                   <h2 style={{ fontSize: "15px", fontWeight: 600, color: "#FF7C4C", marginBottom: "8px" }}>Pour qui ?</h2>
                   <ul className="space-y-1">
                     {publicVise.map((p) => (
-                      <li key={p.id} className="text-[13px] text-muted-foreground flex items-start gap-2">
+                      <li key={p.id} className="text-sm text-muted-foreground flex items-start gap-2">
                         <Users className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground/60" />
                         {p.texte}
                       </li>
@@ -1675,7 +1675,7 @@ function FormationPreview({ open, onClose, produit, tarifs, objectifs, programme
                   <h2 style={{ fontSize: "15px", fontWeight: 600, color: "#FF7C4C", marginBottom: "8px" }}>Prérequis</h2>
                   <ul className="space-y-1">
                     {prerequis.map((p) => (
-                      <li key={p.id} className="text-[13px] text-muted-foreground flex items-start gap-2">
+                      <li key={p.id} className="text-sm text-muted-foreground flex items-start gap-2">
                         <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0 text-emerald-500" />
                         {p.texte}
                       </li>
@@ -1694,14 +1694,14 @@ function FormationPreview({ open, onClose, produit, tarifs, objectifs, programme
                 {programme.map((m, i) => (
                   <div key={m.id} className="rounded-lg border border-border/60 p-4">
                     <div className="flex items-center gap-2">
-                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary shrink-0">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary shrink-0">
                         {i + 1}
                       </span>
-                      <h3 className="text-[13px] font-semibold">{m.titre}</h3>
-                      {m.duree && <span className="text-[11px] text-muted-foreground/60 ml-auto">{m.duree}</span>}
+                      <h3 className="text-sm font-semibold">{m.titre}</h3>
+                      {m.duree && <span className="text-xs text-muted-foreground/60 ml-auto">{m.duree}</span>}
                     </div>
                     {m.contenu && (
-                      <div className="mt-2 pl-8 text-[12px] text-muted-foreground leading-relaxed" dangerouslySetInnerHTML={{ __html: m.contenu }} />
+                      <div className="mt-2 pl-8 text-xs text-muted-foreground leading-relaxed" dangerouslySetInnerHTML={{ __html: m.contenu }} />
                     )}
                   </div>
                 ))}
@@ -1719,12 +1719,12 @@ function FormationPreview({ open, onClose, produit, tarifs, objectifs, programme
                   return (
                     <div key={t.id} className="rounded-lg border border-border/60 p-4 flex items-center justify-between">
                       <div>
-                        <p className="text-[12px] font-medium">{t.nom || "Tarif"}</p>
-                        {t.unite && <p className="text-[11px] text-muted-foreground">Par {t.unite}</p>}
+                        <p className="text-xs font-medium">{t.nom || "Tarif"}</p>
+                        {t.unite && <p className="text-xs text-muted-foreground">Par {t.unite}</p>}
                       </div>
                       <div className="text-right">
-                        <p className="text-lg font-bold text-primary">{t.prix_ht.toLocaleString("fr-FR")} € <span className="text-[11px] font-normal text-muted-foreground">HT</span></p>
-                        <p className="text-[11px] text-muted-foreground/60">{ttcPreview.toLocaleString("fr-FR")} € TTC</p>
+                        <p className="text-lg font-bold text-primary">{t.prix_ht.toLocaleString("fr-FR")} € <span className="text-xs font-normal text-muted-foreground">HT</span></p>
+                        <p className="text-xs text-muted-foreground/60">{ttcPreview.toLocaleString("fr-FR")} € TTC</p>
                       </div>
                     </div>
                   );
@@ -1739,7 +1739,7 @@ function FormationPreview({ open, onClose, produit, tarifs, objectifs, programme
               <h2 style={{ fontSize: "15px", fontWeight: 600, color: "#FF7C4C", marginBottom: "8px" }}>Options de financement</h2>
               <div className="flex flex-wrap gap-2">
                 {financement.map((f) => (
-                  <span key={f.id} className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-[12px] font-medium">{f.texte}</span>
+                  <span key={f.id} className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-xs font-medium">{f.texte}</span>
                 ))}
               </div>
             </div>
@@ -1752,20 +1752,20 @@ function FormationPreview({ open, onClose, produit, tarifs, objectifs, programme
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {produit.modalites_pedagogiques && (
                   <div className="rounded-lg border border-border/60 p-3">
-                    <p className="text-[11px] font-semibold mb-1">Méthodes</p>
-                    <p className="text-[12px] text-muted-foreground">{produit.modalites_pedagogiques}</p>
+                    <p className="text-xs font-semibold mb-1">Méthodes</p>
+                    <p className="text-xs text-muted-foreground">{produit.modalites_pedagogiques}</p>
                   </div>
                 )}
                 {produit.moyens_pedagogiques && (
                   <div className="rounded-lg border border-border/60 p-3">
-                    <p className="text-[11px] font-semibold mb-1">Moyens</p>
-                    <p className="text-[12px] text-muted-foreground">{produit.moyens_pedagogiques}</p>
+                    <p className="text-xs font-semibold mb-1">Moyens</p>
+                    <p className="text-xs text-muted-foreground">{produit.moyens_pedagogiques}</p>
                   </div>
                 )}
                 {produit.modalites_evaluation && (
                   <div className="rounded-lg border border-border/60 p-3">
-                    <p className="text-[11px] font-semibold mb-1">Évaluation</p>
-                    <p className="text-[12px] text-muted-foreground">{produit.modalites_evaluation}</p>
+                    <p className="text-xs font-semibold mb-1">Évaluation</p>
+                    <p className="text-xs text-muted-foreground">{produit.modalites_evaluation}</p>
                   </div>
                 )}
               </div>
@@ -1776,7 +1776,7 @@ function FormationPreview({ open, onClose, produit, tarifs, objectifs, programme
           {produit.accessibilite && (
             <div>
               <h2 style={{ fontSize: "15px", fontWeight: 600, color: "#FF7C4C", marginBottom: "8px" }}>Accessibilité</h2>
-              <p className="text-[13px] text-muted-foreground">{produit.accessibilite}</p>
+              <p className="text-sm text-muted-foreground">{produit.accessibilite}</p>
             </div>
           )}
 
@@ -1784,7 +1784,7 @@ function FormationPreview({ open, onClose, produit, tarifs, objectifs, programme
           {produit.equipe_pedagogique && (
             <div>
               <h2 style={{ fontSize: "15px", fontWeight: 600, color: "#FF7C4C", marginBottom: "8px" }}>Équipe pédagogique</h2>
-              <p className="text-[13px] text-muted-foreground">{produit.equipe_pedagogique}</p>
+              <p className="text-sm text-muted-foreground">{produit.equipe_pedagogique}</p>
             </div>
           )}
         </div>
@@ -1842,13 +1842,13 @@ function OrganiseParSection({ produit }: { produit: Produit }) {
           <div className="w-9 h-5 bg-muted rounded-full peer peer-checked:bg-primary transition-colors after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
         </label>
       </div>
-      <p className="text-[11px] text-muted-foreground/60">
+      <p className="text-xs text-muted-foreground/60">
         Afficher un organisme partenaire sur la fiche formation
       </p>
 
       <div className="space-y-3">
         <div className="space-y-1.5">
-          <Label htmlFor="organise_par_nom" className="text-[11px] text-muted-foreground">Nom de l&apos;organisme</Label>
+          <Label htmlFor="organise_par_nom" className="text-xs text-muted-foreground">Nom de l&apos;organisme</Label>
           <Input
             id="organise_par_nom"
             name="organise_par_nom"
@@ -1860,18 +1860,18 @@ function OrganiseParSection({ produit }: { produit: Produit }) {
 
         {/* Logo upload */}
         <div className="space-y-1.5">
-          <Label className="text-[11px] text-muted-foreground">Logo de l&apos;organisme</Label>
+          <Label className="text-xs text-muted-foreground">Logo de l&apos;organisme</Label>
           {currentLogoUrl ? (
             <div className="flex items-center gap-3 rounded-lg border border-border/60 bg-muted/30 p-2">
               <img src={currentLogoUrl} alt="Logo organisme" className="h-10 w-10 rounded-md object-contain bg-white" />
               <div className="flex-1 min-w-0">
-                <p className="text-[11px] text-muted-foreground truncate">Logo configuré</p>
+                <p className="text-xs text-muted-foreground truncate">Logo configuré</p>
               </div>
               <Button
                 type="button"
                 size="sm"
                 variant="outline"
-                className="h-7 text-[10px] shrink-0"
+                className="h-7 text-xs shrink-0"
                 onClick={() => logoInputRef.current?.click()}
                 disabled={isUploadingLogo}
               >
@@ -1891,7 +1891,7 @@ function OrganiseParSection({ produit }: { produit: Produit }) {
               ) : (
                 <Building className="h-4 w-4 text-muted-foreground/40" />
               )}
-              <span className="text-muted-foreground/60 text-[10px]">
+              <span className="text-muted-foreground/60 text-xs">
                 {isUploadingLogo ? "Upload..." : "Uploader un logo"}
               </span>
             </Button>
@@ -1907,7 +1907,7 @@ function OrganiseParSection({ produit }: { produit: Produit }) {
             }}
           />
           <input type="hidden" name="organise_par_logo_url" defaultValue={currentLogoUrl ?? ""} />
-          <p className="text-[10px] text-muted-foreground/40">PNG ou SVG transparent recommandé. Max 1 Mo.</p>
+          <p className="text-xs text-muted-foreground/40">PNG ou SVG transparent recommandé. Max 1 Mo.</p>
         </div>
       </div>
     </div>
@@ -2018,7 +2018,7 @@ function TarifsSection({ produitId, tarifs }: { produitId: string; tarifs: Tarif
           <h3 className="text-sm font-semibold">Tarifs de la formation</h3>
           <FieldBadge filled={tarifs.length > 0} />
         </div>
-        <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => setIsAdding(true)} type="button">
+        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setIsAdding(true)} type="button">
           <Plus className="mr-1 h-3 w-3" />
           Ajouter un tarif
         </Button>
@@ -2028,24 +2028,24 @@ function TarifsSection({ produitId, tarifs }: { produitId: string; tarifs: Tarif
         <div className="rounded-lg border border-primary/20 bg-muted/30 p-3 space-y-2">
           <div className="grid grid-cols-5 gap-2">
             <div className="space-y-1">
-              <Label className="text-[10px]">Nom</Label>
-              <Input value={tarifNom} onChange={(e) => setTarifNom(e.target.value)} placeholder="Inter-entreprise" className="h-7 text-[11px] border-border/60" />
+              <Label className="text-xs">Nom</Label>
+              <Input value={tarifNom} onChange={(e) => setTarifNom(e.target.value)} placeholder="Inter-entreprise" className="h-7 text-xs border-border/60" />
             </div>
             <div className="space-y-1">
-              <Label className="text-[10px]">Prix HT</Label>
-              <Input value={tarifPrixHt} onChange={(e) => handlePrixHtChange(e.target.value)} type="number" step="0.01" min="0" className="h-7 text-[11px] border-border/60" />
+              <Label className="text-xs">Prix HT</Label>
+              <Input value={tarifPrixHt} onChange={(e) => handlePrixHtChange(e.target.value)} type="number" step="0.01" min="0" className="h-7 text-xs border-border/60" />
             </div>
             <div className="space-y-1">
-              <Label className="text-[10px]">TVA %</Label>
-              <Input value={tarifTauxTva} onChange={(e) => handleTauxTvaChange(e.target.value)} type="number" step="0.01" className="h-7 text-[11px] border-border/60" />
+              <Label className="text-xs">TVA %</Label>
+              <Input value={tarifTauxTva} onChange={(e) => handleTauxTvaChange(e.target.value)} type="number" step="0.01" className="h-7 text-xs border-border/60" />
             </div>
             <div className="space-y-1">
-              <Label className="text-[10px]">Prix TTC</Label>
-              <Input value={tarifPrixTtc} onChange={(e) => handlePrixTtcChange(e.target.value)} type="number" step="0.01" min="0" className="h-7 text-[11px] border-border/60" />
+              <Label className="text-xs">Prix TTC</Label>
+              <Input value={tarifPrixTtc} onChange={(e) => handlePrixTtcChange(e.target.value)} type="number" step="0.01" min="0" className="h-7 text-xs border-border/60" />
             </div>
             <div className="space-y-1">
-              <Label className="text-[10px]">Unité</Label>
-              <select value={tarifUnite} onChange={(e) => setTarifUnite(e.target.value)} className="h-7 w-full rounded-md border border-input bg-muted px-2 text-[11px] text-foreground">
+              <Label className="text-xs">Unité</Label>
+              <select value={tarifUnite} onChange={(e) => setTarifUnite(e.target.value)} className="h-7 w-full rounded-md border border-input bg-muted px-2 text-xs text-foreground">
                 <option value="">--</option>
                 <option value="stagiaire">/ stagiaire</option>
                 <option value="groupe">/ groupe</option>
@@ -2056,8 +2056,8 @@ function TarifsSection({ produitId, tarifs }: { produitId: string; tarifs: Tarif
             </div>
           </div>
           <div className="flex items-center gap-2 justify-end">
-            <Button type="button" variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => { setIsAdding(false); resetTarifForm(); }}>Annuler</Button>
-            <Button type="button" size="sm" className="h-7 text-[11px]" disabled={saving || !tarifPrixHt} onClick={handleAddTarif}>
+            <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => { setIsAdding(false); resetTarifForm(); }}>Annuler</Button>
+            <Button type="button" size="sm" className="h-7 text-xs" disabled={saving || !tarifPrixHt} onClick={handleAddTarif}>
               {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : "Ajouter"}
             </Button>
           </div>
@@ -2074,18 +2074,18 @@ function TarifsSection({ produitId, tarifs }: { produitId: string; tarifs: Tarif
                   <div>
                     <div className="flex items-center gap-1.5">
                       <Wallet className="h-3 w-3 text-muted-foreground/50" />
-                      <span className="text-[13px] font-medium">{t.nom || "Sans nom"}</span>
-                      {t.is_default && <Badge className="text-[9px] px-1 py-0" variant="outline">Défaut</Badge>}
+                      <span className="text-sm font-medium">{t.nom || "Sans nom"}</span>
+                      {t.is_default && <Badge className="text-xs px-1 py-0" variant="outline">Défaut</Badge>}
                     </div>
-                    <span className="text-[11px] text-muted-foreground/60">
+                    <span className="text-xs text-muted-foreground/60">
                       {t.unite ? UNITE_LABELS[t.unite] ?? t.unite : ""}
                     </span>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="text-right">
-                    <p className="text-[13px] font-mono font-medium">{formatCurrency(t.prix_ht)} HT</p>
-                    <p className="text-[11px] text-muted-foreground/60">
+                    <p className="text-sm font-mono font-medium">{formatCurrency(t.prix_ht)} HT</p>
+                    <p className="text-xs text-muted-foreground/60">
                       {formatCurrency(ttc)} TTC{t.taux_tva > 0 && ` (${t.taux_tva}%)`}
                     </p>
                   </div>
@@ -2289,12 +2289,12 @@ function ProgrammeTab({
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <Hash className="h-3.5 w-3.5 text-muted-foreground/60" />
-            <Label className="text-[11px] text-muted-foreground shrink-0">Numérotation</Label>
+            <Label className="text-xs text-muted-foreground shrink-0">Numérotation</Label>
             <select
               name="programme_numerotation"
               value={localNumerotation}
               onChange={(e) => setLocalNumerotation(e.target.value)}
-              className="h-7 rounded-md border border-input bg-muted px-2 text-[11px] text-foreground"
+              className="h-7 rounded-md border border-input bg-muted px-2 text-xs text-foreground"
             >
               {NUMEROTATION_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -2302,7 +2302,7 @@ function ProgrammeTab({
             </select>
           </div>
         </div>
-        <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <span>{modules.length} module{modules.length !== 1 ? "s" : ""}</span>
           {totalDuration && (
             <>
@@ -2320,11 +2320,11 @@ function ProgrammeTab({
         <form onSubmit={handleAdd} className="rounded-lg border border-primary/20 bg-card p-4 space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="space-y-1">
-              <Label className="text-[11px]">Titre *</Label>
+              <Label className="text-xs">Titre *</Label>
               <Input name="module_titre" required placeholder="Séquence 1 : Introduction" className="h-8 text-sm border-border/60" />
             </div>
             <div className="space-y-1">
-              <Label className="text-[11px]">Durée</Label>
+              <Label className="text-xs">Durée</Label>
               <Input name="module_duree" placeholder="2h, 3h30, 1 jour..." className="h-8 text-sm border-border/60" />
             </div>
             <div className="flex items-end gap-2">
@@ -2337,7 +2337,7 @@ function ProgrammeTab({
             </div>
           </div>
           <div className="space-y-1">
-            <Label className="text-[11px]">Contenu</Label>
+            <Label className="text-xs">Contenu</Label>
             <textarea
               name="module_contenu"
               rows={4}
@@ -2397,7 +2397,7 @@ function ProgrammeTab({
                     onClick={() => { if (!isEditing) toggleModule(m.id); }}
                   >
                     {numberLabel && (
-                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary shrink-0">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary shrink-0">
                         {numberLabel}
                       </div>
                     )}
@@ -2408,7 +2408,7 @@ function ProgrammeTab({
                           <span className="text-xs text-muted-foreground/60 shrink-0">({m.duree})</span>
                         )}
                         {!m.contenu && (
-                          <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20 text-[9px] font-normal px-1.5 py-0 shrink-0">
+                          <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20 text-xs font-normal px-1.5 py-0 shrink-0">
                             Sans contenu
                           </Badge>
                         )}
@@ -2428,7 +2428,7 @@ function ProgrammeTab({
                       <div className="space-y-3 pt-3">
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                           <div className="sm:col-span-2 space-y-1">
-                            <Label className="text-[11px]">Titre</Label>
+                            <Label className="text-xs">Titre</Label>
                             <Input
                               value={editingModule.titre}
                               onChange={(e) => setEditingModule((prev) => ({ ...prev, titre: e.target.value }))}
@@ -2436,7 +2436,7 @@ function ProgrammeTab({
                             />
                           </div>
                           <div className="space-y-1">
-                            <Label className="text-[11px]">Durée</Label>
+                            <Label className="text-xs">Durée</Label>
                             <Input
                               value={editingModule.duree}
                               onChange={(e) => setEditingModule((prev) => ({ ...prev, duree: e.target.value }))}
@@ -2446,7 +2446,7 @@ function ProgrammeTab({
                           </div>
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-[11px]">Contenu</Label>
+                          <Label className="text-xs">Contenu</Label>
                           <textarea
                             value={editingModule.contenu}
                             onChange={(e) => setEditingModule((prev) => ({ ...prev, contenu: e.target.value }))}
@@ -2455,10 +2455,10 @@ function ProgrammeTab({
                           />
                         </div>
                         <div className="flex items-center gap-2 justify-end">
-                          <Button type="button" variant="outline" size="sm" className="h-7 text-[11px]" onClick={handleCancelEdit}>
+                          <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={handleCancelEdit}>
                             Annuler
                           </Button>
-                          <Button type="button" size="sm" className="h-7 text-[11px]" onClick={handleSaveEdit} disabled={savingEdit || !editingModule.titre.trim()}>
+                          <Button type="button" size="sm" className="h-7 text-xs" onClick={handleSaveEdit} disabled={savingEdit || !editingModule.titre.trim()}>
                             {savingEdit ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Check className="h-3 w-3 mr-1" />}
                             Enregistrer
                           </Button>
@@ -2474,11 +2474,11 @@ function ProgrammeTab({
                           <p className="text-sm text-muted-foreground/40 italic pt-3">Aucun contenu détaillé</p>
                         )}
                         <div className="mt-3 flex justify-end gap-1">
-                          <Button variant="ghost" size="sm" className="h-7 text-[11px] text-muted-foreground hover:text-foreground" onClick={() => handleStartEdit(m)} type="button">
+                          <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground hover:text-foreground" onClick={() => handleStartEdit(m)} type="button">
                             <Pencil className="mr-1 h-3 w-3" />
                             Modifier
                           </Button>
-                          <Button variant="ghost" size="sm" className="h-7 text-[11px] text-muted-foreground hover:text-destructive" onClick={() => handleDelete(m.id)} type="button">
+                          <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground hover:text-destructive" onClick={() => handleDelete(m.id)} type="button">
                             <Trash2 className="mr-1 h-3 w-3" />
                             Supprimer
                           </Button>
@@ -2582,7 +2582,7 @@ function ObjectifsTab({
         <div className="rounded-lg border border-border/60 divide-y divide-border/40">
           {objectifs.map((o, idx) => (
             <div key={o.id} className="flex items-center gap-3 px-4 py-2.5 group">
-              <span className="text-[11px] font-mono text-muted-foreground/40 w-5 shrink-0">{idx + 1}.</span>
+              <span className="text-xs font-mono text-muted-foreground/40 w-5 shrink-0">{idx + 1}.</span>
               {editingId === o.id ? (
                 <>
                   <Input
@@ -2751,7 +2751,7 @@ function QuestionnairesTab({
               <ClipboardList className="h-4 w-4" />
               Questionnaires rattachés
             </h2>
-            <p className="text-[13px] text-muted-foreground mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
               Les questionnaires rattachés ici seront automatiquement ajoutés aux sessions créées depuis ce programme.
             </p>
           </div>
@@ -2796,31 +2796,31 @@ function QuestionnairesTab({
                   <div className="flex items-center gap-3 px-4 py-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[13px] font-medium truncate">
+                        <span className="text-sm font-medium truncate">
                           {q?.nom ?? "Questionnaire supprimé"}
                         </span>
-                        <Badge className={`text-[10px] font-normal border ${TYPE_USAGE_COLORS[pq.type_usage] ?? TYPE_USAGE_COLORS.autre}`}>
+                        <Badge className={`text-xs font-normal border ${TYPE_USAGE_COLORS[pq.type_usage] ?? TYPE_USAGE_COLORS.autre}`}>
                           {TYPE_USAGE_LABELS[pq.type_usage] ?? pq.type_usage}
                         </Badge>
                         {q?.statut === "brouillon" && (
-                          <Badge className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20 text-[10px] font-normal">
+                          <Badge className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20 text-xs font-normal">
                             Brouillon
                           </Badge>
                         )}
                         {!pq.actif && (
-                          <Badge className="bg-muted-foreground/10 text-muted-foreground border-muted-foreground/20 text-[10px] font-normal">
+                          <Badge className="bg-muted-foreground/10 text-muted-foreground border-muted-foreground/20 text-xs font-normal">
                             Inactif
                           </Badge>
                         )}
                         {planif?.envoi_auto && (
-                          <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20 gap-1">
+                          <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20 gap-1">
                             <Send className="h-2.5 w-2.5" />
                             Envoi auto
                           </Badge>
                         )}
                       </div>
                       {q && (
-                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                        <p className="text-xs text-muted-foreground mt-0.5">
                           {q.type === "satisfaction_chaud" ? "Satisfaction à chaud" :
                            q.type === "satisfaction_froid" ? "Satisfaction à froid" :
                            q.type === "pedagogique_pre" ? "Péda. pré-formation" :
@@ -2837,7 +2837,7 @@ function QuestionnairesTab({
                         value={pq.type_usage}
                         onChange={(e) => handleChangeType(pq, e.target.value)}
                         disabled={isUpdating}
-                        className="h-7 rounded-md border border-border/60 bg-muted px-2 text-[11px] text-foreground cursor-pointer"
+                        className="h-7 rounded-md border border-border/60 bg-muted px-2 text-xs text-foreground cursor-pointer"
                       >
                         {TYPE_USAGE_OPTIONS.map(opt => (
                           <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -2889,11 +2889,11 @@ function QuestionnairesTab({
                   {/* Scheduling summary line */}
                   {planifSummary && !isExpanded && (
                     <div className="px-4 pb-3 -mt-1">
-                      <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                      <p className="text-xs text-muted-foreground flex items-center gap-1.5">
                         <CalendarClock className="h-3 w-3 text-primary/60" />
                         {planifSummary}
                         {planif?.jours_ouvres_uniquement && (
-                          <span className="text-[10px] text-muted-foreground/60">(jours ouvrés)</span>
+                          <span className="text-xs text-muted-foreground/60">(jours ouvrés)</span>
                         )}
                       </p>
                     </div>
@@ -2921,16 +2921,16 @@ function QuestionnairesTab({
           <DialogTitle>Rattacher un questionnaire</DialogTitle>
           <div className="space-y-4 mt-2">
             <div className="space-y-2">
-              <Label className="text-[13px]">Questionnaire</Label>
+              <Label className="text-sm">Questionnaire</Label>
               {availableQuestionnaires.length === 0 ? (
-                <p className="text-[13px] text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   Tous les questionnaires sont déjà rattachés, ou aucun questionnaire n&apos;existe.
                 </p>
               ) : (
                 <select
                   value={selectedQuestionnaireId}
                   onChange={(e) => setSelectedQuestionnaireId(e.target.value)}
-                  className="w-full h-9 rounded-md border border-border/60 bg-muted px-3 text-[13px] text-foreground"
+                  className="w-full h-9 rounded-md border border-border/60 bg-muted px-3 text-sm text-foreground"
                 >
                   <option value="">Sélectionner un questionnaire...</option>
                   {availableQuestionnaires.map(q => (
@@ -2946,11 +2946,11 @@ function QuestionnairesTab({
               )}
             </div>
             <div className="space-y-2">
-              <Label className="text-[13px]">Type / Usage</Label>
+              <Label className="text-sm">Type / Usage</Label>
               <select
                 value={selectedTypeUsage}
                 onChange={(e) => setSelectedTypeUsage(e.target.value)}
-                className="w-full h-9 rounded-md border border-border/60 bg-muted px-3 text-[13px] text-foreground"
+                className="w-full h-9 rounded-md border border-border/60 bg-muted px-3 text-sm text-foreground"
               >
                 {TYPE_USAGE_OPTIONS.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -3018,7 +3018,7 @@ function SchedulingConfigPanel({
   return (
     <div className="border-t border-border/60 bg-muted/20 p-4 space-y-4">
       <div className="flex items-center justify-between">
-        <h4 className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wide">
+        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
           Paramètres d&apos;envoi automatique
         </h4>
         <label className="relative inline-flex items-center cursor-pointer">
@@ -3029,7 +3029,7 @@ function SchedulingConfigPanel({
             className="sr-only peer"
           />
           <div className="w-9 h-5 bg-muted rounded-full peer peer-checked:bg-primary transition-colors after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
-          <span className="ml-2 text-[12px] text-muted-foreground">
+          <span className="ml-2 text-xs text-muted-foreground">
             {config.envoi_auto ? "Activé" : "Désactivé"}
           </span>
         </label>
@@ -3039,7 +3039,7 @@ function SchedulingConfigPanel({
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-[11px] text-muted-foreground">Déclencheur</Label>
+              <Label className="text-xs text-muted-foreground">Déclencheur</Label>
               <select
                 value={config.declencheur}
                 onChange={(e) =>
@@ -3048,7 +3048,7 @@ function SchedulingConfigPanel({
                     declencheur: e.target.value as PlanificationConfig["declencheur"],
                   }))
                 }
-                className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
+                className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
               >
                 <option value="avant_debut">Avant le début de session</option>
                 <option value="apres_debut">Après le début de session</option>
@@ -3057,7 +3057,7 @@ function SchedulingConfigPanel({
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-[11px] text-muted-foreground">Délai (jours)</Label>
+              <Label className="text-xs text-muted-foreground">Délai (jours)</Label>
               <Input
                 type="number"
                 min={0}
@@ -3065,23 +3065,23 @@ function SchedulingConfigPanel({
                 onChange={(e) =>
                   setConfig((c) => ({ ...c, delai_jours: parseInt(e.target.value) || 0 }))
                 }
-                className="h-9 text-[13px] border-border/60"
+                className="h-9 text-sm border-border/60"
                 placeholder="0 = jour J"
               />
-              <p className="text-[10px] text-muted-foreground/50">
+              <p className="text-xs text-muted-foreground/50">
                 0 = le jour même
               </p>
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-[11px] text-muted-foreground">Heure d&apos;envoi</Label>
+              <Label className="text-xs text-muted-foreground">Heure d&apos;envoi</Label>
               <Input
                 type="time"
                 value={config.heure_envoi}
                 onChange={(e) =>
                   setConfig((c) => ({ ...c, heure_envoi: e.target.value }))
                 }
-                className="h-9 text-[13px] border-border/60"
+                className="h-9 text-sm border-border/60"
               />
             </div>
           </div>
@@ -3099,12 +3099,12 @@ function SchedulingConfigPanel({
                 }
                 className="rounded border-border/60"
               />
-              <span className="text-[12px] text-muted-foreground">Jours ouvrés uniquement</span>
+              <span className="text-xs text-muted-foreground">Jours ouvrés uniquement</span>
             </label>
 
             {config.jours_ouvres_uniquement && (
               <div className="flex items-center gap-2">
-                <span className="text-[11px] text-muted-foreground">Si week-end :</span>
+                <span className="text-xs text-muted-foreground">Si week-end :</span>
                 <select
                   value={config.repli_weekend}
                   onChange={(e) =>
@@ -3113,7 +3113,7 @@ function SchedulingConfigPanel({
                       repli_weekend: e.target.value as PlanificationConfig["repli_weekend"],
                     }))
                   }
-                  className="h-7 rounded-md border border-input bg-muted px-2 py-0.5 text-[11px] text-foreground"
+                  className="h-7 rounded-md border border-input bg-muted px-2 py-0.5 text-xs text-foreground"
                 >
                   <option value="lundi_suivant">Lundi suivant</option>
                   <option value="vendredi_precedent">Vendredi précédent</option>
@@ -3124,7 +3124,7 @@ function SchedulingConfigPanel({
 
           {/* Preview */}
           <div className="rounded-md bg-muted/50 border border-border/40 px-3 py-2">
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               <strong>Aperçu :</strong>{" "}
               {config.declencheur === "avant_debut" && (
                 <>Envoi <strong>J-{config.delai_jours}</strong> avant le début de session à <strong>{config.heure_envoi}</strong></>
@@ -3419,7 +3419,7 @@ function BiblioTab({
               <SectionTitle icon={<BookMarked className="h-4 w-4 text-primary" />}>
                 Références bibliographiques
               </SectionTitle>
-              <Badge variant="outline" className="text-[10px]">
+              <Badge variant="outline" className="text-xs">
                 {referencesBiblio.length} référence{referencesBiblio.length > 1 ? "s" : ""}
               </Badge>
             </div>
@@ -3446,7 +3446,7 @@ function BiblioTab({
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-2">
-                  <Badge variant="secondary" className="text-[10px] shrink-0">
+                  <Badge variant="secondary" className="text-xs shrink-0">
                     {REFERENCE_TYPE_LABELS[ref.type_reference] || ref.type_reference}
                   </Badge>
                 </div>
@@ -3481,7 +3481,7 @@ function BiblioTab({
           <div className="space-y-4 mt-4">
             {/* Type de référence */}
             <div className="space-y-1">
-              <Label className="text-[11px]">Type de référence</Label>
+              <Label className="text-xs">Type de référence</Label>
               <select
                 value={refForm.type_reference}
                 onChange={(e) => updateRefField("type_reference", e.target.value)}
@@ -3497,9 +3497,9 @@ function BiblioTab({
             {isFieldVisible("auteurs") && (
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <Label className="text-[11px]">Auteur(s)</Label>
+                  <Label className="text-xs">Auteur(s)</Label>
                   {isFieldVisible("auteur_institutionnel") && (
-                    <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer">
+                    <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
                       <input
                         type="checkbox"
                         checked={refForm.auteur_institutionnel ?? false}
@@ -3522,7 +3522,7 @@ function BiblioTab({
             {/* Année */}
             {isFieldVisible("annee") && (
               <div className="space-y-1">
-                <Label className="text-[11px]">Année de publication</Label>
+                <Label className="text-xs">Année de publication</Label>
                 <Input
                   value={refForm.annee ?? ""}
                   onChange={(e) => updateRefField("annee", e.target.value)}
@@ -3535,7 +3535,7 @@ function BiblioTab({
             {/* Titre */}
             {isFieldVisible("titre") && (
               <div className="space-y-1">
-                <Label className="text-[11px]">Titre *</Label>
+                <Label className="text-xs">Titre *</Label>
                 <Input
                   value={refForm.titre ?? ""}
                   onChange={(e) => updateRefField("titre", e.target.value)}
@@ -3549,7 +3549,7 @@ function BiblioTab({
             {/* Titre revue (article_revue) */}
             {isFieldVisible("titre_revue") && (
               <div className="space-y-1">
-                <Label className="text-[11px]">Titre de la revue</Label>
+                <Label className="text-xs">Titre de la revue</Label>
                 <Input
                   value={refForm.titre_revue ?? ""}
                   onChange={(e) => updateRefField("titre_revue", e.target.value)}
@@ -3564,7 +3564,7 @@ function BiblioTab({
               <div className="grid grid-cols-3 gap-3">
                 {isFieldVisible("volume") && (
                   <div className="space-y-1">
-                    <Label className="text-[11px]">Volume</Label>
+                    <Label className="text-xs">Volume</Label>
                     <Input
                       value={refForm.volume ?? ""}
                       onChange={(e) => updateRefField("volume", e.target.value)}
@@ -3575,7 +3575,7 @@ function BiblioTab({
                 )}
                 {isFieldVisible("numero") && (
                   <div className="space-y-1">
-                    <Label className="text-[11px]">Numéro</Label>
+                    <Label className="text-xs">Numéro</Label>
                     <Input
                       value={refForm.numero ?? ""}
                       onChange={(e) => updateRefField("numero", e.target.value)}
@@ -3586,7 +3586,7 @@ function BiblioTab({
                 )}
                 {isFieldVisible("pages") && (
                   <div className="space-y-1">
-                    <Label className="text-[11px]">Pages</Label>
+                    <Label className="text-xs">Pages</Label>
                     <Input
                       value={refForm.pages ?? ""}
                       onChange={(e) => updateRefField("pages", e.target.value)}
@@ -3601,7 +3601,7 @@ function BiblioTab({
             {/* Titre ouvrage parent (chapitre) */}
             {isFieldVisible("titre_ouvrage_parent") && (
               <div className="space-y-1">
-                <Label className="text-[11px]">Titre de l&apos;ouvrage contenant</Label>
+                <Label className="text-xs">Titre de l&apos;ouvrage contenant</Label>
                 <Input
                   value={refForm.titre_ouvrage_parent ?? ""}
                   onChange={(e) => updateRefField("titre_ouvrage_parent", e.target.value)}
@@ -3614,7 +3614,7 @@ function BiblioTab({
             {/* Éditeurs / Directeurs (chapitre) */}
             {isFieldVisible("editeurs") && (
               <div className="space-y-1">
-                <Label className="text-[11px]">Directeur(s) de l&apos;ouvrage</Label>
+                <Label className="text-xs">Directeur(s) de l&apos;ouvrage</Label>
                 <Input
                   value={refForm.editeurs ?? ""}
                   onChange={(e) => updateRefField("editeurs", e.target.value)}
@@ -3629,7 +3629,7 @@ function BiblioTab({
               <div className="grid grid-cols-2 gap-3">
                 {isFieldVisible("editeur") && (
                   <div className="space-y-1">
-                    <Label className="text-[11px]">Éditeur / Maison d&apos;édition</Label>
+                    <Label className="text-xs">Éditeur / Maison d&apos;édition</Label>
                     <Input
                       value={refForm.editeur ?? ""}
                       onChange={(e) => updateRefField("editeur", e.target.value)}
@@ -3640,7 +3640,7 @@ function BiblioTab({
                 )}
                 {isFieldVisible("edition") && (
                   <div className="space-y-1">
-                    <Label className="text-[11px]">Édition</Label>
+                    <Label className="text-xs">Édition</Label>
                     <Input
                       value={refForm.edition ?? ""}
                       onChange={(e) => updateRefField("edition", e.target.value)}
@@ -3657,7 +3657,7 @@ function BiblioTab({
               <div className="grid grid-cols-2 gap-3">
                 {isFieldVisible("doi") && (
                   <div className="space-y-1">
-                    <Label className="text-[11px]">DOI</Label>
+                    <Label className="text-xs">DOI</Label>
                     <Input
                       value={refForm.doi ?? ""}
                       onChange={(e) => updateRefField("doi", e.target.value)}
@@ -3668,7 +3668,7 @@ function BiblioTab({
                 )}
                 {isFieldVisible("url") && (
                   <div className="space-y-1">
-                    <Label className="text-[11px]">URL</Label>
+                    <Label className="text-xs">URL</Label>
                     <Input
                       value={refForm.url ?? ""}
                       onChange={(e) => updateRefField("url", e.target.value)}
@@ -3683,7 +3683,7 @@ function BiblioTab({
             {/* Date de consultation (site_web) */}
             {isFieldVisible("date_consultation") && (
               <div className="space-y-1">
-                <Label className="text-[11px]">Date de consultation</Label>
+                <Label className="text-xs">Date de consultation</Label>
                 <Input
                   type="date"
                   value={refForm.date_consultation ?? ""}
@@ -3696,7 +3696,7 @@ function BiblioTab({
             {/* Notes */}
             {isFieldVisible("notes") && (
               <div className="space-y-1">
-                <Label className="text-[11px]">Notes (optionnel)</Label>
+                <Label className="text-xs">Notes (optionnel)</Label>
                 <Input
                   value={refForm.notes ?? ""}
                   onChange={(e) => updateRefField("notes", e.target.value)}
@@ -3709,7 +3709,7 @@ function BiblioTab({
             {/* Live APA 7 preview */}
             {livePreview && (
               <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-1">
-                <Label className="text-[10px] text-primary/70 uppercase tracking-wider">Aperçu APA 7</Label>
+                <Label className="text-xs text-primary/70 uppercase tracking-wider">Aperçu APA 7</Label>
                 <p
                   className="text-sm leading-relaxed"
                   dangerouslySetInnerHTML={{ __html: livePreview }}
@@ -3753,7 +3753,7 @@ function BiblioTab({
                       <SectionTitle icon={<BookOpen className="h-4 w-4 text-primary" />}>
                         Ouvrages et traités de référence
                       </SectionTitle>
-                      <Badge variant="outline" className="text-[10px]">{ouvrages.length} référence{ouvrages.length > 1 ? "s" : ""}</Badge>
+                      <Badge variant="outline" className="text-xs">{ouvrages.length} référence{ouvrages.length > 1 ? "s" : ""}</Badge>
                     </div>
                   </div>
                   <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setAddingOuvrage(true)} type="button">
@@ -3766,27 +3766,27 @@ function BiblioTab({
                   <form onSubmit={handleAddOuvrage} className="rounded-lg border border-primary/20 bg-muted/30 p-4 space-y-3">
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1">
-                        <Label className="text-[11px]">Auteur(s)</Label>
+                        <Label className="text-xs">Auteur(s)</Label>
                         <Input name="ouvrage_auteurs" placeholder="Elsevier Masson." className="h-8 text-sm border-border/60" />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-[11px]">Titre *</Label>
+                        <Label className="text-xs">Titre *</Label>
                         <Input name="ouvrage_titre" required placeholder="Titre de l'ouvrage" className="h-8 text-sm border-border/60" />
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1">
-                        <Label className="text-[11px]">Année</Label>
+                        <Label className="text-xs">Année</Label>
                         <Input name="ouvrage_annee" placeholder="2021" className="h-8 text-sm border-border/60" />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-[11px]">Source / Éditeur</Label>
+                        <Label className="text-xs">Source / Éditeur</Label>
                         <Input name="ouvrage_source" placeholder="Dans EMC Podologie, EM Consulte." className="h-8 text-sm border-border/60" />
                       </div>
                     </div>
                     <div className="flex items-center gap-2 justify-end">
-                      <Button type="button" variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => setAddingOuvrage(false)}>Annuler</Button>
-                      <Button type="submit" size="sm" className="h-7 text-[11px]" disabled={savingOuvrage}>
+                      <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => setAddingOuvrage(false)}>Annuler</Button>
+                      <Button type="submit" size="sm" className="h-7 text-xs" disabled={savingOuvrage}>
                         {savingOuvrage ? <Loader2 className="h-3 w-3 animate-spin" /> : "Ajouter"}
                       </Button>
                     </div>
@@ -3810,27 +3810,27 @@ function BiblioTab({
                       <div className="space-y-3">
                         <div className="grid grid-cols-2 gap-3">
                           <div className="space-y-1">
-                            <Label className="text-[11px]">Auteur(s)</Label>
+                            <Label className="text-xs">Auteur(s)</Label>
                             <Input value={editingOuvrageData.auteurs ?? ""} onChange={(e) => setEditingOuvrageData((p) => ({ ...p, auteurs: e.target.value }))} className="h-8 text-sm border-border/60" />
                           </div>
                           <div className="space-y-1">
-                            <Label className="text-[11px]">Titre</Label>
+                            <Label className="text-xs">Titre</Label>
                             <Input value={editingOuvrageData.titre} onChange={(e) => setEditingOuvrageData((p) => ({ ...p, titre: e.target.value }))} className="h-8 text-sm border-border/60" />
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div className="space-y-1">
-                            <Label className="text-[11px]">Année</Label>
+                            <Label className="text-xs">Année</Label>
                             <Input value={editingOuvrageData.annee ?? ""} onChange={(e) => setEditingOuvrageData((p) => ({ ...p, annee: e.target.value }))} className="h-8 text-sm border-border/60" />
                           </div>
                           <div className="space-y-1">
-                            <Label className="text-[11px]">Source / Éditeur</Label>
+                            <Label className="text-xs">Source / Éditeur</Label>
                             <Input value={editingOuvrageData.source_editeur ?? ""} onChange={(e) => setEditingOuvrageData((p) => ({ ...p, source_editeur: e.target.value }))} className="h-8 text-sm border-border/60" />
                           </div>
                         </div>
                         <div className="flex items-center gap-2 justify-end">
-                          <Button type="button" variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => setEditingOuvrageId(null)}>Annuler</Button>
-                          <Button type="button" size="sm" className="h-7 text-[11px]" onClick={handleSaveEditOuvrage}>
+                          <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => setEditingOuvrageId(null)}>Annuler</Button>
+                          <Button type="button" size="sm" className="h-7 text-xs" onClick={handleSaveEditOuvrage}>
                             <Check className="h-3 w-3 mr-1" />
                             Enregistrer
                           </Button>
@@ -3839,19 +3839,19 @@ function BiblioTab({
                     ) : (
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1">
-                          <Label className="text-[10px] text-muted-foreground/60">Auteur(s)</Label>
+                          <Label className="text-xs text-muted-foreground/60">Auteur(s)</Label>
                           <p className="text-sm">{o.auteurs || <span className="text-muted-foreground/40 italic">—</span>}</p>
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-[10px] text-muted-foreground/60">Titre</Label>
+                          <Label className="text-xs text-muted-foreground/60">Titre</Label>
                           <p className="text-sm">{o.titre}</p>
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-[10px] text-muted-foreground/60">Année</Label>
+                          <Label className="text-xs text-muted-foreground/60">Année</Label>
                           <p className="text-sm">{o.annee || <span className="text-muted-foreground/40 italic">—</span>}</p>
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-[10px] text-muted-foreground/60">Source / Éditeur</Label>
+                          <Label className="text-xs text-muted-foreground/60">Source / Éditeur</Label>
                           <p className="text-sm">{o.source_editeur || <span className="text-muted-foreground/40 italic">—</span>}</p>
                         </div>
                       </div>
@@ -3868,7 +3868,7 @@ function BiblioTab({
                       <SectionTitle icon={<BookMarked className="h-4 w-4 text-primary" />}>
                         Articles scientifiques
                       </SectionTitle>
-                      <Badge variant="outline" className="text-[10px]">{articles.length} article{articles.length > 1 ? "s" : ""}</Badge>
+                      <Badge variant="outline" className="text-xs">{articles.length} article{articles.length > 1 ? "s" : ""}</Badge>
                     </div>
                   </div>
                   <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setAddingArticle(true)} type="button">
@@ -3881,31 +3881,31 @@ function BiblioTab({
                   <form onSubmit={handleAddArticle} className="rounded-lg border border-primary/20 bg-muted/30 p-4 space-y-3">
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1">
-                        <Label className="text-[11px]">Auteur(s)</Label>
+                        <Label className="text-xs">Auteur(s)</Label>
                         <Input name="article_auteurs" placeholder="Chevallier, T. L., Hodgins, H., ..." className="h-8 text-sm border-border/60" />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-[11px]">Titre de l&apos;article *</Label>
+                        <Label className="text-xs">Titre de l&apos;article *</Label>
                         <Input name="article_titre" required placeholder="Titre de l'article" className="h-8 text-sm border-border/60" />
                       </div>
                     </div>
                     <div className="grid grid-cols-3 gap-3">
                       <div className="space-y-1">
-                        <Label className="text-[11px]">Source / Revue</Label>
+                        <Label className="text-xs">Source / Revue</Label>
                         <Input name="article_source" placeholder="Clinical Biomechanics, 18(8), 679-687." className="h-8 text-sm border-border/60" />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-[11px]">Année</Label>
+                        <Label className="text-xs">Année</Label>
                         <Input name="article_annee" placeholder="2010" className="h-8 text-sm border-border/60" />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-[11px]">DOI</Label>
+                        <Label className="text-xs">DOI</Label>
                         <Input name="article_doi" placeholder="https://doi.org/10.1016/..." className="h-8 text-sm border-border/60" />
                       </div>
                     </div>
                     <div className="flex items-center gap-2 justify-end">
-                      <Button type="button" variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => setAddingArticle(false)}>Annuler</Button>
-                      <Button type="submit" size="sm" className="h-7 text-[11px]" disabled={savingArticle}>
+                      <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => setAddingArticle(false)}>Annuler</Button>
+                      <Button type="submit" size="sm" className="h-7 text-xs" disabled={savingArticle}>
                         {savingArticle ? <Loader2 className="h-3 w-3 animate-spin" /> : "Ajouter"}
                       </Button>
                     </div>
@@ -3929,31 +3929,31 @@ function BiblioTab({
                       <div className="space-y-3">
                         <div className="grid grid-cols-2 gap-3">
                           <div className="space-y-1">
-                            <Label className="text-[11px]">Auteur(s)</Label>
+                            <Label className="text-xs">Auteur(s)</Label>
                             <Input value={editingArticleData.auteurs ?? ""} onChange={(e) => setEditingArticleData((p) => ({ ...p, auteurs: e.target.value }))} className="h-8 text-sm border-border/60" />
                           </div>
                           <div className="space-y-1">
-                            <Label className="text-[11px]">Titre de l&apos;article</Label>
+                            <Label className="text-xs">Titre de l&apos;article</Label>
                             <Input value={editingArticleData.titre} onChange={(e) => setEditingArticleData((p) => ({ ...p, titre: e.target.value }))} className="h-8 text-sm border-border/60" />
                           </div>
                         </div>
                         <div className="grid grid-cols-3 gap-3">
                           <div className="space-y-1">
-                            <Label className="text-[11px]">Source / Revue</Label>
+                            <Label className="text-xs">Source / Revue</Label>
                             <Input value={editingArticleData.source_revue ?? ""} onChange={(e) => setEditingArticleData((p) => ({ ...p, source_revue: e.target.value }))} className="h-8 text-sm border-border/60" />
                           </div>
                           <div className="space-y-1">
-                            <Label className="text-[11px]">Année</Label>
+                            <Label className="text-xs">Année</Label>
                             <Input value={editingArticleData.annee ?? ""} onChange={(e) => setEditingArticleData((p) => ({ ...p, annee: e.target.value }))} className="h-8 text-sm border-border/60" />
                           </div>
                           <div className="space-y-1">
-                            <Label className="text-[11px]">DOI</Label>
+                            <Label className="text-xs">DOI</Label>
                             <Input value={editingArticleData.doi ?? ""} onChange={(e) => setEditingArticleData((p) => ({ ...p, doi: e.target.value }))} className="h-8 text-sm border-border/60" />
                           </div>
                         </div>
                         <div className="flex items-center gap-2 justify-end">
-                          <Button type="button" variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => setEditingArticleId(null)}>Annuler</Button>
-                          <Button type="button" size="sm" className="h-7 text-[11px]" onClick={handleSaveEditArticle}>
+                          <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => setEditingArticleId(null)}>Annuler</Button>
+                          <Button type="button" size="sm" className="h-7 text-xs" onClick={handleSaveEditArticle}>
                             <Check className="h-3 w-3 mr-1" />
                             Enregistrer
                           </Button>
@@ -3963,25 +3963,25 @@ function BiblioTab({
                       <>
                         <div className="grid grid-cols-2 gap-3">
                           <div className="space-y-1">
-                            <Label className="text-[10px] text-muted-foreground/60">Auteur(s)</Label>
+                            <Label className="text-xs text-muted-foreground/60">Auteur(s)</Label>
                             <p className="text-sm">{a.auteurs || <span className="text-muted-foreground/40 italic">—</span>}</p>
                           </div>
                           <div className="space-y-1">
-                            <Label className="text-[10px] text-muted-foreground/60">Titre de l&apos;article</Label>
+                            <Label className="text-xs text-muted-foreground/60">Titre de l&apos;article</Label>
                             <p className="text-sm">{a.titre}</p>
                           </div>
                         </div>
                         <div className="grid grid-cols-3 gap-3">
                           <div className="space-y-1">
-                            <Label className="text-[10px] text-muted-foreground/60">Source / Revue</Label>
+                            <Label className="text-xs text-muted-foreground/60">Source / Revue</Label>
                             <p className="text-sm">{a.source_revue || <span className="text-muted-foreground/40 italic">—</span>}</p>
                           </div>
                           <div className="space-y-1">
-                            <Label className="text-[10px] text-muted-foreground/60">Année</Label>
+                            <Label className="text-xs text-muted-foreground/60">Année</Label>
                             <p className="text-sm">{a.annee || <span className="text-muted-foreground/40 italic">—</span>}</p>
                           </div>
                           <div className="space-y-1">
-                            <Label className="text-[10px] text-muted-foreground/60">DOI</Label>
+                            <Label className="text-xs text-muted-foreground/60">DOI</Label>
                             {a.doi ? (
                               <a href={a.doi.startsWith("http") ? a.doi : `https://doi.org/${a.doi}`} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1">
                                 {a.doi}

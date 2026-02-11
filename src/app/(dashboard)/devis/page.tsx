@@ -103,7 +103,7 @@ const columns: Column<DevisRow>[] = [
     render: (item) => {
       const dest = item.entreprises?.nom || item.particulier_nom || "--";
       return (
-        <span className="text-[13px] text-muted-foreground truncate max-w-[180px]">
+        <span className="text-sm text-muted-foreground truncate max-w-[180px]">
           {dest}
         </span>
       );
@@ -116,7 +116,7 @@ const columns: Column<DevisRow>[] = [
     sortable: true,
     minWidth: 120,
     render: (item) => (
-      <span className="font-mono text-[13px]">{formatCurrency(item.total_ttc)}</span>
+      <span className="font-mono text-sm">{formatCurrency(item.total_ttc)}</span>
     ),
     exportValue: (item) => item.total_ttc.toString(),
   },
@@ -354,7 +354,7 @@ function CreateDevisForm({
       )}
 
       <div className="space-y-2">
-        <Label htmlFor="objet" className="text-[13px]">
+        <Label htmlFor="objet" className="text-sm">
           Objet
         </Label>
         <Input
@@ -362,7 +362,7 @@ function CreateDevisForm({
           value={form.objet}
           onChange={(e) => updateField("objet", e.target.value)}
           placeholder="Ex: Formation React avancé"
-          className="h-9 text-[13px] border-border/60"
+          className="h-9 text-sm border-border/60"
         />
         {errors.objet && (
           <p className="text-xs text-destructive">{errors.objet[0]}</p>
@@ -378,7 +378,7 @@ function CreateDevisForm({
             onChange={(e) => setIsParticulier(e.target.checked)}
             className="h-4 w-4"
           />
-          <Label htmlFor="particulier" className="text-[13px]">
+          <Label htmlFor="particulier" className="text-sm">
             Particulier (sans entreprise)
           </Label>
         </div>
@@ -387,14 +387,14 @@ function CreateDevisForm({
       {!isParticulier ? (
         <>
           <div className="space-y-2">
-            <Label htmlFor="entreprise_id" className="text-[13px]">
+            <Label htmlFor="entreprise_id" className="text-sm">
               Entreprise
             </Label>
             <select
               id="entreprise_id"
               value={form.entreprise_id}
               onChange={(e) => updateField("entreprise_id", e.target.value)}
-              className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
+              className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
             >
               <option value="">-- Sélectionner une entreprise --</option>
               {entreprises.map((e) => (
@@ -406,14 +406,14 @@ function CreateDevisForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="contact_client_id" className="text-[13px]">
+            <Label htmlFor="contact_client_id" className="text-sm">
               Contact client
             </Label>
             <select
               id="contact_client_id"
               value={form.contact_client_id}
               onChange={(e) => updateField("contact_client_id", e.target.value)}
-              className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
+              className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
             >
               <option value="">-- Sélectionner un contact --</option>
               {contacts.map((c) => (
@@ -427,7 +427,7 @@ function CreateDevisForm({
       ) : (
         <>
           <div className="space-y-2">
-            <Label htmlFor="particulier_nom" className="text-[13px]">
+            <Label htmlFor="particulier_nom" className="text-sm">
               Nom du particulier <span className="text-destructive">*</span>
             </Label>
             <Input
@@ -435,13 +435,13 @@ function CreateDevisForm({
               value={form.particulier_nom}
               onChange={(e) => updateField("particulier_nom", e.target.value)}
               placeholder="Ex: Jean Dupont"
-              className="h-9 text-[13px] border-border/60"
+              className="h-9 text-sm border-border/60"
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="particulier_email" className="text-[13px]">
+              <Label htmlFor="particulier_email" className="text-sm">
                 Email
               </Label>
               <Input
@@ -450,12 +450,12 @@ function CreateDevisForm({
                 value={form.particulier_email}
                 onChange={(e) => updateField("particulier_email", e.target.value)}
                 placeholder="email@exemple.com"
-                className="h-9 text-[13px] border-border/60"
+                className="h-9 text-sm border-border/60"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="particulier_telephone" className="text-[13px]">
+              <Label htmlFor="particulier_telephone" className="text-sm">
                 Téléphone
               </Label>
               <Input
@@ -463,13 +463,13 @@ function CreateDevisForm({
                 value={form.particulier_telephone}
                 onChange={(e) => updateField("particulier_telephone", e.target.value)}
                 placeholder="06 12 34 56 78"
-                className="h-9 text-[13px] border-border/60"
+                className="h-9 text-sm border-border/60"
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="particulier_adresse" className="text-[13px]">
+            <Label htmlFor="particulier_adresse" className="text-sm">
               Adresse
             </Label>
             <Input
@@ -477,7 +477,7 @@ function CreateDevisForm({
               value={form.particulier_adresse}
               onChange={(e) => updateField("particulier_adresse", e.target.value)}
               placeholder="Adresse complète"
-              className="h-9 text-[13px] border-border/60"
+              className="h-9 text-sm border-border/60"
             />
           </div>
         </>
@@ -485,7 +485,7 @@ function CreateDevisForm({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label htmlFor="date_emission" className="text-[13px]">
+          <Label htmlFor="date_emission" className="text-sm">
             Date d'émission <span className="text-destructive">*</span>
           </Label>
           <DatePicker
@@ -498,7 +498,7 @@ function CreateDevisForm({
           )}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="date_echeance" className="text-[13px]">
+          <Label htmlFor="date_echeance" className="text-sm">
             Date d'échéance
           </Label>
           <DatePicker
@@ -510,7 +510,7 @@ function CreateDevisForm({
       </div>
 
       <div className="space-y-2">
-        <Label className="text-[13px]">Lignes du devis</Label>
+        <Label className="text-sm">Lignes du devis</Label>
         <LignesEditor
           lignes={form.lignes}
           onChange={(lignes) => updateField("lignes", lignes)}

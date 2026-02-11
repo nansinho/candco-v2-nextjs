@@ -89,20 +89,20 @@ export function ChiffresWidget({ data }: { data: StatsData }) {
         <p className="text-lg sm:text-xl font-semibold tracking-tight leading-none">
           {formatCurrency(data.caFacture)}
         </p>
-        <p className="text-[11px] text-muted-foreground/50 mt-1">CA facturé</p>
+        <p className="text-xs text-muted-foreground/50 mt-1">CA facturé</p>
       </div>
       <div>
         <p className="text-lg sm:text-xl font-semibold tracking-tight leading-none">
           {formatCurrency(data.caEncaisse)}
         </p>
-        <p className="text-[11px] text-muted-foreground/50 mt-1">Encaissé</p>
+        <p className="text-xs text-muted-foreground/50 mt-1">Encaissé</p>
       </div>
       <div>
         <p className="text-lg sm:text-xl font-semibold tracking-tight leading-none">
           {data.tauxEncaissement}
           <span className="text-sm font-normal text-muted-foreground/40">%</span>
         </p>
-        <p className="text-[11px] text-muted-foreground/50 mt-1">Encaissement</p>
+        <p className="text-xs text-muted-foreground/50 mt-1">Encaissement</p>
       </div>
     </div>
   );
@@ -131,7 +131,7 @@ export function StatsWidget({ data }: { data: StatsData }) {
           </div>
           <div>
             <p className="text-base font-semibold leading-none">{item.value}</p>
-            <p className="text-[11px] text-muted-foreground/50 mt-0.5">{item.label}</p>
+            <p className="text-xs text-muted-foreground/50 mt-0.5">{item.label}</p>
           </div>
         </Link>
       ))}
@@ -166,11 +166,11 @@ export function SessionsWidget({ sessions }: { sessions: SessionItem[] }) {
           >
             <div className={`h-1.5 w-1.5 rounded-full ${dot} shrink-0`} />
             <div className="flex-1 min-w-0">
-              <p className="text-[13px] truncate group-hover:text-primary transition-colors">
+              <p className="text-sm truncate group-hover:text-primary transition-colors">
                 {session.nom}
               </p>
             </div>
-            <span className="text-[11px] text-muted-foreground/40 tabular-nums shrink-0">
+            <span className="text-xs text-muted-foreground/40 tabular-nums shrink-0">
               {session.date_debut ? formatDate(session.date_debut) : "—"}
             </span>
           </Link>
@@ -178,7 +178,7 @@ export function SessionsWidget({ sessions }: { sessions: SessionItem[] }) {
       })}
       <Link
         href="/sessions"
-        className="flex items-center justify-center gap-1 text-[11px] text-muted-foreground/30 hover:text-primary transition-colors pt-1"
+        className="flex items-center justify-center gap-1 text-xs text-muted-foreground/30 hover:text-primary transition-colors pt-1"
       >
         Tout voir <ArrowRight className="h-3 w-3" />
       </Link>
@@ -212,14 +212,14 @@ export function DevisWidget({ devis }: { devis: DevisItem[] }) {
             className="flex items-center gap-2.5 rounded-lg px-2 py-2 hover:bg-muted/20 transition-colors group"
           >
             <div className={`h-1.5 w-1.5 rounded-full ${dot} shrink-0`} />
-            <span className="font-mono text-[10px] text-muted-foreground/30 shrink-0">
+            <span className="font-mono text-xs text-muted-foreground/30 shrink-0">
               {d.numero_affichage}
             </span>
-            <span className="text-[13px] truncate flex-1 group-hover:text-primary transition-colors">
+            <span className="text-sm truncate flex-1 group-hover:text-primary transition-colors">
               {d.objet || (d.entreprises as { nom: string } | null)?.nom || "—"}
             </span>
             {d.total_ttc ? (
-              <span className="text-[11px] text-muted-foreground/50 font-medium tabular-nums shrink-0">
+              <span className="text-xs text-muted-foreground/50 font-medium tabular-nums shrink-0">
                 {formatCurrency(Number(d.total_ttc))}
               </span>
             ) : null}
@@ -228,7 +228,7 @@ export function DevisWidget({ devis }: { devis: DevisItem[] }) {
       })}
       <Link
         href="/devis"
-        className="flex items-center justify-center gap-1 text-[11px] text-muted-foreground/30 hover:text-primary transition-colors pt-1"
+        className="flex items-center justify-center gap-1 text-xs text-muted-foreground/30 hover:text-primary transition-colors pt-1"
       >
         Tout voir <ArrowRight className="h-3 w-3" />
       </Link>
@@ -262,14 +262,14 @@ export function FacturesWidget({ factures }: { factures: FactureItem[] }) {
             className="flex items-center gap-2.5 rounded-lg px-2 py-2 hover:bg-muted/20 transition-colors group"
           >
             <div className={`h-1.5 w-1.5 rounded-full ${dot} shrink-0`} />
-            <span className="font-mono text-[10px] text-muted-foreground/30 shrink-0">
+            <span className="font-mono text-xs text-muted-foreground/30 shrink-0">
               {f.numero_affichage}
             </span>
-            <span className="text-[13px] truncate flex-1 group-hover:text-primary transition-colors">
+            <span className="text-sm truncate flex-1 group-hover:text-primary transition-colors">
               {f.objet || (f.entreprises as { nom: string } | null)?.nom || "—"}
             </span>
             {f.total_ttc ? (
-              <span className="text-[11px] text-muted-foreground/50 font-medium tabular-nums shrink-0">
+              <span className="text-xs text-muted-foreground/50 font-medium tabular-nums shrink-0">
                 {formatCurrency(Number(f.total_ttc))}
               </span>
             ) : null}
@@ -278,7 +278,7 @@ export function FacturesWidget({ factures }: { factures: FactureItem[] }) {
       })}
       <Link
         href="/factures"
-        className="flex items-center justify-center gap-1 text-[11px] text-muted-foreground/30 hover:text-primary transition-colors pt-1"
+        className="flex items-center justify-center gap-1 text-xs text-muted-foreground/30 hover:text-primary transition-colors pt-1"
       >
         Tout voir <ArrowRight className="h-3 w-3" />
       </Link>
@@ -313,10 +313,10 @@ export function AlertesWidget({
         >
           <AlertTriangle className="h-4 w-4 text-red-400 shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-medium text-red-400">
+            <p className="text-sm font-medium text-red-400">
               {facturesEnRetard.length} facture{facturesEnRetard.length > 1 ? "s" : ""} en retard
             </p>
-            <p className="text-[11px] text-muted-foreground/40 truncate">
+            <p className="text-xs text-muted-foreground/40 truncate">
               {facturesEnRetard.map(f => (f.entreprises as { nom: string } | null)?.nom || f.numero_affichage).filter(Boolean).join(", ")}
             </p>
           </div>
@@ -330,10 +330,10 @@ export function AlertesWidget({
         >
           <FileText className="h-4 w-4 text-amber-400 shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-medium text-amber-400">
+            <p className="text-sm font-medium text-amber-400">
               {devisEnAttente.length} devis en attente
             </p>
-            <p className="text-[11px] text-muted-foreground/40 truncate">
+            <p className="text-xs text-muted-foreground/40 truncate">
               {devisEnAttente.map(d => (d.entreprises as { nom: string } | null)?.nom || d.numero_affichage).filter(Boolean).join(", ")}
             </p>
           </div>

@@ -101,14 +101,14 @@ export function Sidebar({
       <div className="flex h-14 items-center border-b border-sidebar-border px-3">
         {!collapsed ? (
           <Link href="/" className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-[9px] font-bold leading-none text-white">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-xs font-bold leading-none text-white">
               C&CO
             </div>
             <span className="text-sm font-semibold tracking-tight">C&CO Formation</span>
           </Link>
         ) : (
           <Link href="/" className="mx-auto">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-[9px] font-bold leading-none text-white">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-xs font-bold leading-none text-white">
               C&CO
             </div>
           </Link>
@@ -141,7 +141,7 @@ export function Sidebar({
           <Link
             href="/"
             className={cn(
-              "group relative flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-sm transition-all duration-150",
+              "group relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-all duration-150",
               pathname === "/"
                 ? "bg-primary/10 text-primary font-medium"
                 : "text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground/80"
@@ -162,7 +162,7 @@ export function Sidebar({
         {NAV_SECTIONS.map((section, idx) => (
           <div key={section.title} className={cn(idx > 0 && "mt-3")}>
             {!collapsed && (
-              <p className="mb-1 px-4 text-[11px] font-semibold uppercase tracking-widest text-sidebar-muted/50">
+              <p className="mb-1 px-4 text-xs font-semibold uppercase tracking-widest text-sidebar-muted/50">
                 {section.title}
               </p>
             )}
@@ -179,7 +179,7 @@ export function Sidebar({
                     <Link
                       href={item.href}
                       className={cn(
-                        "group relative flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-sm transition-all duration-150",
+                        "group relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-all duration-150",
                         isActive
                           ? "bg-primary/10 text-primary font-medium"
                           : "text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground/80"
@@ -209,7 +209,7 @@ export function Sidebar({
           type="button"
           onClick={toggleTheme}
           className={cn(
-            "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-sm text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all cursor-pointer",
+            "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all cursor-pointer",
             collapsed && "justify-center"
           )}
           title={theme === "dark" ? "Mode clair" : "Mode sombre"}
@@ -225,7 +225,7 @@ export function Sidebar({
           type="button"
           onClick={handleLogout}
           className={cn(
-            "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-sm text-sidebar-foreground/40 hover:bg-destructive/10 hover:text-destructive transition-all cursor-pointer",
+            "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-sidebar-foreground/40 hover:bg-destructive/10 hover:text-destructive transition-all cursor-pointer",
             collapsed && "justify-center"
           )}
         >
@@ -266,7 +266,7 @@ export function Sidebar({
       {/* Mobile sidebar */}
       <aside
         className={cn(
-          "fixed left-0 top-0 z-50 flex h-screen w-[280px] flex-col border-r border-sidebar-border bg-sidebar transition-transform duration-300 lg:hidden",
+          "fixed left-0 top-0 z-50 flex h-screen w-[85vw] max-w-[320px] flex-col border-r border-sidebar-border bg-sidebar transition-transform duration-300 lg:hidden",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >

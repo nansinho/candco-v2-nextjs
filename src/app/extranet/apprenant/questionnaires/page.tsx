@@ -9,7 +9,7 @@ export default async function ApprenantQuestionnairesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">Questionnaires</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Questionnaires</h1>
         <p className="mt-1 text-sm text-muted-foreground">Enquetes de satisfaction et evaluations pedagogiques</p>
       </div>
       <div className="rounded-lg border border-border/60 bg-card p-12 text-center">

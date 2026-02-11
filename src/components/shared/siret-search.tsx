@@ -124,7 +124,7 @@ export function SiretSearch({ onSelect, className }: SiretSearchProps) {
             if (results.length > 0) setShowResults(true);
           }}
           placeholder="Rechercher par SIRET, SIREN ou nom..."
-          className="h-9 pl-9 text-[13px] border-border/60"
+          className="h-9 pl-9 text-sm border-border/60"
         />
         {isSearching && (
           <Loader2 className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-muted-foreground/50" />
@@ -156,8 +156,8 @@ export function SiretSearch({ onSelect, className }: SiretSearchProps) {
                 <div className="flex items-start gap-2">
                   <Building2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
                   <div className="min-w-0">
-                    <p className="text-[13px] font-medium truncate">{r.nom}</p>
-                    <p className="text-[11px] text-muted-foreground">
+                    <p className="text-sm font-medium truncate">{r.nom}</p>
+                    <p className="text-xs text-muted-foreground">
                       SIRET: {r.siret || r.siren} {r.adresse_cp && `— ${r.adresse_cp} ${r.adresse_ville}`}
                     </p>
                   </div>

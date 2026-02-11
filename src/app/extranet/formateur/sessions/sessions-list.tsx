@@ -27,7 +27,7 @@ export function FormateurSessionsList({ sessions }: { sessions: Session[] }) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">Mes sessions</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Mes sessions</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {sessions.length} session{sessions.length !== 1 ? "s" : ""} assignee{sessions.length !== 1 ? "s" : ""}
         </p>
@@ -45,19 +45,19 @@ export function FormateurSessionsList({ sessions }: { sessions: Session[] }) {
           <table className="w-full">
             <thead>
               <tr className="border-b border-border/60 bg-muted/30">
-                <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
                   ID
                 </th>
-                <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
                   Nom
                 </th>
-                <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
                   Statut
                 </th>
-                <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
                   Dates
                 </th>
-                <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
                   Modalite
                 </th>
               </tr>
@@ -73,11 +73,11 @@ export function FormateurSessionsList({ sessions }: { sessions: Session[] }) {
                     <td className="px-4 py-3 text-xs font-mono text-muted-foreground">
                       {session.numero_affichage}
                     </td>
-                    <td className="px-4 py-3 text-[13px] font-medium">
+                    <td className="px-4 py-3 text-sm font-medium">
                       {session.nom}
                     </td>
                     <td className="px-4 py-3">
-                      <Badge className={`text-[10px] ${badge.className}`}>
+                      <Badge className={`text-xs ${badge.className}`}>
                         {badge.label}
                       </Badge>
                     </td>

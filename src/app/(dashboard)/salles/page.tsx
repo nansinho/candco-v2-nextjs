@@ -83,7 +83,7 @@ export default function SallesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">Salles</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Salles</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Gérez vos salles de formation, leur capacité et leurs équipements.
           </p>
@@ -100,7 +100,7 @@ export default function SallesPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Rechercher une salle..."
-          className="h-9 text-[13px] border-border/60"
+          className="h-9 text-sm border-border/60"
         />
       </div>
 
@@ -166,7 +166,7 @@ export default function SallesPage() {
                   </div>
                 )}
                 {salle.equipements && (
-                  <span className="text-[11px] text-muted-foreground/60 truncate">
+                  <span className="text-xs text-muted-foreground/60 truncate">
                     {salle.equipements}
                   </span>
                 )}
@@ -284,7 +284,7 @@ function SalleForm({
       )}
 
       <div className="space-y-2">
-        <Label htmlFor="nom" className="text-[13px]">
+        <Label htmlFor="nom" className="text-sm">
           Nom <span className="text-destructive">*</span>
         </Label>
         <Input
@@ -292,13 +292,13 @@ function SalleForm({
           value={form.nom}
           onChange={(e) => setForm({ ...form, nom: e.target.value })}
           placeholder="Salle A1"
-          className="h-9 text-[13px] border-border/60"
+          className="h-9 text-sm border-border/60"
         />
         {errors.nom && <p className="text-xs text-destructive">{errors.nom[0]}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="adresse" className="text-[13px]">Adresse</Label>
+        <Label htmlFor="adresse" className="text-sm">Adresse</Label>
         <AddressAutocomplete
           id="adresse"
           value={form.adresse ?? ""}
@@ -310,7 +310,7 @@ function SalleForm({
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label htmlFor="capacite" className="text-[13px]">Capacité</Label>
+          <Label htmlFor="capacite" className="text-sm">Capacité</Label>
           <Input
             id="capacite"
             type="number"
@@ -318,17 +318,17 @@ function SalleForm({
             value={form.capacite ?? ""}
             onChange={(e) => setForm({ ...form, capacite: e.target.value ? Number(e.target.value) : undefined })}
             placeholder="20"
-            className="h-9 text-[13px] border-border/60"
+            className="h-9 text-sm border-border/60"
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="equipements" className="text-[13px]">Équipements</Label>
+          <Label htmlFor="equipements" className="text-sm">Équipements</Label>
           <Input
             id="equipements"
             value={form.equipements ?? ""}
             onChange={(e) => setForm({ ...form, equipements: e.target.value })}
             placeholder="Vidéoprojecteur, Tableau blanc"
-            className="h-9 text-[13px] border-border/60"
+            className="h-9 text-sm border-border/60"
           />
         </div>
       </div>

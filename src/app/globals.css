@@ -98,14 +98,15 @@ html.light {
 }
 
 html {
-  font-size: 16.5px;
+  font-size: 16px;
 }
 
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);
   font-family: var(--font-sans);
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -187,7 +188,7 @@ html.light input[type="date"] {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   padding: 2px 24px 2px 8px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--color-foreground);
   cursor: pointer;
@@ -239,9 +240,19 @@ html, body {
 }
 
 /* Touch-friendly tap targets on mobile */
-@media (max-width: 640px) {
-  .touch-target {
+@media (max-width: 768px) {
+  .touch-target,
+  button:not(.compact-btn),
+  [role="button"]:not(.compact-btn),
+  [role="tab"],
+  [role="menuitem"] {
     min-height: 44px;
-    min-width: 44px;
+  }
+}
+
+/* Safe area for notched devices (iPhone X+) */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
   }
 }

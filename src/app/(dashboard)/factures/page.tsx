@@ -101,7 +101,7 @@ const columns: Column<FactureRow>[] = [
     render: (item) => (
       <div className="flex items-center gap-2">
         <Receipt className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-        <span className="text-[13px] truncate">{item.objet || "Sans objet"}</span>
+        <span className="text-sm truncate">{item.objet || "Sans objet"}</span>
       </div>
     ),
   },
@@ -112,7 +112,7 @@ const columns: Column<FactureRow>[] = [
     render: (item) => (
       <div className="flex items-center gap-2">
         <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-        <span className="text-[13px] truncate">{item.entreprises?.nom || "--"}</span>
+        <span className="text-sm truncate">{item.entreprises?.nom || "--"}</span>
       </div>
     ),
   },
@@ -122,7 +122,7 @@ const columns: Column<FactureRow>[] = [
     sortable: true,
     minWidth: 130,
     render: (item) => (
-      <span className="font-mono text-[13px]">{formatCurrency(Number(item.total_ttc))}</span>
+      <span className="font-mono text-sm">{formatCurrency(Number(item.total_ttc))}</span>
     ),
   },
   {
@@ -134,7 +134,7 @@ const columns: Column<FactureRow>[] = [
       const total = Number(item.total_ttc) || 0;
       const isFullyPaid = total > 0 && paye >= total;
       return (
-        <span className={`font-mono text-[13px] ${isFullyPaid ? "text-green-500" : "text-muted-foreground"}`}>
+        <span className={`font-mono text-sm ${isFullyPaid ? "text-green-500" : "text-muted-foreground"}`}>
           {formatCurrency(paye)} / {formatCurrency(total)}
         </span>
       );
@@ -420,7 +420,7 @@ function CreateFactureForm({
             <SelectContent>
               {entreprises.map((e) => (
                 <SelectItem key={e.id} value={e.id}>
-                  <span className="font-mono text-[11px] text-muted-foreground mr-2">
+                  <span className="font-mono text-xs text-muted-foreground mr-2">
                     {e.numero_affichage}
                   </span>
                   {e.nom}
@@ -438,7 +438,7 @@ function CreateFactureForm({
             <SelectContent>
               {contacts.map((c) => (
                 <SelectItem key={c.id} value={c.id}>
-                  <span className="font-mono text-[11px] text-muted-foreground mr-2">
+                  <span className="font-mono text-xs text-muted-foreground mr-2">
                     {c.numero_affichage}
                   </span>
                   {c.prenom} {c.nom}

@@ -306,7 +306,7 @@ export default function FormateursPage() {
 
             {/* Civilité */}
             <div className="space-y-2">
-              <Label htmlFor="civilite" className="text-[13px]">
+              <Label htmlFor="civilite" className="text-sm">
                 Civilité
               </Label>
               <select
@@ -315,7 +315,7 @@ export default function FormateursPage() {
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, civilite: e.target.value }))
                 }
-                className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
+                className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
               >
                 <option value="">-- Sélectionner --</option>
                 <option value="Monsieur">Monsieur</option>
@@ -326,7 +326,7 @@ export default function FormateursPage() {
             {/* Prénom + Nom */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="prenom" className="text-[13px]">
+                <Label htmlFor="prenom" className="text-sm">
                   Prénom <span className="text-destructive">*</span>
                 </Label>
                 <Input
@@ -336,14 +336,14 @@ export default function FormateursPage() {
                     setFormData((prev) => ({ ...prev, prenom: e.target.value }))
                   }
                   placeholder="Jean"
-                  className="h-9 text-[13px] border-border/60"
+                  className="h-9 text-sm border-border/60"
                 />
                 {formErrors.prenom && (
                   <p className="text-xs text-destructive">{formErrors.prenom[0]}</p>
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="nom" className="text-[13px]">
+                <Label htmlFor="nom" className="text-sm">
                   Nom <span className="text-destructive">*</span>
                 </Label>
                 <Input
@@ -353,7 +353,7 @@ export default function FormateursPage() {
                     setFormData((prev) => ({ ...prev, nom: e.target.value }))
                   }
                   placeholder="Dupont"
-                  className="h-9 text-[13px] border-border/60"
+                  className="h-9 text-sm border-border/60"
                 />
                 {formErrors.nom && (
                   <p className="text-xs text-destructive">{formErrors.nom[0]}</p>
@@ -364,7 +364,7 @@ export default function FormateursPage() {
             {/* Email + Téléphone */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-[13px]">
+                <Label htmlFor="email" className="text-sm">
                   Email
                 </Label>
                 <Input
@@ -375,14 +375,14 @@ export default function FormateursPage() {
                     setFormData((prev) => ({ ...prev, email: e.target.value }))
                   }
                   placeholder="jean@exemple.fr"
-                  className="h-9 text-[13px] border-border/60"
+                  className="h-9 text-sm border-border/60"
                 />
                 {formErrors.email && (
                   <p className="text-xs text-destructive">{formErrors.email[0]}</p>
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="telephone" className="text-[13px]">
+                <Label htmlFor="telephone" className="text-sm">
                   Téléphone
                 </Label>
                 <Input
@@ -392,7 +392,7 @@ export default function FormateursPage() {
                     setFormData((prev) => ({ ...prev, telephone: e.target.value }))
                   }
                   placeholder="06 12 34 56 78"
-                  className="h-9 text-[13px] border-border/60"
+                  className="h-9 text-sm border-border/60"
                 />
               </div>
             </div>
@@ -400,7 +400,7 @@ export default function FormateursPage() {
             {/* Statut BPF + Tarif journalier */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="statut_bpf" className="text-[13px]">
+                <Label htmlFor="statut_bpf" className="text-sm">
                   Statut BPF
                 </Label>
                 <select
@@ -412,14 +412,14 @@ export default function FormateursPage() {
                       statut_bpf: e.target.value as "interne" | "externe",
                     }))
                   }
-                  className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
+                  className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
                 >
                   <option value="externe">Externe (sous-traitant)</option>
                   <option value="interne">Interne (salarié)</option>
                 </select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="tarif_journalier" className="text-[13px]">
+                <Label htmlFor="tarif_journalier" className="text-sm">
                   Tarif journalier HT
                 </Label>
                 <Input
@@ -437,7 +437,7 @@ export default function FormateursPage() {
                     }))
                   }
                   placeholder="300.00"
-                  className="h-9 text-[13px] border-border/60"
+                  className="h-9 text-sm border-border/60"
                 />
               </div>
             </div>

@@ -269,14 +269,14 @@ export function QuestionnaireDetail({
           <div>
             <h1 className="text-lg font-semibold">{questionnaire.nom}</h1>
             <div className="flex items-center gap-2 mt-0.5">
-              <Badge variant="outline" className={`text-[10px] ${STATUT_COLORS[questionnaire.statut] ?? ""}`}>
+              <Badge variant="outline" className={`text-xs ${STATUT_COLORS[questionnaire.statut] ?? ""}`}>
                 {STATUT_LABELS[questionnaire.statut] ?? questionnaire.statut}
               </Badge>
-              <span className="text-[11px] text-muted-foreground">
+              <span className="text-xs text-muted-foreground">
                 {TYPE_LABELS[questionnaire.type] ?? questionnaire.type}
               </span>
               {questionnaire.produits_formation && (
-                <span className="text-[11px] text-muted-foreground/50">
+                <span className="text-xs text-muted-foreground/50">
                   | {questionnaire.produits_formation.intitule}
                 </span>
               )}
@@ -303,7 +303,7 @@ export function QuestionnaireDetail({
             <ListChecks className="mr-1.5 h-3.5 w-3.5" />
             Questions
             {questions.length > 0 && (
-              <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[11px] font-medium text-primary">
+              <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">
                 {questions.length}
               </span>
             )}
@@ -313,7 +313,7 @@ export function QuestionnaireDetail({
             <Mail className="mr-1.5 h-3.5 w-3.5" />
             Invitations
             {invitations.length > 0 && (
-              <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[11px] font-medium text-primary">
+              <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">
                 {invitations.length}
               </span>
             )}
@@ -322,7 +322,7 @@ export function QuestionnaireDetail({
             <BarChart3 className="mr-1.5 h-3.5 w-3.5" />
             Reponses
             {responses.length > 0 && (
-              <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[11px] font-medium text-primary">
+              <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">
                 {responses.length}
               </span>
             )}
@@ -363,7 +363,7 @@ export function QuestionnaireDetail({
                     className="group flex items-start gap-3 rounded-lg border border-border/60 bg-card p-4 hover:border-border transition-colors"
                   >
                     <div className="flex flex-col items-center gap-1 pt-0.5">
-                      <span className="text-[11px] font-mono text-muted-foreground/50">{i + 1}</span>
+                      <span className="text-xs font-mono text-muted-foreground/50">{i + 1}</span>
                       <button
                         className="p-0.5 text-muted-foreground/30 hover:text-foreground disabled:opacity-30"
                         onClick={() => handleMoveQuestion(i, "up")}
@@ -382,20 +382,20 @@ export function QuestionnaireDetail({
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-[13px] font-medium">{q.texte}</span>
+                        <span className="text-sm font-medium">{q.texte}</span>
                         {q.obligatoire && (
-                          <span className="text-[9px] text-destructive font-semibold">*</span>
+                          <span className="text-xs text-destructive font-semibold">*</span>
                         )}
                       </div>
                       <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="outline" className="text-[10px]">
+                        <Badge variant="outline" className="text-xs">
                           {QUESTION_TYPE_LABELS[q.type] ?? q.type}
                         </Badge>
                         {q.points > 0 && (
-                          <span className="text-[10px] text-muted-foreground">{q.points} pt(s)</span>
+                          <span className="text-xs text-muted-foreground">{q.points} pt(s)</span>
                         )}
                         {q.type === "choix_unique" || q.type === "choix_multiple" ? (
-                          <span className="text-[10px] text-muted-foreground/50">
+                          <span className="text-xs text-muted-foreground/50">
                             {(q.options ?? []).length} option(s)
                           </span>
                         ) : null}
@@ -403,7 +403,7 @@ export function QuestionnaireDetail({
                       {(q.type === "choix_unique" || q.type === "choix_multiple") && (q.options ?? []).length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-1">
                           {(q.options ?? []).map((opt, oi) => (
-                            <span key={oi} className="inline-flex items-center rounded-md bg-muted/50 px-2 py-0.5 text-[11px] text-muted-foreground">
+                            <span key={oi} className="inline-flex items-center rounded-md bg-muted/50 px-2 py-0.5 text-xs text-muted-foreground">
                               {opt.label}
                             </span>
                           ))}
@@ -437,17 +437,17 @@ export function QuestionnaireDetail({
           <form onSubmit={handleSaveHeader} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="nom" className="text-[13px]">Nom <span className="text-destructive">*</span></Label>
-                <Input id="nom" name="nom" defaultValue={questionnaire.nom} className="h-9 text-[13px]" />
+                <Label htmlFor="nom" className="text-sm">Nom <span className="text-destructive">*</span></Label>
+                <Input id="nom" name="nom" defaultValue={questionnaire.nom} className="h-9 text-sm" />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="statut" className="text-[13px]">Statut</Label>
+                <Label htmlFor="statut" className="text-sm">Statut</Label>
                 <select
                   id="statut"
                   name="statut"
                   defaultValue={questionnaire.statut}
-                  className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
+                  className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
                 >
                   <option value="brouillon">Brouillon</option>
                   <option value="actif">Actif</option>
@@ -456,12 +456,12 @@ export function QuestionnaireDetail({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="type" className="text-[13px]">Type</Label>
+                <Label htmlFor="type" className="text-sm">Type</Label>
                 <select
                   id="type"
                   name="type"
                   defaultValue={questionnaire.type}
-                  className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
+                  className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
                 >
                   <option value="satisfaction_chaud">Satisfaction a chaud</option>
                   <option value="satisfaction_froid">Satisfaction a froid</option>
@@ -472,12 +472,12 @@ export function QuestionnaireDetail({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="public_cible" className="text-[13px]">Public cible</Label>
+                <Label htmlFor="public_cible" className="text-sm">Public cible</Label>
                 <select
                   id="public_cible"
                   name="public_cible"
                   defaultValue={questionnaire.public_cible ?? ""}
-                  className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
+                  className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
                 >
                   <option value="">-- Tous --</option>
                   <option value="apprenant">Apprenant</option>
@@ -489,31 +489,31 @@ export function QuestionnaireDetail({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="introduction" className="text-[13px]">Introduction</Label>
+              <Label htmlFor="introduction" className="text-sm">Introduction</Label>
               <textarea
                 id="introduction"
                 name="introduction"
                 rows={3}
                 defaultValue={questionnaire.introduction ?? ""}
-                className="w-full rounded-md border border-input bg-muted px-3 py-2 text-[13px] text-foreground resize-none"
+                className="w-full rounded-md border border-input bg-muted px-3 py-2 text-sm text-foreground resize-none"
               />
             </div>
 
             <div className="flex items-center gap-6">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" name="relances_auto" defaultChecked={questionnaire.relances_auto} className="h-3.5 w-3.5 rounded border-border accent-primary" />
-                <span className="text-[13px]">Relances automatiques</span>
+                <span className="text-sm">Relances automatiques</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" name="is_default" defaultChecked={questionnaire.is_default} className="h-3.5 w-3.5 rounded border-border accent-primary" />
-                <span className="text-[13px]">Questionnaire par defaut</span>
+                <span className="text-sm">Questionnaire par defaut</span>
               </label>
             </div>
 
             {questionnaire.produits_formation && (
               <div className="rounded-lg border border-border/60 bg-card p-4">
-                <p className="text-[11px] text-muted-foreground/60 uppercase font-semibold tracking-wider mb-1">Produit rattache</p>
-                <p className="text-[13px]">
+                <p className="text-xs text-muted-foreground/60 uppercase font-semibold tracking-wider mb-1">Produit rattache</p>
+                <p className="text-sm">
                   <span className="font-mono text-xs text-muted-foreground mr-2">{questionnaire.produits_formation.numero_affichage}</span>
                   {questionnaire.produits_formation.intitule}
                 </p>
@@ -547,14 +547,14 @@ export function QuestionnaireDetail({
               </div>
             ) : (
               <div className="rounded-lg border border-border/60 bg-card">
-                <table className="w-full text-[13px]">
+                <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border/60 text-left">
-                      <th className="px-4 py-2.5 text-[11px] font-semibold text-muted-foreground/60 uppercase">Destinataire</th>
-                      <th className="px-4 py-2.5 text-[11px] font-semibold text-muted-foreground/60 uppercase">Envoye</th>
-                      <th className="px-4 py-2.5 text-[11px] font-semibold text-muted-foreground/60 uppercase">Ouvert</th>
-                      <th className="px-4 py-2.5 text-[11px] font-semibold text-muted-foreground/60 uppercase">Complete</th>
-                      <th className="px-4 py-2.5 text-[11px] font-semibold text-muted-foreground/60 uppercase">Relances</th>
+                      <th className="px-4 py-2.5 text-xs font-semibold text-muted-foreground/60 uppercase">Destinataire</th>
+                      <th className="px-4 py-2.5 text-xs font-semibold text-muted-foreground/60 uppercase">Envoye</th>
+                      <th className="px-4 py-2.5 text-xs font-semibold text-muted-foreground/60 uppercase">Ouvert</th>
+                      <th className="px-4 py-2.5 text-xs font-semibold text-muted-foreground/60 uppercase">Complete</th>
+                      <th className="px-4 py-2.5 text-xs font-semibold text-muted-foreground/60 uppercase">Relances</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/40">
@@ -565,7 +565,7 @@ export function QuestionnaireDetail({
                             {inv.prenom || inv.nom ? (
                               <span className="font-medium">{[inv.prenom, inv.nom].filter(Boolean).join(" ")}</span>
                             ) : null}
-                            <span className="text-muted-foreground block text-[12px]">{inv.email}</span>
+                            <span className="text-muted-foreground block text-xs">{inv.email}</span>
                           </div>
                         </td>
                         <td className="px-4 py-2.5 text-muted-foreground">
@@ -573,19 +573,19 @@ export function QuestionnaireDetail({
                         </td>
                         <td className="px-4 py-2.5">
                           {inv.opened_at ? (
-                            <span className="text-blue-400 text-[12px]">{formatDate(inv.opened_at)}</span>
+                            <span className="text-blue-400 text-xs">{formatDate(inv.opened_at)}</span>
                           ) : (
                             <span className="text-muted-foreground/40">--</span>
                           )}
                         </td>
                         <td className="px-4 py-2.5">
                           {inv.completed_at ? (
-                            <span className="inline-flex items-center gap-1 text-emerald-400 text-[12px]">
+                            <span className="inline-flex items-center gap-1 text-emerald-400 text-xs">
                               <CheckCircle2 className="h-3 w-3" />
                               {formatDate(inv.completed_at)}
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 text-muted-foreground/40 text-[12px]">
+                            <span className="inline-flex items-center gap-1 text-muted-foreground/40 text-xs">
                               <Clock className="h-3 w-3" />
                               En attente
                             </span>
@@ -613,12 +613,12 @@ export function QuestionnaireDetail({
               </div>
             ) : (
               <div className="rounded-lg border border-border/60 bg-card">
-                <table className="w-full text-[13px]">
+                <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border/60 text-left">
-                      <th className="px-4 py-2.5 text-[11px] font-semibold text-muted-foreground/60 uppercase">Repondant</th>
-                      <th className="px-4 py-2.5 text-[11px] font-semibold text-muted-foreground/60 uppercase">Score</th>
-                      <th className="px-4 py-2.5 text-[11px] font-semibold text-muted-foreground/60 uppercase">Date</th>
+                      <th className="px-4 py-2.5 text-xs font-semibold text-muted-foreground/60 uppercase">Repondant</th>
+                      <th className="px-4 py-2.5 text-xs font-semibold text-muted-foreground/60 uppercase">Score</th>
+                      <th className="px-4 py-2.5 text-xs font-semibold text-muted-foreground/60 uppercase">Date</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/40">
@@ -627,7 +627,7 @@ export function QuestionnaireDetail({
                         <td className="px-4 py-2.5">
                           <span className="font-medium">{r.respondent_name || r.respondent_email || "Anonyme"}</span>
                           {r.respondent_email && r.respondent_name && (
-                            <span className="text-muted-foreground text-[12px] block">{r.respondent_email}</span>
+                            <span className="text-muted-foreground text-xs block">{r.respondent_email}</span>
                           )}
                         </td>
                         <td className="px-4 py-2.5">
@@ -656,19 +656,19 @@ export function QuestionnaireDetail({
               {/* KPI cards */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="rounded-lg border border-border/60 bg-card p-4 text-center">
-                  <p className="text-[11px] text-muted-foreground/60 uppercase font-semibold tracking-wider">Invitations</p>
+                  <p className="text-xs text-muted-foreground/60 uppercase font-semibold tracking-wider">Invitations</p>
                   <p className="mt-1 text-2xl font-mono font-semibold">{stats.totalInvitations}</p>
                 </div>
                 <div className="rounded-lg border border-border/60 bg-card p-4 text-center">
-                  <p className="text-[11px] text-muted-foreground/60 uppercase font-semibold tracking-wider">Reponses</p>
+                  <p className="text-xs text-muted-foreground/60 uppercase font-semibold tracking-wider">Reponses</p>
                   <p className="mt-1 text-2xl font-mono font-semibold">{stats.totalResponses}</p>
                 </div>
                 <div className="rounded-lg border border-border/60 bg-card p-4 text-center">
-                  <p className="text-[11px] text-muted-foreground/60 uppercase font-semibold tracking-wider">Taux reponse</p>
+                  <p className="text-xs text-muted-foreground/60 uppercase font-semibold tracking-wider">Taux reponse</p>
                   <p className="mt-1 text-2xl font-mono font-semibold">{stats.tauxReponse}%</p>
                 </div>
                 <div className="rounded-lg border border-border/60 bg-card p-4 text-center">
-                  <p className="text-[11px] text-muted-foreground/60 uppercase font-semibold tracking-wider">Score moyen</p>
+                  <p className="text-xs text-muted-foreground/60 uppercase font-semibold tracking-wider">Score moyen</p>
                   <p className="mt-1 text-2xl font-mono font-semibold">{stats.avgScore.toFixed(1)}</p>
                 </div>
               </div>
@@ -680,10 +680,10 @@ export function QuestionnaireDetail({
                   {stats.questionStats.map((qs, i) => (
                     <div key={qs.questionId} className="rounded-lg border border-border/60 bg-card p-4">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="text-[11px] font-mono text-muted-foreground/50">Q{i + 1}</span>
-                        <span className="text-[13px] font-medium">{qs.texte}</span>
-                        <Badge variant="outline" className="text-[10px]">{QUESTION_TYPE_LABELS[qs.type] ?? qs.type}</Badge>
-                        <span className="text-[11px] text-muted-foreground ml-auto">{qs.count} reponse(s)</span>
+                        <span className="text-xs font-mono text-muted-foreground/50">Q{i + 1}</span>
+                        <span className="text-sm font-medium">{qs.texte}</span>
+                        <Badge variant="outline" className="text-xs">{QUESTION_TYPE_LABELS[qs.type] ?? qs.type}</Badge>
+                        <span className="text-xs text-muted-foreground ml-auto">{qs.count} reponse(s)</span>
                       </div>
 
                       {qs.type === "echelle" && qs.average !== undefined && (
@@ -702,14 +702,14 @@ export function QuestionnaireDetail({
                         <div className="space-y-1.5">
                           {Object.entries(qs.distribution).map(([label, count]) => (
                             <div key={label} className="flex items-center gap-2">
-                              <span className="text-[12px] text-muted-foreground w-32 truncate">{label}</span>
+                              <span className="text-xs text-muted-foreground w-32 truncate">{label}</span>
                               <div className="flex-1 h-2 bg-muted/30 rounded-full overflow-hidden">
                                 <div
                                   className="h-full bg-primary/60 rounded-full"
                                   style={{ width: `${qs.count > 0 ? (count / qs.count) * 100 : 0}%` }}
                                 />
                               </div>
-                              <span className="font-mono text-[11px] text-muted-foreground w-8 text-right">{count}</span>
+                              <span className="font-mono text-xs text-muted-foreground w-8 text-right">{count}</span>
                             </div>
                           ))}
                         </div>
@@ -831,24 +831,24 @@ function QuestionForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="texte" className="text-[13px]">Question <span className="text-destructive">*</span></Label>
+        <Label htmlFor="texte" className="text-sm">Question <span className="text-destructive">*</span></Label>
         <textarea
           id="texte"
           name="texte"
           rows={2}
           defaultValue={question?.texte ?? ""}
-          className="w-full rounded-md border border-input bg-muted px-3 py-2 text-[13px] text-foreground resize-none"
+          className="w-full rounded-md border border-input bg-muted px-3 py-2 text-sm text-foreground resize-none"
           placeholder="Etes-vous satisfait de la formation ?"
         />
       </div>
 
       <div className="grid grid-cols-3 gap-3">
         <div className="space-y-2">
-          <Label className="text-[13px]">Type</Label>
+          <Label className="text-sm">Type</Label>
           <select
             value={type}
             onChange={(e) => setType(e.target.value)}
-            className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
+            className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
           >
             <option value="libre">Texte libre</option>
             <option value="echelle">Echelle (0-10)</option>
@@ -859,14 +859,14 @@ function QuestionForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="points" className="text-[13px]">Points</Label>
-          <Input id="points" name="points" type="number" defaultValue={question?.points ?? 0} min={0} className="h-9 text-[13px]" />
+          <Label htmlFor="points" className="text-sm">Points</Label>
+          <Input id="points" name="points" type="number" defaultValue={question?.points ?? 0} min={0} className="h-9 text-sm" />
         </div>
 
         <div className="flex items-end pb-0.5">
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" name="obligatoire" defaultChecked={question?.obligatoire ?? true} className="h-3.5 w-3.5 rounded border-border accent-primary" />
-            <span className="text-[13px]">Obligatoire</span>
+            <span className="text-sm">Obligatoire</span>
           </label>
         </div>
       </div>
@@ -874,14 +874,14 @@ function QuestionForm({
       {/* Options for choix_unique / choix_multiple */}
       {(type === "choix_unique" || type === "choix_multiple") && (
         <div className="space-y-2">
-          <Label className="text-[13px]">Options de reponse</Label>
+          <Label className="text-sm">Options de reponse</Label>
           {options.map((opt, i) => (
             <div key={i} className="flex items-center gap-2">
               <Input
                 value={opt.label}
                 onChange={(e) => updateOption(i, e.target.value)}
                 placeholder={`Option ${i + 1}`}
-                className="h-8 text-[13px] flex-1"
+                className="h-8 text-sm flex-1"
               />
               <button
                 type="button"
@@ -951,16 +951,16 @@ function SendInvitationsForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="emails" className="text-[13px]">Adresses email (une par ligne)</Label>
+        <Label htmlFor="emails" className="text-sm">Adresses email (une par ligne)</Label>
         <textarea
           id="emails"
           rows={6}
           value={emails}
           onChange={(e) => setEmails(e.target.value)}
-          className="w-full rounded-md border border-input bg-muted px-3 py-2 text-[13px] text-foreground font-mono resize-none"
+          className="w-full rounded-md border border-input bg-muted px-3 py-2 text-sm text-foreground font-mono resize-none"
           placeholder={"jean.dupont@email.com\nmarie.martin@email.com"}
         />
-        <p className="text-[11px] text-muted-foreground/50">
+        <p className="text-xs text-muted-foreground/50">
           {emails.split("\n").filter((l) => l.trim().includes("@")).length} adresse(s) valide(s)
         </p>
       </div>

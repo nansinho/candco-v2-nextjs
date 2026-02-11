@@ -97,7 +97,7 @@ export function EmailModal({
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email_to" className="text-[13px]">
+            <Label htmlFor="email_to" className="text-sm">
               Destinataire <span className="text-destructive">*</span>
             </Label>
             <Input
@@ -106,12 +106,12 @@ export function EmailModal({
               value={to}
               onChange={(e) => setTo(e.target.value)}
               placeholder="email@exemple.fr"
-              className="h-9 text-[13px] border-border/60"
+              className="h-9 text-sm border-border/60"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email_subject" className="text-[13px]">
+            <Label htmlFor="email_subject" className="text-sm">
               Objet
             </Label>
             <Input
@@ -119,12 +119,12 @@ export function EmailModal({
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder="Objet de l'email..."
-              className="h-9 text-[13px] border-border/60"
+              className="h-9 text-sm border-border/60"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email_body" className="text-[13px]">
+            <Label htmlFor="email_body" className="text-sm">
               Message <span className="text-destructive">*</span>
             </Label>
             <textarea
@@ -133,7 +133,7 @@ export function EmailModal({
               onChange={(e) => setBody(e.target.value)}
               placeholder="Votre message..."
               rows={6}
-              className="w-full rounded-md border border-border/60 bg-muted px-3 py-2 text-[13px] text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+              className="w-full rounded-md border border-border/60 bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring resize-none"
             />
           </div>
         </div>

@@ -231,7 +231,7 @@ export function TachesActivitesTab({ entiteType, entiteId }: TachesActivitesTabP
           <h3 className="text-sm font-semibold">
             Tâches
             {pendingTaches.length > 0 && (
-              <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary/10 px-1.5 text-[11px] font-medium text-primary">
+              <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary/10 px-1.5 text-xs font-medium text-primary">
                 {pendingTaches.length}
               </span>
             )}
@@ -239,7 +239,7 @@ export function TachesActivitesTab({ entiteType, entiteId }: TachesActivitesTabP
           <Button
             variant="outline"
             size="sm"
-            className="h-7 text-[11px] border-border/60"
+            className="h-7 text-xs border-border/60"
             onClick={() => setShowTacheForm(!showTacheForm)}
           >
             <Plus className="mr-1 h-3 w-3" />
@@ -251,23 +251,23 @@ export function TachesActivitesTab({ entiteType, entiteId }: TachesActivitesTabP
         {showTacheForm && (
           <div className="mb-4 rounded-md border border-border/40 bg-muted/20 p-3 space-y-3">
             <div className="space-y-2">
-              <Label className="text-[13px]">
+              <Label className="text-sm">
                 Titre <span className="text-destructive">*</span>
               </Label>
               <Input
                 value={tacheTitre}
                 onChange={(e) => setTacheTitre(e.target.value)}
                 placeholder="Ex: Relancer le contact"
-                className="h-8 text-[13px] border-border/60"
+                className="h-8 text-sm border-border/60"
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label className="text-[13px]">Priorité</Label>
+                <Label className="text-sm">Priorité</Label>
                 <select
                   value={tachePriorite}
                   onChange={(e) => setTachePriorite(e.target.value)}
-                  className="h-8 w-full rounded-md border border-border/60 bg-muted px-3 text-[13px] text-foreground"
+                  className="h-8 w-full rounded-md border border-border/60 bg-muted px-3 text-sm text-foreground"
                 >
                   <option value="basse">Basse</option>
                   <option value="normale">Normale</option>
@@ -276,7 +276,7 @@ export function TachesActivitesTab({ entiteType, entiteId }: TachesActivitesTabP
                 </select>
               </div>
               <div className="space-y-2">
-                <Label className="text-[13px]">Échéance</Label>
+                <Label className="text-sm">Échéance</Label>
                 <DatePicker
                   value={tacheEcheance}
                   onChange={(val) => setTacheEcheance(val)}
@@ -288,14 +288,14 @@ export function TachesActivitesTab({ entiteType, entiteId }: TachesActivitesTabP
               <Button
                 variant="outline"
                 size="sm"
-                className="h-7 text-[11px]"
+                className="h-7 text-xs"
                 onClick={() => setShowTacheForm(false)}
               >
                 Annuler
               </Button>
               <Button
                 size="sm"
-                className="h-7 text-[11px]"
+                className="h-7 text-xs"
                 onClick={handleCreateTache}
                 disabled={tacheSubmitting || !tacheTitre.trim()}
               >
@@ -340,7 +340,7 @@ export function TachesActivitesTab({ entiteType, entiteId }: TachesActivitesTabP
             {completedTaches.length > 0 && (
               <>
                 <div className="pt-2 pb-1">
-                  <p className="text-[11px] font-medium text-muted-foreground/40 uppercase tracking-wider">
+                  <p className="text-xs font-medium text-muted-foreground/40 uppercase tracking-wider">
                     Terminées ({completedTaches.length})
                   </p>
                 </div>
@@ -370,7 +370,7 @@ export function TachesActivitesTab({ entiteType, entiteId }: TachesActivitesTabP
             value={noteContent}
             onChange={(e) => setNoteContent(e.target.value)}
             placeholder="Ajouter une note..."
-            className="h-8 text-[13px] border-border/60"
+            className="h-8 text-sm border-border/60"
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
@@ -381,7 +381,7 @@ export function TachesActivitesTab({ entiteType, entiteId }: TachesActivitesTabP
           <Button
             variant="outline"
             size="sm"
-            className="h-8 text-[11px] border-border/60 shrink-0"
+            className="h-8 text-xs border-border/60 shrink-0"
             onClick={handleCreateNote}
             disabled={noteSubmitting || !noteContent.trim()}
           >
@@ -455,19 +455,19 @@ function TacheRow({
 
       <div className="min-w-0 flex-1">
         <p
-          className={`text-[13px] ${
+          className={`text-sm ${
             isCompleted ? "text-muted-foreground/40 line-through" : ""
           }`}
         >
           {tache.titre}
         </p>
         <div className="flex items-center gap-2 mt-0.5">
-          <Badge className={`text-[10px] px-1.5 py-0 ${prioriteBadgeClass(tache.priorite)}`}>
+          <Badge className={`text-xs px-1.5 py-0 ${prioriteBadgeClass(tache.priorite)}`}>
             {prioriteLabel(tache.priorite)}
           </Badge>
           {tache.date_echeance && (
             <span
-              className={`text-[11px] ${
+              className={`text-xs ${
                 isOverdue
                   ? "text-red-400"
                   : "text-muted-foreground/50"
@@ -519,8 +519,8 @@ function ActiviteRow({
 
       {/* Content */}
       <div className="min-w-0 flex-1">
-        <p className="text-[13px]">{activite.contenu}</p>
-        <p className="mt-0.5 text-[11px] text-muted-foreground/50">
+        <p className="text-sm">{activite.contenu}</p>
+        <p className="mt-0.5 text-xs text-muted-foreground/50">
           {auteur} &middot;{" "}
           {new Date(activite.created_at).toLocaleDateString("fr-FR", {
             day: "2-digit",

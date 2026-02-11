@@ -144,10 +144,10 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
           </Button>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-semibold tracking-tight">
+              <h1 className="text-2xl font-semibold tracking-tight">
                 {contact.prenom} {contact.nom}
               </h1>
-              <Badge className="bg-purple-500/10 text-purple-400 border-purple-500/20 text-[11px] font-mono">
+              <Badge className="bg-purple-500/10 text-purple-400 border-purple-500/20 text-xs font-mono">
                 {contact.numero_affichage}
               </Badge>
             </div>
@@ -211,7 +211,7 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
           <TabsTrigger value="entreprises" className="text-xs">
             Entreprises
             {entreprises.length > 0 && (
-              <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[11px] font-medium text-primary">
+              <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">
                 {entreprises.length}
               </span>
             )}
@@ -236,11 +236,11 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
             <div className="grid gap-5">
               {/* Civilité */}
               <div className="space-y-2">
-                <Label className="text-[13px]">Civilité</Label>
+                <Label className="text-sm">Civilité</Label>
                 <select
                   value={form.civilite ?? ""}
                   onChange={(e) => updateField("civilite", e.target.value)}
-                  className="h-9 w-full max-w-xs rounded-md border border-border/60 bg-muted px-3 py-1 text-[13px] text-foreground"
+                  className="h-9 w-full max-w-xs rounded-md border border-border/60 bg-muted px-3 py-1 text-sm text-foreground"
                 >
                   <option value="">-- Aucune --</option>
                   <option value="Monsieur">Monsieur</option>
@@ -251,26 +251,26 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
               {/* Prénom / Nom */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label className="text-[13px]">
+                  <Label className="text-sm">
                     Prénom <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     value={form.prenom ?? ""}
                     onChange={(e) => updateField("prenom", e.target.value)}
-                    className="h-9 text-[13px] border-border/60"
+                    className="h-9 text-sm border-border/60"
                   />
                   {errors.prenom && (
                     <p className="text-xs text-destructive">{errors.prenom[0]}</p>
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-[13px]">
+                  <Label className="text-sm">
                     Nom <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     value={form.nom ?? ""}
                     onChange={(e) => updateField("nom", e.target.value)}
-                    className="h-9 text-[13px] border-border/60"
+                    className="h-9 text-sm border-border/60"
                   />
                   {errors.nom && (
                     <p className="text-xs text-destructive">{errors.nom[0]}</p>
@@ -280,13 +280,13 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
 
               {/* Email */}
               <div className="space-y-2">
-                <Label className="text-[13px]">Email</Label>
+                <Label className="text-sm">Email</Label>
                 <div className="flex items-center gap-2">
                   <Input
                     type="email"
                     value={form.email ?? ""}
                     onChange={(e) => updateField("email", e.target.value)}
-                    className="h-9 text-[13px] border-border/60"
+                    className="h-9 text-sm border-border/60"
                   />
                   {form.email && (
                     <Button
@@ -309,12 +309,12 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
 
               {/* Téléphone */}
               <div className="space-y-2">
-                <Label className="text-[13px]">Téléphone</Label>
+                <Label className="text-sm">Téléphone</Label>
                 <div className="flex items-center gap-2">
                   <Input
                     value={form.telephone ?? ""}
                     onChange={(e) => updateField("telephone", e.target.value)}
-                    className="h-9 text-[13px] border-border/60"
+                    className="h-9 text-sm border-border/60"
                   />
                   {form.telephone && (
                     <Button
@@ -334,23 +334,23 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
 
               {/* Fonction */}
               <div className="space-y-2">
-                <Label className="text-[13px]">Fonction</Label>
+                <Label className="text-sm">Fonction</Label>
                 <Input
                   value={form.fonction ?? ""}
                   onChange={(e) => updateField("fonction", e.target.value)}
                   placeholder="Ex: Responsable formation, DRH, Directeur..."
-                  className="h-9 text-[13px] border-border/60"
+                  className="h-9 text-sm border-border/60"
                 />
               </div>
             </div>
 
             {/* Meta info */}
             <div className="mt-6 flex items-center gap-4 border-t border-border/40 pt-4">
-              <p className="text-[11px] text-muted-foreground/50">
+              <p className="text-xs text-muted-foreground/50">
                 Créé le {formatDate(contact.created_at)}
               </p>
               {contact.updated_at && (
-                <p className="text-[11px] text-muted-foreground/50">
+                <p className="text-xs text-muted-foreground/50">
                   Modifié le {formatDate(contact.updated_at)}
                 </p>
               )}
@@ -377,19 +377,19 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border/60 bg-muted/30">
-                    <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                    <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
                       ID
                     </th>
-                    <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                    <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
                       Nom
                     </th>
-                    <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                    <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
                       SIRET
                     </th>
-                    <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                    <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
                       Email
                     </th>
-                    <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                    <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
                       Ville
                     </th>
                   </tr>
@@ -404,14 +404,14 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
                       <td className="px-4 py-2.5">
                         <span className="font-mono text-xs text-muted-foreground">{ent.numero_affichage}</span>
                       </td>
-                      <td className="px-4 py-2.5 text-[13px] font-medium">{ent.nom}</td>
-                      <td className="px-4 py-2.5 text-[13px] text-muted-foreground">
+                      <td className="px-4 py-2.5 text-sm font-medium">{ent.nom}</td>
+                      <td className="px-4 py-2.5 text-sm text-muted-foreground">
                         {ent.siret ?? <span className="text-muted-foreground/40">--</span>}
                       </td>
-                      <td className="px-4 py-2.5 text-[13px] text-muted-foreground">
+                      <td className="px-4 py-2.5 text-sm text-muted-foreground">
                         {ent.email ?? <span className="text-muted-foreground/40">--</span>}
                       </td>
-                      <td className="px-4 py-2.5 text-[13px] text-muted-foreground">
+                      <td className="px-4 py-2.5 text-sm text-muted-foreground">
                         {ent.adresse_ville ?? <span className="text-muted-foreground/40">--</span>}
                       </td>
                     </tr>

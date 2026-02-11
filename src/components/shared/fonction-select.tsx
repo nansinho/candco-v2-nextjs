@@ -136,7 +136,7 @@ export function FonctionSelect({
           if (!open) setTimeout(() => inputRef.current?.focus(), 50);
         }}
         className={cn(
-          "flex h-9 w-full items-center justify-between rounded-md border border-border/60 bg-muted px-3 py-1 text-[13px] shadow-sm transition-colors hover:border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+          "flex h-9 w-full items-center justify-between rounded-md border border-border/60 bg-muted px-3 py-1 text-sm shadow-sm transition-colors hover:border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
           !value && "text-muted-foreground/50"
         )}
       >
@@ -160,7 +160,7 @@ export function FonctionSelect({
 
           {/* Error */}
           {error && (
-            <div className="px-2 py-1.5 text-[11px] text-destructive bg-destructive/10">
+            <div className="px-2 py-1.5 text-xs text-destructive bg-destructive/10">
               {error}
             </div>
           )}
@@ -277,7 +277,7 @@ export function FonctionSelect({
                   size="sm"
                   onClick={handleAdd}
                   disabled={!newName.trim()}
-                  className="h-7 text-[10px] px-2"
+                  className="h-7 text-xs px-2"
                 >
                   Ajouter
                 </Button>

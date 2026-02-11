@@ -38,7 +38,7 @@ export default async function FormateurDocumentsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">Documents</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Documents</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Contrats, conventions et ressources pedagogiques
         </p>
@@ -68,16 +68,16 @@ export default async function FormateurDocumentsPage() {
                 <p className="text-sm font-medium truncate">{doc.nom}</p>
                 <div className="flex items-center gap-2 mt-0.5">
                   {doc.categorie && (
-                    <span className="text-[11px] text-muted-foreground/50">
+                    <span className="text-xs text-muted-foreground/50">
                       {categorieLabels[doc.categorie] ?? doc.categorie}
                     </span>
                   )}
                   {doc.taille_octets && (
-                    <span className="text-[11px] text-muted-foreground/40">
+                    <span className="text-xs text-muted-foreground/40">
                       {formatSize(doc.taille_octets)}
                     </span>
                   )}
-                  <span className="flex items-center gap-1 text-[11px] text-muted-foreground/40">
+                  <span className="flex items-center gap-1 text-xs text-muted-foreground/40">
                     <Calendar className="h-3 w-3" />
                     {new Date(doc.created_at).toLocaleDateString("fr-FR")}
                   </span>

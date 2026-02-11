@@ -9,7 +9,7 @@ export default async function FormateurDisponibilitesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">Disponibilites</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Disponibilites</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Declarez vos disponibilites pour les sessions a venir.
           L&apos;administration pourra les consulter sur le planning.

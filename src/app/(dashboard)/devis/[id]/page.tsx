@@ -476,7 +476,7 @@ export default function DevisDetailPage() {
           <div className="overflow-y-auto pr-2 space-y-6">
             {/* Destinataire toggle */}
             <div className="rounded-lg border border-border/40 bg-card p-4">
-              <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-3 block">
+              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 block">
                 Destinataire
               </Label>
               <div className="flex gap-2 mb-4">
@@ -509,7 +509,7 @@ export default function DevisDetailPage() {
                     <Select value={entrepriseId} onValueChange={setEntrepriseId}>
                       <SelectTrigger
                         id="entreprise"
-                        className="h-9 text-[13px] border-border/60"
+                        className="h-9 text-sm border-border/60"
                       >
                         <SelectValue placeholder="Sélectionner une entreprise" />
                       </SelectTrigger>
@@ -531,7 +531,7 @@ export default function DevisDetailPage() {
                     <Select value={contactClientId} onValueChange={setContactClientId}>
                       <SelectTrigger
                         id="contact"
-                        className="h-9 text-[13px] border-border/60"
+                        className="h-9 text-sm border-border/60"
                       >
                         <SelectValue placeholder="Sélectionner un contact" />
                       </SelectTrigger>
@@ -558,7 +558,7 @@ export default function DevisDetailPage() {
                       value={particulierNom}
                       onChange={(e) => setParticulierNom(e.target.value)}
                       placeholder="Nom du particulier"
-                      className="h-9 text-[13px] border-border/60"
+                      className="h-9 text-sm border-border/60"
                     />
                   </div>
                   <div>
@@ -571,7 +571,7 @@ export default function DevisDetailPage() {
                       value={particulierEmail}
                       onChange={(e) => setParticulierEmail(e.target.value)}
                       placeholder="email@exemple.com"
-                      className="h-9 text-[13px] border-border/60"
+                      className="h-9 text-sm border-border/60"
                     />
                   </div>
                   <div>
@@ -583,7 +583,7 @@ export default function DevisDetailPage() {
                       value={particulierTelephone}
                       onChange={(e) => setParticulierTelephone(e.target.value)}
                       placeholder="06 12 34 56 78"
-                      className="h-9 text-[13px] border-border/60"
+                      className="h-9 text-sm border-border/60"
                     />
                   </div>
                   <div>
@@ -595,7 +595,7 @@ export default function DevisDetailPage() {
                       value={particulierAdresse}
                       onChange={(e) => setParticulierAdresse(e.target.value)}
                       placeholder="Adresse complète"
-                      className="min-h-[60px] text-[13px] border-border/60"
+                      className="min-h-[60px] text-sm border-border/60"
                     />
                   </div>
                 </div>
@@ -604,7 +604,7 @@ export default function DevisDetailPage() {
 
             {/* Dates */}
             <div className="rounded-lg border border-border/40 bg-card p-4">
-              <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-3 block">
+              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 block">
                 Dates
               </Label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -643,13 +643,13 @@ export default function DevisDetailPage() {
                 value={objet}
                 onChange={(e) => setObjet(e.target.value)}
                 placeholder="Objet du devis"
-                className="h-9 text-[13px] border-border/60"
+                className="h-9 text-sm border-border/60"
               />
             </div>
 
             {/* Lignes */}
             <div className="rounded-lg border border-border/40 bg-card p-4">
-              <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-3 block">
+              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 block">
                 Lignes du devis
               </Label>
               <LignesEditor lignes={lignes} onChange={setLignes} />
@@ -665,7 +665,7 @@ export default function DevisDetailPage() {
                 value={conditions}
                 onChange={(e) => setConditions(e.target.value)}
                 placeholder="Conditions de paiement et autres conditions"
-                className="min-h-[80px] text-[13px] border-border/60"
+                className="min-h-[80px] text-sm border-border/60"
               />
             </div>
 
@@ -679,7 +679,7 @@ export default function DevisDetailPage() {
                 value={mentionsLegales}
                 onChange={(e) => setMentionsLegales(e.target.value)}
                 placeholder="Mentions légales obligatoires (NDA, SIRET, TVA...)"
-                className="min-h-[80px] text-[13px] border-border/60"
+                className="min-h-[80px] text-sm border-border/60"
               />
             </div>
           </div>

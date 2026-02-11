@@ -170,7 +170,7 @@ export function DisponibilitesClient({ formateurId, organisationId }: Disponibil
       {/* Legend */}
       <div className="flex items-center gap-3 flex-wrap">
         {Object.entries(DISPO_COLORS).map(([key, config]) => (
-          <div key={key} className="flex items-center gap-1.5 text-[11px] text-muted-foreground/60">
+          <div key={key} className="flex items-center gap-1.5 text-xs text-muted-foreground/60">
             <div className={cn("h-2.5 w-2.5 rounded-sm", config.bg, `border ${config.border}`)} />
             {config.label}
           </div>
@@ -221,7 +221,7 @@ export function DisponibilitesClient({ formateurId, organisationId }: Disponibil
                       )}
                       onClick={() => openAddModal(format(day, "yyyy-MM-dd"))}
                     >
-                      <span className={cn("text-[11px] uppercase tracking-wider font-medium", today ? "text-primary" : "text-muted-foreground/60")}>
+                      <span className={cn("text-xs uppercase tracking-wider font-medium", today ? "text-primary" : "text-muted-foreground/60")}>
                         {dayName}
                       </span>
                       <span className={cn("mt-0.5 flex h-7 w-7 items-center justify-center rounded-full text-sm font-semibold", today ? "bg-primary text-primary-foreground" : "text-foreground")}>
@@ -240,7 +240,7 @@ export function DisponibilitesClient({ formateurId, organisationId }: Disponibil
                   {HOURS.map((hour) => (
                     <div
                       key={hour}
-                      className="absolute right-2 -translate-y-1/2 text-[10px] text-muted-foreground/50 font-mono"
+                      className="absolute right-2 -translate-y-1/2 text-xs text-muted-foreground/50 font-mono"
                       style={{ top: (hour - HOUR_START) * HOUR_HEIGHT_PX }}
                     >
                       {String(hour).padStart(2, "0")}:00
@@ -289,7 +289,7 @@ export function DisponibilitesClient({ formateurId, organisationId }: Disponibil
                               <div className="flex items-center justify-between gap-1 min-w-0">
                                 <div className="flex items-center gap-1 min-w-0">
                                   <Icon className={cn("h-3 w-3 shrink-0", config.text)} />
-                                  <span className={cn("text-[10px] font-medium truncate", config.text)}>
+                                  <span className={cn("text-xs font-medium truncate", config.text)}>
                                     {dispo.heure_debut.slice(0, 5)} - {dispo.heure_fin.slice(0, 5)}
                                   </span>
                                 </div>
@@ -302,7 +302,7 @@ export function DisponibilitesClient({ formateurId, organisationId }: Disponibil
                                 </button>
                               </div>
                               {dispo.note && height > 30 && (
-                                <p className="text-[9px] text-muted-foreground/50 truncate mt-0.5">{dispo.note}</p>
+                                <p className="text-xs text-muted-foreground/50 truncate mt-0.5">{dispo.note}</p>
                               )}
                             </div>
                           );

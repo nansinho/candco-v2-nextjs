@@ -263,7 +263,7 @@ export function ExtranetAccessPanel({
               Lien de connexion
             </span>
           </div>
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Partagez ce lien avec la personne pour qu&apos;elle puisse se connecter (valide 24h) :
           </p>
           <div className="flex gap-1.5">
@@ -271,7 +271,7 @@ export function ExtranetAccessPanel({
               type="text"
               readOnly
               value={loginLink}
-              className="flex-1 rounded bg-background/50 border border-border/40 px-2 py-1 text-[10px] font-mono text-foreground truncate"
+              className="flex-1 rounded bg-background/50 border border-border/40 px-2 py-1 text-xs font-mono text-foreground truncate"
               onClick={(e) => (e.target as HTMLInputElement).select()}
             />
             <Button
@@ -327,7 +327,7 @@ export function ExtranetAccessPanel({
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">Statut</span>
             {statusConfig && (
-              <Badge className={`${statusConfig.color} text-[11px]`}>
+              <Badge className={`${statusConfig.color} text-xs`}>
                 <statusConfig.icon className="mr-1 h-3 w-3" />
                 {statusConfig.label}
               </Badge>
@@ -367,7 +367,7 @@ export function ExtranetAccessPanel({
               <Button
                 size="sm"
                 variant="outline"
-                className="h-7 text-[11px] flex-1 border-border/60"
+                className="h-7 text-xs flex-1 border-border/60"
                 onClick={handleReinvite}
                 disabled={isInviting}
               >
@@ -382,7 +382,7 @@ export function ExtranetAccessPanel({
             <Button
               size="sm"
               variant="outline"
-              className="h-7 text-[11px] flex-1 border-border/60 text-destructive hover:bg-destructive/10 hover:border-destructive/30"
+              className="h-7 text-xs flex-1 border-border/60 text-destructive hover:bg-destructive/10 hover:border-destructive/30"
               onClick={handleRevoke}
               disabled={isRevoking}
             >

@@ -490,7 +490,7 @@ export function CsvImport({
             <div className="flex flex-col items-center gap-3 py-6">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <p className="text-sm text-muted-foreground">Analyse IA du PDF en cours...</p>
-              <p className="text-[11px] text-muted-foreground/60">
+              <p className="text-xs text-muted-foreground/60">
                 Extraction de l&apos;intitule, description, duree, objectifs, programme, tarifs, modalites...
               </p>
             </div>
@@ -513,7 +513,7 @@ export function CsvImport({
                   <strong>{totalRows}</strong> ligne(s) trouvée(s) &bull;{" "}
                   <strong>{matchedColumnsInfo.length}</strong>/{columns.length} colonnes reconnues
                 </p>
-                <p className="text-[11px] text-emerald-400/60 mt-0.5">
+                <p className="text-xs text-emerald-400/60 mt-0.5">
                   Colonnes : {matchedColumnsInfo.join(", ")}
                 </p>
               </div>
@@ -527,7 +527,7 @@ export function CsvImport({
                 Aperçu (5 premières lignes sur {totalRows}) :
               </p>
               <div className="overflow-x-auto rounded-md border border-border/40">
-                <table className="w-full text-[11px]">
+                <table className="w-full text-xs">
                   <thead>
                     <tr className="bg-muted/20">
                       {columns
@@ -582,7 +582,7 @@ export function CsvImport({
                             {warnings.length} avertissement(s) :
                           </p>
                         </div>
-                        <ul className="text-[11px] text-amber-400/80 space-y-0.5 ml-6 max-h-24 overflow-y-auto">
+                        <ul className="text-xs text-amber-400/80 space-y-0.5 ml-6 max-h-24 overflow-y-auto">
                           {warnings.slice(0, 10).map((w, i) => (
                             <li key={i}>{w}</li>
                           ))}
@@ -600,7 +600,7 @@ export function CsvImport({
                             {errors.length} erreur(s) :
                           </p>
                         </div>
-                        <ul className="text-[11px] text-destructive/80 space-y-0.5 ml-6 max-h-24 overflow-y-auto">
+                        <ul className="text-xs text-destructive/80 space-y-0.5 ml-6 max-h-24 overflow-y-auto">
                           {errors.slice(0, 10).map((err, i) => (
                             <li key={i}>{err}</li>
                           ))}

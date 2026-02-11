@@ -64,7 +64,7 @@ export function SessionStatusBadge({
     return (
       <Badge
         className={`font-normal border bg-muted/30 text-muted-foreground/50 border-border/30 ${
-          size === "sm" ? "text-[11px]" : "text-xs"
+          size === "sm" ? "text-xs" : "text-xs"
         } ${className}`}
       >
         Archivée
@@ -80,7 +80,7 @@ export function SessionStatusBadge({
   return (
     <Badge
       className={`font-normal border ${config.className} ${
-        size === "sm" ? "text-[11px]" : "text-xs"
+        size === "sm" ? "text-xs" : "text-xs"
       } ${className}`}
     >
       {config.label}
