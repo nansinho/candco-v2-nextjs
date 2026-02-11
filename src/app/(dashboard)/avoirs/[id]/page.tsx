@@ -3,6 +3,13 @@
 import * as React from "react";
 import { useRouter, useParams } from "next/navigation";
 import { ArrowLeft, Loader2, FileX, Trash2 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +24,7 @@ import {
   type UpdateAvoirInput,
 } from "@/actions/avoirs";
 import { getEntreprisesForSelect } from "@/actions/devis";
+import { getOrganisationBillingInfo } from "@/actions/factures";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import {
   AvoirStatusBadge,
@@ -42,6 +50,8 @@ export default function AvoirDetailPage() {
   const [entreprises, setEntreprises] = React.useState<
     { id: string; nom: string; numero_affichage: string }[]
   >([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [orgInfo, setOrgInfo] = React.useState<any>(null);
   const [lignes, setLignes] = React.useState<LigneItem[]>([]);
   const [form, setForm] = React.useState({
     facture_id: "",
@@ -54,10 +64,11 @@ export default function AvoirDetailPage() {
   React.useEffect(() => {
     async function load() {
       setIsLoading(true);
-      const [avoirData, fOpts, ents] = await Promise.all([
+      const [avoirData, fOpts, ents, orgData] = await Promise.all([
         getAvoir(id),
         getFacturesForSelect(),
         getEntreprisesForSelect(),
+        getOrganisationBillingInfo(),
       ]);
       if (!avoirData) {
         router.push("/avoirs");
@@ -66,6 +77,7 @@ export default function AvoirDetailPage() {
       setData(avoirData);
       setFacturesOptions(fOpts);
       setEntreprises(ents);
+      setOrgInfo(orgData);
       setForm({
         facture_id: avoirData.facture_id ?? "",
         entreprise_id: avoirData.entreprise_id ?? "",
@@ -163,22 +175,26 @@ export default function AvoirDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <select
+          <Select
             value={form.statut}
-            onChange={(e) =>
+            onValueChange={(val) =>
               setForm((prev) => ({
                 ...prev,
-                statut: e.target.value as "brouillon" | "emis" | "applique",
+                statut: val as "brouillon" | "emis" | "applique",
               }))
             }
-            className="h-8 rounded-md border border-input bg-muted px-2 text-xs text-foreground"
           >
-            {AVOIR_STATUT_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger className="h-8 w-[130px] text-xs border-border/60">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {AVOIR_STATUT_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button
             variant="outline"
             size="sm"
@@ -208,35 +224,41 @@ export default function AvoirDetailPage() {
 
             <div className="space-y-2">
               <Label className="text-[13px]">Facture liée</Label>
-              <select
-                value={form.facture_id}
-                onChange={(e) => setForm((prev) => ({ ...prev, facture_id: e.target.value }))}
-                className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
+              <Select
+                value={form.facture_id || "none"}
+                onValueChange={(val) => setForm((prev) => ({ ...prev, facture_id: val === "none" ? "" : val }))}
               >
-                <option value="">-- Aucune --</option>
-                {facturesOptions.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {f.numero_affichage} ({formatCurrency(Number(f.total_ttc))})
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="h-9 text-[13px] border-border/60">
+                  <SelectValue placeholder="Aucune" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Aucune</SelectItem>
+                  {facturesOptions.map((f) => (
+                    <SelectItem key={f.id} value={f.id}>
+                      {f.numero_affichage} ({formatCurrency(Number(f.total_ttc))})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label className="text-[13px]">Entreprise</Label>
-                <select
-                  value={form.entreprise_id}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, entreprise_id: e.target.value }))
-                  }
-                  className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
+                <Select
+                  value={form.entreprise_id || "none"}
+                  onValueChange={(val) => setForm((prev) => ({ ...prev, entreprise_id: val === "none" ? "" : val }))}
                 >
-                  <option value="">-- Aucune --</option>
-                  {entreprises.map((e) => (
-                    <option key={e.id} value={e.id}>{e.nom}</option>
-                  ))}
-                </select>
+                  <SelectTrigger className="h-9 text-[13px] border-border/60">
+                    <SelectValue placeholder="Aucune" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Aucune</SelectItem>
+                    {entreprises.map((e) => (
+                      <SelectItem key={e.id} value={e.id}>{e.nom}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label className="text-[13px]">Date d'émission</Label>
@@ -281,6 +303,16 @@ export default function AvoirDetailPage() {
             numero={(data.numero_affichage as string) || "---"}
             dateEmission={form.date_emission}
             objet={form.motif}
+            emetteur={orgInfo ? {
+              nom: orgInfo.nom,
+              siret: orgInfo.siret || undefined,
+              nda: orgInfo.nda || undefined,
+              adresse: [orgInfo.adresse_rue, orgInfo.adresse_complement, [orgInfo.adresse_cp, orgInfo.adresse_ville].filter(Boolean).join(" ")].filter(Boolean).join(", ") || undefined,
+              email: orgInfo.email || undefined,
+              telephone: orgInfo.telephone || undefined,
+              tva_intra: orgInfo.numero_tva_intracommunautaire || undefined,
+              logo_url: orgInfo.logo_url || undefined,
+            } : undefined}
             destinataire={
               entrepriseInfo
                 ? { nom: entrepriseInfo.nom }
