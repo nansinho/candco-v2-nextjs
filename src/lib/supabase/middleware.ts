@@ -299,13 +299,14 @@ export async function updateSession(request: NextRequest) {
 
 /**
  * Determine redirect path based on user type:
- * 1. Check extranet_acces FIRST → /extranet/{role}
- * 2. Check utilisateurs table → / (back-office)
+ * 1. Check utilisateurs table FIRST → / (back-office)
+ * 2. Check extranet_acces → /extranet/{role}
  * 3. Fallback → /login
  *
- * Extranet is checked first because a user can exist in BOTH tables
- * (e.g. admin who was also invited as formateur). Extranet takes priority
- * to prevent external users from accessing the admin dashboard.
+ * Utilisateurs is checked first so that internal users (admin/manager)
+ * who also have an extranet_acces record always land on the dashboard.
+ * The dashboard route protection already prevents pure extranet users
+ * from accessing the back-office.
  */
 async function getRedirectPath(
   supabase: ReturnType<typeof createServerClient>,
@@ -315,6 +316,9 @@ async function getRedirectPath(
     // Try Redis cache
     const cached = await getCachedUserType(userId);
     if (cached) {
+      if (cached.type === "utilisateur") {
+        return "/";
+      }
       if (cached.type === "extranet" && cached.role) {
         const routeMap: Record<string, string> = {
           formateur: "/extranet/formateur",
@@ -323,12 +327,24 @@ async function getRedirectPath(
         };
         return routeMap[cached.role] || "/login";
       }
-      if (cached.type === "utilisateur") {
-        return "/";
-      }
     }
 
-    // 1. Check extranet_acces FIRST — extranet users must not land on dashboard
+    // 1. Check utilisateurs FIRST — internal users always go to dashboard
+    const { data: utilisateur } = await supabase
+      .from("utilisateurs")
+      .select("id, is_super_admin")
+      .eq("id", userId)
+      .single();
+
+    if (utilisateur) {
+      await setCachedUserType(userId, {
+        type: "utilisateur",
+        isSuperAdmin: utilisateur.is_super_admin ?? false,
+      });
+      return "/";
+    }
+
+    // 2. Check extranet_acces for external users
     const { data: acces } = await supabase
       .from("extranet_acces")
       .select("role, statut")
@@ -349,18 +365,6 @@ async function getRedirectPath(
         contact_client: "/extranet/client",
       };
       return routeMap[acces.role] || "/login";
-    }
-
-    // 2. Check if internal user (admin/manager/user)
-    const { data: utilisateur } = await supabase
-      .from("utilisateurs")
-      .select("id")
-      .eq("id", userId)
-      .single();
-
-    if (utilisateur) {
-      await setCachedUserType(userId, { type: "utilisateur" });
-      return "/";
     }
 
     // 3. Authenticated user not found in any table
