@@ -10,17 +10,30 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
  * Listens for:
  * - UPDATE on tickets (status, priority, assignee changes)
  * - INSERT on ticket_messages (new replies)
+ *
+ * @param onUpdate - Optional callback invoked on changes. If provided, this is
+ *   called instead of router.refresh(), which is needed for client components
+ *   that manually fetch data (router.refresh only re-renders the RSC tree).
  */
-export function useRealtimeTicket(ticketId: string) {
+export function useRealtimeTicket(ticketId: string, onUpdate?: () => void) {
   const router = useRouter();
   const channelRef = useRef<RealtimeChannel | null>(null);
+  const onUpdateRef = useRef(onUpdate);
 
-  const refresh = useCallback(() => {
-    router.refresh();
-  }, [router]);
+  useEffect(() => {
+    onUpdateRef.current = onUpdate;
+  }, [onUpdate]);
 
   useEffect(() => {
     const supabase = createClient();
+
+    const handleChange = () => {
+      if (onUpdateRef.current) {
+        onUpdateRef.current();
+      } else {
+        router.refresh();
+      }
+    };
 
     const channel = supabase
       .channel(`ticket-${ticketId}`)
@@ -32,9 +45,7 @@ export function useRealtimeTicket(ticketId: string) {
           table: "tickets",
           filter: `id=eq.${ticketId}`,
         },
-        () => {
-          refresh();
-        },
+        handleChange,
       )
       .on(
         "postgres_changes",
@@ -44,9 +55,7 @@ export function useRealtimeTicket(ticketId: string) {
           table: "ticket_messages",
           filter: `ticket_id=eq.${ticketId}`,
         },
-        () => {
-          refresh();
-        },
+        handleChange,
       )
       .subscribe();
 
@@ -57,7 +66,7 @@ export function useRealtimeTicket(ticketId: string) {
         supabase.removeChannel(channelRef.current);
       }
     };
-  }, [ticketId, refresh]);
+  }, [ticketId, router]);
 }
 
 /**

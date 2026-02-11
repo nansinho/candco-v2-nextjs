@@ -79,8 +79,6 @@ export function ExtranetTicketDetail({ ticketId, basePath }: ExtranetTicketDetai
   const [uploadedFiles, setUploadedFiles] = React.useState<{ nom: string; url: string; taille: number; mime_type: string }[]>([]);
   const [isUploading, setIsUploading] = React.useState(false);
 
-  useRealtimeTicket(ticketId);
-
   const fetchTicket = React.useCallback(async () => {
     const result = await getExtranetTicket(ticketId);
     if (result.error || !result.data) {
@@ -95,6 +93,9 @@ export function ExtranetTicketDetail({ ticketId, basePath }: ExtranetTicketDetai
   React.useEffect(() => {
     fetchTicket();
   }, [fetchTicket]);
+
+  // Enable realtime — pass fetchTicket so changes trigger a data re-fetch
+  useRealtimeTicket(ticketId, fetchTicket);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;

@@ -126,11 +126,10 @@ export default function TicketDetailPage() {
   const [showMentionDropdown, setShowMentionDropdown] = React.useState(false);
   const [mentionResults, setMentionResults] = React.useState<{ id: string; nom: string; type: string }[]>([]);
   const [selectedMentions, setSelectedMentions] = React.useState<string[]>([]);
+  const [mentionHighlightIndex, setMentionHighlightIndex] = React.useState(0);
+  const [isMentionLoading, setIsMentionLoading] = React.useState(false);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
-
-  // Enable realtime
-  useRealtimeTicket(ticketId);
 
   // Set breadcrumb label
   useBreadcrumb(
@@ -154,6 +153,9 @@ export default function TicketDetailPage() {
     fetchTicket();
   }, [fetchTicket]);
 
+  // Enable realtime — pass fetchTicket so changes trigger a data re-fetch
+  useRealtimeTicket(ticketId, fetchTicket);
+
   // Fetch org users & enterprises AFTER ticket is loaded (using ticket's org)
   React.useEffect(() => {
     if (!ticketData) return;
@@ -169,16 +171,27 @@ export default function TicketDetailPage() {
 
   // Mention search
   React.useEffect(() => {
-    if (!mentionQuery || mentionQuery.length < 1) {
+    if (mentionQuery.length < 1) {
       setMentionResults([]);
+      setIsMentionLoading(false);
       return;
     }
+    setIsMentionLoading(true);
     const timer = setTimeout(async () => {
       const r = await searchMentionableUsers(mentionQuery);
       setMentionResults(r.data);
+      setIsMentionLoading(false);
     }, 200);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      setIsMentionLoading(false);
+    };
   }, [mentionQuery]);
+
+  // Reset highlight index when results change
+  React.useEffect(() => {
+    setMentionHighlightIndex(0);
+  }, [mentionResults]);
 
   // Handle reply textarea changes + @ detection
   const handleReplyChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -285,7 +298,31 @@ export default function TicketDetailPage() {
   };
 
   // Keyboard shortcut: Enter to send, Shift+Enter for new line
+  // When mention dropdown is open: ArrowUp/Down to navigate, Enter to select, Escape to close
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (showMentionDropdown) {
+      if (e.key === "ArrowDown" && mentionResults.length > 0) {
+        e.preventDefault();
+        setMentionHighlightIndex((prev) => Math.min(prev + 1, mentionResults.length - 1));
+        return;
+      }
+      if (e.key === "ArrowUp" && mentionResults.length > 0) {
+        e.preventDefault();
+        setMentionHighlightIndex((prev) => Math.max(prev - 1, 0));
+        return;
+      }
+      if (e.key === "Enter" && mentionResults.length > 0) {
+        e.preventDefault();
+        handleMentionSelect(mentionResults[mentionHighlightIndex]);
+        return;
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setShowMentionDropdown(false);
+        setMentionQuery("");
+        return;
+      }
+    }
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendReply();
@@ -449,13 +486,34 @@ export default function TicketDetailPage() {
               />
 
               {/* Mention dropdown */}
-              {showMentionDropdown && mentionResults.length > 0 && (
-                <div className="absolute bottom-full left-0 mb-1 w-64 rounded-md border border-border bg-popover p-1 shadow-md z-50">
-                  {mentionResults.map((user) => (
+              {showMentionDropdown && (
+                <div className="absolute bottom-full left-0 mb-1 w-64 max-h-48 overflow-y-auto rounded-md border border-border bg-popover p-1 shadow-md z-50">
+                  {isMentionLoading && (
+                    <div className="flex items-center gap-2 px-2 py-1.5 text-sm text-muted-foreground">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Recherche...
+                    </div>
+                  )}
+                  {!isMentionLoading && mentionQuery.length < 1 && (
+                    <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                      Tapez un nom...
+                    </div>
+                  )}
+                  {!isMentionLoading && mentionQuery.length >= 1 && mentionResults.length === 0 && (
+                    <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                      Aucun résultat pour &quot;@{mentionQuery}&quot;
+                    </div>
+                  )}
+                  {mentionResults.map((user, idx) => (
                     <button
                       key={user.id}
-                      onClick={() => handleMentionSelect(user)}
-                      className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        handleMentionSelect(user);
+                      }}
+                      className={`flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent ${
+                        idx === mentionHighlightIndex ? "bg-accent" : ""
+                      }`}
                     >
                       <User className="h-3.5 w-3.5 text-muted-foreground" />
                       <span>{user.nom}</span>
