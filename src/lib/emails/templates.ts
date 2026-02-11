@@ -231,3 +231,25 @@ export function factureEnvoyeeTemplate(params: {
     params.orgName
   );
 }
+
+// ─── Devis signature request ────────────────────────────
+
+export function devisSignatureRequestTemplate(params: {
+  contactNom: string;
+  devisNumero: string;
+  montant: string;
+  orgName?: string;
+}) {
+  return baseLayout(
+    `<p style="margin:0 0 16px;">Bonjour <strong>${params.contactNom}</strong>,</p>
+    <p style="margin:0 0 16px;">Un devis nécessite votre signature électronique :</p>
+    <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-left:3px solid #F97316;border-radius:8px;padding:16px;margin:16px 0;">
+      <p style="margin:0 0 8px;font-size:16px;font-weight:600;color:#fafafa;">Devis ${params.devisNumero}</p>
+      <p style="margin:8px 0;">Montant TTC : <strong>${params.montant}</strong></p>
+    </div>
+    <p style="margin:0 0 16px;">Vous allez recevoir un email séparé de notre service de signature électronique avec un lien pour signer ce devis.</p>
+    <p style="margin:0 0 16px;color:#a0a0a0;font-size:12px;">La signature électronique a la même valeur juridique qu'une signature manuscrite (eIDAS / art. 1367 du Code civil).</p>
+    <p style="margin:0;">Cordialement,<br><strong>${params.orgName || "L'équipe"}</strong></p>`,
+    params.orgName
+  );
+}
