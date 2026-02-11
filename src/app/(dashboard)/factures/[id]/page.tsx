@@ -407,13 +407,13 @@ export default function FactureDetailPage() {
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="sticky top-0 z-10 border-b border-border/40 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
-        <div className="flex items-center justify-between h-14 px-4 gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-4 py-2 sm:h-14">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => router.push("/factures")}
-              className="h-8 w-8 p-0"
+              className="h-8 w-8 p-0 shrink-0"
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
@@ -424,7 +424,7 @@ export default function FactureDetailPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Button
               variant="outline"
               size="sm"
@@ -440,7 +440,7 @@ export default function FactureDetailPage() {
             </Button>
 
             <Select value={factureRaw.statut} onValueChange={handleChangeStatut}>
-              <SelectTrigger className="h-8 w-[170px] text-xs border-border/60">
+              <SelectTrigger className="h-8 w-[140px] sm:w-[170px] text-xs border-border/60">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -464,7 +464,7 @@ export default function FactureDetailPage() {
               ) : (
                 <Copy className="mr-1 h-3 w-3" />
               )}
-              Dupliquer
+              <span className="hidden sm:inline">Dupliquer</span>
             </Button>
           </div>
         </div>
@@ -514,7 +514,7 @@ export default function FactureDetailPage() {
                   </Select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label className="text-xs">Date d{"'"}émission *</Label>
                     <DatePicker value={dateEmission} onChange={setDateEmission} />

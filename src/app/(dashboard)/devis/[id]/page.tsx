@@ -353,13 +353,13 @@ export default function DevisDetailPage() {
     <div className="flex flex-col h-screen bg-muted/20">
       {/* Header */}
       <div className="sticky top-0 z-10 border-b border-border/40 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
-        <div className="flex items-center justify-between h-14 px-4 gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-4 py-2 sm:h-14">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => router.push("/devis")}
-              className="h-8 w-8 p-0"
+              className="h-8 w-8 p-0 shrink-0"
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
@@ -371,7 +371,7 @@ export default function DevisDetailPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Button
               variant="outline"
               size="sm"
@@ -387,7 +387,7 @@ export default function DevisDetailPage() {
             </Button>
 
             <Select value={statut} onValueChange={handleChangeStatut}>
-              <SelectTrigger className="h-8 w-[140px] text-xs border-border/60">
+              <SelectTrigger className="h-8 w-[120px] sm:w-[140px] text-xs border-border/60">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -411,7 +411,7 @@ export default function DevisDetailPage() {
               ) : (
                 <Copy className="mr-1 h-3 w-3" />
               )}
-              Dupliquer
+              <span className="hidden sm:inline">Dupliquer</span>
             </Button>
 
             <Button
@@ -426,7 +426,8 @@ export default function DevisDetailPage() {
               ) : (
                 <ArrowRight className="mr-1 h-3 w-3" />
               )}
-              Convertir en facture
+              <span className="hidden sm:inline">Convertir en facture</span>
+              <span className="sm:hidden">Facture</span>
             </Button>
 
             {documensoAvailable && !documensoStatus && statut === "brouillon" && (
@@ -441,7 +442,8 @@ export default function DevisDetailPage() {
                 ) : (
                   <PenLine className="mr-1 h-3 w-3" />
                 )}
-                Envoyer en signature
+                <span className="hidden sm:inline">Envoyer en signature</span>
+                <span className="sm:hidden">Signer</span>
               </Button>
             )}
 
@@ -453,7 +455,7 @@ export default function DevisDetailPage() {
                 className="h-8 text-xs border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
               >
                 <PenLine className="mr-1 h-3 w-3" />
-                Vérifier signature
+                Vérifier
               </Button>
             )}
 
@@ -605,7 +607,7 @@ export default function DevisDetailPage() {
               <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-3 block">
                 Dates
               </Label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <Label htmlFor="date_emission" className="text-xs mb-1.5 block">
                     Date d'émission
