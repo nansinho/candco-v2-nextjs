@@ -815,8 +815,9 @@ export async function searchMentionableUsers(query: string): Promise<{ data: { i
   const { organisationId, admin } = result;
 
   const users: { id: string; nom: string; type: string }[] = [];
+  const seenUserIds = new Set<string>();
 
-  // Search back-office users
+  // Search back-office users (priority — they won't be duplicated by extranet)
   const { data: boUsers } = await admin
     .from("utilisateurs")
     .select("id, prenom, nom, role")
@@ -827,15 +828,16 @@ export async function searchMentionableUsers(query: string): Promise<{ data: { i
 
   if (boUsers) {
     for (const u of boUsers) {
+      seenUserIds.add(u.id as string);
       users.push({
-        id: u.id,
+        id: u.id as string,
         nom: `${u.prenom || ""} ${u.nom || ""}`.trim(),
         type: u.role as string,
       });
     }
   }
 
-  // Search extranet users (formateurs, apprenants, contacts)
+  // Search extranet users (formateurs, apprenants, contacts) — skip if already found as back-office user
   const { data: extranetAcces } = await admin
     .from("extranet_acces")
     .select("user_id, role, entite_type, entite_id")
@@ -845,6 +847,9 @@ export async function searchMentionableUsers(query: string): Promise<{ data: { i
 
   if (extranetAcces) {
     for (const acces of extranetAcces) {
+      // Skip if this user was already added as a back-office user
+      if (seenUserIds.has(acces.user_id as string)) continue;
+
       const tableMap: Record<string, string> = {
         formateur: "formateurs",
         apprenant: "apprenants",
@@ -862,6 +867,7 @@ export async function searchMentionableUsers(query: string): Promise<{ data: { i
       if (entity) {
         const fullName = `${(entity as { prenom: string }).prenom || ""} ${(entity as { nom: string }).nom || ""}`.trim();
         if (fullName.toLowerCase().includes(query.toLowerCase())) {
+          seenUserIds.add(acces.user_id as string);
           users.push({
             id: acces.user_id as string,
             nom: fullName,
