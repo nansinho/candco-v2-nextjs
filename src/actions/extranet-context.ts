@@ -218,55 +218,72 @@ export async function getApprenantRattachement(
 
   if (!liens || liens.length === 0) return { data: [] };
 
-  const result: RattachementEntreprise[] = [];
+  const entrepriseIds = liens
+    .map((l) => (l.entreprises as unknown as { id: string } | null)?.id)
+    .filter((id): id is string => id != null);
 
+  if (entrepriseIds.length === 0) return { data: [] };
+
+  // Batch all sub-queries in parallel instead of N+1 loop
+  const [siegesRes, membresRes] = await Promise.all([
+    // 2. Get all sièges sociaux for linked enterprises in one query
+    admin
+      .from("entreprise_agences")
+      .select("entreprise_id, nom, adresse_rue, adresse_complement, adresse_cp, adresse_ville, email, telephone")
+      .in("entreprise_id", entrepriseIds)
+      .eq("est_siege", true),
+    // 3. Get all membership records for this apprenant in one query
+    admin
+      .from("entreprise_membres")
+      .select("id, entreprise_id, roles, fonction, rattache_siege")
+      .in("entreprise_id", entrepriseIds)
+      .eq("apprenant_id", apprenantId),
+  ]);
+
+  // Build lookup maps
+  const siegeMap = new Map<string, typeof siegesRes.data extends (infer T)[] | null ? T : never>();
+  for (const s of siegesRes.data ?? []) {
+    siegeMap.set(s.entreprise_id as string, s);
+  }
+
+  const membreMap = new Map<string, { id: string; roles: unknown; fonction: string | null; rattache_siege: boolean }>();
+  const membreIds: string[] = [];
+  for (const m of membresRes.data ?? []) {
+    membreMap.set(m.entreprise_id as string, {
+      id: m.id as string,
+      roles: m.roles,
+      fonction: m.fonction as string | null,
+      rattache_siege: m.rattache_siege as boolean,
+    });
+    membreIds.push(m.id as string);
+  }
+
+  // 4. Batch get all agences for all memberships in one query
+  let agencesByMembre = new Map<string, RattachementAgence[]>();
+  if (membreIds.length > 0) {
+    const { data: membreAgences } = await admin
+      .from("membre_agences")
+      .select("membre_id, entreprise_agences(id, nom, adresse_rue, adresse_complement, adresse_cp, adresse_ville, email, telephone)")
+      .in("membre_id", membreIds);
+
+    for (const ma of membreAgences ?? []) {
+      const agence = ma.entreprise_agences as unknown as RattachementAgence | null;
+      if (!agence) continue;
+      const mid = ma.membre_id as string;
+      const existing = agencesByMembre.get(mid) ?? [];
+      existing.push(agence);
+      agencesByMembre.set(mid, existing);
+    }
+  }
+
+  // Assemble results
+  const result: RattachementEntreprise[] = [];
   for (const lien of liens) {
-    const ent = lien.entreprises as unknown as {
-      id: string;
-      nom: string;
-      siret: string | null;
-    } | null;
+    const ent = lien.entreprises as unknown as { id: string; nom: string; siret: string | null } | null;
     if (!ent) continue;
 
-    // 2. Get siège social (agence with est_siege=true)
-    const { data: siegeData } = await admin
-      .from("entreprise_agences")
-      .select(
-        "nom, adresse_rue, adresse_complement, adresse_cp, adresse_ville, email, telephone"
-      )
-      .eq("entreprise_id", ent.id)
-      .eq("est_siege", true)
-      .limit(1)
-      .maybeSingle();
-
-    // 3. Get membership record for this apprenant in this entreprise
-    const { data: membre } = await admin
-      .from("entreprise_membres")
-      .select("id, roles, fonction, rattache_siege")
-      .eq("entreprise_id", ent.id)
-      .eq("apprenant_id", apprenantId)
-      .limit(1)
-      .maybeSingle();
-
-    // 4. Get agences linked to this membership via membre_agences
-    let agences: RattachementAgence[] = [];
-    if (membre) {
-      const { data: membreAgences } = await admin
-        .from("membre_agences")
-        .select(
-          "entreprise_agences(id, nom, adresse_rue, adresse_complement, adresse_cp, adresse_ville, email, telephone)"
-        )
-        .eq("membre_id", membre.id);
-
-      if (membreAgences) {
-        agences = membreAgences
-          .map(
-            (ma) =>
-              ma.entreprise_agences as unknown as RattachementAgence | null
-          )
-          .filter((a): a is RattachementAgence => a != null);
-      }
-    }
+    const siegeData = siegeMap.get(ent.id);
+    const membre = membreMap.get(ent.id);
 
     result.push({
       id: ent.id,
@@ -274,16 +291,16 @@ export async function getApprenantRattachement(
       siret: ent.siret,
       siege: siegeData
         ? {
-            nom: siegeData.nom,
-            adresse_rue: siegeData.adresse_rue,
-            adresse_complement: siegeData.adresse_complement,
-            adresse_cp: siegeData.adresse_cp,
-            adresse_ville: siegeData.adresse_ville,
-            email: siegeData.email,
-            telephone: siegeData.telephone,
+            nom: siegeData.nom as string,
+            adresse_rue: siegeData.adresse_rue as string | null,
+            adresse_complement: siegeData.adresse_complement as string | null,
+            adresse_cp: siegeData.adresse_cp as string | null,
+            adresse_ville: siegeData.adresse_ville as string | null,
+            email: siegeData.email as string | null,
+            telephone: siegeData.telephone as string | null,
           }
         : null,
-      agences,
+      agences: membre ? (agencesByMembre.get(membre.id) ?? []) : [],
       rattache_siege: membre?.rattache_siege ?? false,
       fonction: membre?.fonction ?? null,
       roles: (membre?.roles as string[]) ?? [],

@@ -149,15 +149,18 @@ export async function updateSession(request: NextRequest) {
         }
         // Cached as utilisateur → let through (no redirect needed)
       } else {
-        // No cache — query DB
+        // No cache — query DB (fetch is_super_admin too, so admin route check can reuse cache)
         const { data: utilisateur } = await supabase
           .from("utilisateurs")
-          .select("id")
+          .select("id, is_super_admin")
           .eq("id", user!.id)
           .single();
 
         if (utilisateur) {
-          await setCachedUserType(user!.id, { type: "utilisateur" });
+          await setCachedUserType(user!.id, {
+            type: "utilisateur",
+            isSuperAdmin: utilisateur.is_super_admin ?? false,
+          });
         } else {
           // Not an internal user — check if extranet user trying to access dashboard
           const { data: acces } = await supabase

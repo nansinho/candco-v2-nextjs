@@ -15,8 +15,12 @@ export default async function DashboardLayout({
   let user = null;
   let aiCredits = null;
   try {
-    user = await getCurrentUser();
-    const creditsResult = await getAICredits();
+    // Parallelize independent queries instead of running them sequentially
+    const [userResult, creditsResult] = await Promise.all([
+      getCurrentUser(),
+      getAICredits(),
+    ]);
+    user = userResult;
     aiCredits = creditsResult.data;
   } catch (err) {
     console.error("[DashboardLayout] getCurrentUser failed:", err);
