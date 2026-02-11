@@ -106,19 +106,19 @@ export function ConversationList({
                       {title}
                     </p>
                     {lastMsg && (
-                      <span className="ml-2 shrink-0 text-[10px] text-[#666]">
+                      <span className="ml-2 shrink-0 text-xs text-[#666]">
                         {formatMessageTime(lastMsg.created_at)}
                       </span>
                     )}
                   </div>
                   {lastMsg && (
-                    <p className="mt-0.5 truncate text-[11px] text-[#666]">
+                    <p className="mt-0.5 truncate text-xs text-[#666]">
                       {lastMsg.contenu}
                     </p>
                   )}
                 </div>
                 {unread > 0 && (
-                  <span className="mt-1 flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-[#F97316] px-1 text-[10px] font-bold text-white">
+                  <span className="mt-1 flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-[#F97316] px-1 text-xs font-bold text-white">
                     {unread}
                   </span>
                 )}

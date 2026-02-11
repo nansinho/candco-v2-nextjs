@@ -372,7 +372,7 @@ export function DataTable<T>({
       ) : (
         /* ─── Normal Toolbar ─── */
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
           <div className="flex flex-wrap items-center gap-2">
             {onToggleArchived && (
               <Button
@@ -430,7 +430,7 @@ export function DataTable<T>({
                     <button
                       type="button"
                       onClick={resetColumnVisibility}
-                      className="text-[11px] text-primary hover:underline"
+                      className="text-xs text-primary hover:underline"
                     >
                       Réinitialiser
                     </button>
@@ -497,7 +497,7 @@ export function DataTable<T>({
             <SlidersHorizontal className="mr-1.5 h-3 w-3" />
             Filtres
             {filters.length > 0 && (
-              <span className="ml-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+              <span className="ml-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
                 {filters.length}
               </span>
             )}
@@ -756,7 +756,7 @@ export function DataTable<T>({
                     {visibleColumns.map((col) => (
                       <td
                         key={col.key}
-                        className={cn("px-4 py-2.5 text-[13px] whitespace-nowrap", col.className)}
+                        className={cn("px-4 py-2.5 text-sm whitespace-nowrap", col.className)}
                         style={col.minWidth ? { minWidth: col.minWidth } : undefined}
                       >
                         {col.render
@@ -775,27 +775,27 @@ export function DataTable<T>({
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground/60">
+          <p className="text-sm text-muted-foreground/60">
             {totalCount} résultat(s) — Page {page}/{totalPages}
           </p>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
             <Button
               variant="outline"
               size="icon"
-              className="h-7 w-7"
+              className="h-9 w-9 compact-btn"
               disabled={page <= 1}
               onClick={() => onPageChange(page - 1)}
             >
-              <ChevronLeft className="h-3.5 w-3.5" />
+              <ChevronLeft className="h-4 w-4" />
             </Button>
             <Button
               variant="outline"
               size="icon"
-              className="h-7 w-7"
+              className="h-9 w-9 compact-btn"
               disabled={page >= totalPages}
               onClick={() => onPageChange(page + 1)}
             >
-              <ChevronRight className="h-3.5 w-3.5" />
+              <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         </div>

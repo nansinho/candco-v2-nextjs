@@ -128,7 +128,7 @@ function CustomizePanel({
         <div className="flex items-center gap-2">
           <button
             onClick={onReset}
-            className="text-[11px] text-muted-foreground/40 hover:text-primary transition-colors"
+            className="text-xs text-muted-foreground/40 hover:text-primary transition-colors"
           >
             Réinitialiser
           </button>
@@ -282,7 +282,7 @@ export function WidgetGrid({ widgets: defaultWidgets, children, storageKey }: Wi
       {/* Toolbar */}
       <div className="flex items-center justify-end gap-2">
         {hiddenCount > 0 && !customizing && (
-          <span className="text-[11px] text-muted-foreground/30">
+          <span className="text-xs text-muted-foreground/30">
             {hiddenCount} widget{hiddenCount > 1 ? "s" : ""} masqué{hiddenCount > 1 ? "s" : ""}
           </span>
         )}

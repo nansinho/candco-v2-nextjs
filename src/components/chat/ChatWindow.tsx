@@ -203,7 +203,7 @@ export function ChatWindow({
                       <p className="whitespace-pre-wrap text-sm">{msg.contenu}</p>
                     )}
                     <p
-                      className={`mt-1 text-right text-[10px] ${
+                      className={`mt-1 text-right text-xs ${
                         isMe ? "text-white/60" : "text-[#666]"
                       }`}
                     >

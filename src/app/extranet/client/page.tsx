@@ -9,7 +9,7 @@ export default async function ExtranetClientPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">
+        <h1 className="text-2xl font-semibold tracking-tight">
           Bonjour {ctx.prenom} !
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -22,17 +22,17 @@ export default async function ExtranetClientPage() {
         <div className="rounded-lg border border-border/60 bg-card p-4">
           <Calendar className="h-4 w-4 text-muted-foreground/40" />
           <p className="mt-2 text-2xl font-semibold">--</p>
-          <p className="text-[11px] text-muted-foreground/60">Sessions en cours</p>
+          <p className="text-xs text-muted-foreground/60">Sessions en cours</p>
         </div>
         <div className="rounded-lg border border-border/60 bg-card p-4">
           <FileText className="h-4 w-4 text-muted-foreground/40" />
           <p className="mt-2 text-2xl font-semibold text-amber-400">--</p>
-          <p className="text-[11px] text-muted-foreground/60">Devis en attente</p>
+          <p className="text-xs text-muted-foreground/60">Devis en attente</p>
         </div>
         <div className="rounded-lg border border-border/60 bg-card p-4">
           <Receipt className="h-4 w-4 text-muted-foreground/40" />
           <p className="mt-2 text-2xl font-semibold text-blue-400">--</p>
-          <p className="text-[11px] text-muted-foreground/60">Factures</p>
+          <p className="text-xs text-muted-foreground/60">Factures</p>
         </div>
       </div>
 

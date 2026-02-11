@@ -162,7 +162,7 @@ export default function AdminOrgDetailPage() {
                 {org.siret && <span>SIRET : {org.siret}</span>}
                 {org.nda && <span>NDA : {org.nda}</span>}
                 {org.vitrine_active && (
-                  <Badge variant="success" className="gap-1 text-[10px]">
+                  <Badge variant="success" className="gap-1 text-xs">
                     <Globe className="h-3 w-3" />
                     Vitrine active
                   </Badge>
@@ -248,7 +248,7 @@ export default function AdminOrgDetailPage() {
                   <stat.icon className={`h-4 w-4 ${stat.color}`} />
                   <div>
                     <p className="text-lg font-bold leading-none">{stat.value}</p>
-                    <p className="text-[10px] text-muted-foreground/50">{stat.label}</p>
+                    <p className="text-xs text-muted-foreground/50">{stat.label}</p>
                   </div>
                 </div>
               ))}

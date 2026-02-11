@@ -66,27 +66,27 @@ function ApprenantWeekEvent({
       {compact ? (
         <div className="flex items-center gap-1 min-w-0">
           <div className={cn("h-1.5 w-1.5 rounded-full shrink-0", color.dot)} />
-          <span className={cn("text-[10px] font-medium truncate", color.text)}>
+          <span className={cn("text-xs font-medium truncate", color.text)}>
             {creneau.heure_debut.slice(0, 5)} {creneau.session.nom}
           </span>
         </div>
       ) : (
         <div className="flex flex-col gap-0.5 min-w-0 h-full">
           <div className="flex items-center gap-1 min-w-0">
-            <span className={cn("text-[11px] font-semibold shrink-0", color.text)}>
+            <span className={cn("text-xs font-semibold shrink-0", color.text)}>
               {creneau.heure_debut.slice(0, 5)}
             </span>
-            <span className="text-[10px] text-muted-foreground/60 shrink-0">
+            <span className="text-xs text-muted-foreground/60 shrink-0">
               — {creneau.heure_fin.slice(0, 5)}
             </span>
           </div>
-          <p className={cn("text-[11px] font-medium leading-tight truncate", color.text)}>
+          <p className={cn("text-xs font-medium leading-tight truncate", color.text)}>
             {creneau.session.nom}
           </p>
           {creneau.formateur && (
             <div className="flex items-center gap-1 min-w-0 mt-auto">
               <User className="h-2.5 w-2.5 text-muted-foreground/40 shrink-0" />
-              <span className="text-[10px] text-muted-foreground/60 truncate">
+              <span className="text-xs text-muted-foreground/60 truncate">
                 {creneau.formateur.prenom} {creneau.formateur.nom}
               </span>
             </div>
@@ -118,7 +118,7 @@ function ApprenantEventDetail({
             <p className={cn("text-sm font-semibold truncate", color.text)}>
               {creneau.session.nom}
             </p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               {creneau.session.numero_affichage}
             </p>
           </div>
@@ -134,34 +134,34 @@ function ApprenantEventDetail({
       <div className="px-4 py-3 space-y-2.5">
         <div className="flex items-center gap-2">
           <Clock className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
-          <span className="text-[13px]">
+          <span className="text-sm">
             {formatTimeRange(creneau.heure_debut, creneau.heure_fin)}
           </span>
           {creneau.duree_minutes && (
-            <span className="text-[11px] text-muted-foreground/50">
+            <span className="text-xs text-muted-foreground/50">
               ({formatDuration(creneau.duree_minutes)})
             </span>
           )}
         </div>
         <div className="flex items-center gap-2">
           <TypeIcon className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
-          <span className="text-[13px] capitalize">{typeConfig?.label ?? creneau.type}</span>
+          <span className="text-sm capitalize">{typeConfig?.label ?? creneau.type}</span>
         </div>
         {creneau.salle && (
           <div className="flex items-center gap-2">
             <MapPin className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
-            <span className="text-[13px]">{creneau.salle.nom}</span>
+            <span className="text-sm">{creneau.salle.nom}</span>
           </div>
         )}
         {creneau.formateur && (
           <div className="flex items-center gap-2">
             <User className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
-            <span className="text-[13px]">{creneau.formateur.prenom} {creneau.formateur.nom}</span>
+            <span className="text-sm">{creneau.formateur.prenom} {creneau.formateur.nom}</span>
           </div>
         )}
         {creneau.emargement_ouvert && (
           <div className="mt-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1.5">
-            <p className="text-[11px] font-medium text-emerald-400">Emargement ouvert</p>
+            <p className="text-xs font-medium text-emerald-400">Emargement ouvert</p>
           </div>
         )}
       </div>
@@ -258,7 +258,7 @@ export function ApprenantPlanningClient({ apprenantId }: ApprenantPlanningClient
               <item.icon className={cn("h-4 w-4", item.color)} />
             </div>
             <div className="min-w-0">
-              <p className="text-[11px] text-muted-foreground/60">{item.label}</p>
+              <p className="text-xs text-muted-foreground/60">{item.label}</p>
               <p className="text-sm font-semibold font-mono">{item.value}</p>
             </div>
           </div>
@@ -304,7 +304,7 @@ export function ApprenantPlanningClient({ apprenantId }: ApprenantPlanningClient
                         today && "bg-primary/5"
                       )}
                     >
-                      <span className={cn("text-[11px] uppercase tracking-wider font-medium", today ? "text-primary" : "text-muted-foreground/60")}>
+                      <span className={cn("text-xs uppercase tracking-wider font-medium", today ? "text-primary" : "text-muted-foreground/60")}>
                         {dayName}
                       </span>
                       <span className={cn("mt-0.5 flex h-7 w-7 items-center justify-center rounded-full text-sm font-semibold", today ? "bg-primary text-primary-foreground" : "text-foreground")}>
@@ -332,7 +332,7 @@ export function ApprenantPlanningClient({ apprenantId }: ApprenantPlanningClient
                   {HOURS.map((hour) => (
                     <div
                       key={hour}
-                      className="absolute right-2 -translate-y-1/2 text-[10px] text-muted-foreground/50 font-mono"
+                      className="absolute right-2 -translate-y-1/2 text-xs text-muted-foreground/50 font-mono"
                       style={{ top: (hour - HOUR_START) * HOUR_HEIGHT_PX }}
                     >
                       {String(hour).padStart(2, "0")}:00

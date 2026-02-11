@@ -98,18 +98,18 @@ export function TicketsWidget({ stats }: { stats: TicketStatsData }) {
                 className="flex items-center gap-2.5 rounded-lg px-2 py-2 hover:bg-muted/20 transition-colors group"
               >
                 <div className={`h-1.5 w-1.5 rounded-full ${dot} shrink-0`} />
-                <span className="text-[13px] truncate flex-1 group-hover:text-primary transition-colors">
+                <span className="text-sm truncate flex-1 group-hover:text-primary transition-colors">
                   {ticket.titre}
                 </span>
                 {ticket.priorite === "urgente" && (
-                  <span className="text-[10px] text-red-400 font-medium shrink-0">Urgent</span>
+                  <span className="text-xs text-red-400 font-medium shrink-0">Urgent</span>
                 )}
               </Link>
             );
           })}
           <Link
             href="/tickets"
-            className="flex items-center justify-center gap-1 text-[11px] text-muted-foreground/30 hover:text-primary transition-colors pt-1"
+            className="flex items-center justify-center gap-1 text-xs text-muted-foreground/30 hover:text-primary transition-colors pt-1"
           >
             Tout voir <ArrowRight className="h-3 w-3" />
           </Link>

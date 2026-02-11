@@ -100,7 +100,7 @@ export function CalendarWeekView({ currentDate, creneaux, onEditCreneau, onDelet
               >
                 <span
                   className={cn(
-                    "text-[11px] uppercase tracking-wider font-medium",
+                    "text-xs uppercase tracking-wider font-medium",
                     today ? "text-primary" : "text-muted-foreground/60"
                   )}
                 >
@@ -151,7 +151,7 @@ export function CalendarWeekView({ currentDate, creneaux, onEditCreneau, onDelet
             {HOURS.map((hour) => (
               <div
                 key={hour}
-                className="absolute right-2 -translate-y-1/2 text-[10px] text-muted-foreground/50 font-mono"
+                className="absolute right-2 -translate-y-1/2 text-xs text-muted-foreground/50 font-mono"
                 style={{ top: (hour - HOUR_START) * HOUR_HEIGHT_PX }}
               >
                 {String(hour).padStart(2, "0")}:00

@@ -93,7 +93,7 @@ const columns: Column<SessionRow>[] = [
         <div className="min-w-0">
           <span className="block truncate font-medium">{item.nom}</span>
           {item.produits_formation?.intitule && (
-            <span className="block truncate text-[11px] text-muted-foreground/60">
+            <span className="block truncate text-xs text-muted-foreground/60">
               {item.produits_formation.intitule}
             </span>
           )}
@@ -110,7 +110,7 @@ const columns: Column<SessionRow>[] = [
       const debut = formatDate(item.date_debut);
       const fin = item.date_fin ? formatDate(item.date_fin) : "";
       return (
-        <span className="text-[13px] text-muted-foreground">
+        <span className="text-sm text-muted-foreground">
           {debut}{fin ? ` → ${fin}` : ""}
         </span>
       );
@@ -123,7 +123,7 @@ const columns: Column<SessionRow>[] = [
     render: (item) => {
       const count = item.inscriptions?.length ?? 0;
       return (
-        <span className="flex items-center gap-1.5 text-[13px]">
+        <span className="flex items-center gap-1.5 text-sm">
           <Users className="h-3 w-3 text-muted-foreground/50" />
           {count}{item.places_max ? `/${item.places_max}` : ""}
         </span>
@@ -139,7 +139,7 @@ const columns: Column<SessionRow>[] = [
         (sum, c) => sum + (Number(c.budget) || 0), 0
       );
       return total > 0
-        ? <span className="font-mono text-[13px]">{formatCurrency(total)}</span>
+        ? <span className="font-mono text-sm">{formatCurrency(total)}</span>
         : <span className="text-muted-foreground/40">--</span>;
     },
     exportValue: (item) => {
@@ -158,7 +158,7 @@ const columns: Column<SessionRow>[] = [
         .map((c) => c.entreprises?.nom)
         .filter(Boolean);
       if (noms.length === 0) return <span className="text-muted-foreground/40">--</span>;
-      return <span className="text-[13px] truncate max-w-[180px]">{noms.join(", ")}</span>;
+      return <span className="text-sm truncate max-w-[180px]">{noms.join(", ")}</span>;
     },
     exportValue: (item) =>
       (item.session_commanditaires ?? []).map((c) => c.entreprises?.nom).filter(Boolean).join(", "),
@@ -349,7 +349,7 @@ function CreateSessionForm({
       )}
 
       <div className="space-y-2">
-        <Label htmlFor="nom" className="text-[13px]">
+        <Label htmlFor="nom" className="text-sm">
           Nom de la session <span className="text-destructive">*</span>
         </Label>
         <Input
@@ -357,7 +357,7 @@ function CreateSessionForm({
           value={form.nom}
           onChange={(e) => updateField("nom", e.target.value)}
           placeholder="Ex: Formation React avancé - Janvier 2026"
-          className="h-9 text-[13px] border-border/60"
+          className="h-9 text-sm border-border/60"
         />
         {errors.nom && (
           <p className="text-xs text-destructive">{errors.nom[0]}</p>
@@ -366,7 +366,7 @@ function CreateSessionForm({
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label htmlFor="date_debut" className="text-[13px]">
+          <Label htmlFor="date_debut" className="text-sm">
             Date de début
           </Label>
           <DatePicker
@@ -376,7 +376,7 @@ function CreateSessionForm({
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="date_fin" className="text-[13px]">
+          <Label htmlFor="date_fin" className="text-sm">
             Date de fin
           </Label>
           <DatePicker
@@ -388,14 +388,14 @@ function CreateSessionForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="lieu_type" className="text-[13px]">
+        <Label htmlFor="lieu_type" className="text-sm">
           Type de lieu
         </Label>
         <select
           id="lieu_type"
           value={form.lieu_type ?? ""}
           onChange={(e) => updateField("lieu_type", e.target.value)}
-          className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
+          className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
         >
           <option value="">-- Sélectionner --</option>
           <option value="presentiel">Présentiel</option>

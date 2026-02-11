@@ -51,27 +51,27 @@ export function WeekEvent({ creneau, style, compact = false, onClick }: WeekEven
       {compact ? (
         <div className="flex items-center gap-1 min-w-0">
           <div className={cn("h-1.5 w-1.5 rounded-full shrink-0", color.dot)} />
-          <span className={cn("text-[10px] font-medium truncate", color.text)}>
+          <span className={cn("text-xs font-medium truncate", color.text)}>
             {creneau.heure_debut.slice(0, 5)} {creneau.session.nom}
           </span>
         </div>
       ) : (
         <div className="flex flex-col gap-0.5 min-w-0 h-full">
           <div className="flex items-center gap-1 min-w-0">
-            <span className={cn("text-[11px] font-semibold shrink-0", color.text)}>
+            <span className={cn("text-xs font-semibold shrink-0", color.text)}>
               {creneau.heure_debut.slice(0, 5)}
             </span>
-            <span className="text-[10px] text-muted-foreground/60 shrink-0">
+            <span className="text-xs text-muted-foreground/60 shrink-0">
               — {creneau.heure_fin.slice(0, 5)}
             </span>
           </div>
-          <p className={cn("text-[11px] font-medium leading-tight truncate", color.text)}>
+          <p className={cn("text-xs font-medium leading-tight truncate", color.text)}>
             {creneau.session.nom}
           </p>
           {!compact && creneau.formateur && (
             <div className="flex items-center gap-1 min-w-0 mt-auto">
               <User className="h-2.5 w-2.5 text-muted-foreground/40 shrink-0" />
-              <span className="text-[10px] text-muted-foreground/60 truncate">
+              <span className="text-xs text-muted-foreground/60 truncate">
                 {creneau.formateur.prenom} {creneau.formateur.nom}
               </span>
             </div>
@@ -104,7 +104,7 @@ export function MonthEvent({ creneau, onClick }: MonthEventProps) {
       )}
     >
       <div className={cn("h-1.5 w-1.5 rounded-full shrink-0", color.dot)} />
-      <span className={cn("text-[10px] font-medium truncate", color.text)}>
+      <span className={cn("text-xs font-medium truncate", color.text)}>
         {creneau.heure_debut.slice(0, 5)} {creneau.session.nom}
       </span>
     </button>
@@ -126,7 +126,7 @@ export function EventDetail({ creneau, onClose, onEdit, onDelete }: EventDetailP
   const typeConfig = TYPE_CONFIG[creneau.type];
 
   return (
-    <div className="w-72 rounded-xl border border-border bg-popover shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+    <div className="w-[calc(100vw-2rem)] sm:w-72 max-w-xs rounded-xl border border-border bg-popover shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
       {/* Header */}
       <div className={cn("px-4 py-3 border-b border-border/40", color.bg)}>
         <div className="flex items-start justify-between gap-2">
@@ -134,7 +134,7 @@ export function EventDetail({ creneau, onClose, onEdit, onDelete }: EventDetailP
             <p className={cn("text-sm font-semibold truncate", color.text)}>
               {creneau.session.nom}
             </p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               {creneau.session.numero_affichage}
             </p>
           </div>
@@ -153,11 +153,11 @@ export function EventDetail({ creneau, onClose, onEdit, onDelete }: EventDetailP
         {/* Time */}
         <div className="flex items-center gap-2">
           <Clock className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
-          <span className="text-[13px]">
+          <span className="text-sm">
             {formatTimeRange(creneau.heure_debut, creneau.heure_fin)}
           </span>
           {creneau.duree_minutes && (
-            <span className="text-[11px] text-muted-foreground/50">
+            <span className="text-xs text-muted-foreground/50">
               ({formatDuration(creneau.duree_minutes)})
             </span>
           )}
@@ -166,14 +166,14 @@ export function EventDetail({ creneau, onClose, onEdit, onDelete }: EventDetailP
         {/* Type */}
         <div className="flex items-center gap-2">
           <TypeIcon className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
-          <span className="text-[13px] capitalize">{typeConfig?.label ?? creneau.type}</span>
+          <span className="text-sm capitalize">{typeConfig?.label ?? creneau.type}</span>
         </div>
 
         {/* Formateur */}
         {creneau.formateur && (
           <div className="flex items-center gap-2">
             <User className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
-            <span className="text-[13px]">
+            <span className="text-sm">
               {creneau.formateur.prenom} {creneau.formateur.nom}
             </span>
           </div>
@@ -183,7 +183,7 @@ export function EventDetail({ creneau, onClose, onEdit, onDelete }: EventDetailP
         {creneau.salle && (
           <div className="flex items-center gap-2">
             <MapPin className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
-            <span className="text-[13px]">{creneau.salle.nom}</span>
+            <span className="text-sm">{creneau.salle.nom}</span>
           </div>
         )}
       </div>
@@ -193,7 +193,7 @@ export function EventDetail({ creneau, onClose, onEdit, onDelete }: EventDetailP
         <Link
           href={`/sessions/${creneau.session_id}`}
           className={cn(
-            "text-[12px] font-medium hover:underline underline-offset-2",
+            "text-xs font-medium hover:underline underline-offset-2",
             color.text
           )}
         >

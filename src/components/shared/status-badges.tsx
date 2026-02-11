@@ -56,7 +56,7 @@ export function OpportuniteStatusBadge({
     className: "bg-muted/50 text-muted-foreground/60 border-border/40",
   };
   return (
-    <Badge className={`font-normal border text-[11px] ${config.className} ${className}`}>
+    <Badge className={`font-normal border text-xs ${config.className} ${className}`}>
       {config.label}
     </Badge>
   );
@@ -111,7 +111,7 @@ export function DevisStatusBadge({
     className: "bg-muted/50 text-muted-foreground/60 border-border/40",
   };
   return (
-    <Badge className={`font-normal border text-[11px] ${config.className} ${className}`}>
+    <Badge className={`font-normal border text-xs ${config.className} ${className}`}>
       {config.label}
     </Badge>
   );
@@ -166,7 +166,7 @@ export function FactureStatusBadge({
     className: "bg-muted/50 text-muted-foreground/60 border-border/40",
   };
   return (
-    <Badge className={`font-normal border text-[11px] ${config.className} ${className}`}>
+    <Badge className={`font-normal border text-xs ${config.className} ${className}`}>
       {config.label}
     </Badge>
   );
@@ -211,7 +211,7 @@ export function AvoirStatusBadge({
     className: "bg-muted/50 text-muted-foreground/60 border-border/40",
   };
   return (
-    <Badge className={`font-normal border text-[11px] ${config.className} ${className}`}>
+    <Badge className={`font-normal border text-xs ${config.className} ${className}`}>
       {config.label}
     </Badge>
   );

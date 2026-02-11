@@ -47,13 +47,13 @@ export function Header({ aiCredits, userInitial = "N", userName, userEmail }: He
   }
 
   return (
-    <header className="fixed top-0 right-0 left-0 lg:left-[240px] z-30 flex h-14 items-center justify-between border-b border-border bg-background/80 px-4 backdrop-blur-md sm:px-6">
+    <header className="fixed top-0 right-0 left-0 lg:left-[240px] z-30 flex h-14 items-center justify-between border-b border-border bg-background/80 px-3 backdrop-blur-md sm:px-6">
       <div className="flex items-center gap-2">
         {/* Hamburger menu - mobile only */}
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 text-muted-foreground/60 hover:text-foreground lg:hidden"
+          className="h-10 w-10 text-muted-foreground/60 hover:text-foreground lg:hidden compact-btn"
           onClick={() => setMobileOpen(true)}
         >
           <Menu className="h-5 w-5" />
@@ -63,10 +63,10 @@ export function Header({ aiCredits, userInitial = "N", userName, userEmail }: He
       </div>
 
       <div className="flex items-center gap-1">
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground/60 hover:text-foreground">
+        <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground/60 hover:text-foreground compact-btn">
           <Search className="h-4 w-4" />
         </Button>
-        <Button variant="ghost" size="icon" className="relative h-8 w-8 text-muted-foreground/60 hover:text-foreground">
+        <Button variant="ghost" size="icon" className="relative h-10 w-10 text-muted-foreground/60 hover:text-foreground compact-btn">
           <Bell className="h-4 w-4" />
           <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-primary" />
         </Button>
@@ -93,7 +93,7 @@ export function Header({ aiCredits, userInitial = "N", userName, userEmail }: He
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="ml-1 flex h-8 w-8 items-center justify-center rounded-full bg-primary/15 text-xs font-medium text-primary hover:bg-primary/25 transition-colors cursor-pointer"
+              className="ml-1 flex h-9 w-9 items-center justify-center rounded-full bg-primary/15 text-sm font-medium text-primary hover:bg-primary/25 transition-colors cursor-pointer"
             >
               {userInitial}
             </button>

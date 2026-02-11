@@ -236,17 +236,17 @@ export default function FormateurDetailPage() {
           </Button>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-semibold tracking-tight">
+              <h1 className="text-2xl font-semibold tracking-tight">
                 {formateur.prenom} {formateur.nom}
               </h1>
-              <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[11px] font-mono">
+              <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-xs font-mono">
                 {formateur.numero_affichage}
               </Badge>
               <Badge
                 className={
                   formateur.statut_bpf === "interne"
-                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[11px]"
-                    : "bg-blue-500/10 text-blue-400 border-blue-500/20 text-[11px]"
+                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-xs"
+                    : "bg-blue-500/10 text-blue-400 border-blue-500/20 text-xs"
                 }
               >
                 {formateur.statut_bpf === "interne" ? "Interne" : "Externe"}
@@ -341,13 +341,13 @@ export default function FormateurDetailPage() {
               <h3 className="mb-4 text-sm font-semibold">Identité</h3>
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-[13px]">Civilité</Label>
+                  <Label className="text-sm">Civilité</Label>
                   <select
                     value={form.civilite ?? ""}
                     onChange={(e) =>
                       setForm((prev) => ({ ...prev, civilite: e.target.value }))
                     }
-                    className="h-9 w-full rounded-md border border-border/60 bg-muted px-3 py-1 text-[13px] text-foreground"
+                    className="h-9 w-full rounded-md border border-border/60 bg-muted px-3 py-1 text-sm text-foreground"
                   >
                     <option value="">--</option>
                     <option value="Monsieur">Monsieur</option>
@@ -355,7 +355,7 @@ export default function FormateurDetailPage() {
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-[13px]">
+                  <Label className="text-sm">
                     Prénom <span className="text-destructive">*</span>
                   </Label>
                   <Input
@@ -363,14 +363,14 @@ export default function FormateurDetailPage() {
                     onChange={(e) =>
                       setForm((prev) => ({ ...prev, prenom: e.target.value }))
                     }
-                    className="h-9 text-[13px] border-border/60"
+                    className="h-9 text-sm border-border/60"
                   />
                   {formErrors.prenom && (
                     <p className="text-xs text-destructive">{formErrors.prenom[0]}</p>
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-[13px]">
+                  <Label className="text-sm">
                     Nom <span className="text-destructive">*</span>
                   </Label>
                   <Input
@@ -378,7 +378,7 @@ export default function FormateurDetailPage() {
                     onChange={(e) =>
                       setForm((prev) => ({ ...prev, nom: e.target.value }))
                     }
-                    className="h-9 text-[13px] border-border/60"
+                    className="h-9 text-sm border-border/60"
                   />
                   {formErrors.nom && (
                     <p className="text-xs text-destructive">{formErrors.nom[0]}</p>
@@ -392,7 +392,7 @@ export default function FormateurDetailPage() {
               <h3 className="mb-4 text-sm font-semibold">Contact</h3>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label className="text-[13px]">Email</Label>
+                  <Label className="text-sm">Email</Label>
                   <Input
                     type="email"
                     value={form.email ?? ""}
@@ -400,21 +400,21 @@ export default function FormateurDetailPage() {
                       setForm((prev) => ({ ...prev, email: e.target.value }))
                     }
                     placeholder="jean@exemple.fr"
-                    className="h-9 text-[13px] border-border/60"
+                    className="h-9 text-sm border-border/60"
                   />
                   {formErrors.email && (
                     <p className="text-xs text-destructive">{formErrors.email[0]}</p>
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-[13px]">Téléphone</Label>
+                  <Label className="text-sm">Téléphone</Label>
                   <Input
                     value={form.telephone ?? ""}
                     onChange={(e) =>
                       setForm((prev) => ({ ...prev, telephone: e.target.value }))
                     }
                     placeholder="06 12 34 56 78"
-                    className="h-9 text-[13px] border-border/60"
+                    className="h-9 text-sm border-border/60"
                   />
                 </div>
               </div>
@@ -425,7 +425,7 @@ export default function FormateurDetailPage() {
               <h3 className="mb-4 text-sm font-semibold">Adresse</h3>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="text-[13px]">Rue</Label>
+                  <Label className="text-sm">Rue</Label>
                   <AddressAutocomplete
                     value={form.adresse_rue ?? ""}
                     onChange={(val) => setForm((prev) => ({ ...prev, adresse_rue: val }))}
@@ -434,37 +434,37 @@ export default function FormateurDetailPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-[13px]">Complément</Label>
+                  <Label className="text-sm">Complément</Label>
                   <Input
                     value={form.adresse_complement ?? ""}
                     onChange={(e) =>
                       setForm((prev) => ({ ...prev, adresse_complement: e.target.value }))
                     }
                     placeholder="Bâtiment A, 2e étage"
-                    className="h-9 text-[13px] border-border/60"
+                    className="h-9 text-sm border-border/60"
                   />
                 </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label className="text-[13px]">Code postal</Label>
+                    <Label className="text-sm">Code postal</Label>
                     <Input
                       value={form.adresse_cp ?? ""}
                       onChange={(e) =>
                         setForm((prev) => ({ ...prev, adresse_cp: e.target.value }))
                       }
                       placeholder="75001"
-                      className="h-9 text-[13px] border-border/60"
+                      className="h-9 text-sm border-border/60"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-[13px]">Ville</Label>
+                    <Label className="text-sm">Ville</Label>
                     <Input
                       value={form.adresse_ville ?? ""}
                       onChange={(e) =>
                         setForm((prev) => ({ ...prev, adresse_ville: e.target.value }))
                       }
                       placeholder="Paris"
-                      className="h-9 text-[13px] border-border/60"
+                      className="h-9 text-sm border-border/60"
                     />
                   </div>
                 </div>
@@ -476,7 +476,7 @@ export default function FormateurDetailPage() {
               <h3 className="mb-4 text-sm font-semibold">Informations professionnelles</h3>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="text-[13px]">Recherche INSEE (SIRET / Nom)</Label>
+                  <Label className="text-sm">Recherche INSEE (SIRET / Nom)</Label>
                   <SiretSearch
                     onSelect={(r) =>
                       setForm((prev) => ({
@@ -491,7 +491,7 @@ export default function FormateurDetailPage() {
                 </div>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-[13px]">Statut BPF</Label>
+                    <Label className="text-sm">Statut BPF</Label>
                     <select
                       value={form.statut_bpf ?? "externe"}
                       onChange={(e) =>
@@ -500,32 +500,32 @@ export default function FormateurDetailPage() {
                           statut_bpf: e.target.value as "interne" | "externe",
                         }))
                       }
-                      className="h-9 w-full rounded-md border border-border/60 bg-muted px-3 py-1 text-[13px] text-foreground"
+                      className="h-9 w-full rounded-md border border-border/60 bg-muted px-3 py-1 text-sm text-foreground"
                     >
                       <option value="externe">Externe (sous-traitant)</option>
                       <option value="interne">Interne (salarié)</option>
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-[13px]">NDA (sous-traitant)</Label>
+                    <Label className="text-sm">NDA (sous-traitant)</Label>
                     <Input
                       value={form.nda ?? ""}
                       onChange={(e) =>
                         setForm((prev) => ({ ...prev, nda: e.target.value }))
                       }
                       placeholder="11755555555"
-                      className="h-9 text-[13px] border-border/60"
+                      className="h-9 text-sm border-border/60"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-[13px]">SIRET</Label>
+                    <Label className="text-sm">SIRET</Label>
                     <Input
                       value={form.siret ?? ""}
                       onChange={(e) =>
                         setForm((prev) => ({ ...prev, siret: e.target.value }))
                       }
                       placeholder="123 456 789 00012"
-                      className="h-9 text-[13px] border-border/60"
+                      className="h-9 text-sm border-border/60"
                     />
                   </div>
                 </div>
@@ -541,7 +541,7 @@ export default function FormateurDetailPage() {
               <h3 className="mb-4 text-sm font-semibold">Tarification</h3>
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-[13px]">Tarif journalier HT</Label>
+                  <Label className="text-sm">Tarif journalier HT</Label>
                   <div className="relative">
                     <Input
                       type="number"
@@ -557,7 +557,7 @@ export default function FormateurDetailPage() {
                         }))
                       }
                       placeholder="300.00"
-                      className="h-9 text-[13px] border-border/60 pr-12"
+                      className="h-9 text-sm border-border/60 pr-12"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                       EUR
@@ -565,7 +565,7 @@ export default function FormateurDetailPage() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-[13px]">Taux TVA</Label>
+                  <Label className="text-sm">Taux TVA</Label>
                   <div className="relative">
                     <Input
                       type="number"
@@ -582,7 +582,7 @@ export default function FormateurDetailPage() {
                         }))
                       }
                       placeholder="0.00"
-                      className="h-9 text-[13px] border-border/60 pr-8"
+                      className="h-9 text-sm border-border/60 pr-8"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                       %
@@ -590,7 +590,7 @@ export default function FormateurDetailPage() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-[13px]">Heures par jour</Label>
+                  <Label className="text-sm">Heures par jour</Label>
                   <div className="relative">
                     <Input
                       type="number"
@@ -607,7 +607,7 @@ export default function FormateurDetailPage() {
                         }))
                       }
                       placeholder="7"
-                      className="h-9 text-[13px] border-border/60 pr-8"
+                      className="h-9 text-sm border-border/60 pr-8"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                       h
@@ -622,7 +622,7 @@ export default function FormateurDetailPage() {
               <h3 className="mb-4 text-sm font-semibold">Récapitulatif</h3>
               <div className="grid grid-cols-3 gap-4">
                 <div className="rounded-lg border border-border/40 bg-muted/20 p-4">
-                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground/60 mb-1">
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground/60 mb-1">
                     Tarif journalier HT
                   </p>
                   <p className="text-lg font-semibold">
@@ -632,18 +632,18 @@ export default function FormateurDetailPage() {
                   </p>
                 </div>
                 <div className="rounded-lg border border-border/40 bg-muted/20 p-4">
-                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground/60 mb-1">
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground/60 mb-1">
                     Tarif horaire HT
                   </p>
                   <p className="text-lg font-semibold">
                     {tarifHoraire != null ? formatCurrency(tarifHoraire) : "--"}
                   </p>
-                  <p className="text-[11px] text-muted-foreground/50 mt-0.5">
+                  <p className="text-xs text-muted-foreground/50 mt-0.5">
                     = tarif jour / {form.heures_par_jour ?? 7}h
                   </p>
                 </div>
                 <div className="rounded-lg border border-border/40 bg-muted/20 p-4">
-                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground/60 mb-1">
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground/60 mb-1">
                     Tarif journalier TTC
                   </p>
                   <p className="text-lg font-semibold">
@@ -654,7 +654,7 @@ export default function FormateurDetailPage() {
                         )
                       : "--"}
                   </p>
-                  <p className="text-[11px] text-muted-foreground/50 mt-0.5">
+                  <p className="text-xs text-muted-foreground/50 mt-0.5">
                     TVA : {form.taux_tva ?? 0}%
                   </p>
                 </div>
@@ -691,7 +691,7 @@ export default function FormateurDetailPage() {
                   <select
                     value={selectedSessionId}
                     onChange={(e) => setSelectedSessionId(e.target.value)}
-                    className="h-9 flex-1 rounded-md border border-border/60 bg-muted px-3 py-1 text-[13px] text-foreground"
+                    className="h-9 flex-1 rounded-md border border-border/60 bg-muted px-3 py-1 text-sm text-foreground"
                   >
                     <option value="">Selectionner une session...</option>
                     {sessions.map((s) => (
@@ -740,19 +740,19 @@ export default function FormateurDetailPage() {
                         {formatDate(sig.created_at)}
                       </div>
                       {sig.documenso_status === "pending" && (
-                        <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-400">
+                        <Badge variant="outline" className="text-xs border-amber-500/30 text-amber-400">
                           <Clock className="mr-1 h-3 w-3" />
                           En attente
                         </Badge>
                       )}
                       {sig.documenso_status === "completed" && (
-                        <Badge variant="outline" className="text-[10px] border-emerald-500/30 text-emerald-400">
+                        <Badge variant="outline" className="text-xs border-emerald-500/30 text-emerald-400">
                           <CheckCircle2 className="mr-1 h-3 w-3" />
                           Signe {sig.signed_at ? `le ${formatDate(sig.signed_at)}` : ""}
                         </Badge>
                       )}
                       {sig.documenso_status === "rejected" && (
-                        <Badge variant="outline" className="text-[10px] border-red-500/30 text-red-400">
+                        <Badge variant="outline" className="text-xs border-red-500/30 text-red-400">
                           <XCircle className="mr-1 h-3 w-3" />
                           Refuse
                         </Badge>
@@ -779,13 +779,13 @@ export default function FormateurDetailPage() {
                         <FileText className="h-4 w-4 text-muted-foreground/50" />
                         <div>
                           <p className="text-xs font-medium">{doc.nom}</p>
-                          <p className="text-[10px] text-muted-foreground">
+                          <p className="text-xs text-muted-foreground">
                             {doc.categorie} — {formatDate(doc.created_at)}
                           </p>
                         </div>
                       </div>
                       <a href={doc.fichier_url} target="_blank" rel="noopener noreferrer">
-                        <Button variant="ghost" size="sm" className="h-7 text-[10px]">
+                        <Button variant="ghost" size="sm" className="h-7 text-xs">
                           Telecharger
                         </Button>
                       </a>

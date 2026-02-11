@@ -155,7 +155,7 @@ export function HistoriqueTimeline({
             <Filter className="mr-1.5 h-3 w-3" />
             Filtres
             {activeFilterCount > 0 && (
-              <Badge className="ml-1.5 h-4 min-w-4 rounded-full bg-primary px-1 text-[10px] text-primary-foreground">
+              <Badge className="ml-1.5 h-4 min-w-4 rounded-full bg-primary px-1 text-xs text-primary-foreground">
                 {activeFilterCount}
               </Badge>
             )}
@@ -176,7 +176,7 @@ export function HistoriqueTimeline({
                   setFilterModule(e.target.value);
                   setFilterAction("");
                 }}
-                className="h-9 w-full rounded-md border border-border/60 bg-muted px-3 text-[13px] text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                className="h-9 w-full rounded-md border border-border/60 bg-muted px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
               >
                 <option value="">Tous les modules</option>
                 {Object.entries(MODULE_CONFIG).map(([key, config]) => (
@@ -193,7 +193,7 @@ export function HistoriqueTimeline({
               <select
                 value={filterAction}
                 onChange={(e) => setFilterAction(e.target.value)}
-                className="h-9 w-full rounded-md border border-border/60 bg-muted px-3 text-[13px] text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                className="h-9 w-full rounded-md border border-border/60 bg-muted px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
               >
                 <option value="">Toutes les actions</option>
                 {Object.entries(ACTION_LABELS).map(([key, label]) => (
@@ -210,7 +210,7 @@ export function HistoriqueTimeline({
               <select
                 value={filterOrigine}
                 onChange={(e) => setFilterOrigine(e.target.value)}
-                className="h-9 w-full rounded-md border border-border/60 bg-muted px-3 text-[13px] text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                className="h-9 w-full rounded-md border border-border/60 bg-muted px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
               >
                 <option value="">Toutes les origines</option>
                 {Object.entries(ORIGINE_LABELS).map(([key, config]) => (
@@ -307,24 +307,24 @@ export function HistoriqueTimeline({
                       {/* Module badge + action + date */}
                       <div className="flex flex-wrap items-center gap-1.5">
                         <Badge
-                          className={`${moduleConf.bgColor} ${moduleConf.color} border-transparent text-[10px] px-1.5 py-0`}
+                          className={`${moduleConf.bgColor} ${moduleConf.color} border-transparent text-xs px-1.5 py-0`}
                         >
                           {getModuleIcon(event.module)}
                           <span className="ml-1">{moduleConf.label}</span>
                         </Badge>
-                        <span className="text-[11px] text-muted-foreground">
+                        <span className="text-xs text-muted-foreground">
                           {ACTION_LABELS[event.action] || event.action}
                         </span>
-                        <span className="text-[10px] text-muted-foreground/50">
+                        <span className="text-xs text-muted-foreground/50">
                           &middot;
                         </span>
-                        <span className="text-[11px] text-muted-foreground/70">
+                        <span className="text-xs text-muted-foreground/70">
                           {formatDateTime(event.date)}
                         </span>
                       </div>
 
                       {/* Description */}
-                      <p className="mt-1 text-[13px] leading-snug text-foreground/90">
+                      <p className="mt-1 text-sm leading-snug text-foreground/90">
                         {event.description}
                       </p>
 
@@ -334,7 +334,7 @@ export function HistoriqueTimeline({
                           <button
                             type="button"
                             onClick={() => hasDetailedChanges && toggleMetadata(event.id)}
-                            className={`text-[11px] text-muted-foreground/70 ${hasDetailedChanges ? "cursor-pointer hover:text-muted-foreground" : ""}`}
+                            className={`text-xs text-muted-foreground/70 ${hasDetailedChanges ? "cursor-pointer hover:text-muted-foreground" : ""}`}
                           >
                             Champs modifiés : {changedFields}
                             {hasDetailedChanges && (
@@ -344,7 +344,7 @@ export function HistoriqueTimeline({
 
                           {/* Expanded changes detail */}
                           {isExpanded && hasDetailedChanges && (
-                            <div className="mt-1.5 rounded border border-border/30 bg-muted/30 p-2 text-[11px]">
+                            <div className="mt-1.5 rounded border border-border/30 bg-muted/30 p-2 text-xs">
                               {((event.metadata?.changed_fields as string[]) || []).map((field) => {
                                 const key = Object.keys(event.metadata?.old_values as Record<string, unknown> || {}).find(
                                   (k) => {
@@ -371,7 +371,7 @@ export function HistoriqueTimeline({
                       {/* Meta row */}
                       <div className="mt-1.5 flex flex-wrap items-center gap-2">
                         {event.user_nom && (
-                          <span className="text-[11px] text-muted-foreground">
+                          <span className="text-xs text-muted-foreground">
                             Par {event.user_nom}
                             {event.user_role && (
                               <span className="text-muted-foreground/50"> ({ROLE_LABELS[event.user_role] || event.user_role})</span>
@@ -379,12 +379,12 @@ export function HistoriqueTimeline({
                           </span>
                         )}
                         {event.agence_nom && (
-                          <Badge className="border-transparent bg-gray-500/10 text-gray-400 text-[10px] px-1.5 py-0">
+                          <Badge className="border-transparent bg-gray-500/10 text-gray-400 text-xs px-1.5 py-0">
                             <Building2 className="mr-0.5 h-2.5 w-2.5" />
                             {event.agence_nom}
                           </Badge>
                         )}
-                        <Badge className={`${origineConf.class} text-[10px] px-1.5 py-0`}>
+                        <Badge className={`${origineConf.class} text-xs px-1.5 py-0`}>
                           {origineConf.label}
                         </Badge>
                       </div>

@@ -122,7 +122,7 @@ const columns: Column<ContactClient>[] = [
       return (
         <div className="flex items-center gap-1.5">
           <Building2 className="h-3 w-3 text-muted-foreground/50 shrink-0" />
-          <span className="text-[13px] truncate max-w-[200px]">{entreprises.join(", ")}</span>
+          <span className="text-sm truncate max-w-[200px]">{entreprises.join(", ")}</span>
         </div>
       );
     },
@@ -341,14 +341,14 @@ function CreateContactForm({
 
       {/* Civilité */}
       <div className="space-y-2">
-        <Label htmlFor="civilite" className="text-[13px]">
+        <Label htmlFor="civilite" className="text-sm">
           Civilité
         </Label>
         <select
           id="civilite"
           value={form.civilite ?? ""}
           onChange={(e) => updateField("civilite", e.target.value)}
-          className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
+          className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
         >
           <option value="">-- Sélectionner --</option>
           <option value="Monsieur">Monsieur</option>
@@ -359,7 +359,7 @@ function CreateContactForm({
       {/* Prénom / Nom */}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label htmlFor="prenom" className="text-[13px]">
+          <Label htmlFor="prenom" className="text-sm">
             Prénom <span className="text-destructive">*</span>
           </Label>
           <Input
@@ -367,14 +367,14 @@ function CreateContactForm({
             value={form.prenom}
             onChange={(e) => updateField("prenom", e.target.value)}
             placeholder="Jean"
-            className="h-9 text-[13px] border-border/60"
+            className="h-9 text-sm border-border/60"
           />
           {errors.prenom && (
             <p className="text-xs text-destructive">{errors.prenom[0]}</p>
           )}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="nom" className="text-[13px]">
+          <Label htmlFor="nom" className="text-sm">
             Nom <span className="text-destructive">*</span>
           </Label>
           <Input
@@ -382,7 +382,7 @@ function CreateContactForm({
             value={form.nom}
             onChange={(e) => updateField("nom", e.target.value)}
             placeholder="Dupont"
-            className="h-9 text-[13px] border-border/60"
+            className="h-9 text-sm border-border/60"
           />
           {errors.nom && (
             <p className="text-xs text-destructive">{errors.nom[0]}</p>
@@ -392,7 +392,7 @@ function CreateContactForm({
 
       {/* Email */}
       <div className="space-y-2">
-        <Label htmlFor="email" className="text-[13px]">
+        <Label htmlFor="email" className="text-sm">
           Email
         </Label>
         <Input
@@ -401,7 +401,7 @@ function CreateContactForm({
           value={form.email ?? ""}
           onChange={(e) => updateField("email", e.target.value)}
           placeholder="jean.dupont@entreprise.fr"
-          className="h-9 text-[13px] border-border/60"
+          className="h-9 text-sm border-border/60"
         />
         {errors.email && (
           <p className="text-xs text-destructive">{errors.email[0]}</p>
@@ -411,7 +411,7 @@ function CreateContactForm({
       {/* Téléphone / Fonction */}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label htmlFor="telephone" className="text-[13px]">
+          <Label htmlFor="telephone" className="text-sm">
             Téléphone
           </Label>
           <Input
@@ -419,11 +419,11 @@ function CreateContactForm({
             value={form.telephone ?? ""}
             onChange={(e) => updateField("telephone", e.target.value)}
             placeholder="06 12 34 56 78"
-            className="h-9 text-[13px] border-border/60"
+            className="h-9 text-sm border-border/60"
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="fonction" className="text-[13px]">
+          <Label htmlFor="fonction" className="text-sm">
             Fonction
           </Label>
           <Input
@@ -431,7 +431,7 @@ function CreateContactForm({
             value={form.fonction ?? ""}
             onChange={(e) => updateField("fonction", e.target.value)}
             placeholder="Responsable formation"
-            className="h-9 text-[13px] border-border/60"
+            className="h-9 text-sm border-border/60"
           />
         </div>
       </div>

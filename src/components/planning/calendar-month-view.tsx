@@ -47,10 +47,16 @@ export function CalendarMonthView({ currentDate, creneaux, onDayClick, onEditCre
           <div
             className="fixed z-40"
             style={{
-              top: popoverAnchor.getBoundingClientRect().bottom + 4,
-              left: Math.min(
-                popoverAnchor.getBoundingClientRect().left,
-                window.innerWidth - 300
+              top: Math.min(
+                popoverAnchor.getBoundingClientRect().bottom + 4,
+                window.innerHeight - 300
+              ),
+              left: Math.max(
+                16,
+                Math.min(
+                  popoverAnchor.getBoundingClientRect().left,
+                  window.innerWidth - 320
+                )
               ),
             }}
           >
@@ -69,7 +75,7 @@ export function CalendarMonthView({ currentDate, creneaux, onDayClick, onEditCre
         {DAY_NAMES.map((name) => (
           <div
             key={name}
-            className="py-2 text-center text-[11px] uppercase tracking-wider font-medium text-muted-foreground/60"
+            className="py-2 text-center text-xs uppercase tracking-wider font-medium text-muted-foreground/60"
           >
             {name}
           </div>
@@ -106,7 +112,7 @@ export function CalendarMonthView({ currentDate, creneaux, onDayClick, onEditCre
                   <div className="flex items-center justify-between mb-0.5">
                     <span
                       className={cn(
-                        "flex h-6 w-6 items-center justify-center rounded-full text-[12px] font-medium",
+                        "flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium",
                         today
                           ? "bg-primary text-primary-foreground"
                           : isCurrentMonth
@@ -117,7 +123,7 @@ export function CalendarMonthView({ currentDate, creneaux, onDayClick, onEditCre
                       {format(day, "d")}
                     </span>
                     {dayCreneaux.length > 0 && (
-                      <span className="text-[10px] text-muted-foreground/40 font-mono mr-0.5">
+                      <span className="text-xs text-muted-foreground/40 font-mono mr-0.5">
                         {dayCreneaux.length}
                       </span>
                     )}
@@ -140,7 +146,7 @@ export function CalendarMonthView({ currentDate, creneaux, onDayClick, onEditCre
                     {hasMore && (
                       <button
                         type="button"
-                        className="text-[10px] text-muted-foreground/50 hover:text-primary transition-colors pl-1 font-medium"
+                        className="text-xs text-muted-foreground/50 hover:text-primary transition-colors pl-1 font-medium"
                         onClick={(e) => {
                           e.stopPropagation();
                           onDayClick?.(day);

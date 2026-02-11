@@ -160,23 +160,23 @@ export default function OpportuniteDetailPage() {
             <h2 className="text-sm font-medium">Informations générales</h2>
 
             <div className="space-y-2">
-              <Label className="text-[13px]">
+              <Label className="text-sm">
                 Nom <span className="text-destructive">*</span>
               </Label>
               <Input
                 value={form.nom}
                 onChange={(e) => updateField("nom", e.target.value)}
-                className="h-9 text-[13px] border-border/60"
+                className="h-9 text-sm border-border/60"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label className="text-[13px]">Entreprise</Label>
+                <Label className="text-sm">Entreprise</Label>
                 <select
                   value={form.entreprise_id ?? ""}
                   onChange={(e) => updateField("entreprise_id", e.target.value)}
-                  className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
+                  className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
                 >
                   <option value="">-- Aucune --</option>
                   {entreprises.map((e) => (
@@ -185,11 +185,11 @@ export default function OpportuniteDetailPage() {
                 </select>
               </div>
               <div className="space-y-2">
-                <Label className="text-[13px]">Contact client</Label>
+                <Label className="text-sm">Contact client</Label>
                 <select
                   value={form.contact_client_id ?? ""}
                   onChange={(e) => updateField("contact_client_id", e.target.value)}
-                  className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
+                  className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
                 >
                   <option value="">-- Aucun --</option>
                   {contacts.map((c) => (
@@ -201,18 +201,18 @@ export default function OpportuniteDetailPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label className="text-[13px]">Montant estimé (EUR)</Label>
+                <Label className="text-sm">Montant estimé (EUR)</Label>
                 <Input
                   type="number"
                   value={form.montant_estime ?? ""}
                   onChange={(e) => updateField("montant_estime", Number(e.target.value))}
-                  className="h-9 text-[13px] border-border/60"
+                  className="h-9 text-sm border-border/60"
                   step="0.01"
                   min="0"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-[13px]">Clôture prévue</Label>
+                <Label className="text-sm">Clôture prévue</Label>
                 <DatePicker
                   value={form.date_cloture_prevue ?? ""}
                   onChange={(val) => updateField("date_cloture_prevue", val)}
@@ -221,21 +221,21 @@ export default function OpportuniteDetailPage() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-[13px]">Source</Label>
+              <Label className="text-sm">Source</Label>
               <Input
                 value={form.source ?? ""}
                 onChange={(e) => updateField("source", e.target.value)}
                 placeholder="Ex: Site web, Recommandation, Salon..."
-                className="h-9 text-[13px] border-border/60"
+                className="h-9 text-sm border-border/60"
               />
             </div>
 
             <div className="space-y-2">
-              <Label className="text-[13px]">Notes</Label>
+              <Label className="text-sm">Notes</Label>
               <Textarea
                 value={form.notes ?? ""}
                 onChange={(e) => updateField("notes", e.target.value)}
-                className="min-h-[80px] text-[13px] border-border/60"
+                className="min-h-[80px] text-sm border-border/60"
                 placeholder="Notes internes..."
               />
             </div>
@@ -249,7 +249,7 @@ export default function OpportuniteDetailPage() {
             <select
               value={form.statut}
               onChange={(e) => updateField("statut", e.target.value)}
-              className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
+              className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
             >
               {OPPORTUNITE_STATUT_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -276,7 +276,7 @@ export default function OpportuniteDetailPage() {
               <h2 className="text-sm font-medium">Entreprise</h2>
               <div className="flex items-center gap-2">
                 <Building2 className="h-4 w-4 text-muted-foreground" />
-                <span className="text-[13px]">
+                <span className="text-sm">
                   {((data as Record<string, unknown>).entreprises as Record<string, string>)?.nom}
                 </span>
               </div>

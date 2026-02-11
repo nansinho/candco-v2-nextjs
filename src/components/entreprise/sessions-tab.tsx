@@ -154,7 +154,7 @@ export function EntrepriseSessionsTab({ entrepriseId }: { entrepriseId: string }
           >
             {f.label}
             <span
-              className={`inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] ${
+              className={`inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-xs ${
                 filter === f.key ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground/40"
               }`}
             >
@@ -180,19 +180,19 @@ export function EntrepriseSessionsTab({ entrepriseId }: { entrepriseId: string }
             <table className="w-full min-w-[700px]">
               <thead>
                 <tr className="border-b border-border/60 bg-muted/30">
-                  <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
                     Session
                   </th>
-                  <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
                     Dates
                   </th>
-                  <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
                     Statut
                   </th>
-                  <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
                     Apprenants
                   </th>
-                  <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
                     Formateur(s)
                   </th>
                   <th className="px-4 py-2.5 w-10" />
@@ -213,8 +213,8 @@ export function EntrepriseSessionsTab({ entrepriseId }: { entrepriseId: string }
                             <CalendarDays className="h-3.5 w-3.5 text-blue-400" />
                           </div>
                           <div className="min-w-0">
-                            <p className="text-[13px] font-medium truncate">{s.nom}</p>
-                            <p className="text-[11px] text-muted-foreground/50 font-mono">
+                            <p className="text-sm font-medium truncate">{s.nom}</p>
+                            <p className="text-xs text-muted-foreground/50 font-mono">
                               {s.numero_affichage}
                               {s.produits_formation && (
                                 <span className="ml-2 font-sans">{s.produits_formation.intitule}</span>
@@ -223,7 +223,7 @@ export function EntrepriseSessionsTab({ entrepriseId }: { entrepriseId: string }
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-[13px] text-muted-foreground whitespace-nowrap">
+                      <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">
                         {s.date_debut ? formatDate(s.date_debut) : "--"}
                         {s.date_fin && ` → ${formatDate(s.date_fin)}`}
                       </td>
@@ -236,7 +236,7 @@ export function EntrepriseSessionsTab({ entrepriseId }: { entrepriseId: string }
                               onChange={(e) => {
                                 if (e.target.value) handleStatusChange(s.id, e.target.value);
                               }}
-                              className="h-6 rounded border border-border/40 bg-transparent px-1 text-[10px] text-muted-foreground/60 hover:border-primary/40"
+                              className="h-6 rounded border border-border/40 bg-transparent px-1 text-xs text-muted-foreground/60 hover:border-primary/40"
                             >
                               <option value="">→</option>
                               {nextStatuses.map((ns) => (
@@ -251,12 +251,12 @@ export function EntrepriseSessionsTab({ entrepriseId }: { entrepriseId: string }
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5">
                           <Users className="h-3 w-3 text-muted-foreground/40" />
-                          <span className="text-[13px] text-muted-foreground">
+                          <span className="text-sm text-muted-foreground">
                             {s.inscriptions?.length ?? 0}
                           </span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-[13px] text-muted-foreground">
+                      <td className="px-4 py-3 text-sm text-muted-foreground">
                         {s.session_formateurs
                           ?.map((sf) =>
                             sf.formateurs ? `${sf.formateurs.prenom} ${sf.formateurs.nom}` : ""

@@ -125,7 +125,7 @@ function ViewModeButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-all duration-150",
+        "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-all duration-150",
         active
           ? "bg-primary/15 text-primary shadow-sm"
           : "text-muted-foreground/60 hover:text-foreground hover:bg-accent/30"

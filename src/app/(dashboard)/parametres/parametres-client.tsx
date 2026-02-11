@@ -53,7 +53,7 @@ export function ParametresClient({ settings, catalogueCategories = [] }: { setti
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight flex items-center gap-2">
+        <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
           <Settings className="h-5 w-5 text-primary" />
           Paramètres
         </h1>
@@ -202,7 +202,7 @@ function GeneralTab({ settings }: { settings: OrganisationSettings }) {
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
             <div className="space-y-1.5">
-              <Label className="text-[13px]">Rue</Label>
+              <Label className="text-sm">Rue</Label>
               <AddressAutocomplete
                 value={adresseRue}
                 onChange={(v) => setAdresseRue(v)}
@@ -314,7 +314,7 @@ function LogoSection({ logoUrl }: { logoUrl: string | null }) {
               </Button>
             )}
           </div>
-          <p className="text-[11px] text-muted-foreground">PNG, JPG ou SVG. Max 2 Mo.</p>
+          <p className="text-xs text-muted-foreground">PNG, JPG ou SVG. Max 2 Mo.</p>
         </div>
 
         <input
@@ -377,7 +377,7 @@ function FacturationTab({ settings }: { settings: OrganisationSettings }) {
             placeholder="FR 12 345678901"
           />
         </div>
-        <p className="mt-2 text-[11px] text-muted-foreground">
+        <p className="mt-2 text-xs text-muted-foreground">
           Pour les OF exonérés de TVA (art. 261-4-4a du CGI), laissez le taux à 0%.
         </p>
       </SettingsCard>
@@ -456,7 +456,7 @@ function EmailsTab({ settings }: { settings: OrganisationSettings }) {
           placeholder="noreply@votre-domaine.fr"
           type="email"
         />
-        <p className="mt-2 text-[11px] text-muted-foreground">
+        <p className="mt-2 text-xs text-muted-foreground">
           Si vide, les emails seront envoyés depuis noreply@candco.fr
         </p>
       </SettingsCard>
@@ -539,7 +539,7 @@ function AITab({ settings }: { settings: OrganisationSettings }) {
                   style={{ width: `${usagePercent}%` }}
                 />
               </div>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Les credits se renouvellent automatiquement le 1er de chaque mois.
               </p>
             </div>
@@ -552,7 +552,7 @@ function AITab({ settings }: { settings: OrganisationSettings }) {
                 </div>
                 <div>
                   <p className="text-sm font-medium">Extraction PDF</p>
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     {AI_COSTS.extract_programme} credit par extraction
                   </p>
                 </div>
@@ -576,7 +576,7 @@ function AITab({ settings }: { settings: OrganisationSettings }) {
             <Zap className="h-4 w-4 text-primary mt-0.5 shrink-0" />
             <div>
               <p className="text-sm font-medium">Import PDF intelligent</p>
-              <p className="text-[12px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Importez un programme de formation au format PDF. L&apos;IA (Claude) extrait automatiquement les modules, objectifs et durees pour pre-remplir votre produit de formation.
               </p>
             </div>
@@ -736,13 +736,13 @@ function CatalogueTab({ initialCategories }: { initialCategories: CatalogueCateg
                 value={editCode}
                 onChange={(e) => setEditCode(e.target.value)}
                 placeholder="Code"
-                className="h-7 w-20 text-[12px] border-border/60"
+                className="h-7 w-20 text-xs border-border/60"
               />
               <Input
                 value={editNom}
                 onChange={(e) => setEditNom(e.target.value)}
                 placeholder="Nom"
-                className="h-7 flex-1 text-[12px] border-border/60"
+                className="h-7 flex-1 text-xs border-border/60"
                 onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleUpdate(cat.id); } }}
               />
               <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-emerald-500" onClick={() => handleUpdate(cat.id)} disabled={saving}>
@@ -756,12 +756,12 @@ function CatalogueTab({ initialCategories }: { initialCategories: CatalogueCateg
             <>
               <div className="flex flex-1 items-center gap-2 min-w-0">
                 {cat.code && (
-                  <Badge variant="outline" className="text-[10px] font-mono px-1.5 py-0 shrink-0">
+                  <Badge variant="outline" className="text-xs font-mono px-1.5 py-0 shrink-0">
                     {cat.code}
                   </Badge>
                 )}
-                <span className="text-[13px] truncate">{cat.nom}</span>
-                <Badge variant="outline" className="text-[10px] font-normal text-muted-foreground/50 px-1.5 py-0 shrink-0">
+                <span className="text-sm truncate">{cat.nom}</span>
+                <Badge variant="outline" className="text-xs font-normal text-muted-foreground/50 px-1.5 py-0 shrink-0">
                   {NIVEAU_LABELS[cat.niveau]}
                 </Badge>
               </div>
@@ -804,13 +804,13 @@ function CatalogueTab({ initialCategories }: { initialCategories: CatalogueCateg
               value={newCode}
               onChange={(e) => setNewCode(e.target.value)}
               placeholder="Code"
-              className="h-7 w-20 text-[12px] border-border/60"
+              className="h-7 w-20 text-xs border-border/60"
             />
             <Input
               value={newNom}
               onChange={(e) => setNewNom(e.target.value)}
               placeholder={`Nom du/de la ${NIVEAU_LABELS[cat.niveau + 1]?.toLowerCase()}`}
-              className="h-7 flex-1 text-[12px] border-border/60"
+              className="h-7 flex-1 text-xs border-border/60"
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAdd(); } }}
             />
             <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-emerald-500" onClick={handleAdd} disabled={saving || !newNom.trim()}>
@@ -858,13 +858,13 @@ function CatalogueTab({ initialCategories }: { initialCategories: CatalogueCateg
                 value={newCode}
                 onChange={(e) => setNewCode(e.target.value)}
                 placeholder="Code (ex: SAN)"
-                className="h-8 w-24 text-[12px] border-border/60"
+                className="h-8 w-24 text-xs border-border/60"
               />
               <Input
                 value={newNom}
                 onChange={(e) => setNewNom(e.target.value)}
                 placeholder="Nom du pôle (ex: Santé)"
-                className="h-8 flex-1 text-[12px] border-border/60"
+                className="h-8 flex-1 text-xs border-border/60"
                 onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAdd(); } }}
               />
               <Button type="button" size="sm" className="h-8 text-xs gap-1" onClick={handleAdd} disabled={saving || !newNom.trim()}>
@@ -893,19 +893,19 @@ function CatalogueTab({ initialCategories }: { initialCategories: CatalogueCateg
       </SettingsCard>
 
       <SettingsCard title="Hiérarchie" description="Structure de classification des formations">
-        <div className="space-y-2 text-[13px] text-muted-foreground">
+        <div className="space-y-2 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
-            <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px]">Niveau 1</Badge>
+            <Badge className="bg-primary/10 text-primary border-primary/20 text-xs">Niveau 1</Badge>
             <span>Pôle</span>
             <span className="text-muted-foreground/50">— Domaine principal (ex: Santé, Management)</span>
           </div>
           <div className="flex items-center gap-2 pl-4">
-            <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20 text-[10px]">Niveau 2</Badge>
+            <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20 text-xs">Niveau 2</Badge>
             <span>Catégorie</span>
             <span className="text-muted-foreground/50">— Regroupement thématique (ex: Pratiques cliniques)</span>
           </div>
           <div className="flex items-center gap-2 pl-8">
-            <Badge className="bg-violet-500/10 text-violet-500 border-violet-500/20 text-[10px]">Niveau 3</Badge>
+            <Badge className="bg-violet-500/10 text-violet-500 border-violet-500/20 text-xs">Niveau 3</Badge>
             <span>Sous-catégorie</span>
             <span className="text-muted-foreground/50">— Détail fin (ex: Soins infirmiers)</span>
           </div>
@@ -932,13 +932,13 @@ function FieldGroup({
 }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-[13px]">{label}</Label>
+      <Label className="text-sm">{label}</Label>
       <Input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="h-9 text-[13px] border-border/60"
+        className="h-9 text-sm border-border/60"
       />
     </div>
   );
@@ -959,13 +959,13 @@ function TextareaGroup({
 }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-[13px]">{label}</Label>
+      <Label className="text-sm">{label}</Label>
       <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         rows={rows}
-        className="w-full rounded-md border border-border/60 bg-muted px-3 py-2 text-[13px] text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+        className="w-full rounded-md border border-border/60 bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring resize-none"
       />
     </div>
   );

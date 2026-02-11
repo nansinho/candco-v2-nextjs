@@ -357,7 +357,7 @@ export function EmailTab({ entrepriseId }: { entrepriseId: string }) {
             <div className="flex items-center gap-2">
               <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
               <Label className="text-xs font-medium">Périmètre d'envoi</Label>
-              <span className="text-[10px] text-muted-foreground">(au moins un obligatoire)</span>
+              <span className="text-xs text-muted-foreground">(au moins un obligatoire)</span>
             </div>
 
             <div className="flex flex-wrap gap-1.5">
@@ -365,7 +365,7 @@ export function EmailTab({ entrepriseId }: { entrepriseId: string }) {
               <button
                 type="button"
                 onClick={toggleSiege}
-                className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors ${
                   includeSiege
                     ? "border-amber-500/50 bg-amber-500/10 text-amber-400"
                     : "border-border/60 text-muted-foreground hover:text-foreground"
@@ -382,7 +382,7 @@ export function EmailTab({ entrepriseId }: { entrepriseId: string }) {
                   key={agence.id}
                   type="button"
                   onClick={() => toggleAgence(agence.id)}
-                  className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                  className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors ${
                     selectedAgenceIds.includes(agence.id)
                       ? "border-primary/50 bg-primary/10 text-primary"
                       : "border-border/60 text-muted-foreground hover:text-foreground"
@@ -396,7 +396,7 @@ export function EmailTab({ entrepriseId }: { entrepriseId: string }) {
             </div>
 
             {!isScopeValid && (
-              <p className="flex items-center gap-1.5 text-[11px] text-amber-400">
+              <p className="flex items-center gap-1.5 text-xs text-amber-400">
                 <AlertCircle className="h-3 w-3" />
                 Sélectionnez au moins le siège ou une agence
               </p>
@@ -450,7 +450,7 @@ export function EmailTab({ entrepriseId }: { entrepriseId: string }) {
         {selectionMode === "filtered" && (includeSiege || selectedAgenceIds.length > 0) && (
           <div className="flex flex-wrap gap-1.5">
             {includeSiege && (
-              <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/30 text-[10px] gap-1 pr-1">
+              <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/30 text-xs gap-1 pr-1">
                 <Building className="h-2.5 w-2.5" />
                 Siège social
                 <button onClick={toggleSiege} className="ml-0.5 hover:text-foreground">
@@ -463,7 +463,7 @@ export function EmailTab({ entrepriseId }: { entrepriseId: string }) {
               return ag ? (
                 <Badge
                   key={id}
-                  className="bg-primary/10 text-primary border-primary/30 text-[10px] gap-1 pr-1"
+                  className="bg-primary/10 text-primary border-primary/30 text-xs gap-1 pr-1"
                 >
                   <Building className="h-2.5 w-2.5" />
                   {ag.nom}
@@ -520,7 +520,7 @@ export function EmailTab({ entrepriseId }: { entrepriseId: string }) {
                 <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
                 <span className="text-muted-foreground">
                   Envoyer en CCI{" "}
-                  <span className="text-[10px]">(les destinataires ne verront pas les autres adresses)</span>
+                  <span className="text-xs">(les destinataires ne verront pas les autres adresses)</span>
                 </span>
               </label>
 
@@ -541,13 +541,13 @@ export function EmailTab({ entrepriseId }: { entrepriseId: string }) {
                   <Label className="text-xs">Message</Label>
                   {!useBcc && (
                     <div className="flex items-center gap-1">
-                      <span className="text-[10px] text-muted-foreground">Variables :</span>
+                      <span className="text-xs text-muted-foreground">Variables :</span>
                       {["prenom", "nom", "nom_complet"].map((v) => (
                         <button
                           key={v}
                           type="button"
                           onClick={() => insertVariable(v)}
-                          className="rounded border border-border/40 bg-muted/30 px-1.5 py-0.5 text-[10px] text-muted-foreground hover:text-foreground hover:border-border transition-colors"
+                          className="rounded border border-border/40 bg-muted/30 px-1.5 py-0.5 text-xs text-muted-foreground hover:text-foreground hover:border-border transition-colors"
                         >
                           {`{{${v}}}`}
                         </button>
@@ -572,16 +572,16 @@ export function EmailTab({ entrepriseId }: { entrepriseId: string }) {
                     {uniqueEmails.length} destinataire{uniqueEmails.length > 1 ? "s" : ""}
                   </span>
                   {useBcc && (
-                    <Badge className="bg-muted text-muted-foreground border-border/60 text-[10px]">
+                    <Badge className="bg-muted text-muted-foreground border-border/60 text-xs">
                       CCI
                     </Badge>
                   )}
                   {selectionMode === "all" ? (
-                    <Badge className="bg-muted text-muted-foreground border-border/60 text-[10px]">
+                    <Badge className="bg-muted text-muted-foreground border-border/60 text-xs">
                       Global
                     </Badge>
                   ) : (
-                    <Badge className="bg-muted text-muted-foreground border-border/60 text-[10px]">
+                    <Badge className="bg-muted text-muted-foreground border-border/60 text-xs">
                       Ciblé
                     </Badge>
                   )}
@@ -615,7 +615,7 @@ export function EmailTab({ entrepriseId }: { entrepriseId: string }) {
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4 text-muted-foreground" />
             <h3 className="text-sm font-medium">Historique des envois</h3>
-            <Badge className="bg-muted text-muted-foreground border-border/60 text-[10px]">
+            <Badge className="bg-muted text-muted-foreground border-border/60 text-xs">
               {history.length}
             </Badge>
           </div>
@@ -683,7 +683,7 @@ function RecipientPreview({
     <div className="space-y-1.5">
       <button
         type="button"
-        className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
         onClick={() => setExpanded(!expanded)}
       >
         {expanded ? (
@@ -697,7 +697,7 @@ function RecipientPreview({
       {expanded && (
         <div className="rounded-md border border-border/30 bg-muted/20 divide-y divide-border/20 max-h-60 overflow-y-auto">
           {activeList.map((r) => (
-            <div key={r.email} className="flex items-center justify-between px-3 py-1.5 text-[11px] group">
+            <div key={r.email} className="flex items-center justify-between px-3 py-1.5 text-xs group">
               <div className="flex items-center gap-2">
                 <span className="font-medium text-foreground">
                   {r.prenom} {r.nom}
@@ -708,13 +708,13 @@ function RecipientPreview({
                 {r.roles.map((role) => (
                   <span
                     key={role}
-                    className={`rounded px-1.5 py-0.5 text-[9px] font-medium ${ROLE_COLORS[role] || "text-muted-foreground bg-muted"}`}
+                    className={`rounded px-1.5 py-0.5 text-xs font-medium ${ROLE_COLORS[role] || "text-muted-foreground bg-muted"}`}
                   >
                     {ROLE_LABELS[role] ?? role}
                   </span>
                 ))}
                 {r.agence_noms.length > 0 && (
-                  <span className="text-[9px] text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                     · {r.agence_noms.join(", ")}
                   </span>
                 )}
@@ -733,11 +733,11 @@ function RecipientPreview({
           {/* Excluded recipients */}
           {excludedList.length > 0 && (
             <>
-              <div className="px-3 py-1 text-[10px] text-muted-foreground bg-muted/30 font-medium">
+              <div className="px-3 py-1 text-xs text-muted-foreground bg-muted/30 font-medium">
                 Retirés manuellement ({excludedList.length})
               </div>
               {excludedList.map((r) => (
-                <div key={r.email} className="flex items-center justify-between px-3 py-1.5 text-[11px] opacity-50 group">
+                <div key={r.email} className="flex items-center justify-between px-3 py-1.5 text-xs opacity-50 group">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-foreground line-through">
                       {r.prenom} {r.nom}
@@ -747,7 +747,7 @@ function RecipientPreview({
                   <button
                     type="button"
                     onClick={() => onRestore(r.email!)}
-                    className="opacity-0 group-hover:opacity-100 rounded px-1.5 py-0.5 text-[10px] text-primary hover:bg-primary/10 transition-all"
+                    className="opacity-0 group-hover:opacity-100 rounded px-1.5 py-0.5 text-xs text-primary hover:bg-primary/10 transition-all"
                   >
                     Restaurer
                   </button>
@@ -809,7 +809,7 @@ function EmailHistoryRow({ item }: { item: EmailHistoryItem }) {
               </span>
             )}
             {typeEnvoi && (
-              <Badge className={`text-[9px] px-1 py-0 ${
+              <Badge className={`text-xs px-1 py-0 ${
                 typeEnvoi === "global"
                   ? "bg-blue-500/10 text-blue-400 border-blue-500/30"
                   : "bg-purple-500/10 text-purple-400 border-purple-500/30"
@@ -818,12 +818,12 @@ function EmailHistoryRow({ item }: { item: EmailHistoryItem }) {
               </Badge>
             )}
             {isBcc && (
-              <Badge className="text-[9px] px-1 py-0 bg-muted text-muted-foreground border-border/60">
+              <Badge className="text-xs px-1 py-0 bg-muted text-muted-foreground border-border/60">
                 CCI
               </Badge>
             )}
             {perimetre && (
-              <span className="text-[10px] text-muted-foreground">
+              <span className="text-xs text-muted-foreground">
                 {Array.isArray(perimetre) ? perimetre.join(", ") : perimetre}
               </span>
             )}
@@ -831,7 +831,7 @@ function EmailHistoryRow({ item }: { item: EmailHistoryItem }) {
         </div>
       </div>
       <div className="flex items-center gap-3 shrink-0">
-        <Badge className={`text-[10px] ${config.color} bg-transparent border-current/30`}>
+        <Badge className={`text-xs ${config.color} bg-transparent border-current/30`}>
           {config.label}
         </Badge>
         <span className="text-muted-foreground whitespace-nowrap">

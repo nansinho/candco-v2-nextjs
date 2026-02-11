@@ -64,13 +64,13 @@ export function CalendarListView({ creneaux }: CalendarListViewProps) {
               )}
               <h3
                 className={cn(
-                  "text-[13px] font-semibold capitalize",
+                  "text-sm font-semibold capitalize",
                   today ? "text-primary" : "text-foreground"
                 )}
               >
                 {dayLabel}
               </h3>
-              <span className="text-[11px] text-muted-foreground/40 font-mono">
+              <span className="text-xs text-muted-foreground/40 font-mono">
                 {dayCreneaux.length} créneau{dayCreneaux.length > 1 ? "x" : ""}
               </span>
             </div>
@@ -98,31 +98,31 @@ export function CalendarListView({ creneaux }: CalendarListViewProps) {
                     {/* Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className={cn("text-[13px] font-semibold", color.text)}>
+                        <span className={cn("text-sm font-semibold", color.text)}>
                           {c.heure_debut.slice(0, 5)} — {c.heure_fin.slice(0, 5)}
                         </span>
                         {c.duree_minutes && (
-                          <span className="text-[11px] text-muted-foreground/40">
+                          <span className="text-xs text-muted-foreground/40">
                             {formatDuration(c.duree_minutes)}
                           </span>
                         )}
                       </div>
-                      <p className="text-[13px] font-medium truncate mt-0.5">
+                      <p className="text-sm font-medium truncate mt-0.5">
                         {c.session.nom}
                       </p>
                       <div className="flex items-center gap-3 mt-1">
                         {c.formateur && (
-                          <div className="flex items-center gap-1 text-[11px] text-muted-foreground/60">
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground/60">
                             <User className="h-3 w-3" />
                             <span className="truncate">{c.formateur.prenom} {c.formateur.nom}</span>
                           </div>
                         )}
-                        <div className="flex items-center gap-1 text-[11px] text-muted-foreground/60">
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground/60">
                           <TypeIcon className="h-3 w-3" />
                           <span className="capitalize">{c.type}</span>
                         </div>
                         {c.salle && (
-                          <div className="flex items-center gap-1 text-[11px] text-muted-foreground/60">
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground/60">
                             <MapPin className="h-3 w-3" />
                             <span className="truncate">{c.salle.nom}</span>
                           </div>

@@ -345,7 +345,7 @@ export default function FinanceursPage() {
 
             {/* Recherche INSEE */}
             <div className="space-y-2">
-              <Label className="text-[13px]">Recherche INSEE (SIRET / Nom)</Label>
+              <Label className="text-sm">Recherche INSEE (SIRET / Nom)</Label>
               <SiretSearch
                 onSelect={(r) => {
                   setFormNom(r.nom || formNom);
@@ -358,7 +358,7 @@ export default function FinanceursPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="nom" className="text-[13px]">
+              <Label htmlFor="nom" className="text-sm">
                 Nom <span className="text-destructive">*</span>
               </Label>
               <Input
@@ -366,19 +366,19 @@ export default function FinanceursPage() {
                 value={formNom}
                 onChange={(e) => setFormNom(e.target.value)}
                 placeholder="Ex: OPCO Atlas"
-                className="h-9 text-[13px] border-border/60"
+                className="h-9 text-sm border-border/60"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="type" className="text-[13px]">
+              <Label htmlFor="type" className="text-sm">
                 Type
               </Label>
               <select
                 id="type"
                 value={formType}
                 onChange={(e) => setFormType(e.target.value)}
-                className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
+                className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
               >
                 <option value="">-- Sélectionner --</option>
                 {FINANCEUR_TYPES.map((t) => (
@@ -390,7 +390,7 @@ export default function FinanceursPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="siret" className="text-[13px]">
+              <Label htmlFor="siret" className="text-sm">
                 SIRET
               </Label>
               <Input
@@ -398,13 +398,13 @@ export default function FinanceursPage() {
                 value={formSiret}
                 onChange={(e) => setFormSiret(e.target.value)}
                 placeholder="Ex: 123 456 789 00012"
-                className="h-9 text-[13px] border-border/60"
+                className="h-9 text-sm border-border/60"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-[13px]">
+                <Label htmlFor="email" className="text-sm">
                   Email
                 </Label>
                 <Input
@@ -413,11 +413,11 @@ export default function FinanceursPage() {
                   value={formEmail}
                   onChange={(e) => setFormEmail(e.target.value)}
                   placeholder="contact@opco.fr"
-                  className="h-9 text-[13px] border-border/60"
+                  className="h-9 text-sm border-border/60"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="telephone" className="text-[13px]">
+                <Label htmlFor="telephone" className="text-sm">
                   Téléphone
                 </Label>
                 <Input
@@ -425,14 +425,14 @@ export default function FinanceursPage() {
                   value={formTelephone}
                   onChange={(e) => setFormTelephone(e.target.value)}
                   placeholder="01 23 45 67 89"
-                  className="h-9 text-[13px] border-border/60"
+                  className="h-9 text-sm border-border/60"
                 />
               </div>
             </div>
 
             {/* Adresse */}
             <div className="space-y-2">
-              <Label className="text-[13px]">Adresse</Label>
+              <Label className="text-sm">Adresse</Label>
               <AddressAutocomplete
                 value={formAdresseRue}
                 onChange={(v) => setFormAdresseRue(v)}
@@ -446,21 +446,21 @@ export default function FinanceursPage() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label className="text-[13px]">Code postal</Label>
+                <Label className="text-sm">Code postal</Label>
                 <Input
                   value={formAdresseCp}
                   onChange={(e) => setFormAdresseCp(e.target.value)}
                   placeholder="75001"
-                  className="h-9 text-[13px] border-border/60"
+                  className="h-9 text-sm border-border/60"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-[13px]">Ville</Label>
+                <Label className="text-sm">Ville</Label>
                 <Input
                   value={formAdresseVille}
                   onChange={(e) => setFormAdresseVille(e.target.value)}
                   placeholder="Paris"
-                  className="h-9 text-[13px] border-border/60"
+                  className="h-9 text-sm border-border/60"
                 />
               </div>
             </div>

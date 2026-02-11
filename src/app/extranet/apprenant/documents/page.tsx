@@ -28,7 +28,7 @@ export default async function ApprenantDocumentsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">Documents</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Documents</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Conventions, attestations et certificats
         </p>
@@ -58,22 +58,22 @@ export default async function ApprenantDocumentsPage() {
                 <p className="text-sm font-medium truncate">{doc.nom}</p>
                 <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                   {doc.categorie && (
-                    <Badge variant="outline" className="text-[10px] border-border/60 py-0">
+                    <Badge variant="outline" className="text-xs border-border/60 py-0">
                       {categorieLabels[doc.categorie] ?? doc.categorie}
                     </Badge>
                   )}
                   {doc.session_nom && (
-                    <span className="flex items-center gap-1 text-[11px] text-muted-foreground/50">
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground/50">
                       <Layers className="h-3 w-3" />
                       {doc.session_nom}
                     </span>
                   )}
                   {doc.taille_octets && (
-                    <span className="text-[11px] text-muted-foreground/40">
+                    <span className="text-xs text-muted-foreground/40">
                       {formatSize(doc.taille_octets)}
                     </span>
                   )}
-                  <span className="flex items-center gap-1 text-[11px] text-muted-foreground/40">
+                  <span className="flex items-center gap-1 text-xs text-muted-foreground/40">
                     <Calendar className="h-3 w-3" />
                     {new Date(doc.created_at).toLocaleDateString("fr-FR")}
                   </span>

@@ -50,7 +50,7 @@ function StatsBar({ stats }: { stats: PlanningStats }) {
             <item.icon className={cn("h-4 w-4", item.color)} />
           </div>
           <div className="min-w-0">
-            <p className="text-[11px] text-muted-foreground/60">{item.label}</p>
+            <p className="text-xs text-muted-foreground/60">{item.label}</p>
             <p className="text-sm font-semibold font-mono">{item.value}</p>
           </div>
         </div>
@@ -173,13 +173,20 @@ export function PlanningClient() {
     return () => { cancelled = true; };
   }, [currentDate, viewMode, formateurId, salleId, sessionId, type, statut, refreshTick]);
 
-  // Responsive: default to list on mobile
+  // Responsive: default to list on mobile + listen for resize
   React.useEffect(() => {
     const mql = window.matchMedia("(max-width: 768px)");
     if (mql.matches && viewMode === "week") {
       setViewMode("list");
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    const handler = (e: MediaQueryListEvent) => {
+      if (e.matches && viewMode === "week") {
+        setViewMode("list");
+      }
+    };
+    mql.addEventListener("change", handler);
+    return () => mql.removeEventListener("change", handler);
+  }, [viewMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDayClickFromMonth = (date: Date) => {
     setCurrentDate(date);
@@ -271,7 +278,7 @@ export function PlanningClient() {
             <SlidersHorizontal className="h-3.5 w-3.5 mr-1.5" />
             Filtres
             {(formateurId || salleId || sessionId || type || statut) && (
-              <span className="ml-1 h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center">
+              <span className="ml-1 h-4 w-4 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
                 {[formateurId, salleId, sessionId, type, statut].filter(Boolean).length}
               </span>
             )}
@@ -299,7 +306,7 @@ export function PlanningClient() {
         <div className="flex items-center gap-4 flex-wrap">
           {creneaux.length > 0 && <CalendarLegend creneaux={creneaux} />}
           {disponibilites.length > 0 && (
-            <div className="flex items-center gap-3 text-[11px] text-muted-foreground/60">
+            <div className="flex items-center gap-3 text-xs text-muted-foreground/60">
               <div className="flex items-center gap-1.5">
                 <div className="h-2.5 w-2.5 rounded-sm bg-emerald-500/30 border border-emerald-500/40" />
                 Disponible

@@ -177,7 +177,7 @@ export default function FinanceurDetailPage() {
           variant="ghost"
           size="sm"
           onClick={() => router.push("/financeurs")}
-          className="text-[13px] text-muted-foreground"
+          className="text-sm text-muted-foreground"
         >
           <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
           Retour aux financeurs
@@ -221,10 +221,10 @@ export default function FinanceurDetailPage() {
           </Button>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-semibold tracking-tight">
+              <h1 className="text-2xl font-semibold tracking-tight">
                 {financeur.nom}
               </h1>
-              <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20 text-[11px] font-mono">
+              <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20 text-xs font-mono">
                 {financeur.numero_affichage}
               </Badge>
               {financeur.type && (
@@ -256,12 +256,12 @@ export default function FinanceurDetailPage() {
 
       {/* Success / Error messages */}
       {successMsg && (
-        <div className="rounded-md bg-emerald-500/10 px-3 py-2 text-[13px] text-emerald-400">
+        <div className="rounded-md bg-emerald-500/10 px-3 py-2 text-sm text-emerald-400">
           {successMsg}
         </div>
       )}
       {errorMsg && (
-        <div className="rounded-md bg-destructive/10 px-3 py-2 text-[13px] text-destructive">
+        <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {errorMsg}
         </div>
       )}
@@ -293,25 +293,25 @@ export default function FinanceurDetailPage() {
               {/* Row 1: Nom + Type */}
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="nom" className="text-[13px]">
+                  <Label htmlFor="nom" className="text-sm">
                     Nom <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id="nom"
                     value={formNom}
                     onChange={(e) => setFormNom(e.target.value)}
-                    className="h-9 text-[13px] border-border/60"
+                    className="h-9 text-sm border-border/60"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="type" className="text-[13px]">
+                  <Label htmlFor="type" className="text-sm">
                     Type
                   </Label>
                   <select
                     id="type"
                     value={formType}
                     onChange={(e) => setFormType(e.target.value)}
-                    className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
+                    className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
                   >
                     <option value="">-- Sélectionner --</option>
                     {FINANCEUR_TYPES.map((t) => (
@@ -325,7 +325,7 @@ export default function FinanceurDetailPage() {
 
               {/* Recherche INSEE */}
               <div className="space-y-2">
-                <Label className="text-[13px]">Recherche INSEE (SIRET / Nom)</Label>
+                <Label className="text-sm">Recherche INSEE (SIRET / Nom)</Label>
                 <SiretSearch
                   onSelect={(r) => {
                     setFormNom(r.nom || formNom);
@@ -340,7 +340,7 @@ export default function FinanceurDetailPage() {
 
               {/* Row 2: SIRET */}
               <div className="space-y-2">
-                <Label htmlFor="siret" className="text-[13px]">
+                <Label htmlFor="siret" className="text-sm">
                   SIRET
                 </Label>
                 <Input
@@ -348,14 +348,14 @@ export default function FinanceurDetailPage() {
                   value={formSiret}
                   onChange={(e) => setFormSiret(e.target.value)}
                   placeholder="Ex: 123 456 789 00012"
-                  className="h-9 text-[13px] border-border/60 max-w-md"
+                  className="h-9 text-sm border-border/60 max-w-md"
                 />
               </div>
 
               {/* Row 3: Email + Téléphone */}
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-[13px]">
+                  <Label htmlFor="email" className="text-sm">
                     Email
                   </Label>
                   <Input
@@ -364,11 +364,11 @@ export default function FinanceurDetailPage() {
                     value={formEmail}
                     onChange={(e) => setFormEmail(e.target.value)}
                     placeholder="contact@opco.fr"
-                    className="h-9 text-[13px] border-border/60"
+                    className="h-9 text-sm border-border/60"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="telephone" className="text-[13px]">
+                  <Label htmlFor="telephone" className="text-sm">
                     Téléphone
                   </Label>
                   <Input
@@ -376,19 +376,19 @@ export default function FinanceurDetailPage() {
                     value={formTelephone}
                     onChange={(e) => setFormTelephone(e.target.value)}
                     placeholder="01 23 45 67 89"
-                    className="h-9 text-[13px] border-border/60"
+                    className="h-9 text-sm border-border/60"
                   />
                 </div>
               </div>
 
               {/* Separator */}
               <div className="border-t border-border/40 pt-6">
-                <h3 className="mb-4 text-[13px] font-medium text-muted-foreground">
+                <h3 className="mb-4 text-sm font-medium text-muted-foreground">
                   Adresse
                 </h3>
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="adresse_rue" className="text-[13px]">
+                    <Label htmlFor="adresse_rue" className="text-sm">
                       Rue
                     </Label>
                     <AddressAutocomplete
@@ -400,7 +400,7 @@ export default function FinanceurDetailPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="adresse_complement" className="text-[13px]">
+                    <Label htmlFor="adresse_complement" className="text-sm">
                       Complément
                     </Label>
                     <Input
@@ -408,12 +408,12 @@ export default function FinanceurDetailPage() {
                       value={formAdresseComplement}
                       onChange={(e) => setFormAdresseComplement(e.target.value)}
                       placeholder="Bâtiment, étage, etc."
-                      className="h-9 text-[13px] border-border/60"
+                      className="h-9 text-sm border-border/60"
                     />
                   </div>
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="adresse_cp" className="text-[13px]">
+                      <Label htmlFor="adresse_cp" className="text-sm">
                         Code postal
                       </Label>
                       <Input
@@ -421,11 +421,11 @@ export default function FinanceurDetailPage() {
                         value={formAdresseCp}
                         onChange={(e) => setFormAdresseCp(e.target.value)}
                         placeholder="75001"
-                        className="h-9 text-[13px] border-border/60"
+                        className="h-9 text-sm border-border/60"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="adresse_ville" className="text-[13px]">
+                      <Label htmlFor="adresse_ville" className="text-sm">
                         Ville
                       </Label>
                       <Input
@@ -433,7 +433,7 @@ export default function FinanceurDetailPage() {
                         value={formAdresseVille}
                         onChange={(e) => setFormAdresseVille(e.target.value)}
                         placeholder="Paris"
-                        className="h-9 text-[13px] border-border/60"
+                        className="h-9 text-sm border-border/60"
                       />
                     </div>
                   </div>
@@ -442,11 +442,11 @@ export default function FinanceurDetailPage() {
 
               {/* Separator */}
               <div className="border-t border-border/40 pt-6">
-                <h3 className="mb-4 text-[13px] font-medium text-muted-foreground">
+                <h3 className="mb-4 text-sm font-medium text-muted-foreground">
                   Comptabilité
                 </h3>
                 <div className="space-y-2">
-                  <Label htmlFor="compte_comptable" className="text-[13px]">
+                  <Label htmlFor="compte_comptable" className="text-sm">
                     Numéro de compte comptable
                   </Label>
                   <Input
@@ -454,7 +454,7 @@ export default function FinanceurDetailPage() {
                     value={formCompteComptable}
                     onChange={(e) => setFormCompteComptable(e.target.value)}
                     placeholder="411000"
-                    className="h-9 text-[13px] border-border/60 max-w-xs"
+                    className="h-9 text-sm border-border/60 max-w-xs"
                   />
                 </div>
               </div>
@@ -464,7 +464,7 @@ export default function FinanceurDetailPage() {
                 <Button
                   onClick={handleSave}
                   disabled={saving || !formNom.trim()}
-                  className="text-[13px]"
+                  className="text-sm"
                 >
                   {saving ? (
                     <>

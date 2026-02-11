@@ -308,7 +308,7 @@ export function CreneauFormModal({
                 {conflicts.length === 1 ? "1 conflit detecte" : `${conflicts.length} conflits detectes`}
               </div>
               {conflicts.map((c, i) => (
-                <p key={i} className="text-[11px] text-amber-400/80">
+                <p key={i} className="text-xs text-amber-400/80">
                   {c.type === "formateur" ? "Formateur" : "Salle"} &quot;{c.entityName}&quot; deja occupe(e) de{" "}
                   {c.existingCreneau.heure_debut.slice(0, 5)} a {c.existingCreneau.heure_fin.slice(0, 5)}{" "}
                   ({c.existingCreneau.sessionNom})
@@ -318,7 +318,7 @@ export function CreneauFormModal({
           )}
 
           {checkingConflicts && (
-            <p className="text-[11px] text-muted-foreground/50 flex items-center gap-1.5">
+            <p className="text-xs text-muted-foreground/50 flex items-center gap-1.5">
               <Loader2 className="h-3 w-3 animate-spin" /> Verification des conflits...
             </p>
           )}

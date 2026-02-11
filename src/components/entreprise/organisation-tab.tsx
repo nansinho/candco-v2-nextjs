@@ -181,7 +181,7 @@ export function OrganisationTab({ entrepriseId }: OrganisationTabProps) {
             <h3 className="text-sm font-semibold">
               Agences / Sites
               {agences.length > 0 && (
-                <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary/10 px-1.5 text-[11px] font-medium text-primary">
+                <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary/10 px-1.5 text-xs font-medium text-primary">
                   {agences.length}
                 </span>
               )}
@@ -190,7 +190,7 @@ export function OrganisationTab({ entrepriseId }: OrganisationTabProps) {
           <Button
             variant="outline"
             size="sm"
-            className="h-7 text-[11px] border-border/60"
+            className="h-7 text-xs border-border/60"
             onClick={(e) => {
               e.stopPropagation();
               setEditingAgence(null);
@@ -219,15 +219,15 @@ export function OrganisationTab({ entrepriseId }: OrganisationTabProps) {
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-[13px] font-medium">{agence.nom}</span>
+                        <span className="text-sm font-medium">{agence.nom}</span>
                         {agence.est_siege && (
-                          <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20 text-[10px]">
+                          <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20 text-xs">
                             <Star className="mr-0.5 h-2.5 w-2.5" />
                             Siège
                           </Badge>
                         )}
                       </div>
-                      <div className="flex items-center gap-3 text-[11px] text-muted-foreground/60">
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground/60">
                         {agence.adresse_ville && (
                           <span className="flex items-center gap-0.5">
                             <MapPin className="h-2.5 w-2.5" />
@@ -282,7 +282,7 @@ export function OrganisationTab({ entrepriseId }: OrganisationTabProps) {
             <h3 className="text-sm font-semibold">
               Pôles / Départements
               {poles.length > 0 && (
-                <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-blue-500/10 px-1.5 text-[11px] font-medium text-blue-400">
+                <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-blue-500/10 px-1.5 text-xs font-medium text-blue-400">
                   {poles.length}
                 </span>
               )}
@@ -291,7 +291,7 @@ export function OrganisationTab({ entrepriseId }: OrganisationTabProps) {
           <Button
             variant="outline"
             size="sm"
-            className="h-7 text-[11px] border-border/60"
+            className="h-7 text-xs border-border/60"
             onClick={(e) => {
               e.stopPropagation();
               setEditingPole(null);
@@ -319,8 +319,8 @@ export function OrganisationTab({ entrepriseId }: OrganisationTabProps) {
                       <Layers className="h-3.5 w-3.5 text-blue-400" />
                     </div>
                     <div>
-                      <span className="text-[13px] font-medium">{pole.nom}</span>
-                      <div className="flex items-center gap-2 text-[11px] text-muted-foreground/60">
+                      <span className="text-sm font-medium">{pole.nom}</span>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground/60">
                         {(pole as Pole & { agence_nom?: string }).agence_nom && (
                           <span className="flex items-center gap-0.5">
                             <Building className="h-2.5 w-2.5" />
@@ -375,7 +375,7 @@ export function OrganisationTab({ entrepriseId }: OrganisationTabProps) {
             <h3 className="text-sm font-semibold">
               Membres / Organigramme
               {membres.length > 0 && (
-                <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-emerald-500/10 px-1.5 text-[11px] font-medium text-emerald-400">
+                <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-emerald-500/10 px-1.5 text-xs font-medium text-emerald-400">
                   {membres.length}
                 </span>
               )}
@@ -386,7 +386,7 @@ export function OrganisationTab({ entrepriseId }: OrganisationTabProps) {
               <Button
                 variant="default"
                 size="sm"
-                className="h-7 text-[11px]"
+                className="h-7 text-xs"
                 onClick={() => setInscriptionDialog(true)}
               >
                 <CalendarPlus className="mr-1 h-3 w-3" />
@@ -396,7 +396,7 @@ export function OrganisationTab({ entrepriseId }: OrganisationTabProps) {
             <Button
               variant="outline"
               size="sm"
-              className="h-7 text-[11px] border-border/60"
+              className="h-7 text-xs border-border/60"
               onClick={() => {
                 setEditingMembre(null);
                 setMembreDialog(true);
@@ -523,20 +523,20 @@ function MembreRow({
           ) : (
             <UserCheck className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
           )}
-          <span className="text-[13px] font-medium">{name.trim()}</span>
-          <Badge variant="outline" className="text-[10px] border-border/40 text-muted-foreground/60">
+          <span className="text-sm font-medium">{name.trim()}</span>
+          <Badge variant="outline" className="text-xs border-border/40 text-muted-foreground/60">
             {type === "apprenant" ? "Apprenant" : "Contact"}
           </Badge>
           {(m.roles && m.roles.length > 0 ? m.roles : ["employe"]).map((r) => (
-            <Badge key={r} className={`text-[10px] ${ROLE_COLORS[r] ?? ROLE_COLORS.employe}`}>
+            <Badge key={r} className={`text-xs ${ROLE_COLORS[r] ?? ROLE_COLORS.employe}`}>
               {ROLE_LABELS[r] ?? r}
             </Badge>
           ))}
           {m.fonction && (
-            <span className="text-[11px] text-muted-foreground/50">{m.fonction}</span>
+            <span className="text-xs text-muted-foreground/50">{m.fonction}</span>
           )}
           {m.pole_nom && (
-            <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground/50">
+            <span className="inline-flex items-center gap-0.5 text-xs text-muted-foreground/50">
               <Layers className="h-2.5 w-2.5" />
               {m.pole_nom}
             </span>
@@ -627,8 +627,8 @@ function MembresHierarchicalView({
         <div>
           <div className="flex items-center gap-2 px-5 py-2.5 bg-amber-500/5 border-b border-border/40">
             <Star className="h-3.5 w-3.5 text-amber-400" />
-            <span className="text-[12px] font-semibold text-amber-400">Siège social</span>
-            <span className="text-[10px] text-amber-400/60">{siegeMembers.length} membre(s)</span>
+            <span className="text-xs font-semibold text-amber-400">Siège social</span>
+            <span className="text-xs text-amber-400/60">{siegeMembers.length} membre(s)</span>
           </div>
           <div className="divide-y divide-border/30">
             {siegeMembers.map((m) => (
@@ -650,15 +650,15 @@ function MembresHierarchicalView({
         <div key={agence.id}>
           <div className="flex items-center gap-2 px-5 py-2.5 bg-primary/5 border-b border-border/40">
             <Building className="h-3.5 w-3.5 text-primary" />
-            <span className="text-[12px] font-semibold text-primary">{agence.nom}</span>
+            <span className="text-xs font-semibold text-primary">{agence.nom}</span>
             {agence.est_siege && (
-              <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20 text-[9px] py-0">
+              <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20 text-xs py-0">
                 <Star className="mr-0.5 h-2 w-2" />Siège
               </Badge>
             )}
-            <span className="text-[10px] text-primary/60">{members.length} membre(s)</span>
+            <span className="text-xs text-primary/60">{members.length} membre(s)</span>
             {agence.adresse_ville && (
-              <span className="text-[10px] text-muted-foreground/40 flex items-center gap-0.5">
+              <span className="text-xs text-muted-foreground/40 flex items-center gap-0.5">
                 <MapPin className="h-2.5 w-2.5" />
                 {agence.adresse_ville}
               </span>
@@ -684,8 +684,8 @@ function MembresHierarchicalView({
         <div key={pole.id}>
           <div className="flex items-center gap-2 px-5 py-2.5 bg-blue-500/5 border-b border-border/40">
             <Layers className="h-3.5 w-3.5 text-blue-400" />
-            <span className="text-[12px] font-semibold text-blue-400">{pole.nom}</span>
-            <span className="text-[10px] text-blue-400/60">{members.length} membre(s)</span>
+            <span className="text-xs font-semibold text-blue-400">{pole.nom}</span>
+            <span className="text-xs text-blue-400/60">{members.length} membre(s)</span>
           </div>
           <div className="divide-y divide-border/30">
             {members.map((m) => (
@@ -708,8 +708,8 @@ function MembresHierarchicalView({
           {(siegeMembers.length > 0 || agenceGroups.length > 0 || poleOnlyMembers.length > 0) && (
             <div className="flex items-center gap-2 px-5 py-2.5 bg-muted/20 border-b border-border/40">
               <Users className="h-3.5 w-3.5 text-muted-foreground/50" />
-              <span className="text-[12px] font-semibold text-muted-foreground/60">Non rattachés</span>
-              <span className="text-[10px] text-muted-foreground/40">{unaffiliated.length} membre(s)</span>
+              <span className="text-xs font-semibold text-muted-foreground/60">Non rattachés</span>
+              <span className="text-xs text-muted-foreground/40">{unaffiliated.length} membre(s)</span>
             </div>
           )}
           <div className="divide-y divide-border/30">
@@ -856,7 +856,7 @@ function AgenceDialog({
 
           {/* SIRET Search */}
           <div className="space-y-2">
-            <Label className="text-[13px]">Recherche SIRET / SIREN</Label>
+            <Label className="text-sm">Recherche SIRET / SIREN</Label>
             <SiretSearch
               onSelect={(r) => {
                 setNom(r.nom || nom);
@@ -869,7 +869,7 @@ function AgenceDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="agence_nom" className="text-[13px]">
+            <Label htmlFor="agence_nom" className="text-sm">
               Nom <span className="text-destructive">*</span>
             </Label>
             <Input
@@ -879,49 +879,49 @@ function AgenceDialog({
               onChange={(e) => setNom(e.target.value)}
               required
               placeholder="Ex: Siège Paris, Agence Lyon"
-              className="h-9 text-[13px] border-border/60"
+              className="h-9 text-sm border-border/60"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="agence_siret" className="text-[13px]">SIRET</Label>
+              <Label htmlFor="agence_siret" className="text-sm">SIRET</Label>
               <Input
                 id="agence_siret"
                 name="siret"
                 value={siret}
                 onChange={(e) => setSiret(e.target.value)}
                 placeholder="123 456 789 00012"
-                className="h-9 text-[13px] border-border/60"
+                className="h-9 text-sm border-border/60"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="agence_telephone" className="text-[13px]">Téléphone</Label>
+              <Label htmlFor="agence_telephone" className="text-sm">Téléphone</Label>
               <Input
                 id="agence_telephone"
                 name="telephone"
                 defaultValue={agence?.telephone ?? ""}
                 placeholder="01 23 45 67 89"
-                className="h-9 text-[13px] border-border/60"
+                className="h-9 text-sm border-border/60"
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="agence_email" className="text-[13px]">Email</Label>
+            <Label htmlFor="agence_email" className="text-sm">Email</Label>
             <Input
               id="agence_email"
               name="email"
               type="email"
               defaultValue={agence?.email ?? ""}
               placeholder="agence@entreprise.fr"
-              className="h-9 text-[13px] border-border/60"
+              className="h-9 text-sm border-border/60"
             />
           </div>
 
           {/* Address with autocomplete */}
           <div className="space-y-2">
-            <Label className="text-[13px]">Adresse</Label>
+            <Label className="text-sm">Adresse</Label>
             <AddressAutocomplete
               value={adresseRue}
               onChange={(v) => setAdresseRue(v)}
@@ -938,25 +938,25 @@ function AgenceDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="agence_cp" className="text-[13px]">Code postal</Label>
+              <Label htmlFor="agence_cp" className="text-sm">Code postal</Label>
               <Input
                 id="agence_cp"
                 name="adresse_cp"
                 value={adresseCp}
                 onChange={(e) => setAdresseCp(e.target.value)}
                 placeholder="75001"
-                className="h-9 text-[13px] border-border/60"
+                className="h-9 text-sm border-border/60"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="agence_ville" className="text-[13px]">Ville</Label>
+              <Label htmlFor="agence_ville" className="text-sm">Ville</Label>
               <Input
                 id="agence_ville"
                 name="adresse_ville"
                 value={adresseVille}
                 onChange={(e) => setAdresseVille(e.target.value)}
                 placeholder="Paris"
-                className="h-9 text-[13px] border-border/60"
+                className="h-9 text-sm border-border/60"
               />
             </div>
           </div>
@@ -969,7 +969,7 @@ function AgenceDialog({
               defaultChecked={agence?.est_siege ?? false}
               className="h-4 w-4 rounded border-border/60"
             />
-            <Label htmlFor="est_siege" className="text-[13px] font-normal">
+            <Label htmlFor="est_siege" className="text-sm font-normal">
               Siège social
             </Label>
           </div>
@@ -1078,7 +1078,7 @@ function PoleDialog({
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="pole_nom" className="text-[13px]">
+            <Label htmlFor="pole_nom" className="text-sm">
               Nom <span className="text-destructive">*</span>
             </Label>
             <Input
@@ -1087,17 +1087,17 @@ function PoleDialog({
               defaultValue={pole?.nom ?? ""}
               required
               placeholder="Ex: Pôle Développement, Service RH"
-              className="h-9 text-[13px] border-border/60"
+              className="h-9 text-sm border-border/60"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="pole_agence" className="text-[13px]">Agence (optionnel)</Label>
+            <Label htmlFor="pole_agence" className="text-sm">Agence (optionnel)</Label>
             <select
               id="pole_agence"
               name="agence_id"
               defaultValue={pole?.agence_id ?? ""}
-              className="flex h-9 w-full rounded-md border border-border/60 bg-muted px-3 py-1 text-[13px] text-foreground shadow-sm"
+              className="flex h-9 w-full rounded-md border border-border/60 bg-muted px-3 py-1 text-sm text-foreground shadow-sm"
             >
               <option value="">-- Aucune agence --</option>
               {agences.map((a) => (
@@ -1107,13 +1107,13 @@ function PoleDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="pole_description" className="text-[13px]">Description</Label>
+            <Label htmlFor="pole_description" className="text-sm">Description</Label>
             <Input
               id="pole_description"
               name="description"
               defaultValue={pole?.description ?? ""}
               placeholder="Description du pôle..."
-              className="h-9 text-[13px] border-border/60"
+              className="h-9 text-sm border-border/60"
             />
           </div>
 
@@ -1360,12 +1360,12 @@ function MembreDialog({
           {/* Person selection (only for creation) */}
           {!isEdit && (
             <div className="space-y-3">
-              <Label className="text-[13px]">Apprenant</Label>
+              <Label className="text-sm">Apprenant</Label>
 
               {selectedPerson ? (
                 <div className="flex items-center gap-2 rounded-md bg-muted/30 px-3 py-2">
                   <GraduationCap className="h-3.5 w-3.5 text-blue-400" />
-                  <span className="text-[13px] font-medium">{selectedPerson.name}</span>
+                  <span className="text-sm font-medium">{selectedPerson.name}</span>
                   <button type="button" onClick={() => setSelectedPerson(null)} className="ml-auto text-muted-foreground/50 hover:text-foreground">
                     <X className="h-3 w-3" />
                   </button>
@@ -1373,7 +1373,7 @@ function MembreDialog({
               ) : showQuickCreate ? (
                 <div className="space-y-3 rounded-md border border-border/40 bg-muted/10 p-3">
                   <div className="flex items-center justify-between">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Créer un apprenant</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">Créer un apprenant</p>
                     <button type="button" onClick={() => setShowQuickCreate(false)} className="text-muted-foreground/50 hover:text-foreground">
                       <X className="h-3 w-3" />
                     </button>
@@ -1411,7 +1411,7 @@ function MembreDialog({
                   <Button
                     type="button"
                     size="sm"
-                    className="h-7 text-[11px] w-full"
+                    className="h-7 text-xs w-full"
                     disabled={isCreatingApprenant || !quickPrenom.trim() || !quickNom.trim()}
                     onClick={handleQuickCreate}
                   >
@@ -1454,8 +1454,8 @@ function MembreDialog({
                           }}
                         >
                           <GraduationCap className="h-3 w-3 text-blue-400" />
-                          <span className="text-[13px] font-medium">{p.prenom} {p.nom}</span>
-                          {p.email && <span className="text-[10px] text-muted-foreground/50">{p.email}</span>}
+                          <span className="text-sm font-medium">{p.prenom} {p.nom}</span>
+                          {p.email && <span className="text-xs text-muted-foreground/50">{p.email}</span>}
                         </button>
                       ))}
                     </div>
@@ -1481,8 +1481,8 @@ function MembreDialog({
               ) : (
                 <GraduationCap className="h-3.5 w-3.5 text-blue-400" />
               )}
-              <span className="text-[13px] font-medium">{selectedPerson.name}</span>
-              <Badge variant="outline" className="text-[10px] border-border/40 text-muted-foreground/60">
+              <span className="text-sm font-medium">{selectedPerson.name}</span>
+              <Badge variant="outline" className="text-xs border-border/40 text-muted-foreground/60">
                 {isLegacyContact ? "Contact" : "Apprenant"}
               </Badge>
             </div>
@@ -1490,7 +1490,7 @@ function MembreDialog({
 
           {/* Multi-Roles */}
           <div className="space-y-2">
-            <Label className="text-[13px]">Rôles</Label>
+            <Label className="text-sm">Rôles</Label>
             <div className="flex flex-wrap gap-2">
               {ALL_ROLES.map((r) => {
                 const isActive = selectedRoles.includes(r.value);
@@ -1499,7 +1499,7 @@ function MembreDialog({
                     key={r.value}
                     type="button"
                     onClick={() => toggleRole(r.value)}
-                    className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[12px] font-medium transition-colors ${
+                    className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
                       isActive
                         ? `${ROLE_COLORS[r.value]} border-current`
                         : "border-border/40 text-muted-foreground/60 hover:text-foreground hover:border-border"
@@ -1512,13 +1512,13 @@ function MembreDialog({
               })}
             </div>
             {selectedRoles.length === 0 && (
-              <p className="text-[11px] text-muted-foreground/40">Aucun rôle sélectionné (sera "Employé" par défaut)</p>
+              <p className="text-xs text-muted-foreground/40">Aucun rôle sélectionné (sera "Employé" par défaut)</p>
             )}
           </div>
 
           {/* Fonction */}
           <div className="space-y-2">
-            <Label className="text-[13px]">Fonction / Poste</Label>
+            <Label className="text-sm">Fonction / Poste</Label>
             <FonctionSelect
               value={fonction}
               onChange={setFonction}
@@ -1528,12 +1528,12 @@ function MembreDialog({
 
           {/* Rattaché au Siège social */}
           <div className="space-y-2">
-            <Label className="text-[13px]">Siège social</Label>
+            <Label className="text-sm">Siège social</Label>
             <div className="flex">
               <button
                 type="button"
                 onClick={() => setRattacheSiege(!rattacheSiege)}
-                className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[12px] font-medium transition-colors ${
+                className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
                   rattacheSiege
                     ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
                     : "border-border/40 text-muted-foreground/60 hover:text-foreground hover:border-border"
@@ -1549,7 +1549,7 @@ function MembreDialog({
           {/* Agences (multi-select) */}
           {agences.length > 0 && (
             <div className="space-y-2">
-              <Label className="text-[13px]">Agences</Label>
+              <Label className="text-sm">Agences</Label>
               <div className="flex flex-wrap gap-2">
                 {agences.map((a) => {
                   const isActive = selectedAgenceIds.includes(a.id);
@@ -1562,7 +1562,7 @@ function MembreDialog({
                           prev.includes(a.id) ? prev.filter((id) => id !== a.id) : [...prev, a.id]
                         );
                       }}
-                      className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[12px] font-medium transition-colors ${
+                      className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
                         isActive
                           ? "bg-primary/10 text-primary border-primary/30"
                           : "border-border/40 text-muted-foreground/60 hover:text-foreground hover:border-border"
@@ -1576,19 +1576,19 @@ function MembreDialog({
                 })}
               </div>
               {selectedAgenceIds.length === 0 && (
-                <p className="text-[11px] text-muted-foreground/40">Aucune agence sélectionnée</p>
+                <p className="text-xs text-muted-foreground/40">Aucune agence sélectionnée</p>
               )}
             </div>
           )}
 
           {/* Pôle */}
           <div className="space-y-2">
-            <Label htmlFor="membre_pole" className="text-[13px]">Pôle</Label>
+            <Label htmlFor="membre_pole" className="text-sm">Pôle</Label>
             <select
               id="membre_pole"
               value={poleId}
               onChange={(e) => setPoleId(e.target.value)}
-              className="flex h-9 w-full rounded-md border border-border/60 bg-muted px-3 py-1 text-[13px] text-foreground shadow-sm"
+              className="flex h-9 w-full rounded-md border border-border/60 bg-muted px-3 py-1 text-sm text-foreground shadow-sm"
             >
               <option value="">-- Aucun --</option>
               {poles.map((p) => (
@@ -1739,12 +1739,12 @@ function InscriptionGroupeeDialog({
         <div className="space-y-4">
           {/* Selected apprenants summary */}
           <div className="rounded-md border border-border/40 bg-muted/20 p-3">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60 mb-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/60 mb-2">
               Apprenants sélectionnés
             </p>
             <div className="flex flex-wrap gap-1.5">
               {apprenantMembres.map((m) => (
-                <Badge key={m.id} variant="outline" className="text-[11px] border-border/40">
+                <Badge key={m.id} variant="outline" className="text-xs border-border/40">
                   <GraduationCap className="mr-1 h-2.5 w-2.5 text-blue-400" />
                   {(m.apprenant_prenom ?? "")} {(m.apprenant_nom ?? "")}
                 </Badge>
@@ -1754,18 +1754,18 @@ function InscriptionGroupeeDialog({
 
           {/* Session search */}
           <div className="space-y-2">
-            <Label className="text-[13px]">Session de formation</Label>
+            <Label className="text-sm">Session de formation</Label>
 
             {selectedSession ? (
               <div className="flex items-center justify-between rounded-md border border-primary/30 bg-primary/5 px-3 py-2.5">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[13px] font-medium">{selectedSession.nom}</span>
-                    <Badge className={`text-[10px] ${STATUT_COLORS[selectedSession.statut] ?? ""}`}>
+                    <span className="text-sm font-medium">{selectedSession.nom}</span>
+                    <Badge className={`text-xs ${STATUT_COLORS[selectedSession.statut] ?? ""}`}>
                       {STATUT_LABELS[selectedSession.statut] ?? selectedSession.statut}
                     </Badge>
                   </div>
-                  <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground/60">
+                  <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground/60">
                     <span className="font-mono">{selectedSession.numero_affichage}</span>
                     {selectedSession.date_debut && (
                       <span>
@@ -1822,12 +1822,12 @@ function InscriptionGroupeeDialog({
                         <CalendarPlus className="mt-0.5 h-3.5 w-3.5 text-primary/60 shrink-0" />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
-                            <span className="text-[13px] font-medium truncate">{s.nom}</span>
-                            <Badge className={`text-[10px] shrink-0 ${STATUT_COLORS[s.statut] ?? ""}`}>
+                            <span className="text-sm font-medium truncate">{s.nom}</span>
+                            <Badge className={`text-xs shrink-0 ${STATUT_COLORS[s.statut] ?? ""}`}>
                               {STATUT_LABELS[s.statut] ?? s.statut}
                             </Badge>
                           </div>
-                          <div className="mt-0.5 flex items-center gap-2 text-[10px] text-muted-foreground/50">
+                          <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground/50">
                             <span className="font-mono">{s.numero_affichage}</span>
                             {s.date_debut && <span>{formatDate(s.date_debut)}</span>}
                             <span>

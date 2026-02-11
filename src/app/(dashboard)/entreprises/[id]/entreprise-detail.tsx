@@ -233,10 +233,10 @@ export function EntrepriseDetail({
           </Button>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-semibold tracking-tight">
+              <h1 className="text-2xl font-semibold tracking-tight">
                 {entreprise.nom}
               </h1>
-              <Badge className="bg-primary/10 text-primary border-primary/20 text-[11px] font-mono">
+              <Badge className="bg-primary/10 text-primary border-primary/20 text-xs font-mono">
                 {entreprise.numero_affichage}
               </Badge>
             </div>
@@ -419,7 +419,7 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
               setAdresseVille(r.adresse_ville || adresseVille);
             }}
           />
-          <p className="mt-2 text-[11px] text-muted-foreground/50">
+          <p className="mt-2 text-xs text-muted-foreground/50">
             Recherchez par SIRET, SIREN ou nom pour mettre à jour automatiquement les informations.
           </p>
         </section>
@@ -429,15 +429,15 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
           <h3 className="mb-4 text-sm font-semibold">Identification</h3>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="nom" className="text-[13px]">
+              <Label htmlFor="nom" className="text-sm">
                 Nom de l&apos;entreprise <span className="text-destructive">*</span>
               </Label>
-              <Input id="nom" name="nom" value={nom} onChange={(e) => setNom(e.target.value)} required className="h-9 text-[13px] border-border/60" />
+              <Input id="nom" name="nom" value={nom} onChange={(e) => setNom(e.target.value)} required className="h-9 text-sm border-border/60" />
               {errors.nom && <p className="text-xs text-destructive">{errors.nom[0]}</p>}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="siret" className="text-[13px]">SIRET</Label>
-              <Input id="siret" name="siret" value={siret} onChange={(e) => setSiret(e.target.value)} placeholder="123 456 789 00012" className="h-9 text-[13px] border-border/60" />
+              <Label htmlFor="siret" className="text-sm">SIRET</Label>
+              <Input id="siret" name="siret" value={siret} onChange={(e) => setSiret(e.target.value)} placeholder="123 456 789 00012" className="h-9 text-sm border-border/60" />
             </div>
           </div>
         </section>
@@ -447,13 +447,13 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
           <h3 className="mb-4 text-sm font-semibold">Contact</h3>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-[13px]">Email</Label>
-              <Input id="email" name="email" type="email" defaultValue={entreprise.email ?? ""} placeholder="contact@entreprise.fr" className="h-9 text-[13px] border-border/60" />
+              <Label htmlFor="email" className="text-sm">Email</Label>
+              <Input id="email" name="email" type="email" defaultValue={entreprise.email ?? ""} placeholder="contact@entreprise.fr" className="h-9 text-sm border-border/60" />
               {errors.email && <p className="text-xs text-destructive">{errors.email[0]}</p>}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="telephone" className="text-[13px]">Téléphone</Label>
-              <Input id="telephone" name="telephone" defaultValue={entreprise.telephone ?? ""} placeholder="01 23 45 67 89" className="h-9 text-[13px] border-border/60" />
+              <Label htmlFor="telephone" className="text-sm">Téléphone</Label>
+              <Input id="telephone" name="telephone" defaultValue={entreprise.telephone ?? ""} placeholder="01 23 45 67 89" className="h-9 text-sm border-border/60" />
             </div>
           </div>
         </section>
@@ -463,7 +463,7 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
           <h3 className="mb-4 text-sm font-semibold">Adresse</h3>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="adresse_rue" className="text-[13px]">Rue</Label>
+              <Label htmlFor="adresse_rue" className="text-sm">Rue</Label>
               <AddressAutocomplete
                 id="adresse_rue"
                 name="adresse_rue"
@@ -474,17 +474,17 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="adresse_complement" className="text-[13px]">Complément d&apos;adresse</Label>
-              <Input id="adresse_complement" name="adresse_complement" defaultValue={entreprise.adresse_complement ?? ""} placeholder="Bâtiment, étage, etc." className="h-9 text-[13px] border-border/60" />
+              <Label htmlFor="adresse_complement" className="text-sm">Complément d&apos;adresse</Label>
+              <Input id="adresse_complement" name="adresse_complement" defaultValue={entreprise.adresse_complement ?? ""} placeholder="Bâtiment, étage, etc." className="h-9 text-sm border-border/60" />
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="adresse_cp" className="text-[13px]">Code postal</Label>
-                <Input id="adresse_cp" name="adresse_cp" value={adresseCp} onChange={(e) => setAdresseCp(e.target.value)} placeholder="75001" className="h-9 text-[13px] border-border/60" />
+                <Label htmlFor="adresse_cp" className="text-sm">Code postal</Label>
+                <Input id="adresse_cp" name="adresse_cp" value={adresseCp} onChange={(e) => setAdresseCp(e.target.value)} placeholder="75001" className="h-9 text-sm border-border/60" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="adresse_ville" className="text-[13px]">Ville</Label>
-                <Input id="adresse_ville" name="adresse_ville" value={adresseVille} onChange={(e) => setAdresseVille(e.target.value)} placeholder="Paris" className="h-9 text-[13px] border-border/60" />
+                <Label htmlFor="adresse_ville" className="text-sm">Ville</Label>
+                <Input id="adresse_ville" name="adresse_ville" value={adresseVille} onChange={(e) => setAdresseVille(e.target.value)} placeholder="Paris" className="h-9 text-sm border-border/60" />
               </div>
             </div>
           </div>
@@ -495,12 +495,12 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
           <h3 className="mb-4 text-sm font-semibold">BPF & Comptabilité</h3>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="bpf_categorie_id" className="text-[13px]">Provenance BPF</Label>
+              <Label htmlFor="bpf_categorie_id" className="text-sm">Provenance BPF</Label>
               <select
                 id="bpf_categorie_id"
                 name="bpf_categorie_id"
                 defaultValue={entreprise.bpf_categorie_id ?? ""}
-                className="flex h-9 w-full rounded-md border border-border/60 bg-muted px-3 py-1 text-[13px] text-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="flex h-9 w-full rounded-md border border-border/60 bg-muted px-3 py-1 text-sm text-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               >
                 <option value="">-- Aucune --</option>
                 {bpfCategories.map((cat) => (
@@ -509,13 +509,13 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
               </select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="numero_compte_comptable" className="text-[13px]">N° compte comptable</Label>
-              <Input id="numero_compte_comptable" name="numero_compte_comptable" defaultValue={entreprise.numero_compte_comptable ?? "411000"} placeholder="411000" className="h-9 text-[13px] border-border/60" />
+              <Label htmlFor="numero_compte_comptable" className="text-sm">N° compte comptable</Label>
+              <Input id="numero_compte_comptable" name="numero_compte_comptable" defaultValue={entreprise.numero_compte_comptable ?? "411000"} placeholder="411000" className="h-9 text-sm border-border/60" />
             </div>
           </div>
           <div className="mt-4 flex items-center gap-2">
             <input type="checkbox" id="est_siege" name="est_siege" defaultChecked={entreprise.est_siege ?? false} className="h-4 w-4 rounded border-border/60" />
-            <Label htmlFor="est_siege" className="text-[13px] font-normal">Siège social</Label>
+            <Label htmlFor="est_siege" className="text-sm font-normal">Siège social</Label>
           </div>
         </section>
 
@@ -538,7 +538,7 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="h-7 text-[11px] border-border/60"
+                  className="h-7 text-xs border-border/60"
                   onClick={() => {
                     const raisonSocialeEl = document.getElementById("facturation_raison_sociale") as HTMLInputElement;
                     const complementEl = document.getElementById("facturation_complement") as HTMLInputElement;
@@ -554,11 +554,11 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
                 </Button>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="facturation_raison_sociale" className="text-[13px]">Raison sociale</Label>
-                <Input id="facturation_raison_sociale" name="facturation_raison_sociale" defaultValue={entreprise.facturation_raison_sociale ?? ""} placeholder="Raison sociale de facturation" className="h-9 text-[13px] border-border/60" />
+                <Label htmlFor="facturation_raison_sociale" className="text-sm">Raison sociale</Label>
+                <Input id="facturation_raison_sociale" name="facturation_raison_sociale" defaultValue={entreprise.facturation_raison_sociale ?? ""} placeholder="Raison sociale de facturation" className="h-9 text-sm border-border/60" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="facturation_rue" className="text-[13px]">Rue</Label>
+                <Label htmlFor="facturation_rue" className="text-sm">Rue</Label>
                 <AddressAutocomplete
                   id="facturation_rue"
                   name="facturation_rue"
@@ -569,17 +569,17 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="facturation_complement" className="text-[13px]">Complément</Label>
-                <Input id="facturation_complement" name="facturation_complement" defaultValue={entreprise.facturation_complement ?? ""} placeholder="Bâtiment, étage, etc." className="h-9 text-[13px] border-border/60" />
+                <Label htmlFor="facturation_complement" className="text-sm">Complément</Label>
+                <Input id="facturation_complement" name="facturation_complement" defaultValue={entreprise.facturation_complement ?? ""} placeholder="Bâtiment, étage, etc." className="h-9 text-sm border-border/60" />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="facturation_cp" className="text-[13px]">Code postal</Label>
-                  <Input id="facturation_cp" name="facturation_cp" value={factCp} onChange={(e) => setFactCp(e.target.value)} placeholder="75001" className="h-9 text-[13px] border-border/60" />
+                  <Label htmlFor="facturation_cp" className="text-sm">Code postal</Label>
+                  <Input id="facturation_cp" name="facturation_cp" value={factCp} onChange={(e) => setFactCp(e.target.value)} placeholder="75001" className="h-9 text-sm border-border/60" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="facturation_ville" className="text-[13px]">Ville</Label>
-                  <Input id="facturation_ville" name="facturation_ville" value={factVille} onChange={(e) => setFactVille(e.target.value)} placeholder="Paris" className="h-9 text-[13px] border-border/60" />
+                  <Label htmlFor="facturation_ville" className="text-sm">Ville</Label>
+                  <Input id="facturation_ville" name="facturation_ville" value={factVille} onChange={(e) => setFactVille(e.target.value)} placeholder="Paris" className="h-9 text-sm border-border/60" />
                 </div>
               </div>
             </div>
@@ -780,7 +780,7 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
     }
   };
 
-  const selectClass = "flex h-9 w-full rounded-md border border-border/60 bg-muted px-3 py-1 text-[13px] text-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring";
+  const selectClass = "flex h-9 w-full rounded-md border border-border/60 bg-muted px-3 py-1 text-sm text-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring";
 
   const FILTER_OPTIONS: { value: FilterType; label: string }[] = [
     { value: "tous", label: "Tous" },
@@ -796,11 +796,11 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
         <h3 className="text-sm font-semibold">
           Contacts et membres
           {items.length > 0 && (
-            <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary/10 px-1.5 text-[11px] font-medium text-primary">{items.length}</span>
+            <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary/10 px-1.5 text-xs font-medium text-primary">{items.length}</span>
           )}
         </h3>
         <div className="flex gap-1.5">
-          <Button variant="outline" size="sm" className="h-7 text-[11px] border-border/60" onClick={() => openPanel("create")}>
+          <Button variant="outline" size="sm" className="h-7 text-xs border-border/60" onClick={() => openPanel("create")}>
             {activePanel === "create" ? <><X className="mr-1 h-3 w-3" />Fermer</> : <><UserPlus className="mr-1 h-3 w-3" />Créer un contact</>}
           </Button>
         </div>
@@ -811,16 +811,16 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
         <form onSubmit={handleCreateContact} className="px-5 py-4 border-b border-border/40 bg-muted/10">
           <p className="text-xs font-medium mb-3">Nouveau contact</p>
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5"><Label className="text-[12px]">Civilité</Label><select name="civilite" className={selectClass}><option value="">--</option><option value="Monsieur">Monsieur</option><option value="Madame">Madame</option></select></div>
-            <div className="space-y-1.5"><Label className="text-[12px]">Fonction</Label><FonctionSelect value={newContactFonction} onChange={setNewContactFonction} placeholder="Sélectionner une fonction" /></div>
-            <div className="space-y-1.5"><Label className="text-[12px]">Prénom <span className="text-destructive">*</span></Label><Input name="prenom" required className="h-9 text-[13px] border-border/60" /></div>
-            <div className="space-y-1.5"><Label className="text-[12px]">Nom <span className="text-destructive">*</span></Label><Input name="nom" required className="h-9 text-[13px] border-border/60" /></div>
-            <div className="space-y-1.5"><Label className="text-[12px]">Email</Label><Input name="email" type="email" placeholder="contact@example.fr" className="h-9 text-[13px] border-border/60" /></div>
-            <div className="space-y-1.5"><Label className="text-[12px]">Téléphone</Label><Input name="telephone" placeholder="06 12 34 56 78" className="h-9 text-[13px] border-border/60" /></div>
+            <div className="space-y-1.5"><Label className="text-xs">Civilité</Label><select name="civilite" className={selectClass}><option value="">--</option><option value="Monsieur">Monsieur</option><option value="Madame">Madame</option></select></div>
+            <div className="space-y-1.5"><Label className="text-xs">Fonction</Label><FonctionSelect value={newContactFonction} onChange={setNewContactFonction} placeholder="Sélectionner une fonction" /></div>
+            <div className="space-y-1.5"><Label className="text-xs">Prénom <span className="text-destructive">*</span></Label><Input name="prenom" required className="h-9 text-sm border-border/60" /></div>
+            <div className="space-y-1.5"><Label className="text-xs">Nom <span className="text-destructive">*</span></Label><Input name="nom" required className="h-9 text-sm border-border/60" /></div>
+            <div className="space-y-1.5"><Label className="text-xs">Email</Label><Input name="email" type="email" placeholder="contact@example.fr" className="h-9 text-sm border-border/60" /></div>
+            <div className="space-y-1.5"><Label className="text-xs">Téléphone</Label><Input name="telephone" placeholder="06 12 34 56 78" className="h-9 text-sm border-border/60" /></div>
           </div>
           <div className="flex justify-end gap-2 mt-4">
-            <Button type="button" variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => setActivePanel("none")}>Annuler</Button>
-            <Button type="submit" size="sm" className="h-7 text-[11px]" disabled={isCreating}>
+            <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => setActivePanel("none")}>Annuler</Button>
+            <Button type="submit" size="sm" className="h-7 text-xs" disabled={isCreating}>
               {isCreating ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <UserPlus className="mr-1 h-3 w-3" />}
               Créer et rattacher
             </Button>
@@ -838,7 +838,7 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
               placeholder="Rechercher par nom, email, fonction..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-8 pl-9 text-[13px] border-border/60"
+              className="h-8 pl-9 text-sm border-border/60"
             />
             {searchQuery && (
               <button onClick={() => setSearchQuery("")} className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-muted/30">
@@ -852,14 +852,14 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
               <button
                 key={opt.value}
                 onClick={() => setFilter(opt.value)}
-                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium border transition-colors ${
+                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium border transition-colors ${
                   filter === opt.value
                     ? "bg-primary/10 text-primary border-primary/30"
                     : "bg-muted/30 text-muted-foreground/60 border-border/40 hover:text-muted-foreground hover:border-border/60"
                 }`}
               >
                 {opt.label}
-                <span className={`inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] ${
+                <span className={`inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-xs ${
                   filter === opt.value ? "bg-primary/20 text-primary" : "bg-muted/50 text-muted-foreground/50"
                 }`}>
                   {counts[opt.value]}
@@ -897,11 +897,11 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
         <table className="w-full">
           <thead>
             <tr className="border-b border-border/60 bg-muted/30">
-              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Nom</th>
-              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Statut</th>
-              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Fonction</th>
-              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Email</th>
-              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Téléphone</th>
+              <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">Nom</th>
+              <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">Statut</th>
+              <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">Fonction</th>
+              <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">Email</th>
+              <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">Téléphone</th>
               <th className="w-10" />
             </tr>
           </thead>
@@ -921,9 +921,9 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
                       <GraduationCap className="h-3.5 w-3.5 text-blue-400 shrink-0" />
                     )}
                     <div className="min-w-0">
-                      <span className="text-[13px] font-medium">{item.prenom} {item.nom}</span>
+                      <span className="text-sm font-medium">{item.prenom} {item.nom}</span>
                       {(item.numero_affichage_contact || item.numero_affichage_apprenant) && (
-                        <span className="ml-1.5 font-mono text-[11px] text-muted-foreground/50">
+                        <span className="ml-1.5 font-mono text-xs text-muted-foreground/50">
                           {item.numero_affichage_contact ?? item.numero_affichage_apprenant}
                         </span>
                       )}
@@ -933,38 +933,38 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
                 {/* Status badge */}
                 <td className="px-4 py-2.5">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <Badge className={`text-[10px] font-medium border ${TYPE_COLORS[item.type]}`}>
+                    <Badge className={`text-xs font-medium border ${TYPE_COLORS[item.type]}`}>
                       {TYPE_LABELS[item.type]}
                     </Badge>
                     {item.roles.length > 0 && item.roles.map((r) => (
-                      <Badge key={r} variant="outline" className="text-[10px] font-normal border-border/40 text-muted-foreground/60">
+                      <Badge key={r} variant="outline" className="text-xs font-normal border-border/40 text-muted-foreground/60">
                         {ROLE_LABELS[r] ?? r}
                       </Badge>
                     ))}
                   </div>
                 </td>
                 {/* Fonction */}
-                <td className="px-4 py-2.5 text-[13px] text-muted-foreground">
+                <td className="px-4 py-2.5 text-sm text-muted-foreground">
                   {item.fonction ?? <span className="text-muted-foreground/40">--</span>}
                 </td>
                 {/* Email */}
                 <td className="px-4 py-2.5">
                   {item.email ? (
-                    <a href={`mailto:${item.email}`} className="flex items-center gap-1.5 text-[13px] text-primary hover:underline" onClick={(e) => e.stopPropagation()}>
+                    <a href={`mailto:${item.email}`} className="flex items-center gap-1.5 text-sm text-primary hover:underline" onClick={(e) => e.stopPropagation()}>
                       <Mail className="h-3 w-3 shrink-0" /><span className="truncate max-w-[180px]">{item.email}</span>
                     </a>
                   ) : (
-                    <span className="text-[13px] text-muted-foreground/40">--</span>
+                    <span className="text-sm text-muted-foreground/40">--</span>
                   )}
                 </td>
                 {/* Phone */}
                 <td className="px-4 py-2.5">
                   {item.telephone ? (
-                    <a href={`tel:${item.telephone}`} className="flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground" onClick={(e) => e.stopPropagation()}>
+                    <a href={`tel:${item.telephone}`} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground" onClick={(e) => e.stopPropagation()}>
                       <Phone className="h-3 w-3 shrink-0" />{item.telephone}
                     </a>
                   ) : (
-                    <span className="text-[13px] text-muted-foreground/40">--</span>
+                    <span className="text-sm text-muted-foreground/40">--</span>
                   )}
                 </td>
                 {/* Actions */}
@@ -1082,9 +1082,9 @@ function ApprenantsTab({ entrepriseId }: { entrepriseId: string }) {
       <div className="flex items-center justify-between px-5 py-4 border-b border-border/60">
         <h3 className="text-sm font-semibold">
           Apprenants rattachés
-          {apprenants.length > 0 && <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary/10 px-1.5 text-[11px] font-medium text-primary">{apprenants.length}</span>}
+          {apprenants.length > 0 && <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary/10 px-1.5 text-xs font-medium text-primary">{apprenants.length}</span>}
         </h3>
-        <Button variant="outline" size="sm" className="h-7 text-[11px] border-border/60" onClick={() => setShowSearch(!showSearch)}>
+        <Button variant="outline" size="sm" className="h-7 text-xs border-border/60" onClick={() => setShowSearch(!showSearch)}>
           {showSearch ? <><X className="mr-1 h-3 w-3" />Fermer</> : <><Plus className="mr-1 h-3 w-3" />Ajouter un apprenant</>}
         </Button>
       </div>
@@ -1102,10 +1102,10 @@ function ApprenantsTab({ entrepriseId }: { entrepriseId: string }) {
                 <button key={a.id} type="button" className="flex w-full items-center justify-between rounded-md px-3 py-2 hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => handleLink(a.id)}>
                   <div className="flex items-center gap-2">
                     <GraduationCap className="h-3.5 w-3.5 text-blue-400" />
-                    <span className="text-[13px] font-medium">{a.prenom} {a.nom}</span>
-                    {a.email && <span className="text-[11px] text-muted-foreground/50">{a.email}</span>}
+                    <span className="text-sm font-medium">{a.prenom} {a.nom}</span>
+                    {a.email && <span className="text-xs text-muted-foreground/50">{a.email}</span>}
                   </div>
-                  <span className="text-[10px] text-primary font-medium flex items-center gap-0.5"><Plus className="h-3 w-3" />Rattacher</span>
+                  <span className="text-xs text-primary font-medium flex items-center gap-0.5"><Plus className="h-3 w-3" />Rattacher</span>
                 </button>
               ))}
             </div>
@@ -1137,10 +1137,10 @@ function ApprenantsTab({ entrepriseId }: { entrepriseId: string }) {
         <table className="w-full">
           <thead>
             <tr className="border-b border-border/60 bg-muted/30">
-              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">ID</th>
-              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Nom</th>
-              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Email</th>
-              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Téléphone</th>
+              <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">ID</th>
+              <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">Nom</th>
+              <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">Email</th>
+              <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">Téléphone</th>
               <th className="w-10" />
             </tr>
           </thead>
@@ -1148,9 +1148,9 @@ function ApprenantsTab({ entrepriseId }: { entrepriseId: string }) {
             {apprenants.map((a) => (
               <tr key={a.id} className="border-b border-border/40 transition-colors hover:bg-muted/20 cursor-pointer group" onClick={() => router.push(`/apprenants/${a.id}`)}>
                 <td className="px-4 py-2.5"><span className="font-mono text-xs text-muted-foreground">{a.numero_affichage}</span></td>
-                <td className="px-4 py-2.5"><div className="flex items-center gap-2"><GraduationCap className="h-3.5 w-3.5 text-blue-400" /><span className="text-[13px] font-medium">{a.prenom} {a.nom}</span></div></td>
-                <td className="px-4 py-2.5 text-[13px] text-muted-foreground">{a.email ?? <span className="text-muted-foreground/40">--</span>}</td>
-                <td className="px-4 py-2.5 text-[13px] text-muted-foreground">{a.telephone ?? <span className="text-muted-foreground/40">--</span>}</td>
+                <td className="px-4 py-2.5"><div className="flex items-center gap-2"><GraduationCap className="h-3.5 w-3.5 text-blue-400" /><span className="text-sm font-medium">{a.prenom} {a.nom}</span></div></td>
+                <td className="px-4 py-2.5 text-sm text-muted-foreground">{a.email ?? <span className="text-muted-foreground/40">--</span>}</td>
+                <td className="px-4 py-2.5 text-sm text-muted-foreground">{a.telephone ?? <span className="text-muted-foreground/40">--</span>}</td>
                 <td className="px-4 py-2.5" onClick={(e) => e.stopPropagation()}>
                   <button onClick={() => handleUnlink(a.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground/40 hover:text-destructive" title="Retirer de l'entreprise">
                     <Unlink className="h-3.5 w-3.5" />

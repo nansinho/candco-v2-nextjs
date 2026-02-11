@@ -12,7 +12,7 @@ export default async function ApprenantMessageriePage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">Messagerie</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Messagerie</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Échangez avec vos formateurs et l&apos;administration
         </p>

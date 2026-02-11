@@ -767,7 +767,7 @@ function DateSeparator({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-3 py-3">
       <div className="flex-1 h-px bg-border/40" />
-      <span className="text-[11px] text-muted-foreground/60 font-medium">{label}</span>
+      <span className="text-xs text-muted-foreground/60 font-medium">{label}</span>
       <div className="flex-1 h-px bg-border/40" />
     </div>
   );
@@ -808,8 +808,8 @@ function DescriptionBubble({
         {!isGrouped && (
           <div className={`flex items-center gap-1.5 mb-1 ${isOwn ? "flex-row-reverse" : ""}`}>
             <span className="text-xs font-medium">{auteurNom || "Inconnu"}</span>
-            <span className="text-[11px] text-muted-foreground/50">{AUTEUR_TYPE_LABELS[auteurType] || auteurType}</span>
-            <span className="text-[11px] text-muted-foreground/40">{formatTime(createdAt)}</span>
+            <span className="text-xs text-muted-foreground/50">{AUTEUR_TYPE_LABELS[auteurType] || auteurType}</span>
+            <span className="text-xs text-muted-foreground/40">{formatTime(createdAt)}</span>
           </div>
         )}
 
@@ -850,8 +850,8 @@ function ChatBubble({
           <div className="flex items-center gap-1.5 mb-1">
             <Lock className="h-3 w-3 text-amber-500/70" />
             <span className="text-xs font-medium text-amber-500/80">{message.auteur_nom || "Inconnu"}</span>
-            <span className="text-[11px] text-amber-500/40">Note interne</span>
-            <span className="text-[11px] text-muted-foreground/40">{formatTime(message.created_at)}</span>
+            <span className="text-xs text-amber-500/40">Note interne</span>
+            <span className="text-xs text-muted-foreground/40">{formatTime(message.created_at)}</span>
           </div>
         )}
         <div className="rounded-lg px-3 py-2 text-sm bg-amber-500/5 border border-amber-500/20">
@@ -880,10 +880,10 @@ function ChatBubble({
         {!isGrouped && (
           <div className={`flex items-center gap-1.5 mb-1 ${isOwn ? "flex-row-reverse" : ""}`}>
             <span className="text-xs font-medium">{message.auteur_nom || "Inconnu"}</span>
-            <span className="text-[11px] text-muted-foreground/50">
+            <span className="text-xs text-muted-foreground/50">
               {AUTEUR_TYPE_LABELS[message.auteur_type] || message.auteur_type}
             </span>
-            <span className="text-[11px] text-muted-foreground/40">{formatTime(message.created_at)}</span>
+            <span className="text-xs text-muted-foreground/40">{formatTime(message.created_at)}</span>
           </div>
         )}
 
