@@ -310,7 +310,7 @@ async function computeBudgetEngage(
   // Get besoins for this type (include tarif_id for specific tariff lookup)
   const { data: besoins } = await admin
     .from("besoins_formation")
-    .select("id, produit_id, tarif_id, siege_social, agences_ids")
+    .select("*")
     .eq("organisation_id", organisationId)
     .eq("entreprise_id", entrepriseId)
     .eq("annee_cible", annee)

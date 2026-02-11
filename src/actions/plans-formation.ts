@@ -248,7 +248,7 @@ export async function getPlanBudgetSummary(planId: string) {
   // Get all besoins linked to this plan with their produit_id and tarif_id
   const { data: besoins } = await admin
     .from("besoins_formation")
-    .select("id, intitule, statut, produit_id, tarif_id")
+    .select("*")
     .eq("plan_formation_id", planId)
     .eq("organisation_id", organisationId)
     .is("archived_at", null);
@@ -350,7 +350,7 @@ export async function getPonctuelBudgetSummary(entrepriseId: string, annee: numb
   // Get all ponctuel besoins for this year (include tarif_id)
   const { data: besoins } = await admin
     .from("besoins_formation")
-    .select("id, produit_id, tarif_id")
+    .select("*")
     .eq("organisation_id", organisationId)
     .eq("entreprise_id", entrepriseId)
     .eq("annee_cible", annee)
