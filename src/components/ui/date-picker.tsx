@@ -83,7 +83,7 @@ export function DatePicker({
             ) : (
               <span className="flex-1">{placeholder}</span>
             )}
-            {date && (
+            {date && !disabled && (
               <X
                 className="ml-auto h-3.5 w-3.5 text-muted-foreground/50 hover:text-foreground transition-colors"
                 onClick={handleClear}

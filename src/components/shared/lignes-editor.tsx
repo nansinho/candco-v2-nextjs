@@ -80,14 +80,14 @@ export function LignesEditor({ lignes, onChange, readOnly = false }: LignesEdito
                   onChange={(e) => updateLigne(index, "designation", e.target.value)}
                   placeholder="Désignation"
                   className="h-8 text-sm border-border/60"
-                  readOnly={readOnly}
+                  disabled={readOnly}
                 />
                 <Input
                   value={ligne.description}
                   onChange={(e) => updateLigne(index, "description", e.target.value)}
                   placeholder="Description (optionnel)"
                   className="h-7 text-xs text-muted-foreground border-border/40"
-                  readOnly={readOnly}
+                  disabled={readOnly}
                 />
               </div>
               <Input
@@ -97,7 +97,7 @@ export function LignesEditor({ lignes, onChange, readOnly = false }: LignesEdito
                 className="h-8 text-sm text-right border-border/60"
                 min="0"
                 step="0.01"
-                readOnly={readOnly}
+                disabled={readOnly}
               />
               <Input
                 type="number"
@@ -106,7 +106,7 @@ export function LignesEditor({ lignes, onChange, readOnly = false }: LignesEdito
                 className="h-8 text-sm text-right border-border/60"
                 min="0"
                 step="0.01"
-                readOnly={readOnly}
+                disabled={readOnly}
               />
               <Input
                 type="number"
@@ -115,7 +115,7 @@ export function LignesEditor({ lignes, onChange, readOnly = false }: LignesEdito
                 className="h-8 text-sm text-right border-border/60"
                 min="0"
                 step="0.01"
-                readOnly={readOnly}
+                disabled={readOnly}
               />
               <div className="flex h-8 items-center justify-end font-mono text-sm">
                 {formatCurrency(ligneHT)}
@@ -156,14 +156,14 @@ export function LignesEditor({ lignes, onChange, readOnly = false }: LignesEdito
                 onChange={(e) => updateLigne(index, "designation", e.target.value)}
                 placeholder="Désignation"
                 className="h-8 text-sm border-border/60"
-                readOnly={readOnly}
+                disabled={readOnly}
               />
               <Input
                 value={ligne.description}
                 onChange={(e) => updateLigne(index, "description", e.target.value)}
                 placeholder="Description (optionnel)"
                 className="h-7 text-xs text-muted-foreground border-border/40"
-                readOnly={readOnly}
+                disabled={readOnly}
               />
               <div className="grid grid-cols-3 gap-2">
                 <div>
@@ -175,7 +175,7 @@ export function LignesEditor({ lignes, onChange, readOnly = false }: LignesEdito
                     className="h-8 text-sm text-right border-border/60"
                     min="0"
                     step="0.01"
-                    readOnly={readOnly}
+                    disabled={readOnly}
                   />
                 </div>
                 <div>
@@ -187,7 +187,7 @@ export function LignesEditor({ lignes, onChange, readOnly = false }: LignesEdito
                     className="h-8 text-sm text-right border-border/60"
                     min="0"
                     step="0.01"
-                    readOnly={readOnly}
+                    disabled={readOnly}
                   />
                 </div>
                 <div>
@@ -199,7 +199,7 @@ export function LignesEditor({ lignes, onChange, readOnly = false }: LignesEdito
                     className="h-8 text-sm text-right border-border/60"
                     min="0"
                     step="0.01"
-                    readOnly={readOnly}
+                    disabled={readOnly}
                   />
                 </div>
               </div>
