@@ -6,6 +6,9 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { QueryFilter } from "@/lib/utils";
 import { logHistorique } from "@/lib/historique";
+import { isDocumensoConfigured } from "@/lib/documenso";
+import { sendEmail } from "@/lib/emails/send-email";
+import { devisEnvoyeTemplate } from "@/lib/emails/templates";
 
 // ─── Schemas ─────────────────────────────────────────────
 
@@ -235,7 +238,7 @@ export async function updateDevis(id: string, input: UpdateDevisInput) {
       objet: parsed.data.objet || null,
       conditions: parsed.data.conditions || null,
       mentions_legales: parsed.data.mentions_legales || null,
-      statut: parsed.data.statut,
+      // Note: statut is NOT updated via form save — only through explicit actions (sendDevis, markDevisRefused, etc.)
       opportunite_id: parsed.data.opportunite_id || null,
       session_id: parsed.data.session_id || null,
       ...totals,
@@ -486,4 +489,318 @@ export async function getContactsForSelect() {
     .order("nom");
 
   return data ?? [];
+}
+
+// ─── Send devis (validates + sends via Documenso or email fallback) ─
+
+export async function sendDevis(devisId: string) {
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role, supabase, admin } = result;
+  requirePermission(role as UserRole, canManageFinances, "envoyer un devis");
+
+  // Fetch devis to validate
+  const { data: devis } = await admin
+    .from("devis")
+    .select(`
+      id, statut, date_emission, total_ttc, numero_affichage, objet,
+      entreprise_id, contact_client_id, particulier_nom, particulier_email,
+      entreprises(nom, email),
+      contacts_clients(prenom, nom, email),
+      devis_lignes(id)
+    `)
+    .eq("id", devisId)
+    .single();
+
+  if (!devis) return { error: "Devis introuvable" };
+  if (devis.statut !== "brouillon") return { error: "Seul un devis en brouillon peut être envoyé" };
+  if (!devis.date_emission) return { error: "La date d'émission est requise avant l'envoi" };
+  if (!devis.devis_lignes || devis.devis_lignes.length === 0) {
+    return { error: "Le devis doit contenir au moins une ligne" };
+  }
+
+  // Determine recipient email
+  const contactRaw = devis.contacts_clients;
+  const contact = (Array.isArray(contactRaw) ? contactRaw[0] : contactRaw) as { prenom: string; nom: string; email: string } | null;
+  const entrepriseRaw = devis.entreprises;
+  const entreprise = (Array.isArray(entrepriseRaw) ? entrepriseRaw[0] : entrepriseRaw) as { nom: string; email: string } | null;
+  const recipientEmail = contact?.email || entreprise?.email || devis.particulier_email;
+
+  if (!recipientEmail) {
+    return { error: "Aucune adresse email trouvée pour le destinataire. Renseignez l'email du contact, de l'entreprise ou du particulier." };
+  }
+
+  // Path A: Documenso configured → e-signature flow
+  if (isDocumensoConfigured()) {
+    // Dynamic import to avoid circular dependency (signatures.ts also imports from devis-utils)
+    const { sendDevisForSignature } = await import("@/actions/signatures");
+    const sigResult = await sendDevisForSignature(devisId);
+    if ("error" in sigResult && sigResult.error) {
+      return { error: sigResult.error };
+    }
+    return { success: true, method: "documenso" as const };
+  }
+
+  // Path B: Fallback → send PDF by email without e-signature
+  const { generateDevisDocument } = await import("@/actions/signatures");
+  const pdfResult = await generateDevisDocument(devisId);
+  if ("error" in pdfResult && pdfResult.error) {
+    return { error: `Erreur génération PDF : ${pdfResult.error}` };
+  }
+
+  const pdfUrl = "url" in pdfResult ? pdfResult.url : undefined;
+  const recipientName = contact
+    ? `${contact.prenom} ${contact.nom}`
+    : devis.particulier_nom || entreprise?.nom || "Client";
+
+  // Fetch org name for email
+  const { data: org } = await admin
+    .from("organisations")
+    .select("nom")
+    .eq("id", organisationId)
+    .single();
+
+  await sendEmail({
+    organisationId,
+    to: recipientEmail,
+    toName: recipientName,
+    subject: `Devis ${devis.numero_affichage}`,
+    html: devisEnvoyeTemplate({
+      contactNom: recipientName,
+      devisNumero: devis.numero_affichage || "",
+      montant: `${(Number(devis.total_ttc) || 0).toFixed(2)} €`,
+      lien: pdfUrl,
+      orgName: org?.nom || "C&CO Formation",
+    }),
+    entiteType: "devis",
+    entiteId: devisId,
+    template: "devis_envoye",
+  });
+
+  // Update status to envoye
+  await supabase
+    .from("devis")
+    .update({
+      statut: "envoye",
+      envoye_le: new Date().toISOString(),
+    })
+    .eq("id", devisId);
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "devis",
+    action: "sent",
+    entiteType: "devis",
+    entiteId: devisId,
+    entiteLabel: devis.numero_affichage,
+    description: `Devis ${devis.numero_affichage} envoyé par email à ${recipientEmail}`,
+    objetHref: `/devis/${devisId}`,
+  });
+
+  revalidatePath("/devis");
+  revalidatePath(`/devis/${devisId}`);
+  return { success: true, method: "email_only" as const };
+}
+
+// ─── Mark devis as refused (manual admin override) ──────
+
+export async function markDevisRefused(devisId: string) {
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role, supabase } = result;
+  requirePermission(role as UserRole, canManageFinances, "marquer un devis comme refusé");
+
+  const { data: devis } = await supabase
+    .from("devis")
+    .select("id, statut, numero_affichage")
+    .eq("id", devisId)
+    .single();
+
+  if (!devis) return { error: "Devis introuvable" };
+  if (devis.statut !== "envoye") return { error: "Seul un devis envoyé peut être marqué comme refusé" };
+
+  await supabase
+    .from("devis")
+    .update({ statut: "refuse" })
+    .eq("id", devisId);
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "devis",
+    action: "status_changed",
+    entiteType: "devis",
+    entiteId: devisId,
+    entiteLabel: devis.numero_affichage,
+    description: `Devis ${devis.numero_affichage} marqué comme refusé`,
+    objetHref: `/devis/${devisId}`,
+  });
+
+  revalidatePath("/devis");
+  revalidatePath(`/devis/${devisId}`);
+  return { success: true };
+}
+
+// ─── Session linking ────────────────────────────────────
+
+export async function getSessionsForDevisSelect(search?: string) {
+  const result = await getOrganisationId();
+  if ("error" in result) return [];
+  const { supabase } = result;
+
+  let query = supabase
+    .from("sessions")
+    .select("id, nom, numero_affichage, statut, date_debut")
+    .is("archived_at", null)
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  if (search) {
+    query = query.or(`nom.ilike.%${search}%,numero_affichage.ilike.%${search}%`);
+  }
+
+  const { data } = await query;
+  return data ?? [];
+}
+
+export async function linkDevisToSession(devisId: string, sessionId: string) {
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role, supabase } = result;
+  requirePermission(role as UserRole, canManageFinances, "lier un devis à une session");
+
+  // Update devis
+  await supabase
+    .from("devis")
+    .update({ session_id: sessionId })
+    .eq("id", devisId);
+
+  // Check if devis entreprise is already a commanditaire on the session
+  const { data: devis } = await supabase
+    .from("devis")
+    .select("entreprise_id, contact_client_id, total_ttc, numero_affichage")
+    .eq("id", devisId)
+    .single();
+
+  if (devis?.entreprise_id) {
+    const { data: existingCmd } = await supabase
+      .from("session_commanditaires")
+      .select("id")
+      .eq("session_id", sessionId)
+      .eq("entreprise_id", devis.entreprise_id)
+      .maybeSingle();
+
+    if (!existingCmd) {
+      await supabase.from("session_commanditaires").insert({
+        session_id: sessionId,
+        entreprise_id: devis.entreprise_id,
+        contact_client_id: devis.contact_client_id || null,
+        budget: devis.total_ttc || 0,
+        statut_workflow: "analyse",
+      });
+    }
+  }
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "devis",
+    action: "linked",
+    entiteType: "devis",
+    entiteId: devisId,
+    entiteLabel: devis?.numero_affichage || devisId,
+    description: `Devis lié à la session`,
+    objetHref: `/devis/${devisId}`,
+  });
+
+  revalidatePath("/devis");
+  revalidatePath(`/devis/${devisId}`);
+  revalidatePath(`/sessions/${sessionId}`);
+  return { success: true };
+}
+
+export async function unlinkDevisFromSession(devisId: string) {
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { role, supabase } = result;
+  requirePermission(role as UserRole, canManageFinances, "délier un devis d'une session");
+
+  await supabase
+    .from("devis")
+    .update({ session_id: null })
+    .eq("id", devisId);
+
+  revalidatePath("/devis");
+  revalidatePath(`/devis/${devisId}`);
+  return { success: true };
+}
+
+export async function convertDevisToSession(devisId: string) {
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role, supabase } = result;
+  requirePermission(role as UserRole, canManageFinances, "créer une session depuis un devis");
+
+  const devisData = await getDevis(devisId);
+  if (!devisData) return { error: "Devis introuvable" };
+
+  // Generate session number
+  const { data: numero } = await supabase.rpc("next_numero", {
+    p_organisation_id: organisationId,
+    p_entite: "SES",
+  });
+
+  // Create session
+  const { data: session, error } = await supabase
+    .from("sessions")
+    .insert({
+      organisation_id: organisationId,
+      numero_affichage: numero,
+      nom: devisData.objet || `Session depuis ${devisData.numero_affichage}`,
+      statut: "en_projet",
+      produit_id: null,
+    })
+    .select()
+    .single();
+
+  if (error) return { error: error.message };
+
+  // Create commanditaire if entreprise exists
+  if (devisData.entreprise_id) {
+    await supabase.from("session_commanditaires").insert({
+      session_id: session.id,
+      entreprise_id: devisData.entreprise_id,
+      contact_client_id: devisData.contact_client_id || null,
+      budget: devisData.total_ttc || 0,
+      statut_workflow: "analyse",
+    });
+  }
+
+  // Link devis to session
+  await supabase
+    .from("devis")
+    .update({ session_id: session.id })
+    .eq("id", devisId);
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "session",
+    action: "created",
+    entiteType: "session",
+    entiteId: session.id,
+    entiteLabel: session.numero_affichage,
+    description: `Session ${session.numero_affichage} créée depuis devis ${devisData.numero_affichage}`,
+    objetHref: `/sessions/${session.id}`,
+  });
+
+  revalidatePath("/devis");
+  revalidatePath(`/devis/${devisId}`);
+  revalidatePath("/sessions");
+  return { data: { id: session.id, numero_affichage: session.numero_affichage } };
 }

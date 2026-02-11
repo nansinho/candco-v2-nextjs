@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Loader2, Send, Copy, FileText, ArrowRight, Trash2, PenLine } from "lucide-react";
+import { ArrowLeft, Loader2, Send, Copy, ArrowRight, PenLine, Link2, Unlink, Plus, ExternalLink, XCircle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,18 +19,22 @@ import { DatePicker } from "@/components/ui/date-picker";
 import {
   getDevis,
   updateDevis,
-  updateDevisStatut,
   duplicateDevis,
   convertDevisToFacture,
   getEntreprisesForSelect,
   getContactsForSelect,
+  sendDevis,
+  markDevisRefused,
+  getSessionsForDevisSelect,
+  linkDevisToSession,
+  unlinkDevisFromSession,
+  convertDevisToSession,
   type UpdateDevisInput,
 } from "@/actions/devis";
 import { getOrganisationBillingInfo } from "@/actions/factures";
-import { sendDevisForSignature, checkDevisSignatureStatus } from "@/actions/signatures";
-import { isDocumensoConfigured } from "@/lib/documenso";
-import { formatDate, formatCurrency } from "@/lib/utils";
-import { DevisStatusBadge, DEVIS_STATUT_OPTIONS } from "@/components/shared/status-badges";
+import { checkDevisSignatureStatus } from "@/actions/signatures";
+import { formatDate } from "@/lib/utils";
+import { DevisStatusBadge } from "@/components/shared/status-badges";
 import { LignesEditor, DocumentPreview, type LigneItem } from "@/components/shared/lignes-editor";
 
 export default function DevisDetailPage() {
@@ -45,8 +49,9 @@ export default function DevisDetailPage() {
   const [saving, setSaving] = React.useState(false);
   const [converting, setConverting] = React.useState(false);
   const [duplicating, setDuplicating] = React.useState(false);
-  const [sendingSignature, setSendingSignature] = React.useState(false);
-  const [documensoAvailable] = React.useState(() => isDocumensoConfigured());
+  const [sending, setSending] = React.useState(false);
+  const [checkingSignature, setCheckingSignature] = React.useState(false);
+  const [refusing, setRefusing] = React.useState(false);
   const [documensoStatus, setDocumensoStatus] = React.useState<string | null>(null);
 
   // Devis data
@@ -70,6 +75,15 @@ export default function DevisDetailPage() {
   const [statut, setStatut] = React.useState<"brouillon" | "envoye" | "signe" | "refuse" | "expire">("brouillon");
   const [lignes, setLignes] = React.useState<LigneItem[]>([]);
 
+  // Session linking
+  const [sessionId, setSessionId] = React.useState<string | null>(null);
+  const [sessionInfo, setSessionInfo] = React.useState<{ id: string; nom: string; numero_affichage: string } | null>(null);
+  const [sessions, setSessions] = React.useState<Array<{ id: string; nom: string; numero_affichage: string; statut: string; date_debut: string | null }>>([]);
+  const [sessionSearch, setSessionSearch] = React.useState("");
+  const [showSessionSelect, setShowSessionSelect] = React.useState(false);
+  const [linkingSession, setLinkingSession] = React.useState(false);
+  const [creatingSession, setCreatingSession] = React.useState(false);
+
   // Selects data
   const [entreprises, setEntreprises] = React.useState<
     Array<{ id: string; nom: string; numero_affichage?: string }>
@@ -81,6 +95,9 @@ export default function DevisDetailPage() {
   // Organisation billing info
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [orgInfo, setOrgInfo] = React.useState<any>(null);
+
+  // Read-only mode: form is not editable when devis is not brouillon
+  const isReadOnly = statut !== "brouillon";
 
   // ─── Load initial data ─────────────────────────────────────
 
@@ -125,6 +142,7 @@ export default function DevisDetailPage() {
         setMentionsLegales(devisData.mentions_legales || orgData?.mentions_legales || "");
         setStatut((devisData.statut || "brouillon") as typeof statut);
         setDocumensoStatus((devisData.documenso_status as string) || null);
+        setSessionId(devisData.session_id || null);
 
         // Lines
         const devisLignes = (devisData.devis_lignes as unknown[]) || [];
@@ -152,6 +170,32 @@ export default function DevisDetailPage() {
     loadData();
   }, [devisId, router, toast]);
 
+  // Load session info if linked
+  React.useEffect(() => {
+    if (!sessionId) {
+      setSessionInfo(null);
+      return;
+    }
+    async function loadSessionInfo() {
+      const data = await getSessionsForDevisSelect();
+      const found = data.find((s) => s.id === sessionId);
+      if (found) {
+        setSessionInfo({ id: found.id, nom: found.nom, numero_affichage: found.numero_affichage });
+      }
+    }
+    loadSessionInfo();
+  }, [sessionId]);
+
+  // Load sessions for select when needed
+  React.useEffect(() => {
+    if (!showSessionSelect) return;
+    async function loadSessions() {
+      const data = await getSessionsForDevisSelect(sessionSearch || undefined);
+      setSessions(data);
+    }
+    loadSessions();
+  }, [showSessionSelect, sessionSearch]);
+
   // ─── Handlers ──────────────────────────────────────────────
 
   const handleSave = async () => {
@@ -169,9 +213,9 @@ export default function DevisDetailPage() {
         objet,
         conditions,
         mentions_legales: mentionsLegales,
-        statut,
+        statut: "brouillon",
         opportunite_id: "",
-        session_id: "",
+        session_id: sessionId || "",
         lignes,
       };
 
@@ -195,18 +239,37 @@ export default function DevisDetailPage() {
     }
   };
 
-  const handleChangeStatut = async (newStatut: string) => {
+  const handleSendDevis = async () => {
+    setSending(true);
     try {
-      const result = await updateDevisStatut(devisId, newStatut);
-      if (result.error) {
-        toast({ title: "Erreur", description: result.error, variant: "destructive" });
+      // Save first
+      await handleSave();
+
+      const result = await sendDevis(devisId);
+      if ("error" in result && result.error) {
+        toast({
+          title: "Erreur",
+          description: result.error,
+          variant: "destructive",
+        });
         return;
       }
-      setStatut(newStatut as typeof statut);
-      toast({ title: "Succès", description: `Statut mis à jour : ${newStatut}`, variant: "success" });
+      setStatut("envoye");
+      if (result.method === "documenso") {
+        setDocumensoStatus("pending");
+      }
+      toast({
+        title: "Devis envoyé",
+        description: result.method === "documenso"
+          ? "Le destinataire recevra un email avec un lien de signature électronique"
+          : "Le devis a été envoyé par email",
+        variant: "success",
+      });
     } catch (error) {
-      console.error("Erreur changement statut:", error);
-      toast({ title: "Erreur", description: "Impossible de changer le statut", variant: "destructive" });
+      console.error("Erreur envoi devis:", error);
+      toast({ title: "Erreur", description: "Impossible d'envoyer le devis", variant: "destructive" });
+    } finally {
+      setSending(false);
     }
   };
 
@@ -252,34 +315,8 @@ export default function DevisDetailPage() {
     }
   };
 
-  const handleSendForSignature = async () => {
-    setSendingSignature(true);
-    try {
-      const result = await sendDevisForSignature(devisId);
-      if ("error" in result && result.error) {
-        toast({
-          title: "Erreur",
-          description: result.error,
-          variant: "destructive",
-        });
-        return;
-      }
-      setStatut("envoye");
-      setDocumensoStatus("pending");
-      toast({
-        title: "Succès",
-        description: "Devis envoyé en signature électronique",
-        variant: "success",
-      });
-    } catch (error) {
-      console.error("Erreur envoi signature:", error);
-      toast({ title: "Erreur", description: "Impossible d'envoyer en signature", variant: "destructive" });
-    } finally {
-      setSendingSignature(false);
-    }
-  };
-
   const handleCheckSignatureStatus = async () => {
+    setCheckingSignature(true);
     try {
       const result = await checkDevisSignatureStatus(devisId);
       if ("error" in result && result.error) {
@@ -288,16 +325,99 @@ export default function DevisDetailPage() {
       }
       if ("status" in result) {
         setDocumensoStatus(result.status ?? null);
-        if (result.status === "signed") setStatut("signe");
-        if (result.status === "rejected") setStatut("refuse");
+        if (result.status === "signed") {
+          setStatut("signe");
+          toast({
+            title: "Devis signé !",
+            description: "Le devis a été signé. Une facture a été créée automatiquement en brouillon.",
+            variant: "success",
+          });
+        } else if (result.status === "rejected") {
+          setStatut("refuse");
+          toast({ title: "Devis refusé", description: "Le destinataire a refusé le devis", variant: "destructive" });
+        } else {
+          toast({ title: "En attente", description: "La signature est toujours en attente", variant: "default" });
+        }
+      }
+    } catch (error) {
+      console.error("Erreur vérification signature:", error);
+    } finally {
+      setCheckingSignature(false);
+    }
+  };
+
+  const handleMarkRefused = async () => {
+    if (!confirm("Êtes-vous sûr de vouloir marquer ce devis comme refusé ?")) return;
+    setRefusing(true);
+    try {
+      const result = await markDevisRefused(devisId);
+      if ("error" in result && result.error) {
+        toast({ title: "Erreur", description: result.error, variant: "destructive" });
+        return;
+      }
+      setStatut("refuse");
+      toast({ title: "Succès", description: "Devis marqué comme refusé", variant: "success" });
+    } catch (error) {
+      console.error("Erreur:", error);
+    } finally {
+      setRefusing(false);
+    }
+  };
+
+  const handleLinkSession = async (selectedSessionId: string) => {
+    setLinkingSession(true);
+    try {
+      const result = await linkDevisToSession(devisId, selectedSessionId);
+      if ("error" in result && result.error) {
+        toast({ title: "Erreur", description: result.error, variant: "destructive" });
+        return;
+      }
+      setSessionId(selectedSessionId);
+      setShowSessionSelect(false);
+      toast({ title: "Succès", description: "Session liée au devis", variant: "success" });
+    } catch (error) {
+      console.error("Erreur liaison session:", error);
+    } finally {
+      setLinkingSession(false);
+    }
+  };
+
+  const handleUnlinkSession = async () => {
+    try {
+      const result = await unlinkDevisFromSession(devisId);
+      if ("error" in result && result.error) {
+        toast({ title: "Erreur", description: result.error, variant: "destructive" });
+        return;
+      }
+      setSessionId(null);
+      setSessionInfo(null);
+      toast({ title: "Succès", description: "Session déliée du devis", variant: "success" });
+    } catch (error) {
+      console.error("Erreur:", error);
+    }
+  };
+
+  const handleCreateSession = async () => {
+    setCreatingSession(true);
+    try {
+      const result = await convertDevisToSession(devisId);
+      if ("error" in result && result.error) {
+        toast({ title: "Erreur", description: result.error, variant: "destructive" });
+        return;
+      }
+      if ("data" in result && result.data) {
+        setSessionId(result.data.id);
+        setSessionInfo({ id: result.data.id, nom: objet || "Nouvelle session", numero_affichage: result.data.numero_affichage });
         toast({
-          title: "Statut mis à jour",
-          description: `Signature : ${result.status}`,
+          title: "Session créée",
+          description: `Session ${result.data.numero_affichage} créée et liée au devis`,
           variant: "success",
         });
       }
     } catch (error) {
-      console.error("Erreur vérification signature:", error);
+      console.error("Erreur création session:", error);
+    } finally {
+      setCreatingSession(false);
     }
   };
 
@@ -315,7 +435,6 @@ export default function DevisDetailPage() {
     if (destinataireType === "entreprise") {
       const ent = entreprises.find((e) => e.id === entrepriseId);
       if (!ent) return undefined;
-      // Use data from loaded devis if available
       const entrepriseData = devis?.entreprises as Record<string, unknown> | undefined;
       return {
         nom: ent.nom,
@@ -369,101 +488,212 @@ export default function DevisDetailPage() {
               </h1>
               <DevisStatusBadge statut={statut} />
             </div>
+            {statut === "envoye" && !!devis.envoye_le && (
+              <span className="text-[11px] text-muted-foreground">
+                Envoyé le {formatDate(devis.envoye_le as string)}
+              </span>
+            )}
+            {statut === "signe" && !!devis.signe_le && (
+              <span className="text-[11px] text-emerald-400">
+                Signé le {formatDate(devis.signe_le as string)}
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSave}
-              disabled={saving}
-              className="h-8 text-xs border-border/60"
-            >
-              {saving ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                "Enregistrer"
-              )}
-            </Button>
+            {/* ─── Status-driven action buttons ─── */}
 
-            <Select value={statut} onValueChange={handleChangeStatut}>
-              <SelectTrigger className="h-8 w-[120px] sm:w-[140px] text-xs border-border/60">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {DEVIS_STATUT_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* BROUILLON: Save + Send (primary CTA) + Duplicate + Convert */}
+            {statut === "brouillon" && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="h-8 text-xs border-border/60"
+                >
+                  {saving ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    "Enregistrer"
+                  )}
+                </Button>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleDuplicate}
-              disabled={duplicating}
-              className="h-8 text-xs border-border/60"
-            >
-              {duplicating ? (
-                <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-              ) : (
-                <Copy className="mr-1 h-3 w-3" />
-              )}
-              <span className="hidden sm:inline">Dupliquer</span>
-            </Button>
+                <Button
+                  size="sm"
+                  onClick={handleSendDevis}
+                  disabled={sending}
+                  className="h-8 text-xs bg-[#F97316] hover:bg-[#EA580C] text-white"
+                >
+                  {sending ? (
+                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                  ) : (
+                    <Send className="mr-1 h-3 w-3" />
+                  )}
+                  <span className="hidden sm:inline">Envoyer le devis</span>
+                  <span className="sm:hidden">Envoyer</span>
+                </Button>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleConvertToFacture}
-              disabled={converting}
-              className="h-8 text-xs border-border/60"
-            >
-              {converting ? (
-                <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-              ) : (
-                <ArrowRight className="mr-1 h-3 w-3" />
-              )}
-              <span className="hidden sm:inline">Convertir en facture</span>
-              <span className="sm:hidden">Facture</span>
-            </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDuplicate}
+                  disabled={duplicating}
+                  className="h-8 text-xs border-border/60"
+                >
+                  {duplicating ? (
+                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                  ) : (
+                    <Copy className="mr-1 h-3 w-3" />
+                  )}
+                  <span className="hidden sm:inline">Dupliquer</span>
+                </Button>
 
-            {documensoAvailable && !documensoStatus && statut === "brouillon" && (
-              <Button
-                size="sm"
-                onClick={handleSendForSignature}
-                disabled={sendingSignature}
-                className="h-8 text-xs bg-[#F97316] hover:bg-[#EA580C] text-white"
-              >
-                {sendingSignature ? (
-                  <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                ) : (
-                  <PenLine className="mr-1 h-3 w-3" />
-                )}
-                <span className="hidden sm:inline">Envoyer en signature</span>
-                <span className="sm:hidden">Signer</span>
-              </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleConvertToFacture}
+                  disabled={converting}
+                  className="h-8 text-xs border-border/60"
+                >
+                  {converting ? (
+                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                  ) : (
+                    <ArrowRight className="mr-1 h-3 w-3" />
+                  )}
+                  <span className="hidden sm:inline">Convertir en facture</span>
+                  <span className="sm:hidden">Facture</span>
+                </Button>
+              </>
             )}
 
-            {documensoStatus === "pending" && (
+            {/* ENVOYÉ: Check signature + Duplicate + Convert + Mark refused */}
+            {statut === "envoye" && (
+              <>
+                {documensoStatus === "pending" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCheckSignatureStatus}
+                    disabled={checkingSignature}
+                    className="h-8 text-xs border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+                  >
+                    {checkingSignature ? (
+                      <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                    ) : (
+                      <PenLine className="mr-1 h-3 w-3" />
+                    )}
+                    Vérifier signature
+                  </Button>
+                )}
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDuplicate}
+                  disabled={duplicating}
+                  className="h-8 text-xs border-border/60"
+                >
+                  {duplicating ? (
+                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                  ) : (
+                    <Copy className="mr-1 h-3 w-3" />
+                  )}
+                  <span className="hidden sm:inline">Dupliquer</span>
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleConvertToFacture}
+                  disabled={converting}
+                  className="h-8 text-xs border-border/60"
+                >
+                  {converting ? (
+                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                  ) : (
+                    <ArrowRight className="mr-1 h-3 w-3" />
+                  )}
+                  <span className="hidden sm:inline">Convertir en facture</span>
+                  <span className="sm:hidden">Facture</span>
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleMarkRefused}
+                  disabled={refusing}
+                  className="h-8 text-xs border-red-500/30 text-red-400 hover:bg-red-500/10"
+                >
+                  {refusing ? (
+                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                  ) : (
+                    <XCircle className="mr-1 h-3 w-3" />
+                  )}
+                  <span className="hidden sm:inline">Marquer refusé</span>
+                  <span className="sm:hidden">Refuser</span>
+                </Button>
+              </>
+            )}
+
+            {/* SIGNÉ: Convert to facture (primary) + Duplicate */}
+            {statut === "signe" && (
+              <>
+                <span className="flex items-center gap-1 text-xs text-emerald-400 mr-1">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  Signé
+                </span>
+
+                <Button
+                  size="sm"
+                  onClick={handleConvertToFacture}
+                  disabled={converting}
+                  className="h-8 text-xs bg-[#F97316] hover:bg-[#EA580C] text-white"
+                >
+                  {converting ? (
+                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                  ) : (
+                    <ArrowRight className="mr-1 h-3 w-3" />
+                  )}
+                  <span className="hidden sm:inline">Créer la facture</span>
+                  <span className="sm:hidden">Facture</span>
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDuplicate}
+                  disabled={duplicating}
+                  className="h-8 text-xs border-border/60"
+                >
+                  {duplicating ? (
+                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                  ) : (
+                    <Copy className="mr-1 h-3 w-3" />
+                  )}
+                  <span className="hidden sm:inline">Dupliquer</span>
+                </Button>
+              </>
+            )}
+
+            {/* REFUSÉ / EXPIRÉ: Duplicate only */}
+            {(statut === "refuse" || statut === "expire") && (
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleCheckSignatureStatus}
-                className="h-8 text-xs border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+                onClick={handleDuplicate}
+                disabled={duplicating}
+                className="h-8 text-xs border-border/60"
               >
-                <PenLine className="mr-1 h-3 w-3" />
-                Vérifier
+                {duplicating ? (
+                  <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                ) : (
+                  <Copy className="mr-1 h-3 w-3" />
+                )}
+                <span className="hidden sm:inline">Dupliquer en nouveau devis</span>
+                <span className="sm:hidden">Dupliquer</span>
               </Button>
-            )}
-
-            {documensoStatus === "signed" && (
-              <span className="flex items-center gap-1 text-xs text-emerald-400">
-                <PenLine className="h-3 w-3" />
-                Signé
-              </span>
             )}
           </div>
         </div>
@@ -474,6 +704,13 @@ export default function DevisDetailPage() {
         <div className="grid lg:grid-cols-2 gap-6 h-full p-6">
           {/* Left: Edit form */}
           <div className="overflow-y-auto pr-2 space-y-6">
+            {/* Read-only banner */}
+            {isReadOnly && (
+              <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-4 py-2.5 text-xs text-amber-400">
+                Ce devis est en lecture seule ({statut === "envoye" ? "envoyé" : statut === "signe" ? "signé" : statut === "refuse" ? "refusé" : "expiré"}). Pour modifier, dupliquez-le en nouveau brouillon.
+              </div>
+            )}
+
             {/* Destinataire toggle */}
             <div className="rounded-lg border border-border/40 bg-card p-4">
               <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 block">
@@ -486,6 +723,7 @@ export default function DevisDetailPage() {
                   size="sm"
                   onClick={() => setDestinataireType("entreprise")}
                   className="h-8 text-xs"
+                  disabled={isReadOnly}
                 >
                   Entreprise
                 </Button>
@@ -495,6 +733,7 @@ export default function DevisDetailPage() {
                   size="sm"
                   onClick={() => setDestinataireType("particulier")}
                   className="h-8 text-xs"
+                  disabled={isReadOnly}
                 >
                   Particulier
                 </Button>
@@ -506,7 +745,7 @@ export default function DevisDetailPage() {
                     <Label htmlFor="entreprise" className="text-xs mb-1.5 block">
                       Entreprise
                     </Label>
-                    <Select value={entrepriseId} onValueChange={setEntrepriseId}>
+                    <Select value={entrepriseId} onValueChange={setEntrepriseId} disabled={isReadOnly}>
                       <SelectTrigger
                         id="entreprise"
                         className="h-9 text-sm border-border/60"
@@ -528,7 +767,7 @@ export default function DevisDetailPage() {
                     <Label htmlFor="contact" className="text-xs mb-1.5 block">
                       Contact client (optionnel)
                     </Label>
-                    <Select value={contactClientId} onValueChange={setContactClientId}>
+                    <Select value={contactClientId} onValueChange={setContactClientId} disabled={isReadOnly}>
                       <SelectTrigger
                         id="contact"
                         className="h-9 text-sm border-border/60"
@@ -559,6 +798,7 @@ export default function DevisDetailPage() {
                       onChange={(e) => setParticulierNom(e.target.value)}
                       placeholder="Nom du particulier"
                       className="h-9 text-sm border-border/60"
+                      disabled={isReadOnly}
                     />
                   </div>
                   <div>
@@ -572,6 +812,7 @@ export default function DevisDetailPage() {
                       onChange={(e) => setParticulierEmail(e.target.value)}
                       placeholder="email@exemple.com"
                       className="h-9 text-sm border-border/60"
+                      disabled={isReadOnly}
                     />
                   </div>
                   <div>
@@ -584,6 +825,7 @@ export default function DevisDetailPage() {
                       onChange={(e) => setParticulierTelephone(e.target.value)}
                       placeholder="06 12 34 56 78"
                       className="h-9 text-sm border-border/60"
+                      disabled={isReadOnly}
                     />
                   </div>
                   <div>
@@ -596,6 +838,7 @@ export default function DevisDetailPage() {
                       onChange={(e) => setParticulierAdresse(e.target.value)}
                       placeholder="Adresse complète"
                       className="min-h-[60px] text-sm border-border/60"
+                      disabled={isReadOnly}
                     />
                   </div>
                 </div>
@@ -610,24 +853,26 @@ export default function DevisDetailPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <Label htmlFor="date_emission" className="text-xs mb-1.5 block">
-                    Date d'émission
+                    Date d&apos;émission
                   </Label>
                   <DatePicker
                     id="date_emission"
                     value={dateEmission}
                     onChange={setDateEmission}
                     placeholder="Sélectionner"
+                    disabled={isReadOnly}
                   />
                 </div>
                 <div>
                   <Label htmlFor="date_echeance" className="text-xs mb-1.5 block">
-                    Date d'échéance
+                    Date d&apos;échéance
                   </Label>
                   <DatePicker
                     id="date_echeance"
                     value={dateEcheance}
                     onChange={setDateEcheance}
                     placeholder="Optionnel"
+                    disabled={isReadOnly}
                   />
                 </div>
               </div>
@@ -644,7 +889,123 @@ export default function DevisDetailPage() {
                 onChange={(e) => setObjet(e.target.value)}
                 placeholder="Objet du devis"
                 className="h-9 text-sm border-border/60"
+                disabled={isReadOnly}
               />
+            </div>
+
+            {/* Session liée */}
+            <div className="rounded-lg border border-border/40 bg-card p-4">
+              <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-3 block">
+                Session liée
+              </Label>
+
+              {sessionInfo ? (
+                <div className="flex items-center justify-between gap-3 rounded-md border border-border/40 bg-muted/30 px-3 py-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Link2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    <span className="text-xs font-medium text-foreground truncate">
+                      {sessionInfo.numero_affichage} — {sessionInfo.nom}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => router.push(`/sessions/${sessionInfo.id}`)}
+                      className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                    </Button>
+                    {!isReadOnly && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleUnlinkSession}
+                        className="h-7 px-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                      >
+                        <Unlink className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {showSessionSelect ? (
+                    <div className="space-y-2">
+                      <Input
+                        placeholder="Rechercher une session..."
+                        value={sessionSearch}
+                        onChange={(e) => setSessionSearch(e.target.value)}
+                        className="h-8 text-xs border-border/60"
+                        autoFocus
+                      />
+                      <div className="max-h-[200px] overflow-y-auto space-y-1">
+                        {sessions.map((s) => (
+                          <button
+                            key={s.id}
+                            onClick={() => handleLinkSession(s.id)}
+                            disabled={linkingSession}
+                            className="w-full text-left rounded px-2 py-1.5 text-xs hover:bg-muted/50 transition-colors flex items-center justify-between"
+                          >
+                            <span className="truncate">
+                              {s.numero_affichage} — {s.nom}
+                            </span>
+                            {s.date_debut && (
+                              <span className="text-[10px] text-muted-foreground ml-2 shrink-0">
+                                {formatDate(s.date_debut)}
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                        {sessions.length === 0 && (
+                          <p className="text-xs text-muted-foreground py-2 text-center">Aucune session trouvée</p>
+                        )}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowSessionSelect(false)}
+                        className="h-7 text-xs text-muted-foreground"
+                      >
+                        Annuler
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      {!isReadOnly && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowSessionSelect(true)}
+                            className="h-8 text-xs border-border/60"
+                          >
+                            <Link2 className="mr-1 h-3 w-3" />
+                            Lier une session
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleCreateSession}
+                            disabled={creatingSession}
+                            className="h-8 text-xs border-border/60"
+                          >
+                            {creatingSession ? (
+                              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                            ) : (
+                              <Plus className="mr-1 h-3 w-3" />
+                            )}
+                            Créer une session
+                          </Button>
+                        </>
+                      )}
+                      {isReadOnly && (
+                        <p className="text-xs text-muted-foreground">Aucune session liée</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Lignes */}
@@ -652,7 +1013,7 @@ export default function DevisDetailPage() {
               <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 block">
                 Lignes du devis
               </Label>
-              <LignesEditor lignes={lignes} onChange={setLignes} />
+              <LignesEditor lignes={lignes} onChange={setLignes} readOnly={isReadOnly} />
             </div>
 
             {/* Conditions */}
@@ -666,6 +1027,7 @@ export default function DevisDetailPage() {
                 onChange={(e) => setConditions(e.target.value)}
                 placeholder="Conditions de paiement et autres conditions"
                 className="min-h-[80px] text-sm border-border/60"
+                disabled={isReadOnly}
               />
             </div>
 
@@ -680,6 +1042,7 @@ export default function DevisDetailPage() {
                 onChange={(e) => setMentionsLegales(e.target.value)}
                 placeholder="Mentions légales obligatoires (NDA, SIRET, TVA...)"
                 className="min-h-[80px] text-sm border-border/60"
+                disabled={isReadOnly}
               />
             </div>
           </div>
