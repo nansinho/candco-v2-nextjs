@@ -15,6 +15,7 @@ import {
   HelpCircle,
   Briefcase,
   Clock,
+  File,
 } from "lucide-react";
 import type { HistoriqueModule, HistoriqueAction, HistoriqueOrigine } from "@/lib/historique";
 
@@ -137,6 +138,12 @@ export const MODULE_CONFIG: Record<
     color: "text-rose-400",
     bgColor: "bg-rose-500/15",
     icon: Clock,
+  },
+  document: {
+    label: "Document",
+    color: "text-slate-400",
+    bgColor: "bg-slate-500/15",
+    icon: File,
   },
 };
 
