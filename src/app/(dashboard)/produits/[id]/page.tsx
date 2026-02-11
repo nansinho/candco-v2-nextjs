@@ -36,6 +36,7 @@ export default async function ProduitDetailPage({ params }: PageProps) {
       financement={result.financement}
       ouvrages={result.ouvrages}
       articles={result.articles}
+      referencesBiblio={result.referencesBiblio}
       bpfSpecialites={bpfResult.data}
       produitQuestionnaires={produitQuestionnairesResult.data}
       allQuestionnaires={allQuestionnairesResult.data}
