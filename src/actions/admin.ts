@@ -162,18 +162,22 @@ export async function getAdminRecentOrgs(limit: number = 5) {
 
   if (!orgs || orgs.length === 0) return [];
 
-  // Get user counts per org
-  const counts = await Promise.all(
-    orgs.map(async (org) => {
-      const { count } = await admin
-        .from("utilisateurs")
-        .select("id", { count: "exact", head: true })
-        .eq("organisation_id", org.id);
-      return { ...org, users_count: count || 0 };
-    })
-  );
+  // Batch: get all users for these orgs in one query instead of N individual count queries
+  const orgIds = orgs.map((o: { id: string }) => o.id);
+  const { data: users } = await admin
+    .from("utilisateurs")
+    .select("organisation_id")
+    .in("organisation_id", orgIds);
 
-  return counts;
+  const userCounts = new Map<string, number>();
+  for (const u of (users ?? []) as { organisation_id: string }[]) {
+    userCounts.set(u.organisation_id, (userCounts.get(u.organisation_id) || 0) + 1);
+  }
+
+  return orgs.map((org: { id: string; nom: string; created_at: string }) => ({
+    ...org,
+    users_count: userCounts.get(org.id) || 0,
+  }));
 }
 
 // ─── Top Organisations by usage ───────────────────────────
@@ -182,28 +186,35 @@ export async function getAdminTopOrgs(limit: number = 5) {
   await requireSuperAdmin();
   const admin = createAdminClient();
 
-  const { data: orgs } = await admin
-    .from("organisations")
-    .select("id, nom");
+  // Use RPC-style grouped counts instead of N+1 queries per org.
+  // Fetch all sessions and apprenants grouped by organisation_id in 2 queries total.
+  const [orgsRes, sessionsRes, apprenantsRes] = await Promise.all([
+    admin.from("organisations").select("id, nom"),
+    admin.from("sessions").select("organisation_id"),
+    admin.from("apprenants").select("organisation_id").is("archived_at", null),
+  ]);
 
+  const orgs = orgsRes.data;
   if (!orgs || orgs.length === 0) return [];
 
-  const withCounts = await Promise.all(
-    orgs.map(async (org) => {
-      const [sessionsRes, apprenantsRes] = await Promise.all([
-        admin.from("sessions").select("id", { count: "exact", head: true }).eq("organisation_id", org.id),
-        admin.from("apprenants").select("id", { count: "exact", head: true }).eq("organisation_id", org.id).is("archived_at", null),
-      ]);
-      return {
-        ...org,
-        sessions_count: sessionsRes.count || 0,
-        apprenants_count: apprenantsRes.count || 0,
-      };
-    })
-  );
+  // Count in JS instead of N individual count queries
+  const sessionCounts = new Map<string, number>();
+  for (const s of sessionsRes.data ?? []) {
+    sessionCounts.set(s.organisation_id, (sessionCounts.get(s.organisation_id) || 0) + 1);
+  }
+  const apprenantCounts = new Map<string, number>();
+  for (const a of apprenantsRes.data ?? []) {
+    apprenantCounts.set(a.organisation_id, (apprenantCounts.get(a.organisation_id) || 0) + 1);
+  }
 
-  return withCounts
-    .sort((a, b) => (b.sessions_count + b.apprenants_count) - (a.sessions_count + a.apprenants_count))
+  return orgs
+    .map((org: { id: string; nom: string }) => ({
+      ...org,
+      sessions_count: sessionCounts.get(org.id) || 0,
+      apprenants_count: apprenantCounts.get(org.id) || 0,
+    }))
+    .sort((a: { sessions_count: number; apprenants_count: number }, b: { sessions_count: number; apprenants_count: number }) =>
+      (b.sessions_count + b.apprenants_count) - (a.sessions_count + a.apprenants_count))
     .slice(0, limit);
 }
 
@@ -253,22 +264,33 @@ export async function getAdminOrganisations(
 
   if (!orgs || orgs.length === 0) return { data: [], count: 0 };
 
-  // Get counts for each org in parallel
-  const withCounts = await Promise.all(
-    orgs.map(async (org) => {
-      const [usersRes, sessionsRes, apprenantsRes] = await Promise.all([
-        admin.from("utilisateurs").select("id", { count: "exact", head: true }).eq("organisation_id", org.id),
-        admin.from("sessions").select("id", { count: "exact", head: true }).eq("organisation_id", org.id),
-        admin.from("apprenants").select("id", { count: "exact", head: true }).eq("organisation_id", org.id).is("archived_at", null),
-      ]);
-      return {
-        ...org,
-        users_count: usersRes.count || 0,
-        sessions_count: sessionsRes.count || 0,
-        apprenants_count: apprenantsRes.count || 0,
-      } as AdminOrgRow;
-    })
-  );
+  // Batch: get counts for the page's orgs in 3 queries instead of 3×N
+  const orgIds = orgs.map((o: { id: string }) => o.id);
+  const [usersRes, sessionsRes, apprenantsRes] = await Promise.all([
+    admin.from("utilisateurs").select("organisation_id").in("organisation_id", orgIds),
+    admin.from("sessions").select("organisation_id").in("organisation_id", orgIds),
+    admin.from("apprenants").select("organisation_id").in("organisation_id", orgIds).is("archived_at", null),
+  ]);
+
+  const userCounts = new Map<string, number>();
+  for (const u of usersRes.data ?? []) {
+    userCounts.set(u.organisation_id, (userCounts.get(u.organisation_id) || 0) + 1);
+  }
+  const sessionCounts = new Map<string, number>();
+  for (const s of sessionsRes.data ?? []) {
+    sessionCounts.set(s.organisation_id, (sessionCounts.get(s.organisation_id) || 0) + 1);
+  }
+  const apprenantCounts = new Map<string, number>();
+  for (const a of apprenantsRes.data ?? []) {
+    apprenantCounts.set(a.organisation_id, (apprenantCounts.get(a.organisation_id) || 0) + 1);
+  }
+
+  const withCounts = orgs.map((org: { id: string }) => ({
+    ...org,
+    users_count: userCounts.get(org.id) || 0,
+    sessions_count: sessionCounts.get(org.id) || 0,
+    apprenants_count: apprenantCounts.get(org.id) || 0,
+  } as AdminOrgRow));
 
   return { data: withCounts, count: count || 0 };
 }
