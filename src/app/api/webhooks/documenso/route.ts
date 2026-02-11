@@ -105,10 +105,10 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  // Also update signature_requests table
+  // Also update signature_requests table (handles all entity types)
   const { data: sigReq } = await admin
     .from("signature_requests")
-    .select("id")
+    .select("id, entite_type, entite_id, organisation_id")
     .eq("documenso_envelope_id", data.id)
     .maybeSingle();
 
@@ -121,11 +121,56 @@ export async function POST(request: NextRequest) {
         updated_at: new Date().toISOString(),
       })
       .eq("id", sigReq.id);
+
+    // Handle convention signatures
+    if (sigReq.entite_type === "convention") {
+      const convUpdates: Record<string, unknown> = {
+        documenso_status: newStatus,
+      };
+      if (newStatus === "signed") {
+        convUpdates.convention_signee = true;
+      }
+      await admin.from("session_commanditaires").update(convUpdates).eq("id", sigReq.entite_id);
+
+      // Auto-advance workflow only if currently at 'signature'
+      if (newStatus === "signed") {
+        await admin
+          .from("session_commanditaires")
+          .update({ statut_workflow: "facturation" })
+          .eq("id", sigReq.entite_id)
+          .eq("statut_workflow", "signature");
+      }
+
+      await admin.from("historique_events").insert({
+        organisation_id: sigReq.organisation_id,
+        module: "session",
+        action: newStatus === "signed" ? "signed" : "signature_rejected",
+        entite_type: "session_commanditaire",
+        entite_id: sigReq.entite_id,
+        description: newStatus === "signed"
+          ? `Convention signee par ${recipient?.name || recipient?.email || "le client"}`
+          : `Convention refusee par ${recipient?.name || recipient?.email || "le client"}`,
+      });
+    }
+
+    // Handle contrat sous-traitance signatures
+    if (sigReq.entite_type === "contrat_sous_traitance") {
+      await admin.from("historique_events").insert({
+        organisation_id: sigReq.organisation_id,
+        module: "formateur",
+        action: newStatus === "signed" ? "signed" : "signature_rejected",
+        entite_type: "formateur",
+        entite_id: sigReq.entite_id,
+        description: newStatus === "signed"
+          ? `Contrat de sous-traitance signe par ${recipient?.name || recipient?.email || "le formateur"}`
+          : `Contrat de sous-traitance refuse par ${recipient?.name || recipient?.email || "le formateur"}`,
+      });
+    }
   }
 
-  // Also check by externalId pattern "devis_{uuid}" or "convention_{uuid}"
-  if (!devis && data.externalId) {
-    const match = data.externalId.match(/^(devis|convention)_(.+)$/);
+  // Also check by externalId pattern
+  if (!devis && !sigReq && data.externalId) {
+    const match = data.externalId.match(/^(devis|convention|contrat)_(.+)$/);
     if (match) {
       const [, type, entityId] = match;
       if (type === "devis") {
@@ -140,6 +185,15 @@ export async function POST(request: NextRequest) {
           updates.statut = "refuse";
         }
         await admin.from("devis").update(updates).eq("id", entityId);
+      } else if (type === "convention") {
+        const convUpdates: Record<string, unknown> = {
+          documenso_status: newStatus,
+          documenso_envelope_id: data.id,
+        };
+        if (newStatus === "signed") {
+          convUpdates.convention_signee = true;
+        }
+        await admin.from("session_commanditaires").update(convUpdates).eq("id", entityId);
       }
     }
   }

@@ -113,6 +113,34 @@ export interface DevisData {
   mentionsLegales?: string;
 }
 
+export interface ContratSousTraitanceData {
+  // Formateur
+  formateurPrenom: string;
+  formateurNom: string;
+  formateurSiret?: string;
+  formateurNda?: string;
+  formateurAdresse?: string;
+  // Session
+  sessionNom: string;
+  sessionNumero: string;
+  dateDebut: string;
+  dateFin: string;
+  dureeHeures: number;
+  dureeJours: number;
+  lieu: string;
+  modalite: string;
+  // Financier
+  tarifJournalier: number;
+  tauxTva: number;
+  nombreJours: number;
+  montantHt: number;
+  montantTva: number;
+  montantTtc: number;
+  // Contenu
+  objectifs?: string[];
+  dateEmission: string;
+}
+
 export interface EmargementData {
   sessionNom: string;
   sessionNumero: string;
@@ -831,6 +859,165 @@ export async function generateDevisPdf(
     x: 50, y: y - 60, width: 250, height: 60,
     borderColor: LIGHT_GRAY, borderWidth: 0.5,
   });
+
+  drawFooter(page, font, opts);
+
+  return doc.save();
+}
+
+// ─── Contrat de sous-traitance ──────────────────────────
+
+export async function generateContratSousTraitance(
+  opts: PDFGeneratorOptions,
+  data: ContratSousTraitanceData,
+): Promise<Uint8Array> {
+  const doc = await PDFDocument.create();
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
+
+  let page = doc.addPage([595.28, 841.89]); // A4
+  const { width } = page.getSize();
+  let y = drawHeader(page, font, fontBold, opts, "CONTRAT DE SOUS-TRAITANCE");
+
+  // Article 1 — Parties
+  y = drawSection(page, fontBold, "Article 1 — Parties", y);
+  const partiesIntro = wrapText(
+    `Entre ${opts.orgName}${opts.orgSiret ? `, SIRET ${opts.orgSiret}` : ""}${opts.orgNda ? `, NDA ${opts.orgNda}` : ""}, ci-apres « l'Organisme de Formation »,`,
+    font, 9, width - 100,
+  );
+  for (const line of partiesIntro) {
+    page.drawText(line, { x: 50, y, size: 9, font, color: DARK_TEXT });
+    y -= 13;
+  }
+  y -= 3;
+  const partiesST = wrapText(
+    `Et ${data.formateurPrenom} ${data.formateurNom}${data.formateurSiret ? `, SIRET ${data.formateurSiret}` : ""}${data.formateurNda ? `, NDA ${data.formateurNda}` : ""}${data.formateurAdresse ? `, ${data.formateurAdresse}` : ""}, ci-apres « le Sous-traitant »,`,
+    font, 9, width - 100,
+  );
+  for (const line of partiesST) {
+    page.drawText(line, { x: 50, y, size: 9, font, color: DARK_TEXT });
+    y -= 13;
+  }
+  y -= 10;
+
+  // Article 2 — Objet
+  y = drawSection(page, fontBold, "Article 2 — Objet de la prestation", y);
+  const objetLines = wrapText(
+    `Le Sous-traitant s'engage a realiser, pour le compte de l'Organisme de Formation, la prestation de formation suivante :`,
+    font, 9, width - 100,
+  );
+  for (const line of objetLines) {
+    page.drawText(line, { x: 50, y, size: 9, font, color: DARK_TEXT });
+    y -= 13;
+  }
+  y -= 5;
+  y = drawLabelValue(page, font, fontBold, "Intitule", `${data.sessionNom} (${data.sessionNumero})`, y);
+  y = drawLabelValue(page, font, fontBold, "Dates", `Du ${data.dateDebut} au ${data.dateFin}`, y);
+  y = drawLabelValue(page, font, fontBold, "Duree", `${data.dureeHeures}h (${data.dureeJours} jour(s))`, y);
+  y = drawLabelValue(page, font, fontBold, "Modalite", data.modalite, y);
+  y = drawLabelValue(page, font, fontBold, "Lieu", data.lieu, y);
+  y -= 5;
+
+  // Objectifs
+  if (data.objectifs && data.objectifs.length > 0) {
+    y = drawSection(page, fontBold, "Objectifs pedagogiques", y);
+    for (const obj of data.objectifs) {
+      const objLines = wrapText(`- ${obj}`, font, 9, width - 110);
+      for (const line of objLines) {
+        page.drawText(line, { x: 60, y, size: 9, font, color: DARK_TEXT });
+        y -= 13;
+      }
+    }
+    y -= 5;
+  }
+
+  // Check page space
+  if (y < 300) {
+    drawFooter(page, font, opts);
+    page = doc.addPage([595.28, 841.89]);
+    y = 780;
+  }
+
+  // Article 3 — Obligations
+  y = drawSection(page, fontBold, "Article 3 — Obligations du Sous-traitant", y);
+  const obligations = [
+    "Dispenser la formation conformement au programme convenu.",
+    "Respecter le reglement interieur de l'organisme de formation.",
+    "Assurer le suivi pedagogique des stagiaires (emargement, evaluations).",
+    "Remettre les documents pedagogiques necessaires.",
+    data.formateurNda
+      ? `Justifier d'une declaration d'activite en cours de validite (NDA : ${data.formateurNda}).`
+      : "Justifier d'une declaration d'activite en cours de validite.",
+  ];
+  for (const ob of obligations) {
+    const obLines = wrapText(`- ${ob}`, font, 9, width - 110);
+    for (const line of obLines) {
+      page.drawText(line, { x: 60, y, size: 9, font, color: DARK_TEXT });
+      y -= 13;
+    }
+  }
+  y -= 10;
+
+  // Article 4 — Dispositions financieres
+  y = drawSection(page, fontBold, "Article 4 — Dispositions financieres", y);
+  y = drawLabelValue(page, font, fontBold, "Tarif journalier HT", `${data.tarifJournalier.toFixed(2)} EUR`, y);
+  y = drawLabelValue(page, font, fontBold, "Nombre de jours", `${data.nombreJours}`, y);
+  y = drawLabelValue(page, font, fontBold, "Montant total HT", `${data.montantHt.toFixed(2)} EUR`, y);
+  y = drawLabelValue(
+    page, font, fontBold, "TVA",
+    data.tauxTva === 0 ? "Exonere (art. 261-4-4a du CGI)" : `${data.montantTva.toFixed(2)} EUR (${data.tauxTva}%)`,
+    y,
+  );
+  y = drawLabelValue(page, font, fontBold, "Montant total TTC", `${data.montantTtc.toFixed(2)} EUR`, y);
+  y -= 5;
+  const paiementLines = wrapText(
+    "Le reglement sera effectue par virement bancaire dans un delai de 30 jours apres reception de la facture du Sous-traitant.",
+    font, 9, width - 100,
+  );
+  for (const line of paiementLines) {
+    page.drawText(line, { x: 50, y, size: 9, font, color: DARK_TEXT });
+    y -= 13;
+  }
+  y -= 10;
+
+  // Check page space for signatures
+  if (y < 180) {
+    drawFooter(page, font, opts);
+    page = doc.addPage([595.28, 841.89]);
+    y = 780;
+  }
+
+  // Article 5 — Dispositions generales
+  y = drawSection(page, fontBold, "Article 5 — Dispositions generales", y);
+  const dispositions = wrapText(
+    "Le present contrat est regi par le droit francais. En cas de litige, les parties s'engagent a rechercher une solution amiable avant toute action judiciaire.",
+    font, 9, width - 100,
+  );
+  for (const line of dispositions) {
+    page.drawText(line, { x: 50, y, size: 9, font, color: DARK_TEXT });
+    y -= 13;
+  }
+  y -= 15;
+
+  // Date
+  page.drawText(`Fait le ${data.dateEmission}`, { x: 50, y, size: 10, font, color: DARK_TEXT });
+  y -= 25;
+
+  // Signatures — two columns
+  const colWidth = (width - 100) / 2;
+  y = drawSection(page, fontBold, "Signatures", y);
+  y -= 5;
+  page.drawText("L'Organisme de Formation", { x: 50, y, size: 9, font: fontBold, color: DARK_TEXT });
+  page.drawText("Le Sous-traitant", { x: 50 + colWidth + 20, y, size: 9, font: fontBold, color: DARK_TEXT });
+  y -= 15;
+  page.drawText(opts.orgName, { x: 50, y, size: 9, font, color: DARK_TEXT });
+  page.drawText(`${data.formateurPrenom} ${data.formateurNom}`, { x: 50 + colWidth + 20, y, size: 9, font, color: DARK_TEXT });
+  y -= 12;
+  page.drawText("Date et signature :", { x: 50, y, size: 8, font, color: GRAY_TEXT });
+  page.drawText("Date et signature :", { x: 50 + colWidth + 20, y, size: 8, font, color: GRAY_TEXT });
+  y -= 5;
+  page.drawRectangle({ x: 50, y: y - 60, width: colWidth - 10, height: 60, borderColor: LIGHT_GRAY, borderWidth: 0.5 });
+  page.drawRectangle({ x: 50 + colWidth + 20, y: y - 60, width: colWidth - 10, height: 60, borderColor: LIGHT_GRAY, borderWidth: 0.5 });
 
   drawFooter(page, font, opts);
 

@@ -83,6 +83,9 @@ import {
   toggleSessionPlanification,
   type PlanificationConfig,
 } from "@/actions/questionnaires";
+import { isDocumensoConfigured } from "@/lib/documenso";
+import { sendConventionForSignature, checkConventionSignatureStatus } from "@/actions/signatures";
+import { generateSessionConvention } from "@/actions/documents";
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -121,6 +124,10 @@ interface SessionCommanditaire {
   budget: number;
   statut_workflow: string;
   notes: string | null;
+  convention_signee?: boolean;
+  documenso_envelope_id?: number | null;
+  documenso_status?: string | null;
+  signature_sent_at?: string | null;
   entreprises: { id: string; nom: string; email: string | null } | null;
   contacts_clients: { id: string; prenom: string; nom: string; email: string | null } | null;
   financeurs: { id: string; nom: string; type: string | null } | null;
@@ -779,7 +786,78 @@ export function SessionDetail({
                         );
                       })}
                     </div>
-                    <p className="text-[11px] text-muted-foreground/60">{WORKFLOW_LABELS[c.statut_workflow] ?? c.statut_workflow}</p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-[11px] text-muted-foreground/60">{WORKFLOW_LABELS[c.statut_workflow] ?? c.statut_workflow}</p>
+                      <div className="flex items-center gap-1.5">
+                        {/* Generate convention */}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 text-[10px] px-2 text-muted-foreground"
+                          onClick={async () => {
+                            const res = await generateSessionConvention(session.id, c.id);
+                            if ("error" in res && res.error) {
+                              toast({ title: "Erreur", description: String(res.error), variant: "destructive" });
+                            } else {
+                              toast({ title: "Convention generee" });
+                              router.refresh();
+                            }
+                          }}
+                        >
+                          <FileText className="mr-1 h-3 w-3" />
+                          Convention
+                        </Button>
+                        {/* Send for signature (Documenso) */}
+                        {isDocumensoConfigured() && !c.documenso_status && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-6 text-[10px] px-2 border-primary/30 text-primary"
+                            onClick={async () => {
+                              const res = await sendConventionForSignature(session.id, c.id);
+                              if ("error" in res && res.error) {
+                                toast({ title: "Erreur", description: String(res.error), variant: "destructive" });
+                              } else {
+                                toast({ title: "Convention envoyee en signature" });
+                                router.refresh();
+                              }
+                            }}
+                          >
+                            <Send className="mr-1 h-3 w-3" />
+                            Signer
+                          </Button>
+                        )}
+                        {/* Check signature status */}
+                        {c.documenso_status === "pending" && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-6 text-[10px] px-2 border-amber-500/30 text-amber-400"
+                            onClick={async () => {
+                              await checkConventionSignatureStatus(c.id);
+                              router.refresh();
+                            }}
+                          >
+                            <Clock className="mr-1 h-3 w-3" />
+                            Verifier
+                          </Button>
+                        )}
+                        {/* Signed badge */}
+                        {c.documenso_status === "signed" && (
+                          <Badge variant="outline" className="h-6 text-[10px] border-emerald-500/30 text-emerald-400">
+                            <CheckCircle2 className="mr-1 h-3 w-3" />
+                            Signee
+                          </Badge>
+                        )}
+                        {/* Rejected badge */}
+                        {c.documenso_status === "rejected" && (
+                          <Badge variant="outline" className="h-6 text-[10px] border-red-500/30 text-red-400">
+                            <XCircle className="mr-1 h-3 w-3" />
+                            Refusee
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
