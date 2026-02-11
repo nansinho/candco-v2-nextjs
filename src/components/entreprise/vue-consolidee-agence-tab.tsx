@@ -91,7 +91,7 @@ export function VueConsolideeAgenceTab({
             return (
               <div
                 key={i}
-                className={`rounded-md border px-3 py-2 text-[12px] flex items-center gap-2 ${
+                className={`rounded-md border px-3 py-2 text-xs flex items-center gap-2 ${
                   isOverspend
                     ? "border-destructive/30 bg-destructive/5 text-destructive"
                     : "border-amber-500/30 bg-amber-500/5 text-amber-400"
@@ -113,12 +113,12 @@ export function VueConsolideeAgenceTab({
         <table className="w-full">
           <thead>
             <tr className="border-b border-border/40">
-              <th className="px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground/70">Entité</th>
-              <th className="px-4 py-2.5 text-right text-[11px] font-medium text-muted-foreground/70">Budget alloué</th>
-              <th className="px-4 py-2.5 text-right text-[11px] font-medium text-muted-foreground/70">Engagé plan</th>
-              <th className="px-4 py-2.5 text-right text-[11px] font-medium text-muted-foreground/70">Engagé ponctuel</th>
-              <th className="px-4 py-2.5 text-right text-[11px] font-medium text-muted-foreground/70">Engagé total</th>
-              <th className="px-4 py-2.5 text-right text-[11px] font-medium text-muted-foreground/70">Restant</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground/70">Entité</th>
+              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground/70">Budget alloué</th>
+              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground/70">Engagé plan</th>
+              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground/70">Engagé ponctuel</th>
+              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground/70">Engagé total</th>
+              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground/70">Restant</th>
               <th className="px-4 py-2.5 w-10"></th>
             </tr>
           </thead>
@@ -130,12 +130,12 @@ export function VueConsolideeAgenceTab({
           {/* Footer: totals */}
           <tfoot>
             <tr className="border-t border-border/60 bg-muted/20">
-              <td className="px-4 py-2.5 text-[12px] font-semibold">Total</td>
-              <td className="px-4 py-2.5 text-right text-[13px] font-semibold">{formatCurrency(data.totals.budgetAlloue)}</td>
-              <td className="px-4 py-2.5 text-right text-[13px] font-semibold">{formatCurrency(data.totals.engagePlan)}</td>
-              <td className="px-4 py-2.5 text-right text-[13px] font-semibold">{formatCurrency(data.totals.engagePonctuel)}</td>
-              <td className="px-4 py-2.5 text-right text-[13px] font-semibold">{formatCurrency(data.totals.engageTotal)}</td>
-              <td className="px-4 py-2.5 text-right text-[13px] font-semibold">
+              <td className="px-4 py-2.5 text-xs font-semibold">Total</td>
+              <td className="px-4 py-2.5 text-right text-sm font-semibold">{formatCurrency(data.totals.budgetAlloue)}</td>
+              <td className="px-4 py-2.5 text-right text-sm font-semibold">{formatCurrency(data.totals.engagePlan)}</td>
+              <td className="px-4 py-2.5 text-right text-sm font-semibold">{formatCurrency(data.totals.engagePonctuel)}</td>
+              <td className="px-4 py-2.5 text-right text-sm font-semibold">{formatCurrency(data.totals.engageTotal)}</td>
+              <td className="px-4 py-2.5 text-right text-sm font-semibold">
                 <span className={data.totals.budgetRestant < 0 ? "text-destructive" : "text-emerald-400"}>
                   {formatCurrency(data.totals.budgetRestant)}
                 </span>
@@ -172,19 +172,19 @@ function AgenceRow({
       isOverspend ? "bg-destructive/3" : isWarning ? "bg-amber-500/3" : ""
     }`}>
       <td className="px-4 py-2.5">
-        <div className="flex items-center gap-2 text-[13px]">
+        <div className="flex items-center gap-2 text-sm">
           <span className="text-muted-foreground/50">
             {isSiege ? <Building2 className="h-3.5 w-3.5" /> : <MapPin className="h-3.5 w-3.5" />}
           </span>
           <span className="font-medium">{row.agenceNom}</span>
         </div>
       </td>
-      <td className="px-4 py-2.5 text-right text-[13px]">{formatCurrency(row.budgetAlloue)}</td>
-      <td className="px-4 py-2.5 text-right text-[13px] text-muted-foreground">{formatCurrency(row.engagePlan)}</td>
-      <td className="px-4 py-2.5 text-right text-[13px] text-muted-foreground">{formatCurrency(row.engagePonctuel)}</td>
-      <td className="px-4 py-2.5 text-right text-[13px] font-medium">{formatCurrency(row.engageTotal)}</td>
+      <td className="px-4 py-2.5 text-right text-sm">{formatCurrency(row.budgetAlloue)}</td>
+      <td className="px-4 py-2.5 text-right text-sm text-muted-foreground">{formatCurrency(row.engagePlan)}</td>
+      <td className="px-4 py-2.5 text-right text-sm text-muted-foreground">{formatCurrency(row.engagePonctuel)}</td>
+      <td className="px-4 py-2.5 text-right text-sm font-medium">{formatCurrency(row.engageTotal)}</td>
       <td className="px-4 py-2.5 text-right">
-        <span className={`text-[13px] font-medium ${
+        <span className={`text-sm font-medium ${
           isOverspend ? "text-destructive" : isWarning ? "text-amber-400" : "text-emerald-400"
         }`}>
           {formatCurrency(row.budgetRestant)}
@@ -192,7 +192,7 @@ function AgenceRow({
       </td>
       <td className="px-4 py-2.5 text-center">
         {alert && (
-          <Badge className={`text-[9px] px-1.5 py-0 ${
+          <Badge className={`text-xs px-1.5 py-0 ${
             alert.type === "depassement"
               ? "bg-destructive/10 text-destructive border-destructive/20"
               : "bg-amber-500/10 text-amber-400 border-amber-500/20"

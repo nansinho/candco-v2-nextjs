@@ -82,7 +82,7 @@ const columns: Column<OpportuniteRow>[] = [
     minWidth: 130,
     render: (item) =>
       item.montant_estime != null ? (
-        <span className="font-mono text-[13px]">{formatCurrency(item.montant_estime)}</span>
+        <span className="font-mono text-sm">{formatCurrency(item.montant_estime)}</span>
       ) : (
         <span className="text-muted-foreground/40">--</span>
       ),
@@ -94,7 +94,7 @@ const columns: Column<OpportuniteRow>[] = [
     minWidth: 180,
     render: (item) =>
       item.entreprises?.nom ? (
-        <span className="flex items-center gap-1.5 text-[13px]">
+        <span className="flex items-center gap-1.5 text-sm">
           <Building2 className="h-3 w-3 text-muted-foreground/50" />
           <span className="truncate">{item.entreprises.nom}</span>
         </span>
@@ -109,7 +109,7 @@ const columns: Column<OpportuniteRow>[] = [
     minWidth: 150,
     render: (item) =>
       item.contacts_clients ? (
-        <span className="text-[13px]">
+        <span className="text-sm">
           {item.contacts_clients.prenom} {item.contacts_clients.nom}
         </span>
       ) : (
@@ -124,7 +124,7 @@ const columns: Column<OpportuniteRow>[] = [
     minWidth: 120,
     render: (item) =>
       item.date_cloture_prevue ? (
-        <span className="text-[13px] text-muted-foreground">
+        <span className="text-sm text-muted-foreground">
           {formatDate(item.date_cloture_prevue)}
         </span>
       ) : (
@@ -168,10 +168,10 @@ function PipelineStats() {
             key={s.statut}
             className="flex min-w-[120px] flex-col rounded-lg border border-border/40 bg-card px-3 py-2"
           >
-            <span className="text-[11px] text-muted-foreground">{config?.label ?? s.statut}</span>
+            <span className="text-xs text-muted-foreground">{config?.label ?? s.statut}</span>
             <span className="text-lg font-semibold">{s.count}</span>
             {s.total > 0 && (
-              <span className="text-[11px] font-mono text-muted-foreground">
+              <span className="text-xs font-mono text-muted-foreground">
                 {formatCurrency(s.total)}
               </span>
             )}
@@ -179,7 +179,7 @@ function PipelineStats() {
         );
       })}
       <div className="flex min-w-[120px] flex-col rounded-lg border border-primary/20 bg-primary/5 px-3 py-2">
-        <span className="text-[11px] text-primary/70">Pipeline total</span>
+        <span className="text-xs text-primary/70">Pipeline total</span>
         <span className="text-lg font-semibold text-primary">{formatCurrency(totalPipeline)}</span>
       </div>
     </div>
@@ -391,7 +391,7 @@ function CreateOpportuniteForm({
       )}
 
       <div className="space-y-2">
-        <Label htmlFor="nom" className="text-[13px]">
+        <Label htmlFor="nom" className="text-sm">
           Nom <span className="text-destructive">*</span>
         </Label>
         <Input
@@ -399,18 +399,18 @@ function CreateOpportuniteForm({
           value={form.nom}
           onChange={(e) => updateField("nom", e.target.value)}
           placeholder="Ex: Formation React pour Acme Corp"
-          className="h-9 text-[13px] border-border/60"
+          className="h-9 text-sm border-border/60"
         />
         {errors.nom && <p className="text-xs text-destructive">{errors.nom[0]}</p>}
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label className="text-[13px]">Entreprise</Label>
+          <Label className="text-sm">Entreprise</Label>
           <select
             value={form.entreprise_id ?? ""}
             onChange={(e) => updateField("entreprise_id", e.target.value)}
-            className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
+            className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
           >
             <option value="">-- Sélectionner --</option>
             {entreprises.map((e) => (
@@ -421,11 +421,11 @@ function CreateOpportuniteForm({
           </select>
         </div>
         <div className="space-y-2">
-          <Label className="text-[13px]">Contact client</Label>
+          <Label className="text-sm">Contact client</Label>
           <select
             value={form.contact_client_id ?? ""}
             onChange={(e) => updateField("contact_client_id", e.target.value)}
-            className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
+            className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
           >
             <option value="">-- Sélectionner --</option>
             {contacts.map((c) => (
@@ -439,19 +439,19 @@ function CreateOpportuniteForm({
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label className="text-[13px]">Montant estimé (EUR)</Label>
+          <Label className="text-sm">Montant estimé (EUR)</Label>
           <Input
             type="number"
             value={form.montant_estime ?? ""}
             onChange={(e) => updateField("montant_estime", Number(e.target.value))}
             placeholder="0.00"
-            className="h-9 text-[13px] border-border/60"
+            className="h-9 text-sm border-border/60"
             step="0.01"
             min="0"
           />
         </div>
         <div className="space-y-2">
-          <Label className="text-[13px]">Clôture prévue</Label>
+          <Label className="text-sm">Clôture prévue</Label>
           <DatePicker
             value={form.date_cloture_prevue ?? ""}
             onChange={(val) => updateField("date_cloture_prevue", val)}
@@ -460,11 +460,11 @@ function CreateOpportuniteForm({
       </div>
 
       <div className="space-y-2">
-        <Label className="text-[13px]">Statut</Label>
+        <Label className="text-sm">Statut</Label>
         <select
           value={form.statut}
           onChange={(e) => updateField("statut", e.target.value)}
-          className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
+          className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
         >
           {OPPORTUNITE_STATUT_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>

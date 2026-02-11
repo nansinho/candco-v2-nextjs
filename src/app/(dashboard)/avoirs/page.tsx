@@ -95,7 +95,7 @@ const columns: Column<AvoirRow>[] = [
     minWidth: 130,
     render: (item) =>
       item.factures?.numero_affichage ? (
-        <span className="flex items-center gap-1.5 text-[13px]">
+        <span className="flex items-center gap-1.5 text-sm">
           <Receipt className="h-3 w-3 text-muted-foreground/50" />
           {item.factures.numero_affichage}
         </span>
@@ -109,7 +109,7 @@ const columns: Column<AvoirRow>[] = [
     minWidth: 180,
     render: (item) =>
       item.entreprises?.nom ? (
-        <span className="flex items-center gap-1.5 text-[13px]">
+        <span className="flex items-center gap-1.5 text-sm">
           <Building2 className="h-3 w-3 text-muted-foreground/50" />
           <span className="truncate">{item.entreprises.nom}</span>
         </span>
@@ -124,7 +124,7 @@ const columns: Column<AvoirRow>[] = [
     sortable: true,
     minWidth: 120,
     render: (item) => (
-      <span className="font-mono text-[13px] text-red-400">
+      <span className="font-mono text-sm text-red-400">
         -{formatCurrency(Number(item.total_ttc) || 0)}
       </span>
     ),
@@ -137,7 +137,7 @@ const columns: Column<AvoirRow>[] = [
     filterType: "date",
     minWidth: 110,
     render: (item) => (
-      <span className="text-[13px] text-muted-foreground">
+      <span className="text-sm text-muted-foreground">
         {formatDate(item.date_emission)}
       </span>
     ),
@@ -366,11 +366,11 @@ function CreateAvoirForm({
       )}
 
       <div className="space-y-2">
-        <Label className="text-[13px]">Facture liée (optionnel)</Label>
+        <Label className="text-sm">Facture liée (optionnel)</Label>
         <select
           value={form.facture_id}
           onChange={(e) => setForm((prev) => ({ ...prev, facture_id: e.target.value }))}
-          className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
+          className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
         >
           <option value="">-- Aucune facture --</option>
           {facturesOptions.map((f) => (
@@ -383,11 +383,11 @@ function CreateAvoirForm({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label className="text-[13px]">Entreprise</Label>
+          <Label className="text-sm">Entreprise</Label>
           <select
             value={form.entreprise_id}
             onChange={(e) => setForm((prev) => ({ ...prev, entreprise_id: e.target.value }))}
-            className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
+            className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
           >
             <option value="">-- Sélectionner --</option>
             {entreprises.map((e) => (
@@ -396,7 +396,7 @@ function CreateAvoirForm({
           </select>
         </div>
         <div className="space-y-2">
-          <Label className="text-[13px]">
+          <Label className="text-sm">
             Date d'émission <span className="text-destructive">*</span>
           </Label>
           <DatePicker
@@ -407,17 +407,17 @@ function CreateAvoirForm({
       </div>
 
       <div className="space-y-2">
-        <Label className="text-[13px]">Motif</Label>
+        <Label className="text-sm">Motif</Label>
         <Textarea
           value={form.motif}
           onChange={(e) => setForm((prev) => ({ ...prev, motif: e.target.value }))}
           placeholder="Motif de l'avoir..."
-          className="min-h-[60px] text-[13px] border-border/60"
+          className="min-h-[60px] text-sm border-border/60"
         />
       </div>
 
       <div className="space-y-2">
-        <Label className="text-[13px]">Lignes de l'avoir</Label>
+        <Label className="text-sm">Lignes de l'avoir</Label>
         <div className="rounded-lg border border-border/40 p-3">
           <LignesEditor lignes={lignes} onChange={setLignes} />
         </div>

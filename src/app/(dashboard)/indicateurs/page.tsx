@@ -4,7 +4,7 @@ export default function IndicateursPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">Indicateurs</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Indicateurs</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Consultez vos KPIs : chiffre d&apos;affaires, taux de remplissage, rentabilite et satisfaction
         </p>

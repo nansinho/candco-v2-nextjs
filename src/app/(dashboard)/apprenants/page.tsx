@@ -121,7 +121,7 @@ const columns: Column<Apprenant>[] = [
       return (
         <div className="flex items-center gap-1.5">
           <Building2 className="h-3 w-3 text-muted-foreground/50 shrink-0" />
-          <span className="text-[13px] truncate max-w-[200px]">{entreprises.join(", ")}</span>
+          <span className="text-sm truncate max-w-[200px]">{entreprises.join(", ")}</span>
         </div>
       );
     },
@@ -432,14 +432,14 @@ function CreateApprenantForm({
 
       {/* Civilité */}
       <div className="space-y-2">
-        <Label htmlFor="civilite" className="text-[13px]">
+        <Label htmlFor="civilite" className="text-sm">
           Civilité
         </Label>
         <select
           id="civilite"
           name="civilite"
           defaultValue=""
-          className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
+          className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
         >
           <option value="">-- Sélectionner --</option>
           <option value="Monsieur">Monsieur</option>
@@ -450,28 +450,28 @@ function CreateApprenantForm({
       {/* Prénom / Nom */}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label htmlFor="prenom" className="text-[13px]">
+          <Label htmlFor="prenom" className="text-sm">
             Prénom <span className="text-destructive">*</span>
           </Label>
           <Input
             id="prenom"
             name="prenom"
             placeholder="Jean"
-            className="h-9 text-[13px] border-border/60"
+            className="h-9 text-sm border-border/60"
           />
           {errors.prenom && (
             <p className="text-xs text-destructive">{errors.prenom[0]}</p>
           )}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="nom" className="text-[13px]">
+          <Label htmlFor="nom" className="text-sm">
             Nom <span className="text-destructive">*</span>
           </Label>
           <Input
             id="nom"
             name="nom"
             placeholder="Dupont"
-            className="h-9 text-[13px] border-border/60"
+            className="h-9 text-sm border-border/60"
           />
           {errors.nom && (
             <p className="text-xs text-destructive">{errors.nom[0]}</p>
@@ -481,7 +481,7 @@ function CreateApprenantForm({
 
       {/* Email */}
       <div className="space-y-2">
-        <Label htmlFor="email" className="text-[13px]">
+        <Label htmlFor="email" className="text-sm">
           Email
         </Label>
         <Input
@@ -489,7 +489,7 @@ function CreateApprenantForm({
           name="email"
           type="email"
           placeholder="jean.dupont@example.com"
-          className="h-9 text-[13px] border-border/60"
+          className="h-9 text-sm border-border/60"
         />
         {errors.email && (
           <p className="text-xs text-destructive">{errors.email[0]}</p>
@@ -498,20 +498,20 @@ function CreateApprenantForm({
 
       {/* Téléphone */}
       <div className="space-y-2">
-        <Label htmlFor="telephone" className="text-[13px]">
+        <Label htmlFor="telephone" className="text-sm">
           Téléphone
         </Label>
         <Input
           id="telephone"
           name="telephone"
           placeholder="06 12 34 56 78"
-          className="h-9 text-[13px] border-border/60"
+          className="h-9 text-sm border-border/60"
         />
       </div>
 
       {/* Date de naissance */}
       <div className="space-y-2">
-        <Label htmlFor="date_naissance" className="text-[13px]">
+        <Label htmlFor="date_naissance" className="text-sm">
           Date de naissance
         </Label>
         <DatePicker
@@ -522,7 +522,7 @@ function CreateApprenantForm({
 
       {/* Enterprise attachment */}
       <fieldset className="space-y-3 rounded-md border border-border/40 p-3">
-        <legend className="px-1 text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider">
+        <legend className="px-1 text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">
           Rattachement entreprise
         </legend>
 
@@ -552,16 +552,16 @@ function CreateApprenantForm({
                     onClick={() => handleSelectEntreprise(ent)}
                   >
                     <Building2 className="h-3.5 w-3.5 text-orange-400 shrink-0" />
-                    <span className="text-[12px] font-medium truncate">{ent.nom}</span>
+                    <span className="text-xs font-medium truncate">{ent.nom}</span>
                     {ent.adresse_ville && (
-                      <span className="text-[10px] text-muted-foreground/40 truncate">{ent.adresse_ville}</span>
+                      <span className="text-xs text-muted-foreground/40 truncate">{ent.adresse_ville}</span>
                     )}
                   </button>
                 ))}
               </div>
             )}
             {entSearch.trim() && !entSearching && entResults.length === 0 && (
-              <p className="text-[11px] text-muted-foreground/50">Aucune entreprise trouvée</p>
+              <p className="text-xs text-muted-foreground/50">Aucune entreprise trouvée</p>
             )}
           </div>
         ) : (
@@ -570,9 +570,9 @@ function CreateApprenantForm({
             <div className="flex items-center justify-between rounded-md bg-muted/30 px-3 py-2">
               <div className="flex items-center gap-2">
                 <Building2 className="h-3.5 w-3.5 text-orange-400" />
-                <span className="text-[12px] font-medium">{selectedEntreprise.nom}</span>
+                <span className="text-xs font-medium">{selectedEntreprise.nom}</span>
                 {selectedEntreprise.adresse_ville && (
-                  <span className="text-[10px] text-muted-foreground/40">{selectedEntreprise.adresse_ville}</span>
+                  <span className="text-xs text-muted-foreground/40">{selectedEntreprise.adresse_ville}</span>
                 )}
               </div>
               <button
@@ -593,10 +593,10 @@ function CreateApprenantForm({
                 disabled={selectedAgenceIds.length === 0}
                 className="h-3.5 w-3.5 rounded border-border accent-primary"
               />
-              <span className="text-[12px]">
+              <span className="text-xs">
                 Siège social
                 {selectedAgenceIds.length === 0 && (
-                  <span className="ml-1 text-[10px] text-muted-foreground/50">(par défaut si aucune agence)</span>
+                  <span className="ml-1 text-xs text-muted-foreground/50">(par défaut si aucune agence)</span>
                 )}
               </span>
             </label>
@@ -604,7 +604,7 @@ function CreateApprenantForm({
             {/* Agencies */}
             {agences.length > 0 && (
               <div className="space-y-1.5">
-                <p className="text-[11px] text-muted-foreground/60 font-medium">Agences :</p>
+                <p className="text-xs text-muted-foreground/60 font-medium">Agences :</p>
                 <div className="space-y-1 max-h-[120px] overflow-y-auto">
                   {agences.map((ag) => (
                     <label
@@ -618,12 +618,12 @@ function CreateApprenantForm({
                         className="h-3.5 w-3.5 rounded border-border accent-primary"
                       />
                       <MapPin className="h-3 w-3 text-muted-foreground/50 shrink-0" />
-                      <span className="text-[12px]">{ag.nom}</span>
+                      <span className="text-xs">{ag.nom}</span>
                       {ag.est_siege && (
-                        <span className="text-[9px] font-medium text-orange-400/80 bg-orange-400/10 px-1 py-0.5 rounded">siège</span>
+                        <span className="text-xs font-medium text-orange-400/80 bg-orange-400/10 px-1 py-0.5 rounded">siège</span>
                       )}
                       {ag.adresse_ville && (
-                        <span className="text-[10px] text-muted-foreground/40">{ag.adresse_ville}</span>
+                        <span className="text-xs text-muted-foreground/40">{ag.adresse_ville}</span>
                       )}
                     </label>
                   ))}
@@ -631,7 +631,7 @@ function CreateApprenantForm({
               </div>
             )}
             {agences.length === 0 && (
-              <p className="text-[10px] text-muted-foreground/40 italic">
+              <p className="text-xs text-muted-foreground/40 italic">
                 Aucune agence définie pour cette entreprise. L&apos;apprenant sera rattaché au siège social.
               </p>
             )}

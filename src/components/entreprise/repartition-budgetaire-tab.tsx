@@ -204,7 +204,7 @@ export function RepartitionBudgetaireTab({
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Wallet className="h-4 w-4 text-primary" />
-            <span className="text-[13px] font-medium">
+            <span className="text-sm font-medium">
               Budget annuel entreprise — {activePlan.nom || `Plan ${activePlan.annee}`}
             </span>
           </div>
@@ -217,7 +217,7 @@ export function RepartitionBudgetaireTab({
                   type="number"
                   value={seuilInput}
                   onChange={(e) => setSeuilInput(e.target.value)}
-                  className="h-6 w-16 text-[12px] px-1"
+                  className="h-6 w-16 text-xs px-1"
                   min={1}
                   max={100}
                   onKeyDown={(e) => {
@@ -225,7 +225,7 @@ export function RepartitionBudgetaireTab({
                     if (e.key === "Escape") setShowSeuilEdit(false);
                   }}
                 />
-                <span className="text-[10px] text-muted-foreground">%</span>
+                <span className="text-xs text-muted-foreground">%</span>
                 <button onClick={handleSeuilSave} className="text-emerald-400 hover:text-emerald-300">
                   <Check className="h-3 w-3" />
                 </button>
@@ -236,7 +236,7 @@ export function RepartitionBudgetaireTab({
             ) : (
               <button
                 onClick={() => setShowSeuilEdit(true)}
-                className="flex items-center gap-1 text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+                className="flex items-center gap-1 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
                 title="Configurer le seuil d'alerte"
               >
                 <Settings2 className="h-3 w-3" />
@@ -249,11 +249,11 @@ export function RepartitionBudgetaireTab({
         {/* Allocation summary */}
         <div className="grid grid-cols-3 gap-3 mb-3">
           <div className="rounded-md border border-border/40 bg-muted/20 px-3 py-2">
-            <p className="text-[10px] text-muted-foreground/60 mb-0.5">Total alloué</p>
+            <p className="text-xs text-muted-foreground/60 mb-0.5">Total alloué</p>
             <p className="text-[15px] font-semibold">{formatCurrency(editTotal)}</p>
           </div>
           <div className="rounded-md border border-border/40 bg-muted/20 px-3 py-2">
-            <p className="text-[10px] text-muted-foreground/60 mb-0.5">Reste à répartir</p>
+            <p className="text-xs text-muted-foreground/60 mb-0.5">Reste à répartir</p>
             <p className={`text-[15px] font-semibold ${isOverAllocated ? "text-destructive" : "text-emerald-400"}`}>
               {formatCurrency(budgetTotal - editTotal)}
             </p>
@@ -261,15 +261,15 @@ export function RepartitionBudgetaireTab({
           <div className={`rounded-md border px-3 py-2 ${
             isOverAllocated ? "border-destructive/30 bg-destructive/5" : "border-border/40 bg-muted/20"
           }`}>
-            <p className="text-[10px] text-muted-foreground/60 mb-0.5">Statut</p>
-            <p className={`text-[13px] font-medium ${isOverAllocated ? "text-destructive" : "text-emerald-400"}`}>
+            <p className="text-xs text-muted-foreground/60 mb-0.5">Statut</p>
+            <p className={`text-sm font-medium ${isOverAllocated ? "text-destructive" : "text-emerald-400"}`}>
               {isOverAllocated ? "Dépassement !" : editTotal === budgetTotal ? "Entièrement réparti" : "En cours"}
             </p>
           </div>
         </div>
 
         {isOverAllocated && (
-          <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-[11px] text-destructive">
+          <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
             <AlertTriangle className="inline h-3 w-3 mr-1" />
             La somme des budgets alloués ({formatCurrency(editTotal)}) dépasse le budget total ({formatCurrency(budgetTotal)}).
           </div>
@@ -281,10 +281,10 @@ export function RepartitionBudgetaireTab({
         <table className="w-full">
           <thead>
             <tr className="border-b border-border/40">
-              <th className="px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground/70">Entité</th>
-              <th className="px-4 py-2.5 text-right text-[11px] font-medium text-muted-foreground/70">Budget alloué</th>
-              <th className="px-4 py-2.5 text-right text-[11px] font-medium text-muted-foreground/70">Budget engagé</th>
-              <th className="px-4 py-2.5 text-right text-[11px] font-medium text-muted-foreground/70">Budget restant</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground/70">Entité</th>
+              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground/70">Budget alloué</th>
+              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground/70">Budget engagé</th>
+              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground/70">Budget restant</th>
               <th className="px-4 py-2.5 w-16"></th>
             </tr>
           </thead>
@@ -306,7 +306,7 @@ export function RepartitionBudgetaireTab({
               return (
                 <tr key={key} className="border-b border-border/20 last:border-0">
                   <td className="px-4 py-2.5">
-                    <div className="flex items-center gap-2 text-[13px]">
+                    <div className="flex items-center gap-2 text-sm">
                       <span className="text-muted-foreground/50">{entity.icon}</span>
                       <span className="font-medium">{entity.nom}</span>
                     </div>
@@ -316,7 +316,7 @@ export function RepartitionBudgetaireTab({
                       type="number"
                       value={editValues[key] ?? "0"}
                       onChange={(e) => setEditValues((prev) => ({ ...prev, [key]: e.target.value }))}
-                      className="h-7 w-32 text-[13px] text-right ml-auto"
+                      className="h-7 w-32 text-sm text-right ml-auto"
                       min={0}
                       step={100}
                       onKeyDown={(e) => {
@@ -324,11 +324,11 @@ export function RepartitionBudgetaireTab({
                       }}
                     />
                   </td>
-                  <td className="px-4 py-2.5 text-right text-[13px] text-muted-foreground">
+                  <td className="px-4 py-2.5 text-right text-sm text-muted-foreground">
                     {formatCurrency(engage)}
                   </td>
                   <td className="px-4 py-2.5 text-right">
-                    <span className={`text-[13px] font-medium ${restant < 0 ? "text-destructive" : "text-emerald-400"}`}>
+                    <span className={`text-sm font-medium ${restant < 0 ? "text-destructive" : "text-emerald-400"}`}>
                       {formatCurrency(restant)}
                     </span>
                   </td>
@@ -357,14 +357,14 @@ export function RepartitionBudgetaireTab({
           {/* Footer: totals */}
           <tfoot>
             <tr className="border-t border-border/60 bg-muted/20">
-              <td className="px-4 py-2.5 text-[12px] font-semibold">Total</td>
-              <td className="px-4 py-2.5 text-right text-[13px] font-semibold">
+              <td className="px-4 py-2.5 text-xs font-semibold">Total</td>
+              <td className="px-4 py-2.5 text-right text-sm font-semibold">
                 {formatCurrency(editTotal)}
               </td>
-              <td className="px-4 py-2.5 text-right text-[13px] font-semibold text-muted-foreground">
+              <td className="px-4 py-2.5 text-right text-sm font-semibold text-muted-foreground">
                 —
               </td>
-              <td className="px-4 py-2.5 text-right text-[13px] font-semibold">
+              <td className="px-4 py-2.5 text-right text-sm font-semibold">
                 {formatCurrency(budgetTotal - editTotal)}
               </td>
               <td></td>
@@ -410,7 +410,7 @@ function AlertBanner({ alert }: { alert: BudgetAlert }) {
   const isOverspend = alert.type === "depassement" || alert.type === "global_depassement";
 
   return (
-    <div className={`rounded-md border px-3 py-2 text-[12px] flex items-center gap-2 ${
+    <div className={`rounded-md border px-3 py-2 text-xs flex items-center gap-2 ${
       isOverspend
         ? "border-destructive/30 bg-destructive/5 text-destructive"
         : "border-amber-500/30 bg-amber-500/5 text-amber-400"

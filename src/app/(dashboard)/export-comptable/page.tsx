@@ -79,7 +79,7 @@ export default function ExportComptablePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">Export comptable</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Export comptable</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Exportez vos écritures comptables au format FEC pour votre cabinet comptable
         </p>
@@ -89,11 +89,11 @@ export default function ExportComptablePage() {
       <div className="rounded-lg border border-border/60 bg-card p-4">
         <div className="flex flex-wrap items-end gap-4">
           <div className="space-y-2">
-            <Label className="text-[13px]">Date de début</Label>
+            <Label className="text-sm">Date de début</Label>
             <DatePicker value={dateDebut} onChange={setDateDebut} />
           </div>
           <div className="space-y-2">
-            <Label className="text-[13px]">Date de fin</Label>
+            <Label className="text-sm">Date de fin</Label>
             <DatePicker value={dateFin} onChange={setDateFin} />
           </div>
           <Button
@@ -153,7 +153,7 @@ export default function ExportComptablePage() {
             </div>
           </div>
           <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
-            <table className="w-full text-[11px]">
+            <table className="w-full text-xs">
               <thead className="sticky top-0 bg-card border-b border-border/40">
                 <tr>
                   <th className="px-2 py-1.5 text-left font-medium text-muted-foreground">Journal</th>

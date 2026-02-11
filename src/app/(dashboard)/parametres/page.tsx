@@ -11,7 +11,7 @@ export default async function ParametresPage() {
   if (error || !settings) {
     return (
       <div className="space-y-6">
-        <h1 className="text-xl font-semibold tracking-tight">Paramètres</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Paramètres</h1>
         <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
           Erreur lors du chargement des paramètres : {error || "Données non trouvées"}
         </div>

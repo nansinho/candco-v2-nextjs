@@ -117,7 +117,7 @@ export function CityAutocomplete({
             if (results.length > 0) setShowResults(true);
           }}
           placeholder={placeholder}
-          className="h-9 pl-9 text-[13px] border-border/60"
+          className="h-9 pl-9 text-sm border-border/60"
         />
         {isSearching && (
           <Loader2 className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-muted-foreground/50" />
@@ -142,15 +142,15 @@ export function CityAutocomplete({
               <div className="flex items-center gap-2">
                 <MapPin className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <span className="text-[13px] font-medium">{r.nom}</span>
+                  <span className="text-sm font-medium">{r.nom}</span>
                   {r.codesPostaux.length > 0 && (
-                    <span className="ml-2 text-[11px] text-muted-foreground/50">
+                    <span className="ml-2 text-xs text-muted-foreground/50">
                       {r.codesPostaux.slice(0, 2).join(", ")}
                     </span>
                   )}
                 </div>
                 {r.departement && (
-                  <span className="text-[11px] text-muted-foreground/40 shrink-0">
+                  <span className="text-xs text-muted-foreground/40 shrink-0">
                     {r.departement}
                   </span>
                 )}

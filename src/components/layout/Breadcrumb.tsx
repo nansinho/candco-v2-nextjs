@@ -66,7 +66,7 @@ export function Breadcrumb() {
           <span key={href} className="flex items-center gap-1">
             <ChevronRight className="h-3 w-3 text-muted-foreground" />
             {isLast ? (
-              <span className="font-medium text-foreground truncate max-w-[200px]">{label}</span>
+              <span className="font-medium text-foreground truncate max-w-[140px] sm:max-w-[200px]">{label}</span>
             ) : (
               <Link
                 href={href}

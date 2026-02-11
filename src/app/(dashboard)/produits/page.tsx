@@ -84,7 +84,7 @@ const columns: Column<Produit>[] = [
         <div className="min-w-0">
           <span className="block truncate font-medium">{item.intitule}</span>
           {(item.domaine || item.categorie) && (
-            <span className="block truncate text-[11px] text-muted-foreground/60">
+            <span className="block truncate text-xs text-muted-foreground/60">
               {[item.domaine, item.categorie].filter(Boolean).join(" › ")}
             </span>
           )}
@@ -98,7 +98,7 @@ const columns: Column<Produit>[] = [
     minWidth: 120,
     render: (item) =>
       item.type_action ? (
-        <Badge variant="outline" className="text-[11px] font-normal">
+        <Badge variant="outline" className="text-xs font-normal">
           {TYPE_ACTION_LABELS[item.type_action] ?? item.type_action}
         </Badge>
       ) : (
@@ -113,7 +113,7 @@ const columns: Column<Produit>[] = [
     minWidth: 120,
     render: (item) =>
       item.modalite ? (
-        <span className="text-[13px] text-muted-foreground">
+        <span className="text-sm text-muted-foreground">
           {MODALITE_LABELS[item.modalite] ?? item.modalite}
         </span>
       ) : (
@@ -126,7 +126,7 @@ const columns: Column<Produit>[] = [
     minWidth: 100,
     render: (item) =>
       item.formule ? (
-        <span className="text-[13px] text-muted-foreground">
+        <span className="text-sm text-muted-foreground">
           {FORMULE_LABELS[item.formule] ?? item.formule}
         </span>
       ) : (
@@ -141,7 +141,7 @@ const columns: Column<Produit>[] = [
     defaultVisible: false,
     render: (item: Produit) =>
       item.categorie ? (
-        <span className="text-[13px] text-muted-foreground truncate block max-w-[160px]">
+        <span className="text-sm text-muted-foreground truncate block max-w-[160px]">
           {item.categorie}
         </span>
       ) : (
@@ -155,7 +155,7 @@ const columns: Column<Produit>[] = [
     render: (item) => {
       if (item.duree_heures) {
         return (
-          <span className="flex items-center gap-1 text-[13px] text-muted-foreground">
+          <span className="flex items-center gap-1 text-sm text-muted-foreground">
             <Clock className="h-3 w-3" />
             {formatHoursMinutes(item.duree_heures)}
           </span>
@@ -170,12 +170,12 @@ const columns: Column<Produit>[] = [
     minWidth: 100,
     render: (item) =>
       item.publie ? (
-        <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[11px]">
+        <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-xs">
           <Globe className="mr-1 h-3 w-3" />
           Publié
         </Badge>
       ) : (
-        <Badge variant="outline" className="text-[11px] text-muted-foreground/60 font-normal">
+        <Badge variant="outline" className="text-xs text-muted-foreground/60 font-normal">
           Brouillon
         </Badge>
       ),
@@ -191,10 +191,10 @@ const columns: Column<Produit>[] = [
           {item.organise_par_logo_url ? (
             <img src={item.organise_par_logo_url} alt="" className="h-5 w-5 rounded object-contain bg-white shrink-0" />
           ) : null}
-          <span className="text-[12px] truncate max-w-[120px]">{item.organise_par_nom}</span>
+          <span className="text-xs truncate max-w-[120px]">{item.organise_par_nom}</span>
         </div>
       ) : (
-        <span className="text-muted-foreground/40 text-[11px]">—</span>
+        <span className="text-muted-foreground/40 text-xs">—</span>
       ),
   },
   {
@@ -209,7 +209,7 @@ const columns: Column<Produit>[] = [
             style={{ width: `${item.completion_pct}%` }}
           />
         </div>
-        <span className="text-[11px] text-muted-foreground">{item.completion_pct}%</span>
+        <span className="text-xs text-muted-foreground">{item.completion_pct}%</span>
       </div>
     ),
   },
@@ -576,7 +576,7 @@ export default function ProduitsPage() {
             <>
               <div className="relative my-1">
                 <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border/40" /></div>
-                <div className="relative flex justify-center"><span className="bg-card px-3 text-[11px] text-muted-foreground/60 uppercase tracking-wider">ou créer manuellement</span></div>
+                <div className="relative flex justify-center"><span className="bg-card px-3 text-xs text-muted-foreground/60 uppercase tracking-wider">ou créer manuellement</span></div>
               </div>
 
               {/* ─── Manual create → redirect to full edit page ── */}

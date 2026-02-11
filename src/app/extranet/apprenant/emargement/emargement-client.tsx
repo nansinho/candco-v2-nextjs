@@ -215,11 +215,11 @@ function CreneauCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-sm font-medium">{creneau.session.nom}</p>
-            <Badge variant="outline" className="text-[10px] border-border/60 py-0">
+            <Badge variant="outline" className="text-xs border-border/60 py-0">
               {creneau.session.numero_affichage}
             </Badge>
           </div>
-          <div className="flex items-center gap-3 mt-0.5 text-[12px] text-muted-foreground/60">
+          <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground/60">
             <span className="flex items-center gap-1 capitalize">
               <Calendar className="h-3 w-3" />
               {dateLabel}
@@ -245,11 +245,11 @@ function CreneauCard({
         {/* Action */}
         {isSigned ? (
           <div className="text-right shrink-0">
-            <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-[11px]">
+            <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-xs">
               Signe
             </Badge>
             {creneau.emargement?.heure_signature && (
-              <p className="text-[10px] text-muted-foreground/40 mt-0.5">
+              <p className="text-xs text-muted-foreground/40 mt-0.5">
                 {new Date(creneau.emargement.heure_signature).toLocaleTimeString("fr-FR", {
                   hour: "2-digit",
                   minute: "2-digit",
@@ -267,7 +267,7 @@ function CreneauCard({
             Signer
           </Button>
         ) : (
-          <Badge variant="outline" className="text-[11px] border-border/40 text-muted-foreground/40 shrink-0">
+          <Badge variant="outline" className="text-xs border-border/40 text-muted-foreground/40 shrink-0">
             Ferme
           </Badge>
         )}
@@ -278,7 +278,7 @@ function CreneauCard({
         <div className="border-t border-border/40 px-4 py-3">
           {error && (
             <div className="mb-3 rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2">
-              <p className="text-[12px] text-destructive">{error}</p>
+              <p className="text-xs text-destructive">{error}</p>
             </div>
           )}
           <SignaturePad
@@ -334,7 +334,7 @@ export function EmargementClient({
             <PenTool className="h-4 w-4 text-emerald-400" />
           </div>
           <div>
-            <p className="text-[11px] text-muted-foreground/60">A signer</p>
+            <p className="text-xs text-muted-foreground/60">A signer</p>
             <p className="text-sm font-semibold font-mono">{openCreneaux.length}</p>
           </div>
         </div>
@@ -343,7 +343,7 @@ export function EmargementClient({
             <Check className="h-4 w-4 text-blue-400" />
           </div>
           <div>
-            <p className="text-[11px] text-muted-foreground/60">Signes</p>
+            <p className="text-xs text-muted-foreground/60">Signes</p>
             <p className="text-sm font-semibold font-mono">{signedCreneaux.length}</p>
           </div>
         </div>

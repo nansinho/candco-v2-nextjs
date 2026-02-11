@@ -221,10 +221,10 @@ export function ApprenantDetail({
           </Button>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-semibold tracking-tight">
+              <h1 className="text-2xl font-semibold tracking-tight">
                 {apprenant.prenom} {apprenant.nom}
               </h1>
-              <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-[11px] font-mono">
+              <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-xs font-mono">
                 {apprenant.numero_affichage}
               </Badge>
             </div>
@@ -273,7 +273,7 @@ export function ApprenantDetail({
           <TabsTrigger value="entreprises" className="text-xs">
             Entreprises
             {entreprises.length > 0 && (
-              <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[11px] font-medium text-primary">
+              <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">
                 {entreprises.length}
               </span>
             )}
@@ -303,26 +303,26 @@ export function ApprenantDetail({
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                   {/* ── COLONNE GAUCHE : Identité + Adresse ── */}
                   <div className="space-y-5">
-                    <p className="text-[11px] font-medium text-muted-foreground/60 uppercase tracking-wider">Identité</p>
+                    <p className="text-xs font-medium text-muted-foreground/60 uppercase tracking-wider">Identité</p>
 
                     {/* Civilité + Prénom + Nom */}
                     <div className="grid grid-cols-[90px_1fr_1fr] gap-3">
                       <div className="space-y-1.5">
-                        <Label htmlFor="civilite" className="text-[13px] text-muted-foreground">Civilité</Label>
-                        <select id="civilite" name="civilite" defaultValue={apprenant.civilite ?? ""} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground">
+                        <Label htmlFor="civilite" className="text-sm text-muted-foreground">Civilité</Label>
+                        <select id="civilite" name="civilite" defaultValue={apprenant.civilite ?? ""} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground">
                           <option value="">--</option>
                           <option value="Monsieur">M.</option>
                           <option value="Madame">Mme</option>
                         </select>
                       </div>
                       <div className="space-y-1.5">
-                        <Label htmlFor="prenom" className="text-[13px] text-muted-foreground">Prénom <span className="text-destructive">*</span></Label>
-                        <Input id="prenom" name="prenom" defaultValue={apprenant.prenom} className="h-9 text-[13px] border-border/60" />
+                        <Label htmlFor="prenom" className="text-sm text-muted-foreground">Prénom <span className="text-destructive">*</span></Label>
+                        <Input id="prenom" name="prenom" defaultValue={apprenant.prenom} className="h-9 text-sm border-border/60" />
                         {errors.prenom && <p className="text-xs text-destructive">{errors.prenom[0]}</p>}
                       </div>
                       <div className="space-y-1.5">
-                        <Label htmlFor="nom" className="text-[13px] text-muted-foreground">Nom <span className="text-destructive">*</span></Label>
-                        <Input id="nom" name="nom" defaultValue={apprenant.nom} className="h-9 text-[13px] border-border/60" />
+                        <Label htmlFor="nom" className="text-sm text-muted-foreground">Nom <span className="text-destructive">*</span></Label>
+                        <Input id="nom" name="nom" defaultValue={apprenant.nom} className="h-9 text-sm border-border/60" />
                         {errors.nom && <p className="text-xs text-destructive">{errors.nom[0]}</p>}
                       </div>
                     </div>
@@ -330,31 +330,31 @@ export function ApprenantDetail({
                     {/* Email + Téléphone */}
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1.5">
-                        <Label htmlFor="email" className="text-[13px] text-muted-foreground">Email</Label>
-                        <Input id="email" name="email" type="email" defaultValue={apprenant.email ?? ""} className="h-9 text-[13px] border-border/60" />
+                        <Label htmlFor="email" className="text-sm text-muted-foreground">Email</Label>
+                        <Input id="email" name="email" type="email" defaultValue={apprenant.email ?? ""} className="h-9 text-sm border-border/60" />
                         {errors.email && <p className="text-xs text-destructive">{errors.email[0]}</p>}
                       </div>
                       <div className="space-y-1.5">
-                        <Label htmlFor="telephone" className="text-[13px] text-muted-foreground">Téléphone</Label>
-                        <Input id="telephone" name="telephone" defaultValue={apprenant.telephone ?? ""} className="h-9 text-[13px] border-border/60" />
+                        <Label htmlFor="telephone" className="text-sm text-muted-foreground">Téléphone</Label>
+                        <Input id="telephone" name="telephone" defaultValue={apprenant.telephone ?? ""} className="h-9 text-sm border-border/60" />
                         {errors.telephone && <p className="text-xs text-destructive">{errors.telephone[0]}</p>}
                       </div>
                     </div>
 
                     {/* Date de naissance */}
                     <div className="w-1/2 space-y-1.5">
-                      <Label htmlFor="date_naissance" className="text-[13px] text-muted-foreground">Date de naissance</Label>
+                      <Label htmlFor="date_naissance" className="text-sm text-muted-foreground">Date de naissance</Label>
                       <DatePicker id="date_naissance" name="date_naissance" defaultValue={apprenant.date_naissance ?? ""} />
                       {errors.date_naissance && <p className="text-xs text-destructive">{errors.date_naissance[0]}</p>}
                     </div>
 
                     {/* ── Adresse ── */}
                     <div className="border-t border-border/40 pt-5">
-                      <p className="text-[11px] font-medium text-muted-foreground/60 uppercase tracking-wider mb-4">Adresse</p>
+                      <p className="text-xs font-medium text-muted-foreground/60 uppercase tracking-wider mb-4">Adresse</p>
 
                       <div className="space-y-3">
                         <div className="space-y-1.5">
-                          <Label htmlFor="adresse_rue" className="text-[13px] text-muted-foreground">Rue</Label>
+                          <Label htmlFor="adresse_rue" className="text-sm text-muted-foreground">Rue</Label>
                           <AddressAutocomplete
                             id="adresse_rue" name="adresse_rue" value={adresseRue}
                             onChange={(val) => setAdresseRue(val)}
@@ -364,18 +364,18 @@ export function ApprenantDetail({
                         </div>
 
                         <div className="space-y-1.5">
-                          <Label htmlFor="adresse_complement" className="text-[13px] text-muted-foreground">Complément</Label>
-                          <Input id="adresse_complement" name="adresse_complement" defaultValue={apprenant.adresse_complement ?? ""} className="h-9 text-[13px] border-border/60" />
+                          <Label htmlFor="adresse_complement" className="text-sm text-muted-foreground">Complément</Label>
+                          <Input id="adresse_complement" name="adresse_complement" defaultValue={apprenant.adresse_complement ?? ""} className="h-9 text-sm border-border/60" />
                         </div>
 
                         <div className="grid grid-cols-[110px_1fr] gap-3">
                           <div className="space-y-1.5">
-                            <Label htmlFor="adresse_cp" className="text-[13px] text-muted-foreground">Code postal</Label>
-                            <Input id="adresse_cp" name="adresse_cp" value={adresseCp} onChange={(e) => setAdresseCp(e.target.value)} className="h-9 text-[13px] border-border/60" />
+                            <Label htmlFor="adresse_cp" className="text-sm text-muted-foreground">Code postal</Label>
+                            <Input id="adresse_cp" name="adresse_cp" value={adresseCp} onChange={(e) => setAdresseCp(e.target.value)} className="h-9 text-sm border-border/60" />
                           </div>
                           <div className="space-y-1.5">
-                            <Label htmlFor="adresse_ville" className="text-[13px] text-muted-foreground">Ville</Label>
-                            <Input id="adresse_ville" name="adresse_ville" value={adresseVille} onChange={(e) => setAdresseVille(e.target.value)} className="h-9 text-[13px] border-border/60" />
+                            <Label htmlFor="adresse_ville" className="text-sm text-muted-foreground">Ville</Label>
+                            <Input id="adresse_ville" name="adresse_ville" value={adresseVille} onChange={(e) => setAdresseVille(e.target.value)} className="h-9 text-sm border-border/60" />
                           </div>
                         </div>
                       </div>
@@ -384,16 +384,16 @@ export function ApprenantDetail({
 
                   {/* ── COLONNE DROITE : Activité + BPF ── */}
                   <div className="space-y-5">
-                    <p className="text-[11px] font-medium text-muted-foreground/60 uppercase tracking-wider">Activité</p>
+                    <p className="text-xs font-medium text-muted-foreground/60 uppercase tracking-wider">Activité</p>
 
                     <div className="space-y-3">
                       <div className="space-y-1.5">
-                        <Label className="text-[13px] text-muted-foreground">Fonction</Label>
+                        <Label className="text-sm text-muted-foreground">Fonction</Label>
                         <FonctionSelect value={fonction} onChange={setFonction} placeholder="Sélectionner une fonction" />
                         {errors.fonction && <p className="text-xs text-destructive">{errors.fonction[0]}</p>}
                       </div>
                       <div className="space-y-1.5">
-                        <Label className="text-[13px] text-muted-foreground">Lieu d&apos;activité</Label>
+                        <Label className="text-sm text-muted-foreground">Lieu d&apos;activité</Label>
                         <CityAutocomplete value={lieuActivite} onChange={setLieuActivite} placeholder="Rechercher une ville..." />
                         {errors.lieu_activite && <p className="text-xs text-destructive">{errors.lieu_activite[0]}</p>}
                       </div>
@@ -401,12 +401,12 @@ export function ApprenantDetail({
 
                     {/* ── BPF & Comptabilité ── */}
                     <div className="border-t border-border/40 pt-5">
-                      <p className="text-[11px] font-medium text-muted-foreground/60 uppercase tracking-wider mb-4">BPF &amp; Comptabilité</p>
+                      <p className="text-xs font-medium text-muted-foreground/60 uppercase tracking-wider mb-4">BPF &amp; Comptabilité</p>
 
                       <div className="space-y-3">
                         <div className="space-y-1.5">
-                          <Label htmlFor="bpf_categorie_id" className="text-[13px] text-muted-foreground">Statut BPF</Label>
-                          <select id="bpf_categorie_id" name="bpf_categorie_id" defaultValue={apprenant.bpf_categorie_id ?? ""} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground">
+                          <Label htmlFor="bpf_categorie_id" className="text-sm text-muted-foreground">Statut BPF</Label>
+                          <select id="bpf_categorie_id" name="bpf_categorie_id" defaultValue={apprenant.bpf_categorie_id ?? ""} className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground">
                             <option value="">-- Aucun --</option>
                             {bpfCategories.map((cat) => (
                               <option key={cat.id} value={cat.id}>{cat.code} — {cat.libelle}</option>
@@ -414,8 +414,8 @@ export function ApprenantDetail({
                           </select>
                         </div>
                         <div className="space-y-1.5">
-                          <Label htmlFor="numero_compte_comptable" className="text-[13px] text-muted-foreground">N° compte comptable</Label>
-                          <Input id="numero_compte_comptable" name="numero_compte_comptable" defaultValue={apprenant.numero_compte_comptable ?? ""} className="h-9 text-[13px] border-border/60" />
+                          <Label htmlFor="numero_compte_comptable" className="text-sm text-muted-foreground">N° compte comptable</Label>
+                          <Input id="numero_compte_comptable" name="numero_compte_comptable" defaultValue={apprenant.numero_compte_comptable ?? ""} className="h-9 text-sm border-border/60" />
                         </div>
                       </div>
                     </div>
@@ -426,11 +426,11 @@ export function ApprenantDetail({
               {/* Footer / Save */}
               <div className="flex items-center justify-between border-t border-border/60 px-6 py-4">
                 <div className="flex items-center gap-4">
-                  <p className="text-[11px] text-muted-foreground/50">
+                  <p className="text-xs text-muted-foreground/50">
                     Créé le {formatDate(apprenant.created_at)}
                   </p>
                   {apprenant.updated_at && (
-                    <p className="text-[11px] text-muted-foreground/50">
+                    <p className="text-xs text-muted-foreground/50">
                       Modifié le {formatDate(apprenant.updated_at)}
                     </p>
                   )}
@@ -639,10 +639,10 @@ function EntreprisesTab({
         <h3 className="text-sm font-semibold">
           Entreprises
           {entreprises.length > 0 && (
-            <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary/10 px-1.5 text-[11px] font-medium text-primary">{entreprises.length}</span>
+            <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary/10 px-1.5 text-xs font-medium text-primary">{entreprises.length}</span>
           )}
         </h3>
-        <Button variant="outline" size="sm" className="h-7 text-[11px] border-border/60" onClick={() => { setShowSearch(!showSearch); setSearchQuery(""); setSearchResults([]); setLinkingEnt(null); }}>
+        <Button variant="outline" size="sm" className="h-7 text-xs border-border/60" onClick={() => { setShowSearch(!showSearch); setSearchQuery(""); setSearchResults([]); setLinkingEnt(null); }}>
           {showSearch ? <><X className="mr-1 h-3 w-3" />Fermer</> : <><Plus className="mr-1 h-3 w-3" />Rattacher une entreprise</>}
         </Button>
       </div>
@@ -662,11 +662,11 @@ function EntreprisesTab({
                     <button key={ent.id} type="button" className="flex w-full items-center justify-between rounded-md px-3 py-2 hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => handleStartLink(ent)}>
                       <div className="flex items-center gap-2">
                         <Building2 className="h-3.5 w-3.5 text-orange-400" />
-                        <span className="text-[13px] font-medium">{ent.nom}</span>
-                        {ent.siret && <span className="text-[11px] text-muted-foreground/50">{ent.siret}</span>}
-                        {ent.adresse_ville && <span className="text-[11px] text-muted-foreground/40">{ent.adresse_ville}</span>}
+                        <span className="text-sm font-medium">{ent.nom}</span>
+                        {ent.siret && <span className="text-xs text-muted-foreground/50">{ent.siret}</span>}
+                        {ent.adresse_ville && <span className="text-xs text-muted-foreground/40">{ent.adresse_ville}</span>}
                       </div>
-                      <span className="text-[10px] text-primary font-medium flex items-center gap-0.5"><Plus className="h-3 w-3" />Rattacher</span>
+                      <span className="text-xs text-primary font-medium flex items-center gap-0.5"><Plus className="h-3 w-3" />Rattacher</span>
                     </button>
                   ))}
                 </div>
@@ -680,9 +680,9 @@ function EntreprisesTab({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Building2 className="h-3.5 w-3.5 text-orange-400" />
-                  <span className="text-[13px] font-semibold">{linkingEnt.nom}</span>
+                  <span className="text-sm font-semibold">{linkingEnt.nom}</span>
                 </div>
-                <button type="button" className="text-[11px] text-muted-foreground hover:text-foreground" onClick={() => setLinkingEnt(null)}>
+                <button type="button" className="text-xs text-muted-foreground hover:text-foreground" onClick={() => setLinkingEnt(null)}>
                   Changer
                 </button>
               </div>
@@ -696,8 +696,8 @@ function EntreprisesTab({
               />
 
               <div className="flex justify-end gap-2 pt-1">
-                <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => setLinkingEnt(null)}>Annuler</Button>
-                <Button size="sm" className="h-7 text-[11px]" onClick={handleConfirmLink} disabled={isLinking}>
+                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setLinkingEnt(null)}>Annuler</Button>
+                <Button size="sm" className="h-7 text-xs" onClick={handleConfirmLink} disabled={isLinking}>
                   {isLinking ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Plus className="mr-1 h-3 w-3" />}
                   Rattacher
                 </Button>
@@ -714,8 +714,8 @@ function EntreprisesTab({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Building2 className="h-3.5 w-3.5 text-orange-400" />
-                <span className="text-[13px] font-semibold">{editingEnt.nom}</span>
-                <span className="text-[10px] text-blue-400 font-medium">Modifier le rattachement</span>
+                <span className="text-sm font-semibold">{editingEnt.nom}</span>
+                <span className="text-xs text-blue-400 font-medium">Modifier le rattachement</span>
               </div>
               <button type="button" className="p-0.5 text-muted-foreground/40 hover:text-foreground" onClick={() => setEditingEnt(null)}>
                 <X className="h-3.5 w-3.5" />
@@ -731,8 +731,8 @@ function EntreprisesTab({
             />
 
             <div className="flex justify-end gap-2 pt-1">
-              <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => setEditingEnt(null)}>Annuler</Button>
-              <Button size="sm" className="h-7 text-[11px]" onClick={handleSaveEdit} disabled={isSavingEdit}>
+              <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setEditingEnt(null)}>Annuler</Button>
+              <Button size="sm" className="h-7 text-xs" onClick={handleSaveEdit} disabled={isSavingEdit}>
                 {isSavingEdit ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Save className="mr-1 h-3 w-3" />}
                 Enregistrer
               </Button>
@@ -762,24 +762,24 @@ function EntreprisesTab({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <Building2 className="h-3.5 w-3.5 text-orange-400 shrink-0" />
-                    <span className="text-[13px] font-medium">{ent.nom}</span>
-                    {ent.siret && <span className="text-[11px] text-muted-foreground/50">{ent.siret}</span>}
+                    <span className="text-sm font-medium">{ent.nom}</span>
+                    {ent.siret && <span className="text-xs text-muted-foreground/50">{ent.siret}</span>}
                   </div>
                   {/* Headquarters / Agency badges */}
                   <div className="mt-1.5 flex flex-wrap items-center gap-1.5 ml-5">
                     {ent.est_siege && (
-                      <Badge className="h-5 text-[10px] bg-orange-500/10 text-orange-400 border-orange-500/20 font-normal">
+                      <Badge className="h-5 text-xs bg-orange-500/10 text-orange-400 border-orange-500/20 font-normal">
                         Siège social
                       </Badge>
                     )}
                     {ent.agences.map((ag) => (
-                      <Badge key={ag.id} className="h-5 text-[10px] bg-blue-500/10 text-blue-400 border-blue-500/20 font-normal">
+                      <Badge key={ag.id} className="h-5 text-xs bg-blue-500/10 text-blue-400 border-blue-500/20 font-normal">
                         <MapPin className="mr-0.5 h-2.5 w-2.5" />
                         {ag.nom}
                       </Badge>
                     ))}
                     {!ent.est_siege && ent.agences.length === 0 && (
-                      <span className="text-[10px] text-muted-foreground/40 italic">Aucun rattachement défini</span>
+                      <span className="text-xs text-muted-foreground/40 italic">Aucun rattachement défini</span>
                     )}
                   </div>
                 </div>
@@ -828,17 +828,17 @@ function SiegeAgencePicker({
           disabled={selectedAgenceIds.length === 0}
           className="h-3.5 w-3.5 rounded border-border accent-primary"
         />
-        <span className="text-[12px]">
+        <span className="text-xs">
           Siège social
           {selectedAgenceIds.length === 0 && (
-            <span className="ml-1 text-[10px] text-muted-foreground/50">(par défaut si aucune agence)</span>
+            <span className="ml-1 text-xs text-muted-foreground/50">(par défaut si aucune agence)</span>
           )}
         </span>
       </label>
 
       {agences.length > 0 && (
         <div className="space-y-1">
-          <p className="text-[11px] text-muted-foreground/60 font-medium">Agences :</p>
+          <p className="text-xs text-muted-foreground/60 font-medium">Agences :</p>
           <div className="space-y-0.5 max-h-[150px] overflow-y-auto">
             {agences.map((ag) => (
               <label
@@ -852,12 +852,12 @@ function SiegeAgencePicker({
                   className="h-3.5 w-3.5 rounded border-border accent-primary"
                 />
                 <MapPin className="h-3 w-3 text-muted-foreground/50 shrink-0" />
-                <span className="text-[12px]">{ag.nom}</span>
+                <span className="text-xs">{ag.nom}</span>
                 {ag.est_siege && (
-                  <span className="text-[9px] font-medium text-orange-400/80 bg-orange-400/10 px-1 py-0.5 rounded">siège</span>
+                  <span className="text-xs font-medium text-orange-400/80 bg-orange-400/10 px-1 py-0.5 rounded">siège</span>
                 )}
                 {ag.adresse_ville && (
-                  <span className="text-[10px] text-muted-foreground/40">{ag.adresse_ville}</span>
+                  <span className="text-xs text-muted-foreground/40">{ag.adresse_ville}</span>
                 )}
               </label>
             ))}
@@ -865,7 +865,7 @@ function SiegeAgencePicker({
         </div>
       )}
       {agences.length === 0 && (
-        <p className="text-[10px] text-muted-foreground/40 italic">
+        <p className="text-xs text-muted-foreground/40 italic">
           Aucune agence définie pour cette entreprise. L&apos;apprenant sera rattaché au siège social.
         </p>
       )}

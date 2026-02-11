@@ -223,12 +223,12 @@ export default function AvoirDetailPage() {
             <h2 className="text-sm font-medium">Informations</h2>
 
             <div className="space-y-2">
-              <Label className="text-[13px]">Facture liée</Label>
+              <Label className="text-sm">Facture liée</Label>
               <Select
                 value={form.facture_id || "none"}
                 onValueChange={(val) => setForm((prev) => ({ ...prev, facture_id: val === "none" ? "" : val }))}
               >
-                <SelectTrigger className="h-9 text-[13px] border-border/60">
+                <SelectTrigger className="h-9 text-sm border-border/60">
                   <SelectValue placeholder="Aucune" />
                 </SelectTrigger>
                 <SelectContent>
@@ -244,12 +244,12 @@ export default function AvoirDetailPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label className="text-[13px]">Entreprise</Label>
+                <Label className="text-sm">Entreprise</Label>
                 <Select
                   value={form.entreprise_id || "none"}
                   onValueChange={(val) => setForm((prev) => ({ ...prev, entreprise_id: val === "none" ? "" : val }))}
                 >
-                  <SelectTrigger className="h-9 text-[13px] border-border/60">
+                  <SelectTrigger className="h-9 text-sm border-border/60">
                     <SelectValue placeholder="Aucune" />
                   </SelectTrigger>
                   <SelectContent>
@@ -261,7 +261,7 @@ export default function AvoirDetailPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label className="text-[13px]">Date d'émission</Label>
+                <Label className="text-sm">Date d'émission</Label>
                 <DatePicker
                   value={form.date_emission}
                   onChange={(val) => setForm((prev) => ({ ...prev, date_emission: val }))}
@@ -270,11 +270,11 @@ export default function AvoirDetailPage() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-[13px]">Motif</Label>
+              <Label className="text-sm">Motif</Label>
               <Textarea
                 value={form.motif}
                 onChange={(e) => setForm((prev) => ({ ...prev, motif: e.target.value }))}
-                className="min-h-[60px] text-[13px] border-border/60"
+                className="min-h-[60px] text-sm border-border/60"
               />
             </div>
           </div>

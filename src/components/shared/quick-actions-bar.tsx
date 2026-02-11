@@ -52,7 +52,7 @@ export function QuickActionsBar({ email, telephone, emailContextLabel, actions =
             <Button
               variant="outline"
               size="sm"
-              className="h-7 text-[11px] border-border/60 text-muted-foreground hover:text-foreground gap-1.5"
+              className="h-7 text-xs border-border/60 text-muted-foreground hover:text-foreground gap-1.5"
               onClick={() => setEmailModalOpen(true)}
             >
               <Mail className="h-3 w-3" />
@@ -61,7 +61,7 @@ export function QuickActionsBar({ email, telephone, emailContextLabel, actions =
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 text-[11px] text-muted-foreground hover:text-foreground gap-1"
+              className="h-7 text-xs text-muted-foreground hover:text-foreground gap-1"
               onClick={() => copyToClipboard(email, "Email")}
             >
               <Copy className="h-3 w-3" />
@@ -75,7 +75,7 @@ export function QuickActionsBar({ email, telephone, emailContextLabel, actions =
               <Button
                 variant="outline"
                 size="sm"
-                className="h-7 text-[11px] border-border/60 text-muted-foreground hover:text-foreground gap-1.5"
+                className="h-7 text-xs border-border/60 text-muted-foreground hover:text-foreground gap-1.5"
               >
                 <Phone className="h-3 w-3" />
                 Appeler
@@ -84,7 +84,7 @@ export function QuickActionsBar({ email, telephone, emailContextLabel, actions =
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 text-[11px] text-muted-foreground hover:text-foreground gap-1"
+              className="h-7 text-xs text-muted-foreground hover:text-foreground gap-1"
               onClick={() => copyToClipboard(telephone, "Téléphone")}
             >
               <Copy className="h-3 w-3" />
@@ -105,7 +105,7 @@ export function QuickActionsBar({ email, telephone, emailContextLabel, actions =
                   <Button
                     variant={action.variant ?? "outline"}
                     size="sm"
-                    className="h-7 text-[11px] border-border/60 text-muted-foreground hover:text-foreground gap-1.5"
+                    className="h-7 text-xs border-border/60 text-muted-foreground hover:text-foreground gap-1.5"
                   >
                     {action.icon}
                     {action.label}
@@ -118,7 +118,7 @@ export function QuickActionsBar({ email, telephone, emailContextLabel, actions =
                 key={action.label}
                 variant={action.variant ?? "outline"}
                 size="sm"
-                className="h-7 text-[11px] border-border/60 text-muted-foreground hover:text-foreground gap-1.5"
+                className="h-7 text-xs border-border/60 text-muted-foreground hover:text-foreground gap-1.5"
                 onClick={action.onClick}
               >
                 {action.icon}

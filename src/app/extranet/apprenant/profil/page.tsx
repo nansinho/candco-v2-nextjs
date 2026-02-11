@@ -44,7 +44,7 @@ export default async function ApprenantProfilPage() {
                   <Building2 className="h-4 w-4 text-orange-400 shrink-0" />
                   <span className="text-sm font-semibold">{ent.nom}</span>
                   {ent.siret && (
-                    <span className="text-[11px] text-muted-foreground font-mono">
+                    <span className="text-xs text-muted-foreground font-mono">
                       SIRET {ent.siret}
                     </span>
                   )}
@@ -54,7 +54,7 @@ export default async function ApprenantProfilPage() {
                 {(ent.fonction || ent.roles.length > 0) && (
                   <div className="flex flex-wrap gap-1.5 pl-6">
                     {ent.fonction && (
-                      <Badge className="text-[10px] bg-orange-500/10 text-orange-400 border-orange-500/20">
+                      <Badge className="text-xs bg-orange-500/10 text-orange-400 border-orange-500/20">
                         {ent.fonction}
                       </Badge>
                     )}
@@ -62,7 +62,7 @@ export default async function ApprenantProfilPage() {
                       <Badge
                         key={role}
                         variant="outline"
-                        className="text-[10px] border-border/60"
+                        className="text-xs border-border/60"
                       >
                         {role.replace("_", " ")}
                       </Badge>

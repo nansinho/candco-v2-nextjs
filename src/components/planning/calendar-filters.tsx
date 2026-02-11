@@ -62,9 +62,9 @@ export function CalendarFilters({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Filter className="h-3.5 w-3.5 text-muted-foreground/60" />
-          <span className="text-[13px] font-semibold">Filtres</span>
+          <span className="text-sm font-semibold">Filtres</span>
           {activeCount > 0 && (
-            <Badge className="h-4 min-w-4 px-1 text-[10px] bg-primary/15 text-primary border-0">
+            <Badge className="h-4 min-w-4 px-1 text-xs bg-primary/15 text-primary border-0">
               {activeCount}
             </Badge>
           )}
@@ -73,7 +73,7 @@ export function CalendarFilters({
           <button
             type="button"
             onClick={onClearAll}
-            className="text-[11px] text-muted-foreground/60 hover:text-primary transition-colors"
+            className="text-xs text-muted-foreground/60 hover:text-primary transition-colors"
           >
             Tout effacer
           </button>
@@ -164,7 +164,7 @@ function FilterSelect({
 }) {
   return (
     <div>
-      <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground/60 uppercase tracking-wider font-medium mb-1.5">
+      <label className="flex items-center gap-1.5 text-xs text-muted-foreground/60 uppercase tracking-wider font-medium mb-1.5">
         <Icon className="h-3 w-3" />
         {label}
       </label>
@@ -174,7 +174,7 @@ function FilterSelect({
           onChange={(e) => onChange(e.target.value)}
           className={cn(
             "w-full appearance-none rounded-md border border-border/60 bg-muted/30 px-2.5 py-1.5",
-            "text-[12px] focus:outline-none focus:ring-2 focus:ring-ring",
+            "text-xs focus:outline-none focus:ring-2 focus:ring-ring",
             "transition-colors",
             value ? "text-foreground" : "text-muted-foreground/60"
           )}
@@ -232,7 +232,7 @@ export function CalendarFiltersInline({
         onChange={(e) => onFormateurChange(e.target.value)}
         className={cn(
           "shrink-0 appearance-none rounded-md border border-border/60 bg-muted/30 px-2 py-1",
-          "text-[11px] focus:outline-none focus:ring-2 focus:ring-ring",
+          "text-xs focus:outline-none focus:ring-2 focus:ring-ring",
           selectedFormateurId ? "text-foreground border-primary/30" : "text-muted-foreground/60"
         )}
       >
@@ -247,7 +247,7 @@ export function CalendarFiltersInline({
         onChange={(e) => onSalleChange(e.target.value)}
         className={cn(
           "shrink-0 appearance-none rounded-md border border-border/60 bg-muted/30 px-2 py-1",
-          "text-[11px] focus:outline-none focus:ring-2 focus:ring-ring",
+          "text-xs focus:outline-none focus:ring-2 focus:ring-ring",
           selectedSalleId ? "text-foreground border-primary/30" : "text-muted-foreground/60"
         )}
       >
@@ -262,7 +262,7 @@ export function CalendarFiltersInline({
         onChange={(e) => onTypeChange(e.target.value)}
         className={cn(
           "shrink-0 appearance-none rounded-md border border-border/60 bg-muted/30 px-2 py-1",
-          "text-[11px] focus:outline-none focus:ring-2 focus:ring-ring",
+          "text-xs focus:outline-none focus:ring-2 focus:ring-ring",
           selectedType ? "text-foreground border-primary/30" : "text-muted-foreground/60"
         )}
       >
@@ -276,7 +276,7 @@ export function CalendarFiltersInline({
         <button
           type="button"
           onClick={onClearAll}
-          className="shrink-0 text-[11px] text-primary hover:text-primary/80 transition-colors font-medium"
+          className="shrink-0 text-xs text-primary hover:text-primary/80 transition-colors font-medium"
         >
           Effacer
         </button>

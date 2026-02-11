@@ -58,7 +58,7 @@ export function LignesEditor({ lignes, onChange, readOnly = false }: LignesEdito
   return (
     <div className="space-y-3">
       {/* Header — desktop only */}
-      <div className="hidden md:grid grid-cols-[1fr_80px_100px_70px_100px_32px] gap-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wide px-1">
+      <div className="hidden md:grid grid-cols-[1fr_80px_100px_70px_100px_32px] gap-2 text-xs font-medium text-muted-foreground uppercase tracking-wide px-1">
         <span>Désignation</span>
         <span className="text-right">Qté</span>
         <span className="text-right">P.U. HT</span>
@@ -79,14 +79,14 @@ export function LignesEditor({ lignes, onChange, readOnly = false }: LignesEdito
                   value={ligne.designation}
                   onChange={(e) => updateLigne(index, "designation", e.target.value)}
                   placeholder="Désignation"
-                  className="h-8 text-[13px] border-border/60"
+                  className="h-8 text-sm border-border/60"
                   readOnly={readOnly}
                 />
                 <Input
                   value={ligne.description}
                   onChange={(e) => updateLigne(index, "description", e.target.value)}
                   placeholder="Description (optionnel)"
-                  className="h-7 text-[11px] text-muted-foreground border-border/40"
+                  className="h-7 text-xs text-muted-foreground border-border/40"
                   readOnly={readOnly}
                 />
               </div>
@@ -94,7 +94,7 @@ export function LignesEditor({ lignes, onChange, readOnly = false }: LignesEdito
                 type="number"
                 value={ligne.quantite}
                 onChange={(e) => updateLigne(index, "quantite", Number(e.target.value))}
-                className="h-8 text-[13px] text-right border-border/60"
+                className="h-8 text-sm text-right border-border/60"
                 min="0"
                 step="0.01"
                 readOnly={readOnly}
@@ -103,7 +103,7 @@ export function LignesEditor({ lignes, onChange, readOnly = false }: LignesEdito
                 type="number"
                 value={ligne.prix_unitaire_ht}
                 onChange={(e) => updateLigne(index, "prix_unitaire_ht", Number(e.target.value))}
-                className="h-8 text-[13px] text-right border-border/60"
+                className="h-8 text-sm text-right border-border/60"
                 min="0"
                 step="0.01"
                 readOnly={readOnly}
@@ -112,12 +112,12 @@ export function LignesEditor({ lignes, onChange, readOnly = false }: LignesEdito
                 type="number"
                 value={ligne.taux_tva}
                 onChange={(e) => updateLigne(index, "taux_tva", Number(e.target.value))}
-                className="h-8 text-[13px] text-right border-border/60"
+                className="h-8 text-sm text-right border-border/60"
                 min="0"
                 step="0.01"
                 readOnly={readOnly}
               />
-              <div className="flex h-8 items-center justify-end font-mono text-[13px]">
+              <div className="flex h-8 items-center justify-end font-mono text-sm">
                 {formatCurrency(ligneHT)}
               </div>
               {!readOnly && (
@@ -136,7 +136,7 @@ export function LignesEditor({ lignes, onChange, readOnly = false }: LignesEdito
             {/* Mobile layout — card per line */}
             <div className="md:hidden rounded-lg border border-border/40 bg-muted/30 p-3 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                   Ligne {index + 1}
                 </span>
                 {!readOnly && (
@@ -155,48 +155,48 @@ export function LignesEditor({ lignes, onChange, readOnly = false }: LignesEdito
                 value={ligne.designation}
                 onChange={(e) => updateLigne(index, "designation", e.target.value)}
                 placeholder="Désignation"
-                className="h-8 text-[13px] border-border/60"
+                className="h-8 text-sm border-border/60"
                 readOnly={readOnly}
               />
               <Input
                 value={ligne.description}
                 onChange={(e) => updateLigne(index, "description", e.target.value)}
                 placeholder="Description (optionnel)"
-                className="h-7 text-[11px] text-muted-foreground border-border/40"
+                className="h-7 text-xs text-muted-foreground border-border/40"
                 readOnly={readOnly}
               />
               <div className="grid grid-cols-3 gap-2">
                 <div>
-                  <label className="text-[10px] text-muted-foreground mb-1 block">Qté</label>
+                  <label className="text-xs text-muted-foreground mb-1 block">Qté</label>
                   <Input
                     type="number"
                     value={ligne.quantite}
                     onChange={(e) => updateLigne(index, "quantite", Number(e.target.value))}
-                    className="h-8 text-[13px] text-right border-border/60"
+                    className="h-8 text-sm text-right border-border/60"
                     min="0"
                     step="0.01"
                     readOnly={readOnly}
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] text-muted-foreground mb-1 block">P.U. HT</label>
+                  <label className="text-xs text-muted-foreground mb-1 block">P.U. HT</label>
                   <Input
                     type="number"
                     value={ligne.prix_unitaire_ht}
                     onChange={(e) => updateLigne(index, "prix_unitaire_ht", Number(e.target.value))}
-                    className="h-8 text-[13px] text-right border-border/60"
+                    className="h-8 text-sm text-right border-border/60"
                     min="0"
                     step="0.01"
                     readOnly={readOnly}
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] text-muted-foreground mb-1 block">TVA %</label>
+                  <label className="text-xs text-muted-foreground mb-1 block">TVA %</label>
                   <Input
                     type="number"
                     value={ligne.taux_tva}
                     onChange={(e) => updateLigne(index, "taux_tva", Number(e.target.value))}
-                    className="h-8 text-[13px] text-right border-border/60"
+                    className="h-8 text-sm text-right border-border/60"
                     min="0"
                     step="0.01"
                     readOnly={readOnly}
@@ -204,8 +204,8 @@ export function LignesEditor({ lignes, onChange, readOnly = false }: LignesEdito
                 </div>
               </div>
               <div className="flex justify-end pt-1 border-t border-border/30">
-                <span className="text-[12px] text-muted-foreground mr-2">Total HT :</span>
-                <span className="font-mono text-[13px] font-medium">{formatCurrency(ligneHT)}</span>
+                <span className="text-xs text-muted-foreground mr-2">Total HT :</span>
+                <span className="font-mono text-sm font-medium">{formatCurrency(ligneHT)}</span>
               </div>
             </div>
           </div>
@@ -228,11 +228,11 @@ export function LignesEditor({ lignes, onChange, readOnly = false }: LignesEdito
 
       {/* Totals */}
       <div className="border-t border-border/40 pt-3 space-y-1">
-        <div className="flex justify-between text-[13px]">
+        <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">Total HT</span>
           <span className="font-mono">{formatCurrency(totalHT)}</span>
         </div>
-        <div className="flex justify-between text-[13px]">
+        <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">TVA</span>
           <span className="font-mono">{formatCurrency(totalTVA)}</span>
         </div>
@@ -297,7 +297,7 @@ export function DocumentPreview({
   const title = type === "devis" ? "DEVIS" : type === "facture" ? "FACTURE" : "AVOIR";
 
   return (
-    <div className="rounded-lg border border-border/40 bg-white text-black p-6 text-[12px] leading-relaxed shadow-sm min-h-[600px]">
+    <div className="rounded-lg border border-border/40 bg-white text-black p-6 text-xs leading-relaxed shadow-sm min-h-[600px]">
       {/* Header */}
       <div className="flex justify-between mb-6">
         <div>
@@ -338,7 +338,7 @@ export function DocumentPreview({
       {/* Destinataire */}
       {destinataire && (
         <div className="mb-4 p-3 bg-gray-50 rounded">
-          <p className="text-[10px] text-gray-400 uppercase font-semibold mb-1">Destinataire</p>
+          <p className="text-xs text-gray-400 uppercase font-semibold mb-1">Destinataire</p>
           <p className="font-semibold">{destinataire.nom}</p>
           {destinataire.adresse && <p>{destinataire.adresse}</p>}
           {destinataire.siret && <p className="text-gray-600">SIRET : {destinataire.siret}</p>}
@@ -353,7 +353,7 @@ export function DocumentPreview({
       )}
 
       {/* Table */}
-      <table className="w-full mb-4 text-[11px]">
+      <table className="w-full mb-4 text-xs">
         <thead>
           <tr className="border-b border-gray-300">
             <th className="text-left py-1.5 font-semibold">Désignation</th>
@@ -369,7 +369,7 @@ export function DocumentPreview({
               <td className="py-1.5">
                 <p className="font-medium">{l.designation || "..."}</p>
                 {l.description && (
-                  <p className="text-gray-500 text-[10px]">{l.description}</p>
+                  <p className="text-gray-500 text-xs">{l.description}</p>
                 )}
               </td>
               <td className="text-right py-1.5">{l.quantite}</td>
@@ -411,18 +411,18 @@ export function DocumentPreview({
       {/* Footer */}
       {conditions && (
         <div className="mb-3">
-          <p className="font-semibold text-[10px] text-gray-500 uppercase">Conditions</p>
+          <p className="font-semibold text-xs text-gray-500 uppercase">Conditions</p>
           <p className="text-gray-600 whitespace-pre-line">{conditions}</p>
         </div>
       )}
       {coordonneesBancaires && (
         <div className="mb-3">
-          <p className="font-semibold text-[10px] text-gray-500 uppercase">Coordonnées bancaires</p>
+          <p className="font-semibold text-xs text-gray-500 uppercase">Coordonnées bancaires</p>
           <p className="text-gray-600 whitespace-pre-line">{coordonneesBancaires}</p>
         </div>
       )}
       {mentionsLegales && (
-        <div className="text-[9px] text-gray-400 border-t border-gray-200 pt-2 mt-4 whitespace-pre-line">
+        <div className="text-xs text-gray-400 border-t border-gray-200 pt-2 mt-4 whitespace-pre-line">
           {mentionsLegales}
         </div>
       )}

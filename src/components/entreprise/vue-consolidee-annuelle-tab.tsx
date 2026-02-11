@@ -88,7 +88,7 @@ export function VueConsolideeAnnuelleTab({
               return (
                 <div
                   key={i}
-                  className={`rounded-md border px-3 py-2 text-[12px] flex items-center gap-2 ${
+                  className={`rounded-md border px-3 py-2 text-xs flex items-center gap-2 ${
                     isOverspend
                       ? "border-destructive/30 bg-destructive/5 text-destructive"
                       : "border-amber-500/30 bg-amber-500/5 text-amber-400"
@@ -111,21 +111,21 @@ export function VueConsolideeAnnuelleTab({
         <div className="rounded-lg border border-border/60 bg-card p-4 space-y-3">
           <div className="flex items-center gap-2">
             <Wallet className="h-4 w-4 text-primary" />
-            <span className="text-[13px] font-medium">Budget plan annuel</span>
-            <Badge variant="outline" className="text-[10px]">{selectedYear}</Badge>
+            <span className="text-sm font-medium">Budget plan annuel</span>
+            <Badge variant="outline" className="text-xs">{selectedYear}</Badge>
           </div>
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] text-muted-foreground/60">Budget annuel</span>
+              <span className="text-xs text-muted-foreground/60">Budget annuel</span>
               <span className="text-[14px] font-semibold">{formatCurrency(data.plan.budgetTotal)}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-[11px] text-muted-foreground/60">Budget engagé</span>
+              <span className="text-xs text-muted-foreground/60">Budget engagé</span>
               <span className="text-[14px] font-semibold">{formatCurrency(data.plan.budgetEngage)}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-[11px] text-muted-foreground/60">Budget restant</span>
+              <span className="text-xs text-muted-foreground/60">Budget restant</span>
               <span className={`text-[14px] font-semibold ${isOverBudget ? "text-destructive" : "text-emerald-400"}`}>
                 {formatCurrency(data.plan.budgetRestant)}
               </span>
@@ -142,11 +142,11 @@ export function VueConsolideeAnnuelleTab({
                   style={{ width: `${Math.min(planPct, 100)}%` }}
                 />
               </div>
-              <p className="text-[10px] text-muted-foreground/50 text-right">{planPct}% engagé</p>
+              <p className="text-xs text-muted-foreground/50 text-right">{planPct}% engagé</p>
             </div>
           )}
 
-          <p className="text-[10px] text-muted-foreground/50">
+          <p className="text-xs text-muted-foreground/50">
             {data.plan.nbFormations} formation{data.plan.nbFormations > 1 ? "s" : ""} au plan
           </p>
         </div>
@@ -155,19 +155,19 @@ export function VueConsolideeAnnuelleTab({
         <div className="rounded-lg border border-border/60 bg-card p-4 space-y-3">
           <div className="flex items-center gap-2">
             <CalendarDays className="h-4 w-4 text-amber-400" />
-            <span className="text-[13px] font-medium">Formations ponctuelles</span>
+            <span className="text-sm font-medium">Formations ponctuelles</span>
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-[11px] text-muted-foreground/60">Budget total</span>
+            <span className="text-xs text-muted-foreground/60">Budget total</span>
             <span className="text-[14px] font-semibold">{formatCurrency(data.ponctuel.budgetTotal)}</span>
           </div>
 
-          <p className="text-[10px] text-muted-foreground/50">
+          <p className="text-xs text-muted-foreground/50">
             {data.ponctuel.nbFormations} formation{data.ponctuel.nbFormations > 1 ? "s" : ""} ponctuelle{data.ponctuel.nbFormations > 1 ? "s" : ""}
           </p>
 
-          <p className="text-[10px] text-muted-foreground/40">
+          <p className="text-xs text-muted-foreground/40">
             Ce budget n'impacte pas le plan annuel
           </p>
         </div>
@@ -176,15 +176,15 @@ export function VueConsolideeAnnuelleTab({
         <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
           <div className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-primary" />
-            <span className="text-[13px] font-medium">Dépense formation totale</span>
+            <span className="text-sm font-medium">Dépense formation totale</span>
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-[11px] text-muted-foreground/60">Total annuel</span>
+            <span className="text-xs text-muted-foreground/60">Total annuel</span>
             <span className="text-[18px] font-bold text-primary">{formatCurrency(data.global.depenseTotale)}</span>
           </div>
 
-          <div className="text-[10px] text-muted-foreground/50 space-y-0.5">
+          <div className="text-xs text-muted-foreground/50 space-y-0.5">
             <div className="flex justify-between">
               <span>Plan annuel engagé</span>
               <span>{formatCurrency(data.plan.budgetEngage)}</span>

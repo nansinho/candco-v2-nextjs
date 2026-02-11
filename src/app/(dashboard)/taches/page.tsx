@@ -4,7 +4,7 @@ export default function TachesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">Taches</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Taches</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Suivez et gerez vos taches, rappels et activites liees a vos contacts et sessions
         </p>

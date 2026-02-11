@@ -332,7 +332,7 @@ function CreateEntrepriseForm({ onSuccess, onCancel }: CreateFormProps) {
 
       {/* SIRET Search */}
       <div className="space-y-2">
-        <Label className="text-[13px]">Recherche INSEE (SIRET / Nom)</Label>
+        <Label className="text-sm">Recherche INSEE (SIRET / Nom)</Label>
         <SiretSearch
           onSelect={(r) => {
             setFormData((prev) => ({
@@ -348,7 +348,7 @@ function CreateEntrepriseForm({ onSuccess, onCancel }: CreateFormProps) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="nom" className="text-[13px]">
+        <Label htmlFor="nom" className="text-sm">
           Nom de l&apos;entreprise <span className="text-destructive">*</span>
         </Label>
         <Input
@@ -358,7 +358,7 @@ function CreateEntrepriseForm({ onSuccess, onCancel }: CreateFormProps) {
           value={formData.nom}
           onChange={(e) => updateField("nom", e.target.value)}
           placeholder="Ex: Acme Corp"
-          className="h-9 text-[13px] border-border/60"
+          className="h-9 text-sm border-border/60"
         />
         {errors.nom && (
           <p className="text-xs text-destructive">{errors.nom[0]}</p>
@@ -367,7 +367,7 @@ function CreateEntrepriseForm({ onSuccess, onCancel }: CreateFormProps) {
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label htmlFor="siret" className="text-[13px]">
+          <Label htmlFor="siret" className="text-sm">
             SIRET
           </Label>
           <Input
@@ -376,11 +376,11 @@ function CreateEntrepriseForm({ onSuccess, onCancel }: CreateFormProps) {
             value={formData.siret}
             onChange={(e) => updateField("siret", e.target.value)}
             placeholder="123 456 789 00012"
-            className="h-9 text-[13px] border-border/60"
+            className="h-9 text-sm border-border/60"
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="telephone" className="text-[13px]">
+          <Label htmlFor="telephone" className="text-sm">
             Téléphone
           </Label>
           <Input
@@ -389,13 +389,13 @@ function CreateEntrepriseForm({ onSuccess, onCancel }: CreateFormProps) {
             value={formData.telephone}
             onChange={(e) => updateField("telephone", e.target.value)}
             placeholder="01 23 45 67 89"
-            className="h-9 text-[13px] border-border/60"
+            className="h-9 text-sm border-border/60"
           />
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="email" className="text-[13px]">
+        <Label htmlFor="email" className="text-sm">
           Email
         </Label>
         <Input
@@ -405,7 +405,7 @@ function CreateEntrepriseForm({ onSuccess, onCancel }: CreateFormProps) {
           value={formData.email}
           onChange={(e) => updateField("email", e.target.value)}
           placeholder="contact@entreprise.fr"
-          className="h-9 text-[13px] border-border/60"
+          className="h-9 text-sm border-border/60"
         />
         {errors.email && (
           <p className="text-xs text-destructive">{errors.email[0]}</p>
@@ -413,7 +413,7 @@ function CreateEntrepriseForm({ onSuccess, onCancel }: CreateFormProps) {
       </div>
 
       <div className="space-y-2">
-        <Label className="text-[13px]">Adresse</Label>
+        <Label className="text-sm">Adresse</Label>
         <AddressAutocomplete
           value={formData.adresse_rue}
           onChange={(v) => updateField("adresse_rue", v)}
@@ -431,7 +431,7 @@ function CreateEntrepriseForm({ onSuccess, onCancel }: CreateFormProps) {
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label htmlFor="adresse_cp" className="text-[13px]">
+          <Label htmlFor="adresse_cp" className="text-sm">
             Code postal
           </Label>
           <Input
@@ -440,11 +440,11 @@ function CreateEntrepriseForm({ onSuccess, onCancel }: CreateFormProps) {
             value={formData.adresse_cp}
             onChange={(e) => updateField("adresse_cp", e.target.value)}
             placeholder="75001"
-            className="h-9 text-[13px] border-border/60"
+            className="h-9 text-sm border-border/60"
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="adresse_ville" className="text-[13px]">
+          <Label htmlFor="adresse_ville" className="text-sm">
             Ville
           </Label>
           <Input
@@ -453,7 +453,7 @@ function CreateEntrepriseForm({ onSuccess, onCancel }: CreateFormProps) {
             value={formData.adresse_ville}
             onChange={(e) => updateField("adresse_ville", e.target.value)}
             placeholder="Paris"
-            className="h-9 text-[13px] border-border/60"
+            className="h-9 text-sm border-border/60"
           />
         </div>
       </div>
@@ -466,7 +466,7 @@ function CreateEntrepriseForm({ onSuccess, onCancel }: CreateFormProps) {
           onChange={(e) => updateField("est_siege", e.target.checked)}
           className="h-4 w-4 rounded border-border/60"
         />
-        <Label htmlFor="est_siege" className="text-[13px] font-normal">
+        <Label htmlFor="est_siege" className="text-sm font-normal">
           Siège social
         </Label>
       </div>

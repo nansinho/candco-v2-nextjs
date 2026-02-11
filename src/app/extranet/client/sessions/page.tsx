@@ -9,7 +9,7 @@ export default async function ClientSessionsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">Sessions</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Sessions</h1>
         <p className="mt-1 text-sm text-muted-foreground">Suivi des sessions commanditees pour votre entreprise</p>
       </div>
       <div className="rounded-lg border border-border/60 bg-card p-12 text-center">
