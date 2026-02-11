@@ -48,6 +48,7 @@ import {
   getEntreprisesForSelect,
   getContactsForSelect,
 } from "@/actions/devis";
+import { getSessionCommanditaires } from "@/actions/sessions";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import {
   FactureStatusBadge,
@@ -140,6 +141,13 @@ export default function FactureDetailPage() {
   const [mentionsLegales, setMentionsLegales] = React.useState("");
   const [lignes, setLignes] = React.useState<LigneItem[]>([]);
 
+  // Commanditaire / type facture (read from factureRaw)
+  const [commanditaireId, setCommanditaireId] = React.useState("");
+  const [commanditaires, setCommanditaires] = React.useState<Array<{ id: string; entreprises: { id: string; nom: string } | null; financeurs: { id: string; nom: string } | null; budget: number }>>([]);
+  const typeFacture = (factureRaw?.type_facture as string) ?? "standard";
+  const pourcentageAcompte = factureRaw?.pourcentage_acompte ? Number(factureRaw.pourcentage_acompte) : null;
+  const sessionId = (factureRaw?.session_id as string) ?? null;
+
   // Payment dialog state
   const [paiementDialogOpen, setPaiementDialogOpen] = React.useState(false);
   const [newPaiementDate, setNewPaiementDate] = React.useState(new Date().toISOString().split("T")[0]);
@@ -203,6 +211,19 @@ export default function FactureDetailPage() {
 
       setEntreprises(entreprisesData);
       setContacts(contactsData);
+      setCommanditaireId((factureData.commanditaire_id as string) || "");
+
+      // Load commanditaires if session linked
+      if (factureData.session_id) {
+        const cmdResult = await getSessionCommanditaires(factureData.session_id);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setCommanditaires((cmdResult.data ?? []).map((c: any) => ({
+          id: c.id,
+          entreprises: c.entreprises,
+          financeurs: c.financeurs,
+          budget: Number(c.budget) || 0,
+        })));
+      }
     } catch (error) {
       console.error("Error loading facture:", error);
       toast({
@@ -233,6 +254,10 @@ export default function FactureDetailPage() {
         conditions_paiement: conditionsPaiement || undefined,
         mentions_legales: mentionsLegales || undefined,
         statut: factureRaw.statut,
+        session_id: sessionId || "",
+        commanditaire_id: commanditaireId || "",
+        type_facture: typeFacture as "standard" | "acompte" | "solde",
+        pourcentage_acompte: pourcentageAcompte ?? undefined,
         lignes,
       };
 
@@ -513,6 +538,36 @@ export default function FactureDetailPage() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Commanditaire + Type facture (when session linked) */}
+                {sessionId && commanditaires.length > 0 && (
+                  <div className="space-y-2">
+                    <Label className="text-xs">Commanditaire</Label>
+                    <select
+                      value={commanditaireId}
+                      onChange={(e) => setCommanditaireId(e.target.value)}
+                      disabled={factureRaw?.statut !== "brouillon"}
+                      className="h-9 w-full rounded-md border border-input bg-muted px-2 text-sm text-foreground disabled:opacity-50"
+                    >
+                      <option value="">-- Aucun --</option>
+                      {commanditaires.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.entreprises?.nom ?? "Commanditaire"}{c.financeurs ? ` + ${c.financeurs.nom}` : ""} — {formatCurrency(c.budget)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {typeFacture !== "standard" && (
+                  <div className="flex items-center gap-2">
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                      typeFacture === "acompte" ? "bg-blue-500/10 text-blue-400 border border-blue-500/30" : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
+                    }`}>
+                      {typeFacture === "acompte" ? `Acompte${pourcentageAcompte ? ` ${pourcentageAcompte}%` : ""}` : "Solde"}
+                    </span>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">

@@ -54,6 +54,7 @@ export async function autoCreateFactureFromDevis(devisId: string, organisationId
       statut: "brouillon",
       devis_id: devisId,
       session_id: devisData.session_id,
+      commanditaire_id: devisData.commanditaire_id || null,
     })
     .select()
     .single();

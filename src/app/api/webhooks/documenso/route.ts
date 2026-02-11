@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
     await admin
       .from("signature_requests")
       .update({
-        documenso_status: newStatus === "signed" ? "completed" : newStatus,
+        documenso_status: newStatus,
         signed_at: newStatus === "signed" ? signedAt : null,
         updated_at: new Date().toISOString(),
       })
@@ -139,6 +139,10 @@ export async function POST(request: NextRequest) {
       };
       if (newStatus === "signed") {
         convUpdates.convention_signee = true;
+        convUpdates.convention_statut = "signee";
+        convUpdates.convention_signed_at = signedAt;
+      } else if (newStatus === "rejected") {
+        convUpdates.convention_statut = "refusee";
       }
       await admin.from("session_commanditaires").update(convUpdates).eq("id", sigReq.entite_id);
 
@@ -202,6 +206,10 @@ export async function POST(request: NextRequest) {
         };
         if (newStatus === "signed") {
           convUpdates.convention_signee = true;
+          convUpdates.convention_statut = "signee";
+          convUpdates.convention_signed_at = signedAt;
+        } else if (newStatus === "rejected") {
+          convUpdates.convention_statut = "refusee";
         }
         await admin.from("session_commanditaires").update(convUpdates).eq("id", entityId);
       }

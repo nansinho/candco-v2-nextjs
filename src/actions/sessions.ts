@@ -574,6 +574,12 @@ const CommanditaireSchema = z.object({
   financeur_id: z.string().uuid().optional().or(z.literal("")),
   budget: z.coerce.number().nonnegative().default(0),
   notes: z.string().optional().or(z.literal("")),
+  // Subrogation
+  subrogation_mode: z.enum(["direct", "subrogation_partielle", "subrogation_totale"]).default("direct"),
+  montant_entreprise: z.coerce.number().nonnegative().default(0),
+  montant_financeur: z.coerce.number().nonnegative().default(0),
+  facturer_entreprise: z.boolean().default(true),
+  facturer_financeur: z.boolean().default(false),
 });
 
 export type CommanditaireInput = z.infer<typeof CommanditaireSchema>;
@@ -596,6 +602,11 @@ export async function addCommanditaire(sessionId: string, input: CommanditaireIn
       financeur_id: parsed.data.financeur_id || null,
       budget: parsed.data.budget,
       notes: parsed.data.notes || null,
+      subrogation_mode: parsed.data.subrogation_mode,
+      montant_entreprise: parsed.data.montant_entreprise,
+      montant_financeur: parsed.data.montant_financeur,
+      facturer_entreprise: parsed.data.facturer_entreprise,
+      facturer_financeur: parsed.data.facturer_financeur,
     })
     .select()
     .single();
@@ -683,6 +694,72 @@ export async function updateCommanditaireWorkflow(commanditaireId: string, sessi
     description: `Workflow commanditaire "${cmdLabel}" changé de "${oldStatut}" à "${statut}" (session "${session?.nom ?? sessionId}")`,
     objetHref: `/sessions/${sessionId}`,
     metadata: { session_id: sessionId, old_statut: oldStatut, new_statut: statut },
+  });
+
+  revalidatePath(`/sessions/${sessionId}`);
+  return { success: true };
+}
+
+const UpdateCommanditaireSchema = z.object({
+  entreprise_id: z.string().uuid().optional().or(z.literal("")),
+  contact_client_id: z.string().uuid().optional().or(z.literal("")),
+  financeur_id: z.string().uuid().optional().or(z.literal("")),
+  budget: z.coerce.number().nonnegative().optional(),
+  notes: z.string().optional().or(z.literal("")),
+  subrogation_mode: z.enum(["direct", "subrogation_partielle", "subrogation_totale"]).optional(),
+  montant_entreprise: z.coerce.number().nonnegative().optional(),
+  montant_financeur: z.coerce.number().nonnegative().optional(),
+  facturer_entreprise: z.boolean().optional(),
+  facturer_financeur: z.boolean().optional(),
+});
+
+export type UpdateCommanditaireInput = z.infer<typeof UpdateCommanditaireSchema>;
+
+export async function updateCommanditaire(commanditaireId: string, sessionId: string, input: UpdateCommanditaireInput) {
+  const parsed = UpdateCommanditaireSchema.safeParse(input);
+  if (!parsed.success) return { error: parsed.error.flatten().fieldErrors };
+
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: { _form: [result.error] } };
+  const { organisationId, userId, role: userRole, supabase, admin } = result;
+  requirePermission(userRole as UserRole, canManageSessions, "gérer les commanditaires");
+
+  const updateData: Record<string, unknown> = {};
+  if (parsed.data.entreprise_id !== undefined) updateData.entreprise_id = parsed.data.entreprise_id || null;
+  if (parsed.data.contact_client_id !== undefined) updateData.contact_client_id = parsed.data.contact_client_id || null;
+  if (parsed.data.financeur_id !== undefined) updateData.financeur_id = parsed.data.financeur_id || null;
+  if (parsed.data.budget !== undefined) updateData.budget = parsed.data.budget;
+  if (parsed.data.notes !== undefined) updateData.notes = parsed.data.notes || null;
+  if (parsed.data.subrogation_mode !== undefined) updateData.subrogation_mode = parsed.data.subrogation_mode;
+  if (parsed.data.montant_entreprise !== undefined) updateData.montant_entreprise = parsed.data.montant_entreprise;
+  if (parsed.data.montant_financeur !== undefined) updateData.montant_financeur = parsed.data.montant_financeur;
+  if (parsed.data.facturer_entreprise !== undefined) updateData.facturer_entreprise = parsed.data.facturer_entreprise;
+  if (parsed.data.facturer_financeur !== undefined) updateData.facturer_financeur = parsed.data.facturer_financeur;
+
+  const { error } = await supabase
+    .from("session_commanditaires")
+    .update(updateData)
+    .eq("id", commanditaireId);
+
+  if (error) return { error: { _form: [error.message] } };
+
+  const { data: session } = await admin
+    .from("sessions")
+    .select("nom, numero_affichage")
+    .eq("id", sessionId)
+    .single();
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole,
+    module: "session",
+    action: "updated",
+    entiteType: "session_commanditaire",
+    entiteId: commanditaireId,
+    description: `Commanditaire mis à jour (session "${session?.nom ?? sessionId}")`,
+    objetHref: `/sessions/${sessionId}`,
+    metadata: { session_id: sessionId, ...updateData },
   });
 
   revalidatePath(`/sessions/${sessionId}`);
@@ -1420,10 +1497,26 @@ export async function getSessionFinancials(sessionId: string) {
     }
   }
 
+  // Get total invoiced and paid amounts for this session
+  const { data: factures } = await supabase
+    .from("factures")
+    .select("total_ttc, montant_paye, statut")
+    .eq("session_id", sessionId)
+    .is("archived_at", null);
+
+  const totalFacture = (factures ?? []).reduce(
+    (sum, f) => sum + (Number(f.total_ttc) || 0), 0
+  );
+  const totalPaye = (factures ?? []).reduce(
+    (sum, f) => sum + (Number(f.montant_paye) || 0), 0
+  );
+
   return {
     budget: totalBudget,
     cout: Math.round(totalCost * 100) / 100,
     rentabilite: Math.round((totalBudget - totalCost) * 100) / 100,
+    totalFacture: Math.round(totalFacture * 100) / 100,
+    totalPaye: Math.round(totalPaye * 100) / 100,
   };
 }
 
