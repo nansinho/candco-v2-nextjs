@@ -1262,20 +1262,43 @@ export async function getOrganisationUsers(ticketOrganisationId?: string): Promi
   // Super-admin viewing a cross-org ticket: use the ticket's org
   const targetOrgId = (isSuperAdmin && ticketOrganisationId) ? ticketOrganisationId : organisationId;
 
+  // Get users from the target organization
   const { data } = await admin
     .from("utilisateurs")
-    .select("id, prenom, nom, role")
+    .select("id, prenom, nom, role, is_super_admin")
     .eq("organisation_id", targetOrgId)
     .eq("actif", true)
     .order("nom");
 
-  return {
-    data: (data || []).map((u: Record<string, unknown>) => ({
-      id: u.id as string,
-      nom: `${u.prenom || ""} ${u.nom || ""}`.trim(),
-      role: u.role as string,
-    })),
-  };
+  const users = (data || []).map((u: Record<string, unknown>) => ({
+    id: u.id as string,
+    nom: `${u.prenom || ""} ${u.nom || ""}`.trim(),
+    role: u.is_super_admin ? "super_admin" : (u.role as string),
+  }));
+
+  const userIds = new Set(users.map((u) => u.id));
+
+  // Also include all active super-admins (they can be assigned to any org's tickets)
+  const { data: superAdmins } = await admin
+    .from("utilisateurs")
+    .select("id, prenom, nom, role")
+    .eq("is_super_admin", true)
+    .eq("actif", true)
+    .order("nom");
+
+  if (superAdmins) {
+    for (const sa of superAdmins) {
+      if (!userIds.has(sa.id as string)) {
+        users.push({
+          id: sa.id as string,
+          nom: `${sa.prenom || ""} ${sa.nom || ""}`.trim(),
+          role: "super_admin",
+        });
+      }
+    }
+  }
+
+  return { data: users };
 }
 
 // ─── Helper: get enterprises for filtering ───────────────
