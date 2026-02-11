@@ -26,6 +26,11 @@ import {
   Download,
   ClipboardList,
   Link2,
+  CalendarClock,
+  Send,
+  ChevronDown,
+  ChevronRight,
+  Pencil,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -73,6 +78,9 @@ import { createApprenant } from "@/actions/apprenants";
 import {
   addSessionEvaluation,
   removeSessionEvaluation,
+  updateSessionPlanification,
+  toggleSessionPlanification,
+  type PlanificationConfig,
 } from "@/actions/questionnaires";
 
 // ─── Types ───────────────────────────────────────────────
@@ -205,6 +213,26 @@ interface QuestionnaireOption {
   public_cible: string | null;
 }
 
+interface SessionPlanification {
+  id: string;
+  session_id: string;
+  session_evaluation_id: string;
+  questionnaire_id: string;
+  envoi_auto: boolean;
+  declencheur: string;
+  delai_jours: number;
+  heure_envoi: string;
+  jours_ouvres_uniquement: boolean;
+  repli_weekend: string;
+  date_envoi_calculee: string | null;
+  statut: string;
+  herite_du_produit: boolean;
+  personnalise: boolean;
+  envoye_le: string | null;
+  erreur_message: string | null;
+  questionnaires: { id: string; nom: string; type: string; statut: string; public_cible: string | null } | null;
+}
+
 interface SalleOption {
   id: string;
   nom: string;
@@ -270,6 +298,7 @@ export function SessionDetail({
   documents,
   evaluations,
   allQuestionnaires,
+  planifications,
   salles,
   allFormateurs,
   allEntreprises,
@@ -287,6 +316,7 @@ export function SessionDetail({
   documents: SessionDocument[];
   evaluations: SessionEvaluation[];
   allQuestionnaires: QuestionnaireOption[];
+  planifications: SessionPlanification[];
   salles: SalleOption[];
   allFormateurs: FormateurOption[];
   allEntreprises: EntrepriseOption[];
@@ -1076,7 +1106,7 @@ export function SessionDetail({
 
         {/* ═══ Évaluations Tab ═══ */}
         <TabsContent value="evaluations" className="mt-6">
-          <EvaluationsTab sessionId={session.id} evaluations={evaluations} allQuestionnaires={allQuestionnaires} />
+          <EvaluationsTab sessionId={session.id} evaluations={evaluations} allQuestionnaires={allQuestionnaires} planifications={planifications} sessionDateDebut={session.date_debut} sessionDateFin={session.date_fin} />
         </TabsContent>
 
         {/* ═══ Financier Tab ═══ */}
@@ -2068,14 +2098,42 @@ const EVAL_TYPE_COLORS: Record<string, string> = {
   standalone: "bg-gray-500/10 text-gray-400 border-gray-500/20",
 };
 
+const DECLENCHEUR_LABELS: Record<string, string> = {
+  avant_debut: "Avant le début",
+  apres_debut: "Après le début",
+  apres_fin: "Après la fin",
+};
+
+const PLANIF_STATUT_LABELS: Record<string, string> = {
+  a_programmer: "À programmer",
+  programme: "Programmé",
+  envoye: "Envoyé",
+  annule: "Désactivé",
+  erreur: "Erreur",
+};
+
+const PLANIF_STATUT_COLORS: Record<string, string> = {
+  a_programmer: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+  programme: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+  envoye: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+  annule: "bg-gray-500/10 text-gray-400 border-gray-500/20",
+  erreur: "bg-red-500/10 text-red-400 border-red-500/20",
+};
+
 function EvaluationsTab({
   sessionId,
   evaluations,
   allQuestionnaires,
+  planifications,
+  sessionDateDebut,
+  sessionDateFin,
 }: {
   sessionId: string;
   evaluations: SessionEvaluation[];
   allQuestionnaires: QuestionnaireOption[];
+  planifications: SessionPlanification[];
+  sessionDateDebut: string | null;
+  sessionDateFin: string | null;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -2086,6 +2144,11 @@ function EvaluationsTab({
 
   const available = allQuestionnaires.filter(
     (q) => !evaluations.some((ev) => ev.questionnaire_id === q.id),
+  );
+
+  // Build planification map by session_evaluation_id
+  const planifByEvalId = new Map(
+    planifications.map((p) => [p.session_evaluation_id, p]),
   );
 
   const handleAdd = async () => {
@@ -2176,51 +2239,319 @@ function EvaluationsTab({
           </p>
         </div>
       ) : (
-        <div className="space-y-2">
-          {evaluations.map((ev) => (
-            <div key={ev.id} className="flex items-center justify-between rounded-lg border border-border/60 bg-card p-4">
-              <div className="flex items-center gap-3">
-                <ClipboardList className="h-4 w-4 text-muted-foreground/50" />
-                <div>
-                  <p className="text-[13px] font-medium">
-                    {ev.questionnaires?.nom ?? "Questionnaire supprimé"}
-                  </p>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <Badge variant="outline" className={`text-[10px] ${EVAL_TYPE_COLORS[ev.type ?? ""] ?? ""}`}>
-                      {EVAL_TYPE_LABELS[ev.type ?? ""] ?? ev.type}
-                    </Badge>
-                    {ev.questionnaires?.statut && (
-                      <span className="text-[10px] text-muted-foreground">
-                        {ev.questionnaires.statut === "actif" ? "Actif" : ev.questionnaires.statut === "brouillon" ? "Brouillon" : "Archivé"}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-1">
-                {ev.questionnaire_id && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={() => router.push(`/questionnaires/${ev.questionnaire_id}`)}
-                    title="Voir le questionnaire"
-                  >
-                    <Link2 className="h-3.5 w-3.5" />
-                  </Button>
-                )}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 text-muted-foreground/50 hover:text-destructive"
-                  onClick={() => handleRemove(ev.id)}
-                  title="Retirer"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              </div>
+        <div className="space-y-3">
+          {evaluations.map((ev) => {
+            const planif = planifByEvalId.get(ev.id);
+            return (
+              <SessionEvaluationCard
+                key={ev.id}
+                evaluation={ev}
+                planification={planif ?? null}
+                sessionId={sessionId}
+                sessionDateDebut={sessionDateDebut}
+                sessionDateFin={sessionDateFin}
+                onRemove={() => handleRemove(ev.id)}
+              />
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SessionEvaluationCard({
+  evaluation: ev,
+  planification,
+  sessionId,
+  sessionDateDebut,
+  sessionDateFin,
+  onRemove,
+}: {
+  evaluation: SessionEvaluation;
+  planification: SessionPlanification | null;
+  sessionId: string;
+  sessionDateDebut: string | null;
+  sessionDateFin: string | null;
+  onRemove: () => void;
+}) {
+  const router = useRouter();
+  const { toast } = useToast();
+  const [expanded, setExpanded] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
+  const [toggling, setToggling] = React.useState(false);
+
+  const [config, setConfig] = React.useState<PlanificationConfig>({
+    envoi_auto: planification?.envoi_auto ?? false,
+    declencheur: (planification?.declencheur as PlanificationConfig["declencheur"]) ?? "apres_fin",
+    delai_jours: planification?.delai_jours ?? 0,
+    heure_envoi: planification?.heure_envoi ?? "09:00",
+    jours_ouvres_uniquement: planification?.jours_ouvres_uniquement ?? false,
+    repli_weekend: (planification?.repli_weekend as PlanificationConfig["repli_weekend"]) ?? "lundi_suivant",
+  });
+
+  const handleSave = async () => {
+    if (!planification) return;
+    setSaving(true);
+    const result = await updateSessionPlanification(planification.id, sessionId, config);
+    setSaving(false);
+    if (result.error) {
+      toast({ title: "Erreur", description: String(result.error), variant: "destructive" });
+      return;
+    }
+    toast({ title: "Planification mise à jour", variant: "success" });
+    setExpanded(false);
+    router.refresh();
+  };
+
+  const handleToggle = async () => {
+    if (!planification) return;
+    setToggling(true);
+    const result = await toggleSessionPlanification(
+      planification.id,
+      sessionId,
+      !planification.envoi_auto,
+    );
+    setToggling(false);
+    if (result.error) {
+      toast({ title: "Erreur", description: String(result.error), variant: "destructive" });
+      return;
+    }
+    toast({
+      title: planification.envoi_auto ? "Envoi désactivé" : "Envoi activé",
+      variant: "success",
+    });
+    router.refresh();
+  };
+
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return null;
+    return new Date(dateStr).toLocaleDateString("fr-FR", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  return (
+    <div className="rounded-lg border border-border/60 bg-card overflow-hidden">
+      {/* Header row */}
+      <div className="flex items-center justify-between p-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <ClipboardList className="h-4 w-4 text-muted-foreground/50 shrink-0" />
+          <div className="min-w-0">
+            <p className="text-[13px] font-medium truncate">
+              {ev.questionnaires?.nom ?? "Questionnaire supprimé"}
+            </p>
+            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+              <Badge variant="outline" className={`text-[10px] ${EVAL_TYPE_COLORS[ev.type ?? ""] ?? ""}`}>
+                {EVAL_TYPE_LABELS[ev.type ?? ""] ?? ev.type}
+              </Badge>
+              {ev.questionnaires?.statut && (
+                <span className="text-[10px] text-muted-foreground">
+                  {ev.questionnaires.statut === "actif" ? "Actif" : ev.questionnaires.statut === "brouillon" ? "Brouillon" : "Archivé"}
+                </span>
+              )}
+              {planification && (
+                <Badge variant="outline" className={`text-[10px] ${PLANIF_STATUT_COLORS[planification.statut] ?? ""}`}>
+                  {PLANIF_STATUT_LABELS[planification.statut] ?? planification.statut}
+                </Badge>
+              )}
+              {planification?.herite_du_produit && !planification.personnalise && (
+                <span className="text-[9px] text-muted-foreground/50">Hérité du programme</span>
+              )}
             </div>
-          ))}
+          </div>
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          {planification && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={handleToggle}
+              disabled={toggling}
+              title={planification.envoi_auto ? "Désactiver l'envoi auto" : "Activer l'envoi auto"}
+            >
+              {toggling ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : planification.envoi_auto ? (
+                <ToggleRight className="h-3.5 w-3.5 text-primary" />
+              ) : (
+                <ToggleLeft className="h-3.5 w-3.5 text-muted-foreground/50" />
+              )}
+            </Button>
+          )}
+          {planification && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs gap-1"
+              onClick={() => setExpanded(!expanded)}
+            >
+              <Pencil className="h-3 w-3" />
+              {expanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+            </Button>
+          )}
+          {ev.questionnaire_id && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => router.push(`/questionnaires/${ev.questionnaire_id}`)}
+              title="Voir le questionnaire"
+            >
+              <Link2 className="h-3.5 w-3.5" />
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground/50 hover:text-destructive"
+            onClick={onRemove}
+            title="Retirer"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Scheduling summary */}
+      {planification && !expanded && planification.envoi_auto && (
+        <div className="px-4 pb-3 -mt-1">
+          <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+            <CalendarClock className="h-3 w-3 text-primary/60" />
+            {planification.date_envoi_calculee ? (
+              <>
+                Envoi prévu : <strong>{formatDate(planification.date_envoi_calculee)}</strong>
+              </>
+            ) : (
+              <>
+                {DECLENCHEUR_LABELS[planification.declencheur] ?? planification.declencheur}
+                {planification.delai_jours > 0
+                  ? ` (J${planification.declencheur === "avant_debut" ? "-" : "+"}${planification.delai_jours})`
+                  : " (Jour J)"
+                } à {planification.heure_envoi}
+                {!sessionDateDebut && !sessionDateFin && (
+                  <span className="ml-1 text-yellow-400">(dates session requises)</span>
+                )}
+              </>
+            )}
+          </p>
+        </div>
+      )}
+
+      {/* Expanded editing form */}
+      {expanded && planification && (
+        <div className="border-t border-border/60 bg-muted/20 p-4 space-y-4">
+          <h4 className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wide">
+            Modifier la planification d&apos;envoi
+          </h4>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-[11px] text-muted-foreground">Déclencheur</Label>
+              <select
+                value={config.declencheur}
+                onChange={(e) =>
+                  setConfig((c) => ({
+                    ...c,
+                    declencheur: e.target.value as PlanificationConfig["declencheur"],
+                  }))
+                }
+                className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-[13px] text-foreground"
+              >
+                <option value="avant_debut">Avant le début de session</option>
+                <option value="apres_debut">Après le début de session</option>
+                <option value="apres_fin">Après la fin de session</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[11px] text-muted-foreground">Délai (jours)</Label>
+              <Input
+                type="number"
+                min={0}
+                value={config.delai_jours}
+                onChange={(e) =>
+                  setConfig((c) => ({ ...c, delai_jours: parseInt(e.target.value) || 0 }))
+                }
+                className="h-9 text-[13px] border-border/60"
+                placeholder="0 = jour J"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[11px] text-muted-foreground">Heure d&apos;envoi</Label>
+              <Input
+                type="time"
+                value={config.heure_envoi}
+                onChange={(e) =>
+                  setConfig((c) => ({ ...c, heure_envoi: e.target.value }))
+                }
+                className="h-9 text-[13px] border-border/60"
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-x-6 gap-y-2">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={config.jours_ouvres_uniquement}
+                onChange={(e) =>
+                  setConfig((c) => ({
+                    ...c,
+                    jours_ouvres_uniquement: e.target.checked,
+                  }))
+                }
+                className="rounded border-border/60"
+              />
+              <span className="text-[12px] text-muted-foreground">Jours ouvrés uniquement</span>
+            </label>
+
+            {config.jours_ouvres_uniquement && (
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-muted-foreground">Si week-end :</span>
+                <select
+                  value={config.repli_weekend}
+                  onChange={(e) =>
+                    setConfig((c) => ({
+                      ...c,
+                      repli_weekend: e.target.value as PlanificationConfig["repli_weekend"],
+                    }))
+                  }
+                  className="h-7 rounded-md border border-input bg-muted px-2 py-0.5 text-[11px] text-foreground"
+                >
+                  <option value="lundi_suivant">Lundi suivant</option>
+                  <option value="vendredi_precedent">Vendredi précédent</option>
+                </select>
+              </div>
+            )}
+
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={config.envoi_auto}
+                onChange={(e) =>
+                  setConfig((c) => ({ ...c, envoi_auto: e.target.checked }))
+                }
+                className="rounded border-border/60"
+              />
+              <span className="text-[12px] text-muted-foreground">Envoi automatique activé</span>
+            </label>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-1">
+            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setExpanded(false)}>
+              Annuler
+            </Button>
+            <Button size="sm" className="h-7 text-xs" disabled={saving} onClick={handleSave}>
+              {saving ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Save className="mr-1 h-3 w-3" />}
+              Enregistrer
+            </Button>
+          </div>
         </div>
       )}
     </div>

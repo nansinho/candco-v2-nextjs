@@ -1,5 +1,5 @@
 import { getProduit, getBpfSpecialites, getProduitQuestionnaires } from "@/actions/produits";
-import { getAllQuestionnaires } from "@/actions/questionnaires";
+import { getAllQuestionnaires, getProductPlanifications } from "@/actions/questionnaires";
 import { notFound } from "next/navigation";
 import { ProduitDetail } from "./produit-detail";
 
@@ -20,6 +20,10 @@ export default async function ProduitDetailPage({ params }: PageProps) {
     notFound();
   }
 
+  // Fetch planifications for the linked questionnaires
+  const qIds = (produitQuestionnairesResult.data ?? []).map((pq) => pq.questionnaire_id);
+  const planificationsResult = await getProductPlanifications(qIds);
+
   return (
     <ProduitDetail
       produit={result.data}
@@ -35,6 +39,7 @@ export default async function ProduitDetailPage({ params }: PageProps) {
       bpfSpecialites={bpfResult.data}
       produitQuestionnaires={produitQuestionnairesResult.data}
       allQuestionnaires={allQuestionnairesResult.data}
+      planifications={planificationsResult.data}
     />
   );
 }

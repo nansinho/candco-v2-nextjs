@@ -1030,3 +1030,511 @@ export async function generateQuestionnaireFromPrompt(
     };
   }
 }
+
+// ─── Product Questionnaire Planifications ────────────────
+
+const PlanificationConfigSchema = z.object({
+  envoi_auto: z.boolean().default(false),
+  declencheur: z.enum(["avant_debut", "apres_debut", "apres_fin"]).default("apres_fin"),
+  delai_jours: z.coerce.number().int().min(0).default(0),
+  heure_envoi: z.string().regex(/^\d{2}:\d{2}$/, "Format HH:MM requis").default("09:00"),
+  jours_ouvres_uniquement: z.boolean().default(false),
+  repli_weekend: z.enum(["vendredi_precedent", "lundi_suivant"]).default("lundi_suivant"),
+});
+
+export type PlanificationConfig = z.infer<typeof PlanificationConfigSchema>;
+
+export async function getProductPlanification(questionnaireId: string) {
+  const result = await getOrganisationId();
+  if ("error" in result) return { data: null };
+  const { admin } = result;
+
+  const { data } = await admin
+    .from("produit_questionnaire_planifications")
+    .select("*")
+    .eq("questionnaire_id", questionnaireId)
+    .maybeSingle();
+
+  return { data };
+}
+
+export async function getProductPlanifications(questionnaireIds: string[]) {
+  if (questionnaireIds.length === 0) return { data: [] };
+  const result = await getOrganisationId();
+  if ("error" in result) return { data: [] };
+  const { admin } = result;
+
+  const { data } = await admin
+    .from("produit_questionnaire_planifications")
+    .select("*")
+    .in("questionnaire_id", questionnaireIds);
+
+  return { data: data ?? [] };
+}
+
+export async function upsertProductPlanification(
+  questionnaireId: string,
+  input: PlanificationConfig,
+) {
+  const parsed = PlanificationConfigSchema.safeParse(input);
+  if (!parsed.success) {
+    return { error: parsed.error.flatten().fieldErrors };
+  }
+
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role, admin } = result;
+
+  requirePermission(role as UserRole, canEdit, "configurer l'envoi automatique");
+
+  // Get questionnaire to verify ownership & get produit_id for logging
+  const { data: questionnaire } = await admin
+    .from("questionnaires")
+    .select("id, nom, produit_id")
+    .eq("id", questionnaireId)
+    .eq("organisation_id", organisationId)
+    .single();
+
+  if (!questionnaire) {
+    return { error: "Questionnaire non trouvé" };
+  }
+
+  const { data, error } = await admin
+    .from("produit_questionnaire_planifications")
+    .upsert(
+      {
+        organisation_id: organisationId,
+        questionnaire_id: questionnaireId,
+        envoi_auto: parsed.data.envoi_auto,
+        declencheur: parsed.data.declencheur,
+        delai_jours: parsed.data.delai_jours,
+        heure_envoi: parsed.data.heure_envoi,
+        jours_ouvres_uniquement: parsed.data.jours_ouvres_uniquement,
+        repli_weekend: parsed.data.repli_weekend,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "questionnaire_id" },
+    )
+    .select()
+    .single();
+
+  if (error) return { error: error.message };
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "questionnaire",
+    action: "updated",
+    entiteType: "questionnaire",
+    entiteId: questionnaireId,
+    entiteLabel: questionnaire.nom,
+    description: parsed.data.envoi_auto
+      ? `Envoi auto configuré : ${parsed.data.declencheur}, ${parsed.data.delai_jours}j, ${parsed.data.heure_envoi}`
+      : "Envoi auto désactivé",
+    objetHref: `/questionnaires/${questionnaireId}`,
+  });
+
+  if (questionnaire.produit_id) {
+    revalidatePath(`/produits/${questionnaire.produit_id}`);
+  }
+  revalidatePath(`/questionnaires/${questionnaireId}`);
+  return { data };
+}
+
+// ─── Session Questionnaire Planifications ────────────────
+
+export async function getSessionPlanifications(sessionId: string) {
+  const result = await getOrganisationId();
+  if ("error" in result) return { data: [] };
+  const { admin } = result;
+
+  const { data } = await admin
+    .from("session_questionnaire_planifications")
+    .select(`*, questionnaires(id, nom, type, statut, public_cible)`)
+    .eq("session_id", sessionId)
+    .order("created_at", { ascending: true });
+
+  return {
+    data: (data ?? []).map((p) => {
+      const qRaw = p.questionnaires;
+      return {
+        ...p,
+        questionnaires: Array.isArray(qRaw) ? qRaw[0] ?? null : qRaw,
+      };
+    }),
+  };
+}
+
+export async function updateSessionPlanification(
+  planificationId: string,
+  sessionId: string,
+  input: PlanificationConfig,
+) {
+  const parsed = PlanificationConfigSchema.safeParse(input);
+  if (!parsed.success) {
+    return { error: parsed.error.flatten().fieldErrors };
+  }
+
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role, admin } = result;
+
+  requirePermission(role as UserRole, canEdit, "modifier la planification d'envoi");
+
+  // Get session dates for recalculation
+  const { data: session } = await admin
+    .from("sessions")
+    .select("date_debut, date_fin")
+    .eq("id", sessionId)
+    .single();
+
+  // Calculate the send date
+  const dateEnvoi = calculateSendDate(
+    parsed.data.declencheur,
+    parsed.data.delai_jours,
+    parsed.data.heure_envoi,
+    parsed.data.jours_ouvres_uniquement,
+    parsed.data.repli_weekend,
+    session?.date_debut ?? null,
+    session?.date_fin ?? null,
+  );
+
+  const newStatut = !parsed.data.envoi_auto
+    ? "annule"
+    : dateEnvoi
+      ? "programme"
+      : "a_programmer";
+
+  const { data, error } = await admin
+    .from("session_questionnaire_planifications")
+    .update({
+      envoi_auto: parsed.data.envoi_auto,
+      declencheur: parsed.data.declencheur,
+      delai_jours: parsed.data.delai_jours,
+      heure_envoi: parsed.data.heure_envoi,
+      jours_ouvres_uniquement: parsed.data.jours_ouvres_uniquement,
+      repli_weekend: parsed.data.repli_weekend,
+      date_envoi_calculee: dateEnvoi,
+      statut: newStatut,
+      personnalise: true,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", planificationId)
+    .eq("organisation_id", organisationId)
+    .select()
+    .single();
+
+  if (error) return { error: error.message };
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "session",
+    action: "updated",
+    entiteType: "session",
+    entiteId: sessionId,
+    entiteLabel: `Planification questionnaire`,
+    description: `Planification d'envoi modifiée${!parsed.data.envoi_auto ? " (désactivée)" : ""}`,
+    objetHref: `/sessions/${sessionId}`,
+  });
+
+  revalidatePath(`/sessions/${sessionId}`);
+  return { data };
+}
+
+export async function toggleSessionPlanification(
+  planificationId: string,
+  sessionId: string,
+  active: boolean,
+) {
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role, admin } = result;
+
+  requirePermission(role as UserRole, canEdit, "modifier la planification d'envoi");
+
+  // Get current planification to recalculate if activating
+  const { data: planif } = await admin
+    .from("session_questionnaire_planifications")
+    .select("*, sessions(date_debut, date_fin)")
+    .eq("id", planificationId)
+    .single();
+
+  if (!planif) return { error: "Planification non trouvée" };
+
+  let dateEnvoi = planif.date_envoi_calculee;
+  let statut = active ? "programme" : "annule";
+
+  if (active) {
+    const sess = Array.isArray(planif.sessions)
+      ? planif.sessions[0]
+      : planif.sessions;
+    dateEnvoi = calculateSendDate(
+      planif.declencheur,
+      planif.delai_jours,
+      planif.heure_envoi,
+      planif.jours_ouvres_uniquement,
+      planif.repli_weekend,
+      sess?.date_debut ?? null,
+      sess?.date_fin ?? null,
+    );
+    statut = dateEnvoi ? "programme" : "a_programmer";
+  }
+
+  const { error } = await admin
+    .from("session_questionnaire_planifications")
+    .update({
+      envoi_auto: active,
+      statut,
+      date_envoi_calculee: active ? dateEnvoi : planif.date_envoi_calculee,
+      personnalise: true,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", planificationId)
+    .eq("organisation_id", organisationId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/sessions/${sessionId}`);
+  return { success: true };
+}
+
+// ─── Inherit product planifications to session ───────────
+
+export async function inheritProductPlanifications(
+  sessionId: string,
+  produitId: string,
+) {
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, admin } = result;
+
+  // 1. Get all questionnaires linked to this product
+  const { data: questionnaires } = await admin
+    .from("questionnaires")
+    .select("id, nom, type")
+    .eq("produit_id", produitId)
+    .eq("organisation_id", organisationId);
+
+  if (!questionnaires || questionnaires.length === 0) return { data: [] };
+
+  // 2. Get their planification rules
+  const qIds = questionnaires.map((q) => q.id);
+  const { data: planifRules } = await admin
+    .from("produit_questionnaire_planifications")
+    .select("*")
+    .in("questionnaire_id", qIds);
+
+  // 3. Get session dates
+  const { data: session } = await admin
+    .from("sessions")
+    .select("date_debut, date_fin")
+    .eq("id", sessionId)
+    .single();
+
+  // 4. Get existing session evaluations to avoid duplicates
+  const { data: existingEvals } = await admin
+    .from("session_evaluations")
+    .select("id, questionnaire_id")
+    .eq("session_id", sessionId);
+
+  const existingQIds = new Set((existingEvals ?? []).map((e) => e.questionnaire_id));
+
+  // 5. Create session_evaluations for missing questionnaires
+  const newEvals: { session_id: string; questionnaire_id: string; type: string }[] = [];
+  for (const q of questionnaires) {
+    if (!existingQIds.has(q.id)) {
+      newEvals.push({
+        session_id: sessionId,
+        questionnaire_id: q.id,
+        type: q.type,
+      });
+    }
+  }
+
+  let createdEvals: { id: string; questionnaire_id: string }[] = [];
+  if (newEvals.length > 0) {
+    const { data: inserted } = await admin
+      .from("session_evaluations")
+      .insert(newEvals)
+      .select("id, questionnaire_id");
+    createdEvals = inserted ?? [];
+  }
+
+  // Merge existing + new evaluations
+  const allEvals = [
+    ...(existingEvals ?? []).map((e) => ({ id: e.id, questionnaire_id: e.questionnaire_id })),
+    ...createdEvals,
+  ];
+
+  // 6. Get existing session planifications to avoid duplicates
+  const { data: existingPlanifs } = await admin
+    .from("session_questionnaire_planifications")
+    .select("session_evaluation_id")
+    .eq("session_id", sessionId);
+
+  const existingEvalIds = new Set(
+    (existingPlanifs ?? []).map((p) => p.session_evaluation_id),
+  );
+
+  // 7. Create planifications for evaluations that have product-level rules
+  const rulesMap = new Map(
+    (planifRules ?? []).map((r) => [r.questionnaire_id, r]),
+  );
+
+  const newPlanifs = [];
+  for (const ev of allEvals) {
+    if (existingEvalIds.has(ev.id)) continue;
+    const rule = rulesMap.get(ev.questionnaire_id);
+    if (!rule) continue;
+
+    const dateEnvoi = calculateSendDate(
+      rule.declencheur,
+      rule.delai_jours,
+      rule.heure_envoi,
+      rule.jours_ouvres_uniquement,
+      rule.repli_weekend,
+      session?.date_debut ?? null,
+      session?.date_fin ?? null,
+    );
+
+    newPlanifs.push({
+      organisation_id: organisationId,
+      session_id: sessionId,
+      session_evaluation_id: ev.id,
+      questionnaire_id: ev.questionnaire_id,
+      envoi_auto: rule.envoi_auto,
+      declencheur: rule.declencheur,
+      delai_jours: rule.delai_jours,
+      heure_envoi: rule.heure_envoi,
+      jours_ouvres_uniquement: rule.jours_ouvres_uniquement,
+      repli_weekend: rule.repli_weekend,
+      date_envoi_calculee: dateEnvoi,
+      statut: !rule.envoi_auto ? "annule" : dateEnvoi ? "programme" : "a_programmer",
+      herite_du_produit: true,
+      personnalise: false,
+    });
+  }
+
+  if (newPlanifs.length > 0) {
+    await admin
+      .from("session_questionnaire_planifications")
+      .insert(newPlanifs);
+  }
+
+  revalidatePath(`/sessions/${sessionId}`);
+  return { data: { evaluationsCreated: createdEvals.length, planificationsCreated: newPlanifs.length } };
+}
+
+// ─── Recalculate session planifications when dates change ─
+
+export async function recalculateSessionPlanifications(
+  sessionId: string,
+  dateDebut: string | null,
+  dateFin: string | null,
+) {
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, admin } = result;
+
+  // Get all non-customized, active planifications for this session
+  const { data: planifs } = await admin
+    .from("session_questionnaire_planifications")
+    .select("*")
+    .eq("session_id", sessionId)
+    .eq("organisation_id", organisationId)
+    .eq("personnalise", false)
+    .in("statut", ["a_programmer", "programme"]);
+
+  if (!planifs || planifs.length === 0) return { data: { updated: 0 } };
+
+  let updated = 0;
+  for (const p of planifs) {
+    const dateEnvoi = calculateSendDate(
+      p.declencheur,
+      p.delai_jours,
+      p.heure_envoi,
+      p.jours_ouvres_uniquement,
+      p.repli_weekend,
+      dateDebut,
+      dateFin,
+    );
+
+    const newStatut = p.envoi_auto
+      ? dateEnvoi
+        ? "programme"
+        : "a_programmer"
+      : "annule";
+
+    await admin
+      .from("session_questionnaire_planifications")
+      .update({
+        date_envoi_calculee: dateEnvoi,
+        statut: newStatut,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", p.id);
+
+    updated++;
+  }
+
+  revalidatePath(`/sessions/${sessionId}`);
+  return { data: { updated } };
+}
+
+// ─── Date calculation helper (TypeScript) ────────────────
+
+function calculateSendDate(
+  declencheur: string,
+  delaiJours: number,
+  heureEnvoi: string,
+  joursOuvres: boolean,
+  repliWeekend: string,
+  dateDebut: string | null,
+  dateFin: string | null,
+): string | null {
+  let baseDate: Date | null = null;
+
+  switch (declencheur) {
+    case "avant_debut":
+      if (!dateDebut) return null;
+      baseDate = new Date(dateDebut);
+      baseDate.setDate(baseDate.getDate() - delaiJours);
+      break;
+    case "apres_debut":
+      if (!dateDebut) return null;
+      baseDate = new Date(dateDebut);
+      baseDate.setDate(baseDate.getDate() + delaiJours);
+      break;
+    case "apres_fin":
+      if (!dateFin) return null;
+      baseDate = new Date(dateFin);
+      baseDate.setDate(baseDate.getDate() + delaiJours);
+      break;
+    default:
+      return null;
+  }
+
+  // Handle weekends
+  if (joursOuvres) {
+    const dow = baseDate.getDay(); // 0=Sun, 6=Sat
+    if (dow === 0) {
+      // Sunday
+      baseDate.setDate(
+        baseDate.getDate() + (repliWeekend === "vendredi_precedent" ? -2 : 1),
+      );
+    } else if (dow === 6) {
+      // Saturday
+      baseDate.setDate(
+        baseDate.getDate() + (repliWeekend === "vendredi_precedent" ? -1 : 2),
+      );
+    }
+  }
+
+  // Combine date + time
+  const [h, m] = heureEnvoi.split(":").map(Number);
+  baseDate.setHours(h, m, 0, 0);
+  return baseDate.toISOString();
+}
