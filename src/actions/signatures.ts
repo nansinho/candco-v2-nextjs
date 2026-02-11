@@ -13,11 +13,18 @@ import {
 } from "@/lib/documenso";
 import {
   generateDevisPdf,
+  generateContratSousTraitance,
   type PDFGeneratorOptions,
   type DevisData,
+  type ContratSousTraitanceData,
 } from "@/lib/pdf-generator";
+import { generateSessionConvention } from "@/actions/documents";
 import { sendEmail } from "@/lib/emails/send-email";
-import { devisSignatureRequestTemplate } from "@/lib/emails/templates";
+import {
+  devisSignatureRequestTemplate,
+  conventionSignatureRequestTemplate,
+  contratSignatureRequestTemplate,
+} from "@/lib/emails/templates";
 
 // ─── Helpers ────────────────────────────────────────────
 
@@ -476,4 +483,480 @@ export async function getDevisForClient(contactClientId: string, organisationId:
   const { data, error } = await query;
   if (error) return { data: [], error: error.message };
   return { data: data ?? [] };
+}
+
+// ─── Send convention for e-signature via Documenso ──────
+
+export async function sendConventionForSignature(sessionId: string, commanditaireId: string) {
+  if (!isDocumensoConfigured()) {
+    return { error: "Documenso n'est pas configure. Verifiez DOCUMENSO_API_URL et DOCUMENSO_API_KEY." };
+  }
+
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role, admin } = result;
+
+  requirePermission(role as UserRole, canManageFinances, "envoyer une convention en signature");
+
+  // Fetch commanditaire with relations
+  const { data: commanditaire, error: cmdError } = await admin
+    .from("session_commanditaires")
+    .select(`
+      *,
+      entreprises(id, nom, email, siret, adresse_rue, adresse_cp, adresse_ville),
+      contacts_clients(id, prenom, nom, email),
+      financeurs(id, nom)
+    `)
+    .eq("id", commanditaireId)
+    .eq("session_id", sessionId)
+    .single();
+
+  if (cmdError || !commanditaire) return { error: cmdError?.message || "Commanditaire introuvable" };
+
+  if (commanditaire.documenso_status === "pending") {
+    return { error: "Cette convention a deja ete envoyee en signature. Verifiez le statut." };
+  }
+
+  // Fetch session
+  const { data: session } = await admin
+    .from("sessions")
+    .select("id, nom, numero_affichage")
+    .eq("id", sessionId)
+    .single();
+
+  if (!session) return { error: "Session introuvable" };
+
+  // Determine signer
+  const contact = commanditaire.contacts_clients as { id: string; prenom: string; nom: string; email: string } | null;
+  const entreprise = commanditaire.entreprises as { id: string; nom: string; email: string; siret: string; adresse_rue: string; adresse_cp: string; adresse_ville: string } | null;
+
+  const signerEmail = contact?.email || entreprise?.email;
+  const signerName = contact ? `${contact.prenom} ${contact.nom}` : entreprise?.nom || "Client";
+
+  if (!signerEmail) {
+    return { error: "Aucune adresse email trouvee pour le signataire. Renseignez l'email du contact ou de l'entreprise." };
+  }
+
+  // Generate convention PDF (reuses existing function)
+  const convResult = await generateSessionConvention(sessionId, commanditaireId);
+  if ("error" in convResult && convResult.error) return { error: convResult.error as string };
+  const pdfUrl = (convResult as { url: string }).url;
+
+  if (!pdfUrl) return { error: "Impossible de generer le PDF de la convention" };
+
+  // Send to Documenso
+  const recipients: DocumensoRecipient[] = [
+    { name: signerName, email: signerEmail, role: "SIGNER" },
+  ];
+
+  try {
+    const { envelopeId, envelope } = await sendDocumentForSigning({
+      title: `Convention ${session.numero_affichage} — ${entreprise?.nom || signerName}`,
+      pdfUrl,
+      recipients,
+      externalId: `convention_${commanditaireId}`,
+    });
+
+    const signingUrl = envelope.recipients?.[0]?.signingUrl || undefined;
+
+    // Update session_commanditaires
+    const workflowUpdate: Record<string, unknown> = {
+      documenso_envelope_id: envelopeId,
+      documenso_status: "pending",
+      signature_sent_at: new Date().toISOString(),
+    };
+    // Auto-advance workflow if currently at 'convention'
+    if (commanditaire.statut_workflow === "convention" || commanditaire.statut_workflow === "analyse") {
+      workflowUpdate.statut_workflow = "signature";
+    }
+
+    await admin
+      .from("session_commanditaires")
+      .update(workflowUpdate)
+      .eq("id", commanditaireId);
+
+    // Create signature_request record
+    await admin.from("signature_requests").insert({
+      organisation_id: organisationId,
+      entite_type: "convention",
+      entite_id: commanditaireId,
+      documenso_envelope_id: envelopeId,
+      documenso_status: "pending",
+      signer_email: signerEmail,
+      signer_name: signerName,
+      signing_url: signingUrl || null,
+      source_pdf_url: pdfUrl,
+    });
+
+    // Send notification email
+    const { data: org } = await admin
+      .from("organisations")
+      .select("nom")
+      .eq("id", organisationId)
+      .single();
+
+    await sendEmail({
+      organisationId,
+      to: signerEmail,
+      toName: signerName,
+      subject: `Convention de formation — Signature requise — ${session.nom}`,
+      html: conventionSignatureRequestTemplate({
+        contactNom: signerName,
+        sessionNom: session.nom,
+        entrepriseNom: entreprise?.nom || signerName,
+        orgName: org?.nom || undefined,
+      }),
+      entiteType: "session",
+      entiteId: sessionId,
+      template: "convention_signature_request",
+    });
+
+    await logHistorique({
+      organisationId,
+      userId,
+      userRole: role,
+      module: "session",
+      action: "sent",
+      entiteType: "session",
+      entiteId: sessionId,
+      entiteLabel: session.numero_affichage,
+      description: `Convention ${session.numero_affichage} envoyee en signature a ${signerEmail} (${entreprise?.nom || ""})`,
+      objetHref: `/sessions/${sessionId}`,
+    });
+
+    revalidatePath("/sessions");
+    revalidatePath(`/sessions/${sessionId}`);
+
+    return { success: true, envelopeId, signingUrl };
+  } catch (err) {
+    return {
+      error: `Erreur Documenso : ${err instanceof Error ? err.message : "Erreur inconnue"}`,
+    };
+  }
+}
+
+// ─── Check convention signature status ──────────────────
+
+export async function checkConventionSignatureStatus(commanditaireId: string) {
+  if (!isDocumensoConfigured()) {
+    return { error: "Documenso non configure" };
+  }
+
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { admin } = result;
+
+  const { data: cmd } = await admin
+    .from("session_commanditaires")
+    .select("id, session_id, documenso_envelope_id, documenso_status, statut_workflow")
+    .eq("id", commanditaireId)
+    .single();
+
+  if (!cmd?.documenso_envelope_id) {
+    return { error: "Cette convention n'a pas ete envoyee en signature" };
+  }
+
+  try {
+    const envelope = await getEnvelope(cmd.documenso_envelope_id);
+
+    const statusMap: Record<string, string> = {
+      COMPLETED: "signed",
+      REJECTED: "rejected",
+      EXPIRED: "expired",
+      PENDING: "pending",
+      DRAFT: "pending",
+    };
+
+    const newStatus = statusMap[envelope.status] || "pending";
+    const recipient = envelope.recipients?.[0];
+
+    if (newStatus !== cmd.documenso_status) {
+      const updates: Record<string, unknown> = {
+        documenso_status: newStatus,
+      };
+
+      if (newStatus === "signed") {
+        updates.convention_signee = true;
+        // Auto-advance workflow if at 'signature'
+        if (cmd.statut_workflow === "signature") {
+          updates.statut_workflow = "facturation";
+        }
+      }
+
+      await admin.from("session_commanditaires").update(updates).eq("id", commanditaireId);
+
+      // Update signature_requests
+      await admin
+        .from("signature_requests")
+        .update({
+          documenso_status: newStatus === "signed" ? "completed" : newStatus,
+          signed_at: newStatus === "signed" ? (recipient?.signedAt || new Date().toISOString()) : null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("entite_type", "convention")
+        .eq("entite_id", commanditaireId);
+
+      revalidatePath("/sessions");
+      revalidatePath(`/sessions/${cmd.session_id}`);
+    }
+
+    return {
+      status: newStatus,
+      signerStatus: recipient?.signingStatus || "NOT_SIGNED",
+      signedAt: recipient?.signedAt || null,
+    };
+  } catch (err) {
+    return {
+      error: `Erreur verification : ${err instanceof Error ? err.message : "Erreur inconnue"}`,
+    };
+  }
+}
+
+// ─── Send contrat sous-traitance for e-signature ────────
+
+export async function sendContratForSignature(formateurId: string, sessionId: string) {
+  if (!isDocumensoConfigured()) {
+    return { error: "Documenso n'est pas configure. Verifiez DOCUMENSO_API_URL et DOCUMENSO_API_KEY." };
+  }
+
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role, admin } = result;
+
+  requirePermission(role as UserRole, canManageFinances, "envoyer un contrat en signature");
+
+  // Fetch formateur
+  const { data: formateur } = await admin
+    .from("formateurs")
+    .select("id, prenom, nom, email, siret, nda, tarif_journalier, taux_tva, heures_par_jour, adresse_rue, adresse_cp, adresse_ville, numero_affichage")
+    .eq("id", formateurId)
+    .eq("organisation_id", organisationId)
+    .single();
+
+  if (!formateur) return { error: "Formateur introuvable" };
+  if (!formateur.email) return { error: "Le formateur n'a pas d'adresse email. Renseignez-la avant d'envoyer le contrat." };
+
+  // Fetch session with product info
+  const { data: session } = await admin
+    .from("sessions")
+    .select(`
+      id, nom, numero_affichage, date_debut, date_fin, lieu_adresse, lieu_type,
+      produits_formation(intitule, duree_heures, duree_jours, modalite)
+    `)
+    .eq("id", sessionId)
+    .single();
+
+  if (!session) return { error: "Session introuvable" };
+
+  // Count days from creneaux where this formateur is assigned
+  const { data: creneaux } = await admin
+    .from("session_creneaux")
+    .select("date, duree_minutes")
+    .eq("session_id", sessionId)
+    .eq("formateur_id", formateurId);
+
+  const heuresParJour = Number(formateur.heures_par_jour) || 7;
+  const uniqueDates = new Set((creneaux || []).map((c) => c.date));
+  const totalMinutes = (creneaux || []).reduce((sum, c) => sum + (Number(c.duree_minutes) || 0), 0);
+  const nombreJours = uniqueDates.size || Math.ceil(totalMinutes / (heuresParJour * 60)) || 1;
+
+  const tarifJournalier = Number(formateur.tarif_journalier) || 0;
+  const tauxTva = Number(formateur.taux_tva) || 0;
+  const montantHt = tarifJournalier * nombreJours;
+  const montantTva = montantHt * (tauxTva / 100);
+  const montantTtc = montantHt + montantTva;
+
+  const produitRaw = session.produits_formation;
+  const produit = (Array.isArray(produitRaw) ? produitRaw[0] : produitRaw) as { intitule: string; duree_heures: number; duree_jours: number; modalite: string } | null;
+  const adresseParts = [formateur.adresse_rue, formateur.adresse_cp, formateur.adresse_ville].filter(Boolean);
+
+  // Fetch objectifs
+  const { data: objectifsData } = await admin
+    .from("produit_objectifs")
+    .select("objectif")
+    .eq("produit_id", session.id)
+    .order("ordre");
+
+  const objectifs = (objectifsData || []).map((o) => o.objectif);
+
+  // Generate PDF
+  const orgOpts = await getOrgOptions(admin, organisationId);
+
+  const contratData: ContratSousTraitanceData = {
+    formateurPrenom: formateur.prenom,
+    formateurNom: formateur.nom,
+    formateurSiret: formateur.siret || undefined,
+    formateurNda: formateur.nda || undefined,
+    formateurAdresse: adresseParts.join(", ") || undefined,
+    sessionNom: session.nom,
+    sessionNumero: session.numero_affichage || sessionId.slice(0, 8),
+    dateDebut: formatDate(session.date_debut),
+    dateFin: formatDate(session.date_fin),
+    dureeHeures: Number(produit?.duree_heures) || totalMinutes / 60 || 0,
+    dureeJours: Number(produit?.duree_jours) || nombreJours,
+    lieu: session.lieu_adresse || "A definir",
+    modalite: produit?.modalite || session.lieu_type || "Presentiel",
+    tarifJournalier,
+    tauxTva,
+    nombreJours,
+    montantHt,
+    montantTva,
+    montantTtc,
+    objectifs: objectifs.length > 0 ? objectifs : undefined,
+    dateEmission: formatDate(new Date().toISOString()),
+  };
+
+  const pdfBytes = await generateContratSousTraitance(orgOpts, contratData);
+  const filename = `contrats/${organisationId}/${formateurId}_${sessionId}_contrat.pdf`;
+  const pdfUrl = await uploadPdfToStorage(admin, pdfBytes, filename);
+
+  // Insert document record
+  await admin.from("documents").insert({
+    organisation_id: organisationId,
+    nom: `Contrat sous-traitance ${formateur.prenom} ${formateur.nom} — ${session.nom}`,
+    categorie: "contrat_sous_traitance",
+    fichier_url: pdfUrl,
+    taille_octets: pdfBytes.length,
+    mime_type: "application/pdf",
+    genere: true,
+    entite_type: "formateur",
+    entite_id: formateurId,
+  });
+
+  // Send to Documenso
+  const signerName = `${formateur.prenom} ${formateur.nom}`;
+  const recipients: DocumensoRecipient[] = [
+    { name: signerName, email: formateur.email, role: "SIGNER" },
+  ];
+
+  try {
+    const { envelopeId, envelope } = await sendDocumentForSigning({
+      title: `Contrat sous-traitance — ${signerName} — ${session.nom}`,
+      pdfUrl,
+      recipients,
+      externalId: `contrat_${formateurId}_${sessionId}`,
+    });
+
+    const signingUrl = envelope.recipients?.[0]?.signingUrl || undefined;
+
+    // Create signature_request record
+    await admin.from("signature_requests").insert({
+      organisation_id: organisationId,
+      entite_type: "contrat_sous_traitance",
+      entite_id: formateurId,
+      documenso_envelope_id: envelopeId,
+      documenso_status: "pending",
+      signer_email: formateur.email,
+      signer_name: signerName,
+      signing_url: signingUrl || null,
+      source_pdf_url: pdfUrl,
+    });
+
+    // Send notification email
+    const { data: org } = await admin
+      .from("organisations")
+      .select("nom")
+      .eq("id", organisationId)
+      .single();
+
+    await sendEmail({
+      organisationId,
+      to: formateur.email,
+      toName: signerName,
+      subject: `Contrat de sous-traitance — Signature requise — ${session.nom}`,
+      html: contratSignatureRequestTemplate({
+        formateurNom: signerName,
+        sessionNom: session.nom,
+        montant: `${montantHt.toFixed(2)} EUR`,
+        orgName: org?.nom || orgOpts.orgName,
+      }),
+      entiteType: "formateur",
+      entiteId: formateurId,
+      template: "contrat_signature_request",
+    });
+
+    await logHistorique({
+      organisationId,
+      userId,
+      userRole: role,
+      module: "formateur",
+      action: "sent",
+      entiteType: "formateur",
+      entiteId: formateurId,
+      entiteLabel: formateur.numero_affichage,
+      description: `Contrat sous-traitance envoye en signature a ${formateur.email} pour la session ${session.nom}`,
+      objetHref: `/formateurs/${formateurId}`,
+    });
+
+    revalidatePath("/formateurs");
+    revalidatePath(`/formateurs/${formateurId}`);
+
+    return { success: true, envelopeId, signingUrl, pdfUrl };
+  } catch (err) {
+    return {
+      error: `Erreur Documenso : ${err instanceof Error ? err.message : "Erreur inconnue"}`,
+    };
+  }
+}
+
+// ─── Check contrat signature status ─────────────────────
+
+export async function checkContratSignatureStatus(signatureRequestId: string) {
+  if (!isDocumensoConfigured()) {
+    return { error: "Documenso non configure" };
+  }
+
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { admin } = result;
+
+  const { data: sigReq } = await admin
+    .from("signature_requests")
+    .select("id, entite_type, entite_id, documenso_envelope_id, documenso_status")
+    .eq("id", signatureRequestId)
+    .eq("entite_type", "contrat_sous_traitance")
+    .single();
+
+  if (!sigReq?.documenso_envelope_id) {
+    return { error: "Ce contrat n'a pas ete envoye en signature" };
+  }
+
+  try {
+    const envelope = await getEnvelope(sigReq.documenso_envelope_id);
+
+    const statusMap: Record<string, string> = {
+      COMPLETED: "completed",
+      REJECTED: "rejected",
+      EXPIRED: "expired",
+      PENDING: "pending",
+      DRAFT: "pending",
+    };
+
+    const newStatus = statusMap[envelope.status] || "pending";
+    const recipient = envelope.recipients?.[0];
+
+    if (newStatus !== sigReq.documenso_status) {
+      await admin
+        .from("signature_requests")
+        .update({
+          documenso_status: newStatus,
+          signed_at: newStatus === "completed" ? (recipient?.signedAt || new Date().toISOString()) : null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", signatureRequestId);
+
+      revalidatePath("/formateurs");
+      revalidatePath(`/formateurs/${sigReq.entite_id}`);
+    }
+
+    return {
+      status: newStatus,
+      signerStatus: recipient?.signingStatus || "NOT_SIGNED",
+      signedAt: recipient?.signedAt || null,
+    };
+  } catch (err) {
+    return {
+      error: `Erreur verification : ${err instanceof Error ? err.message : "Erreur inconnue"}`,
+    };
+  }
 }

@@ -232,6 +232,52 @@ export function factureEnvoyeeTemplate(params: {
   );
 }
 
+// ─── Convention signature request ───────────────────────
+
+export function conventionSignatureRequestTemplate(params: {
+  contactNom: string;
+  sessionNom: string;
+  entrepriseNom: string;
+  orgName?: string;
+}) {
+  return baseLayout(
+    `<p style="margin:0 0 16px;">Bonjour <strong>${params.contactNom}</strong>,</p>
+    <p style="margin:0 0 16px;">Une convention de formation necessite votre signature electronique :</p>
+    <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-left:3px solid #F97316;border-radius:8px;padding:16px;margin:16px 0;">
+      <p style="margin:0 0 8px;font-size:16px;font-weight:600;color:#fafafa;">Convention de formation</p>
+      <p style="margin:8px 0;">Session : <strong>${params.sessionNom}</strong></p>
+      <p style="margin:8px 0;">Entreprise : <strong>${params.entrepriseNom}</strong></p>
+    </div>
+    <p style="margin:0 0 16px;">Vous allez recevoir un email separe de notre service de signature electronique avec un lien pour signer cette convention.</p>
+    <p style="margin:0 0 16px;color:#a0a0a0;font-size:12px;">La signature electronique a la meme valeur juridique qu'une signature manuscrite (eIDAS / art. 1367 du Code civil).</p>
+    <p style="margin:0;">Cordialement,<br><strong>${params.orgName || "L'equipe"}</strong></p>`,
+    params.orgName
+  );
+}
+
+// ─── Contrat sous-traitance signature request ───────────
+
+export function contratSignatureRequestTemplate(params: {
+  formateurNom: string;
+  sessionNom: string;
+  montant: string;
+  orgName?: string;
+}) {
+  return baseLayout(
+    `<p style="margin:0 0 16px;">Bonjour <strong>${params.formateurNom}</strong>,</p>
+    <p style="margin:0 0 16px;">Un contrat de sous-traitance necessite votre signature electronique :</p>
+    <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-left:3px solid #F97316;border-radius:8px;padding:16px;margin:16px 0;">
+      <p style="margin:0 0 8px;font-size:16px;font-weight:600;color:#fafafa;">Contrat de sous-traitance</p>
+      <p style="margin:8px 0;">Session : <strong>${params.sessionNom}</strong></p>
+      <p style="margin:8px 0;">Montant HT : <strong>${params.montant}</strong></p>
+    </div>
+    <p style="margin:0 0 16px;">Vous allez recevoir un email separe de notre service de signature electronique avec un lien pour signer ce contrat.</p>
+    <p style="margin:0 0 16px;color:#a0a0a0;font-size:12px;">La signature electronique a la meme valeur juridique qu'une signature manuscrite (eIDAS / art. 1367 du Code civil).</p>
+    <p style="margin:0;">Cordialement,<br><strong>${params.orgName || "L'equipe"}</strong></p>`,
+    params.orgName
+  );
+}
+
 // ─── Devis signature request ────────────────────────────
 
 export function devisSignatureRequestTemplate(params: {

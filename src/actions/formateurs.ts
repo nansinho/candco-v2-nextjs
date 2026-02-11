@@ -522,3 +522,66 @@ export async function getAllFormateurs() {
   if (error) return { data: [] };
   return { data: data ?? [] };
 }
+
+// ─── Formateur sessions (for contrat signature) ─────────
+
+export async function getFormateurSessions(formateurId: string) {
+  const result = await getOrganisationId();
+  if ("error" in result) return { data: [] };
+  const { supabase } = result;
+
+  const { data: links } = await supabase
+    .from("session_formateurs")
+    .select("session_id")
+    .eq("formateur_id", formateurId);
+
+  if (!links || links.length === 0) return { data: [] };
+
+  const sessionIds = links.map((l) => l.session_id);
+
+  const { data, error } = await supabase
+    .from("sessions")
+    .select("id, nom, numero_affichage, date_debut, date_fin, statut")
+    .in("id", sessionIds)
+    .is("archived_at", null)
+    .order("date_debut", { ascending: false });
+
+  if (error) return { data: [] };
+  return { data: data ?? [] };
+}
+
+// ─── Formateur documents ────────────────────────────────
+
+export async function getFormateurDocuments(formateurId: string) {
+  const result = await getOrganisationId();
+  if ("error" in result) return { data: [] };
+  const { supabase } = result;
+
+  const { data, error } = await supabase
+    .from("documents")
+    .select("id, nom, categorie, fichier_url, genere, created_at")
+    .eq("entite_type", "formateur")
+    .eq("entite_id", formateurId)
+    .order("created_at", { ascending: false });
+
+  if (error) return { data: [] };
+  return { data: data ?? [] };
+}
+
+// ─── Formateur signature requests ───────────────────────
+
+export async function getFormateurSignatureRequests(formateurId: string) {
+  const result = await getOrganisationId();
+  if ("error" in result) return { data: [] };
+  const { supabase } = result;
+
+  const { data, error } = await supabase
+    .from("signature_requests")
+    .select("id, entite_type, documenso_envelope_id, documenso_status, signer_email, signed_at, created_at")
+    .eq("entite_type", "contrat_sous_traitance")
+    .eq("entite_id", formateurId)
+    .order("created_at", { ascending: false });
+
+  if (error) return { data: [] };
+  return { data: data ?? [] };
+}

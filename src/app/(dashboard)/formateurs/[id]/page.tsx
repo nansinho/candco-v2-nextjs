@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Archive, ArchiveRestore, Save, Loader2 } from "lucide-react";
+import { ArrowLeft, Archive, ArchiveRestore, Save, Loader2, FileText, Send, Clock, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,7 +18,7 @@ import {
   unarchiveFormateur,
   type FormateurInput,
 } from "@/actions/formateurs";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
 import { TachesActivitesTab } from "@/components/shared/taches-activites";
 import { HistoriqueTimeline } from "@/components/shared/historique-timeline";
 import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
@@ -26,6 +26,9 @@ import { SiretSearch } from "@/components/shared/siret-search";
 import { ExtranetAccessPanel } from "@/components/shared/extranet-access-panel";
 import { useBreadcrumb } from "@/components/layout/breadcrumb-context";
 import { QuickActionsBar } from "@/components/shared/quick-actions-bar";
+import { isDocumensoConfigured } from "@/lib/documenso";
+import { sendContratForSignature } from "@/actions/signatures";
+import { getFormateurSessions, getFormateurDocuments, getFormateurSignatureRequests } from "@/actions/formateurs";
 
 interface FormateurData {
   id: string;
@@ -65,6 +68,14 @@ export default function FormateurDetailPage() {
   // Editable form state
   const [form, setForm] = React.useState<Partial<FormateurInput>>({});
 
+  // Documents tab state
+  const [documents, setDocuments] = React.useState<{ id: string; nom: string; categorie: string; fichier_url: string; genere: boolean; created_at: string }[]>([]);
+  const [sessions, setSessions] = React.useState<{ id: string; nom: string; numero_affichage: string; date_debut: string | null; date_fin: string | null; statut: string }[]>([]);
+  const [sigRequests, setSigRequests] = React.useState<{ id: string; documenso_status: string; signed_at: string | null; created_at: string }[]>([]);
+  const [selectedSessionId, setSelectedSessionId] = React.useState("");
+  const [isSendingContrat, setIsSendingContrat] = React.useState(false);
+  const documensoAvailable = React.useMemo(() => isDocumensoConfigured(), []);
+
   // Load formateur data
   React.useEffect(() => {
     async function load() {
@@ -98,6 +109,22 @@ export default function FormateurDetailPage() {
     }
     load();
   }, [id]);
+
+  // Load documents, sessions, and signature requests
+  const loadDocumentsData = React.useCallback(async () => {
+    const [docsRes, sessRes, sigRes] = await Promise.all([
+      getFormateurDocuments(id),
+      getFormateurSessions(id),
+      getFormateurSignatureRequests(id),
+    ]);
+    setDocuments(docsRes.data);
+    setSessions(sessRes.data);
+    setSigRequests(sigRes.data);
+  }, [id]);
+
+  React.useEffect(() => {
+    if (formateur) loadDocumentsData();
+  }, [formateur, loadDocumentsData]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -300,6 +327,9 @@ export default function FormateurDetailPage() {
           </TabsTrigger>
           <TabsTrigger value="historique" className="text-xs">
             Historique
+          </TabsTrigger>
+          <TabsTrigger value="documents" className="text-xs">
+            Documents
           </TabsTrigger>
         </TabsList>
 
@@ -645,6 +675,126 @@ export default function FormateurDetailPage() {
             emptyLabel="ce formateur"
             headerDescription="Journal de traçabilité de toutes les actions liées à ce formateur"
           />
+        </TabsContent>
+
+        {/* Tab: Documents */}
+        <TabsContent value="documents" className="mt-6">
+          <div className="space-y-6">
+            {/* Generate contrat sous-traitance */}
+            {formateur.statut_bpf === "externe" && documensoAvailable && (
+              <section className="rounded-lg border border-border/60 bg-card p-5">
+                <h3 className="mb-4 text-sm font-semibold">Contrat de sous-traitance</h3>
+                <p className="mb-3 text-xs text-muted-foreground">
+                  Generez et envoyez un contrat de sous-traitance pour signature electronique.
+                </p>
+                <div className="flex items-center gap-3">
+                  <select
+                    value={selectedSessionId}
+                    onChange={(e) => setSelectedSessionId(e.target.value)}
+                    className="h-9 flex-1 rounded-md border border-border/60 bg-muted px-3 py-1 text-[13px] text-foreground"
+                  >
+                    <option value="">Selectionner une session...</option>
+                    {sessions.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.numero_affichage} — {s.nom}
+                      </option>
+                    ))}
+                  </select>
+                  <Button
+                    size="sm"
+                    className="h-9 text-xs"
+                    disabled={!selectedSessionId || isSendingContrat}
+                    onClick={async () => {
+                      setIsSendingContrat(true);
+                      const res = await sendContratForSignature(formateur.id, selectedSessionId);
+                      setIsSendingContrat(false);
+                      if ("error" in res && res.error) {
+                        toast({ title: "Erreur", description: String(res.error), variant: "destructive" });
+                      } else {
+                        toast({ title: "Contrat envoye en signature", variant: "success" });
+                        setSelectedSessionId("");
+                        loadDocumentsData();
+                      }
+                    }}
+                  >
+                    {isSendingContrat ? (
+                      <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+                    ) : (
+                      <Send className="mr-1.5 h-3 w-3" />
+                    )}
+                    Generer et envoyer
+                  </Button>
+                </div>
+              </section>
+            )}
+
+            {/* Signature requests */}
+            {sigRequests.length > 0 && (
+              <section className="rounded-lg border border-border/60 bg-card p-5">
+                <h3 className="mb-3 text-sm font-semibold">Signatures en cours</h3>
+                <div className="space-y-2">
+                  {sigRequests.map((sig) => (
+                    <div key={sig.id} className="flex items-center justify-between rounded-md border border-border/40 bg-muted/20 p-3">
+                      <div className="text-xs">
+                        <span className="text-muted-foreground">Contrat du </span>
+                        {formatDate(sig.created_at)}
+                      </div>
+                      {sig.documenso_status === "pending" && (
+                        <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-400">
+                          <Clock className="mr-1 h-3 w-3" />
+                          En attente
+                        </Badge>
+                      )}
+                      {sig.documenso_status === "completed" && (
+                        <Badge variant="outline" className="text-[10px] border-emerald-500/30 text-emerald-400">
+                          <CheckCircle2 className="mr-1 h-3 w-3" />
+                          Signe {sig.signed_at ? `le ${formatDate(sig.signed_at)}` : ""}
+                        </Badge>
+                      )}
+                      {sig.documenso_status === "rejected" && (
+                        <Badge variant="outline" className="text-[10px] border-red-500/30 text-red-400">
+                          <XCircle className="mr-1 h-3 w-3" />
+                          Refuse
+                        </Badge>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Documents list */}
+            <section className="rounded-lg border border-border/60 bg-card p-5">
+              <h3 className="mb-3 text-sm font-semibold">Documents ({documents.length})</h3>
+              {documents.length === 0 ? (
+                <div className="flex flex-col items-center gap-2 py-8">
+                  <FileText className="h-8 w-8 text-muted-foreground/30" />
+                  <p className="text-sm text-muted-foreground/60">Aucun document</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {documents.map((doc) => (
+                    <div key={doc.id} className="flex items-center justify-between rounded-md border border-border/40 bg-muted/20 p-3">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-muted-foreground/50" />
+                        <div>
+                          <p className="text-xs font-medium">{doc.nom}</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {doc.categorie} — {formatDate(doc.created_at)}
+                          </p>
+                        </div>
+                      </div>
+                      <a href={doc.fichier_url} target="_blank" rel="noopener noreferrer">
+                        <Button variant="ghost" size="sm" className="h-7 text-[10px]">
+                          Telecharger
+                        </Button>
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
         </TabsContent>
       </Tabs>
         </div>
