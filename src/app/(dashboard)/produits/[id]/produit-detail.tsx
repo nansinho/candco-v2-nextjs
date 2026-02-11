@@ -32,6 +32,7 @@ import {
   Check,
   X,
   BookMarked,
+  ClipboardList,
   ExternalLink,
   Building,
   Share2,
@@ -76,11 +77,15 @@ import {
   addArticle,
   updateArticle,
   deleteArticle,
+  addProduitQuestionnaire,
+  updateProduitQuestionnaire,
+  removeProduitQuestionnaire,
   type UpdateProduitInput,
   type TarifInput,
   type ProgrammeModuleInput,
   type OuvrageInput,
   type ArticleInput,
+  type ProduitQuestionnaire,
 } from "@/actions/produits";
 
 // ─── Types ───────────────────────────────────────────────
@@ -374,6 +379,15 @@ function DynamicList({
 
 // ─── Main Component ──────────────────────────────────────
 
+interface AllQuestionnaire {
+  id: string;
+  nom: string;
+  type: string;
+  statut: string;
+  public_cible: string | null;
+  produit_id: string | null;
+}
+
 export function ProduitDetail({
   produit,
   tarifs: initialTarifs,
@@ -386,6 +400,8 @@ export function ProduitDetail({
   ouvrages: initialOuvrages,
   articles: initialArticles,
   bpfSpecialites,
+  produitQuestionnaires: initialProduitQuestionnaires,
+  allQuestionnaires: initialAllQuestionnaires,
 }: {
   produit: Produit;
   tarifs: Tarif[];
@@ -398,6 +414,8 @@ export function ProduitDetail({
   ouvrages: Ouvrage[];
   articles: Article[];
   bpfSpecialites: BpfSpecialite[];
+  produitQuestionnaires: ProduitQuestionnaire[];
+  allQuestionnaires: AllQuestionnaire[];
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -720,6 +738,15 @@ export function ProduitDetail({
                   <BarChart3 className="h-3 w-3" />
                   Modalités
                   <TabBadge missing={missingModalites} />
+                </TabsTrigger>
+                <TabsTrigger value="questionnaires" className="text-xs gap-1.5">
+                  <ClipboardList className="h-3 w-3" />
+                  Questionnaires
+                  {initialProduitQuestionnaires.filter(pq => pq.actif).length > 0 && (
+                    <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary/10 px-1 text-[10px] font-medium text-primary">
+                      {initialProduitQuestionnaires.filter(pq => pq.actif).length}
+                    </span>
+                  )}
                 </TabsTrigger>
                 {hasBiblio && (
                   <TabsTrigger value="biblio" className="text-xs gap-1.5">
@@ -1094,6 +1121,15 @@ export function ProduitDetail({
                     />
                   </div>
                 </div>
+              </TabsContent>
+
+              {/* ═══ Tab: Questionnaires ═══ */}
+              <TabsContent value="questionnaires" className="mt-6">
+                <QuestionnairesTab
+                  produitId={produit.id}
+                  produitQuestionnaires={initialProduitQuestionnaires}
+                  allQuestionnaires={initialAllQuestionnaires}
+                />
               </TabsContent>
 
               {/* ═══ Tab: Biblio ═══ */}
@@ -2402,6 +2438,310 @@ function ObjectifsTab({
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Questionnaires Tab ─────────────────────────────────
+
+const TYPE_USAGE_OPTIONS = [
+  { value: "positionnement", label: "Positionnement (avant)" },
+  { value: "satisfaction_chaud", label: "Satisfaction à chaud (fin)" },
+  { value: "satisfaction_client", label: "Satisfaction client (fin)" },
+  { value: "evaluation_froid", label: "Évaluation à froid" },
+  { value: "autre", label: "Autre" },
+] as const;
+
+const TYPE_USAGE_LABELS: Record<string, string> = {
+  positionnement: "Positionnement",
+  satisfaction_chaud: "Satisfaction à chaud",
+  satisfaction_client: "Satisfaction client",
+  evaluation_froid: "Évaluation à froid",
+  autre: "Autre",
+};
+
+const TYPE_USAGE_COLORS: Record<string, string> = {
+  positionnement: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+  satisfaction_chaud: "bg-orange-500/10 text-orange-500 border-orange-500/20",
+  satisfaction_client: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+  evaluation_froid: "bg-violet-500/10 text-violet-500 border-violet-500/20",
+  autre: "bg-muted-foreground/10 text-muted-foreground border-muted-foreground/20",
+};
+
+function QuestionnairesTab({
+  produitId,
+  produitQuestionnaires,
+  allQuestionnaires,
+}: {
+  produitId: string;
+  produitQuestionnaires: ProduitQuestionnaire[];
+  allQuestionnaires: AllQuestionnaire[];
+}) {
+  const { toast } = useToast();
+  const [items, setItems] = React.useState(produitQuestionnaires);
+  const [isAdding, setIsAdding] = React.useState(false);
+  const [addDialogOpen, setAddDialogOpen] = React.useState(false);
+  const [selectedQuestionnaireId, setSelectedQuestionnaireId] = React.useState("");
+  const [selectedTypeUsage, setSelectedTypeUsage] = React.useState("positionnement");
+  const [updatingId, setUpdatingId] = React.useState<string | null>(null);
+
+  // Sync with server data when it changes
+  React.useEffect(() => {
+    setItems(produitQuestionnaires);
+  }, [produitQuestionnaires]);
+
+  // Filter out already-linked questionnaires
+  const linkedIds = new Set(items.map(pq => pq.questionnaire_id));
+  const availableQuestionnaires = allQuestionnaires.filter(q => !linkedIds.has(q.id));
+
+  const handleAdd = async () => {
+    if (!selectedQuestionnaireId || !selectedTypeUsage) return;
+    setIsAdding(true);
+    try {
+      const result = await addProduitQuestionnaire(produitId, selectedQuestionnaireId, selectedTypeUsage);
+      if ("error" in result && result.error) {
+        toast({ title: "Erreur", description: String(result.error), variant: "destructive" });
+      } else {
+        toast({ title: "Questionnaire rattaché" });
+        setAddDialogOpen(false);
+        setSelectedQuestionnaireId("");
+        setSelectedTypeUsage("positionnement");
+      }
+    } catch {
+      toast({ title: "Erreur", description: "Impossible d'ajouter le questionnaire", variant: "destructive" });
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
+  const handleToggleActif = async (pq: ProduitQuestionnaire) => {
+    setUpdatingId(pq.id);
+    try {
+      const result = await updateProduitQuestionnaire(pq.id, produitId, { actif: !pq.actif });
+      if ("error" in result && result.error) {
+        toast({ title: "Erreur", description: String(result.error), variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Erreur", variant: "destructive" });
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleChangeType = async (pq: ProduitQuestionnaire, newType: string) => {
+    setUpdatingId(pq.id);
+    try {
+      const result = await updateProduitQuestionnaire(pq.id, produitId, { type_usage: newType });
+      if ("error" in result && result.error) {
+        toast({ title: "Erreur", description: String(result.error), variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Erreur", variant: "destructive" });
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleRemove = async (pq: ProduitQuestionnaire) => {
+    setUpdatingId(pq.id);
+    try {
+      const result = await removeProduitQuestionnaire(pq.id, produitId);
+      if ("error" in result && result.error) {
+        toast({ title: "Erreur", description: String(result.error), variant: "destructive" });
+      } else {
+        toast({ title: "Questionnaire retiré" });
+      }
+    } catch {
+      toast({ title: "Erreur", variant: "destructive" });
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-lg border border-border/60 bg-card p-6 space-y-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-semibold tracking-tight flex items-center gap-2">
+              <ClipboardList className="h-4 w-4" />
+              Questionnaires rattachés
+            </h2>
+            <p className="text-[13px] text-muted-foreground mt-1">
+              Les questionnaires rattachés ici seront automatiquement ajoutés aux sessions créées depuis ce programme.
+            </p>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            className="h-8 text-xs gap-1.5"
+            onClick={() => setAddDialogOpen(true)}
+            disabled={availableQuestionnaires.length === 0}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Ajouter
+          </Button>
+        </div>
+
+        {items.length === 0 ? (
+          <div className="py-10 text-center">
+            <ClipboardList className="mx-auto h-10 w-10 text-muted-foreground/20" />
+            <p className="text-sm text-muted-foreground/60 mt-3">Aucun questionnaire rattaché</p>
+            <p className="text-xs text-muted-foreground/40 mt-1">
+              Ajoutez des questionnaires pour qu&apos;ils soient automatiquement liés aux sessions.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {items.map((pq) => {
+              const q = pq.questionnaires;
+              const isUpdating = updatingId === pq.id;
+              return (
+                <div
+                  key={pq.id}
+                  className={`flex items-center gap-3 rounded-lg border px-4 py-3 transition-colors ${
+                    pq.actif ? "border-border/60 bg-card" : "border-border/30 bg-muted/30 opacity-60"
+                  }`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[13px] font-medium truncate">
+                        {q?.nom ?? "Questionnaire supprimé"}
+                      </span>
+                      <Badge className={`text-[10px] font-normal border ${TYPE_USAGE_COLORS[pq.type_usage] ?? TYPE_USAGE_COLORS.autre}`}>
+                        {TYPE_USAGE_LABELS[pq.type_usage] ?? pq.type_usage}
+                      </Badge>
+                      {q?.statut === "brouillon" && (
+                        <Badge className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20 text-[10px] font-normal">
+                          Brouillon
+                        </Badge>
+                      )}
+                      {!pq.actif && (
+                        <Badge className="bg-muted-foreground/10 text-muted-foreground border-muted-foreground/20 text-[10px] font-normal">
+                          Inactif
+                        </Badge>
+                      )}
+                    </div>
+                    {q && (
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {q.type === "satisfaction_chaud" ? "Satisfaction à chaud" :
+                         q.type === "satisfaction_froid" ? "Satisfaction à froid" :
+                         q.type === "pedagogique_pre" ? "Péda. pré-formation" :
+                         q.type === "pedagogique_post" ? "Péda. post-formation" :
+                         "Standalone"}
+                        {q.public_cible ? ` • ${q.public_cible}` : ""}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1 shrink-0">
+                    {/* Type usage selector */}
+                    <select
+                      value={pq.type_usage}
+                      onChange={(e) => handleChangeType(pq, e.target.value)}
+                      disabled={isUpdating}
+                      className="h-7 rounded-md border border-border/60 bg-muted px-2 text-[11px] text-foreground cursor-pointer"
+                    >
+                      {TYPE_USAGE_OPTIONS.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+
+                    {/* Toggle actif/inactif */}
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className={`h-7 w-7 p-0 ${pq.actif ? "text-emerald-500 hover:text-emerald-600" : "text-muted-foreground hover:text-foreground"}`}
+                      onClick={() => handleToggleActif(pq)}
+                      disabled={isUpdating}
+                      title={pq.actif ? "Désactiver" : "Activer"}
+                    >
+                      {isUpdating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : (
+                        pq.actif ? <CheckCircle2 className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+
+                    {/* Remove */}
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                      onClick={() => handleRemove(pq)}
+                      disabled={isUpdating}
+                      title="Retirer"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Add questionnaire dialog */}
+      <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogTitle>Rattacher un questionnaire</DialogTitle>
+          <div className="space-y-4 mt-2">
+            <div className="space-y-2">
+              <Label className="text-[13px]">Questionnaire</Label>
+              {availableQuestionnaires.length === 0 ? (
+                <p className="text-[13px] text-muted-foreground">
+                  Tous les questionnaires sont déjà rattachés, ou aucun questionnaire n&apos;existe.
+                </p>
+              ) : (
+                <select
+                  value={selectedQuestionnaireId}
+                  onChange={(e) => setSelectedQuestionnaireId(e.target.value)}
+                  className="w-full h-9 rounded-md border border-border/60 bg-muted px-3 text-[13px] text-foreground"
+                >
+                  <option value="">Sélectionner un questionnaire...</option>
+                  {availableQuestionnaires.map(q => (
+                    <option key={q.id} value={q.id}>
+                      {q.nom} ({q.type === "satisfaction_chaud" ? "Satisfaction à chaud" :
+                        q.type === "satisfaction_froid" ? "Satisfaction à froid" :
+                        q.type === "pedagogique_pre" ? "Péda. pré" :
+                        q.type === "pedagogique_post" ? "Péda. post" :
+                        "Standalone"})
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[13px]">Type / Usage</Label>
+              <select
+                value={selectedTypeUsage}
+                onChange={(e) => setSelectedTypeUsage(e.target.value)}
+                className="w-full h-9 rounded-md border border-border/60 bg-muted px-3 text-[13px] text-foreground"
+              >
+                {TYPE_USAGE_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => setAddDialogOpen(false)} className="h-8 text-xs">
+                Annuler
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                className="h-8 text-xs"
+                onClick={handleAdd}
+                disabled={!selectedQuestionnaireId || isAdding}
+              >
+                {isAdding ? <Loader2 className="mr-1.5 h-3 w-3 animate-spin" /> : <Plus className="mr-1.5 h-3 w-3" />}
+                Rattacher
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

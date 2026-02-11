@@ -2065,3 +2065,193 @@ export async function deleteArticle(articleId: string, produitId: string) {
   revalidatePath(`/produits/${produitId}`);
   return { success: true };
 }
+
+// ─── Produit Questionnaires (junction table) ─────────────
+
+export interface ProduitQuestionnaire {
+  id: string;
+  produit_id: string;
+  questionnaire_id: string;
+  type_usage: string;
+  actif: boolean;
+  created_at: string;
+  updated_at: string;
+  questionnaires?: {
+    id: string;
+    nom: string;
+    type: string;
+    statut: string;
+    public_cible: string | null;
+  } | null;
+}
+
+export async function getProduitQuestionnaires(produitId: string): Promise<{ data: ProduitQuestionnaire[] }> {
+  const orgResult = await getOrganisationId();
+  if ("error" in orgResult) return { data: [] };
+  const { admin } = orgResult;
+
+  const { data, error } = await admin
+    .from("produit_questionnaires")
+    .select(`*, questionnaires(id, nom, type, statut, public_cible)`)
+    .eq("produit_id", produitId)
+    .order("created_at", { ascending: true });
+
+  if (error) return { data: [] };
+
+  return {
+    data: (data ?? []).map((pq) => {
+      const qRaw = pq.questionnaires;
+      return {
+        ...pq,
+        questionnaires: Array.isArray(qRaw) ? qRaw[0] ?? null : qRaw,
+      } as ProduitQuestionnaire;
+    }),
+  };
+}
+
+export async function addProduitQuestionnaire(
+  produitId: string,
+  questionnaireId: string,
+  typeUsage: string,
+) {
+  const orgResult = await getOrganisationId();
+  if ("error" in orgResult) return { error: orgResult.error };
+  const { organisationId, userId, role, supabase, admin } = orgResult;
+  requirePermission(role as UserRole, canEdit, "gérer les questionnaires du produit");
+
+  const { data, error } = await supabase
+    .from("produit_questionnaires")
+    .insert({
+      produit_id: produitId,
+      questionnaire_id: questionnaireId,
+      type_usage: typeUsage,
+    })
+    .select(`*, questionnaires(id, nom, type, statut, public_cible)`)
+    .single();
+
+  if (error) return { error: error.message };
+
+  // Fetch labels for logging
+  const [{ data: produit }, { data: questionnaire }] = await Promise.all([
+    admin.from("produits_formation").select("intitule, numero_affichage").eq("id", produitId).single(),
+    admin.from("questionnaires").select("nom").eq("id", questionnaireId).single(),
+  ]);
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "produit",
+    action: "linked",
+    entiteType: "produit",
+    entiteId: produitId,
+    entiteLabel: produit ? `${produit.numero_affichage} — ${produit.intitule}` : null,
+    description: `Questionnaire "${questionnaire?.nom ?? questionnaireId}" rattaché au produit "${produit?.intitule ?? produitId}" (${typeUsage})`,
+    objetHref: `/produits/${produitId}`,
+    metadata: { questionnaire_id: questionnaireId, type_usage: typeUsage },
+  });
+
+  revalidatePath(`/produits/${produitId}`);
+  return { data };
+}
+
+export async function updateProduitQuestionnaire(
+  id: string,
+  produitId: string,
+  updates: { type_usage?: string; actif?: boolean },
+) {
+  const orgResult = await getOrganisationId();
+  if ("error" in orgResult) return { error: orgResult.error };
+  const { organisationId, userId, role, supabase, admin } = orgResult;
+  requirePermission(role as UserRole, canEdit, "gérer les questionnaires du produit");
+
+  const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (updates.type_usage !== undefined) updateData.type_usage = updates.type_usage;
+  if (updates.actif !== undefined) updateData.actif = updates.actif;
+
+  const { data, error } = await supabase
+    .from("produit_questionnaires")
+    .update(updateData)
+    .eq("id", id)
+    .select(`*, questionnaires(id, nom)`)
+    .single();
+
+  if (error) return { error: error.message };
+
+  const qRaw = data.questionnaires;
+  const questionnaire = Array.isArray(qRaw) ? qRaw[0] : qRaw;
+
+  const { data: produit } = await admin
+    .from("produits_formation")
+    .select("intitule, numero_affichage")
+    .eq("id", produitId)
+    .single();
+
+  const changes: string[] = [];
+  if (updates.type_usage !== undefined) changes.push(`type → ${updates.type_usage}`);
+  if (updates.actif !== undefined) changes.push(updates.actif ? "activé" : "désactivé");
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "produit",
+    action: "updated",
+    entiteType: "produit",
+    entiteId: produitId,
+    entiteLabel: produit ? `${produit.numero_affichage} — ${produit.intitule}` : null,
+    description: `Questionnaire "${questionnaire?.nom ?? id}" modifié sur le produit "${produit?.intitule ?? produitId}" (${changes.join(", ")})`,
+    objetHref: `/produits/${produitId}`,
+    metadata: { produit_questionnaire_id: id, ...updates },
+  });
+
+  revalidatePath(`/produits/${produitId}`);
+  return { data };
+}
+
+export async function removeProduitQuestionnaire(id: string, produitId: string) {
+  const orgResult = await getOrganisationId();
+  if ("error" in orgResult) return { error: orgResult.error };
+  const { organisationId, userId, role, supabase, admin } = orgResult;
+  requirePermission(role as UserRole, canEdit, "gérer les questionnaires du produit");
+
+  // Fetch labels before deletion
+  const { data: pq } = await admin
+    .from("produit_questionnaires")
+    .select(`questionnaire_id, questionnaires(nom)`)
+    .eq("id", id)
+    .single();
+
+  const { error } = await supabase
+    .from("produit_questionnaires")
+    .delete()
+    .eq("id", id);
+
+  if (error) return { error: error.message };
+
+  const qRaw = pq?.questionnaires;
+  const questionnaire = Array.isArray(qRaw) ? qRaw[0] : qRaw;
+
+  const { data: produit } = await admin
+    .from("produits_formation")
+    .select("intitule, numero_affichage")
+    .eq("id", produitId)
+    .single();
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "produit",
+    action: "unlinked",
+    entiteType: "produit",
+    entiteId: produitId,
+    entiteLabel: produit ? `${produit.numero_affichage} — ${produit.intitule}` : null,
+    description: `Questionnaire "${questionnaire?.nom ?? id}" retiré du produit "${produit?.intitule ?? produitId}"`,
+    objetHref: `/produits/${produitId}`,
+    metadata: { questionnaire_id: pq?.questionnaire_id ?? null },
+  });
+
+  revalidatePath(`/produits/${produitId}`);
+  return { success: true };
+}
