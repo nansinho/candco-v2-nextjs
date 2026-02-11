@@ -34,6 +34,10 @@ const CreateFactureSchema = z.object({
     .default("brouillon"),
   devis_id: z.string().uuid().optional().or(z.literal("")),
   session_id: z.string().uuid().optional().or(z.literal("")),
+  commanditaire_id: z.string().uuid().optional().or(z.literal("")),
+  type_facture: z.enum(["standard", "acompte", "solde"]).optional(),
+  facture_parent_id: z.string().uuid().optional().or(z.literal("")),
+  pourcentage_acompte: z.coerce.number().nonnegative().optional(),
   lignes: z.array(FactureLigneSchema).default([]),
 });
 
@@ -91,6 +95,10 @@ export async function createFacture(input: CreateFactureInput) {
       statut: parsed.data.statut,
       devis_id: parsed.data.devis_id || null,
       session_id: parsed.data.session_id || null,
+      commanditaire_id: parsed.data.commanditaire_id || null,
+      type_facture: parsed.data.type_facture ?? "standard",
+      facture_parent_id: parsed.data.facture_parent_id || null,
+      pourcentage_acompte: parsed.data.pourcentage_acompte ?? null,
       ...totals,
     })
     .select()
@@ -233,6 +241,10 @@ export async function updateFacture(id: string, input: UpdateFactureInput) {
       statut: parsed.data.statut,
       devis_id: parsed.data.devis_id || null,
       session_id: parsed.data.session_id || null,
+      commanditaire_id: parsed.data.commanditaire_id || null,
+      type_facture: parsed.data.type_facture ?? "standard",
+      facture_parent_id: parsed.data.facture_parent_id || null,
+      pourcentage_acompte: parsed.data.pourcentage_acompte ?? null,
       ...totals,
     })
     .eq("id", id)
@@ -567,4 +579,232 @@ export async function deleteFacturesBulk(ids: string[]) {
 
   revalidatePath("/factures");
   return { success: true };
+}
+
+// ─── Acompte / Solde ────────────────────────────────────
+
+export async function createFactureAcompte(
+  commanditaireId: string,
+  sessionId: string,
+  pourcentage: number,
+) {
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role, supabase } = result;
+  requirePermission(role as UserRole, canManageFinances, "créer une facture d'acompte");
+
+  // Fetch commanditaire
+  const { data: cmd } = await supabase
+    .from("session_commanditaires")
+    .select(`
+      *,
+      entreprises(id, nom),
+      contacts_clients(id, prenom, nom),
+      financeurs(id, nom)
+    `)
+    .eq("id", commanditaireId)
+    .single();
+
+  if (!cmd) return { error: "Commanditaire introuvable" };
+
+  // Fetch session
+  const { data: session } = await supabase
+    .from("sessions")
+    .select("nom, numero_affichage, produit_id, produits_formation(intitule)")
+    .eq("id", sessionId)
+    .single();
+
+  const budget = Number(cmd.budget) || 0;
+  const montantAcompte = Math.round(budget * (pourcentage / 100) * 100) / 100;
+
+  const { data: numero } = await supabase.rpc("next_numero", {
+    p_organisation_id: organisationId,
+    p_entite: "F",
+    p_year: new Date().getFullYear(),
+  });
+
+  const produit = session?.produits_formation as unknown as { intitule: string } | null;
+  const objet = `Acompte ${pourcentage}% — ${produit?.intitule ?? session?.nom ?? "Formation"}`;
+
+  const { data: facture, error } = await supabase
+    .from("factures")
+    .insert({
+      organisation_id: organisationId,
+      numero_affichage: numero,
+      entreprise_id: cmd.entreprise_id || null,
+      contact_client_id: cmd.contact_client_id || null,
+      date_emission: new Date().toISOString().split("T")[0],
+      objet,
+      statut: "brouillon",
+      session_id: sessionId,
+      commanditaire_id: commanditaireId,
+      type_facture: "acompte",
+      pourcentage_acompte: pourcentage,
+      total_ht: montantAcompte,
+      total_tva: 0,
+      total_ttc: montantAcompte,
+    })
+    .select()
+    .single();
+
+  if (error) return { error: error.message };
+
+  // Create default line
+  await supabase.from("facture_lignes").insert({
+    facture_id: facture.id,
+    designation: objet,
+    quantite: 1,
+    prix_unitaire_ht: montantAcompte,
+    taux_tva: 0,
+    montant_ht: montantAcompte,
+    ordre: 0,
+  });
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "facture",
+    action: "created",
+    entiteType: "facture",
+    entiteId: facture.id,
+    entiteLabel: facture.numero_affichage,
+    description: `Facture d'acompte ${facture.numero_affichage} (${pourcentage}%) créée pour ${cmd.entreprises?.nom ?? "commanditaire"} (session ${session?.numero_affichage ?? sessionId})`,
+    objetHref: `/factures/${facture.id}`,
+  });
+
+  revalidatePath(`/sessions/${sessionId}`);
+  revalidatePath("/factures");
+  return { data: facture };
+}
+
+export async function createFactureSolde(
+  commanditaireId: string,
+  sessionId: string,
+) {
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role, supabase } = result;
+  requirePermission(role as UserRole, canManageFinances, "créer une facture de solde");
+
+  // Fetch commanditaire
+  const { data: cmd } = await supabase
+    .from("session_commanditaires")
+    .select(`
+      *,
+      entreprises(id, nom),
+      contacts_clients(id, prenom, nom)
+    `)
+    .eq("id", commanditaireId)
+    .single();
+
+  if (!cmd) return { error: "Commanditaire introuvable" };
+
+  // Calculate already invoiced amount
+  const { data: existingFactures } = await supabase
+    .from("factures")
+    .select("total_ttc, type_facture")
+    .eq("commanditaire_id", commanditaireId)
+    .is("archived_at", null);
+
+  const dejaFacture = (existingFactures ?? []).reduce(
+    (sum, f) => sum + (Number(f.total_ttc) || 0), 0
+  );
+
+  const budget = Number(cmd.budget) || 0;
+  const montantSolde = Math.round((budget - dejaFacture) * 100) / 100;
+
+  if (montantSolde <= 0) {
+    return { error: `Montant du solde nul ou négatif (budget: ${budget}€, déjà facturé: ${dejaFacture}€)` };
+  }
+
+  const { data: session } = await supabase
+    .from("sessions")
+    .select("nom, numero_affichage, produit_id, produits_formation(intitule)")
+    .eq("id", sessionId)
+    .single();
+
+  const { data: numero } = await supabase.rpc("next_numero", {
+    p_organisation_id: organisationId,
+    p_entite: "F",
+    p_year: new Date().getFullYear(),
+  });
+
+  const produit = session?.produits_formation as unknown as { intitule: string } | null;
+  const objet = `Solde — ${produit?.intitule ?? session?.nom ?? "Formation"}`;
+
+  // Find parent acompte facture if exists
+  const acompteFacture = (existingFactures ?? []).find((f) => f.type_facture === "acompte");
+
+  const { data: facture, error } = await supabase
+    .from("factures")
+    .insert({
+      organisation_id: organisationId,
+      numero_affichage: numero,
+      entreprise_id: cmd.entreprise_id || null,
+      contact_client_id: cmd.contact_client_id || null,
+      date_emission: new Date().toISOString().split("T")[0],
+      objet,
+      statut: "brouillon",
+      session_id: sessionId,
+      commanditaire_id: commanditaireId,
+      type_facture: "solde",
+      total_ht: montantSolde,
+      total_tva: 0,
+      total_ttc: montantSolde,
+    })
+    .select()
+    .single();
+
+  if (error) return { error: error.message };
+
+  // Create default line
+  await supabase.from("facture_lignes").insert({
+    facture_id: facture.id,
+    designation: objet,
+    quantite: 1,
+    prix_unitaire_ht: montantSolde,
+    taux_tva: 0,
+    montant_ht: montantSolde,
+    ordre: 0,
+  });
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "facture",
+    action: "created",
+    entiteType: "facture",
+    entiteId: facture.id,
+    entiteLabel: facture.numero_affichage,
+    description: `Facture de solde ${facture.numero_affichage} (${montantSolde}€) créée pour ${cmd.entreprises?.nom ?? "commanditaire"} (session ${session?.numero_affichage ?? sessionId})`,
+    objetHref: `/factures/${facture.id}`,
+  });
+
+  revalidatePath(`/sessions/${sessionId}`);
+  revalidatePath("/factures");
+  return { data: facture };
+}
+
+export async function getFacturesForCommanditaire(commanditaireId: string) {
+  const result = await getOrganisationId();
+  if ("error" in result) return { data: [] };
+  const { supabase } = result;
+
+  const { data } = await supabase
+    .from("factures")
+    .select(`
+      id, numero_affichage, statut, type_facture, objet,
+      date_emission, date_echeance,
+      total_ht, total_tva, total_ttc, montant_paye,
+      pourcentage_acompte, facture_parent_id,
+      entreprises(id, nom),
+      contacts_clients(id, prenom, nom)
+    `)
+    .eq("commanditaire_id", commanditaireId)
+    .is("archived_at", null)
+    .order("created_at", { ascending: true });
+
+  return { data: data ?? [] };
 }

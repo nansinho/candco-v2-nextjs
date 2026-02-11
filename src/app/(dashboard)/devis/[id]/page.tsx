@@ -33,6 +33,7 @@ import {
 } from "@/actions/devis";
 import { getOrganisationBillingInfo } from "@/actions/factures";
 import { checkDevisSignatureStatus } from "@/actions/signatures";
+import { getSessionCommanditaires } from "@/actions/sessions";
 import { formatDate } from "@/lib/utils";
 import { DevisStatusBadge } from "@/components/shared/status-badges";
 import { LignesEditor, DocumentPreview, type LigneItem } from "@/components/shared/lignes-editor";
@@ -83,6 +84,10 @@ export default function DevisDetailPage() {
   const [showSessionSelect, setShowSessionSelect] = React.useState(false);
   const [linkingSession, setLinkingSession] = React.useState(false);
   const [creatingSession, setCreatingSession] = React.useState(false);
+
+  // Commanditaire linking
+  const [commanditaireId, setCommanditaireId] = React.useState<string>("");
+  const [commanditaires, setCommanditaires] = React.useState<Array<{ id: string; entreprises: { id: string; nom: string } | null; financeurs: { id: string; nom: string } | null; budget: number }>>([]);
 
   // Selects data
   const [entreprises, setEntreprises] = React.useState<
@@ -143,6 +148,7 @@ export default function DevisDetailPage() {
         setStatut((devisData.statut || "brouillon") as typeof statut);
         setDocumensoStatus((devisData.documenso_status as string) || null);
         setSessionId(devisData.session_id || null);
+        setCommanditaireId((devisData.commanditaire_id as string) || "");
 
         // Lines
         const devisLignes = (devisData.devis_lignes as unknown[]) || [];
@@ -186,6 +192,25 @@ export default function DevisDetailPage() {
     loadSessionInfo();
   }, [sessionId]);
 
+  // Load commanditaires when session is linked
+  React.useEffect(() => {
+    if (!sessionId) {
+      setCommanditaires([]);
+      return;
+    }
+    async function loadCommanditaires() {
+      const result = await getSessionCommanditaires(sessionId!);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setCommanditaires((result.data ?? []).map((c: any) => ({
+        id: c.id,
+        entreprises: c.entreprises,
+        financeurs: c.financeurs,
+        budget: Number(c.budget) || 0,
+      })));
+    }
+    loadCommanditaires();
+  }, [sessionId]);
+
   // Load sessions for select when needed
   React.useEffect(() => {
     if (!showSessionSelect) return;
@@ -216,6 +241,7 @@ export default function DevisDetailPage() {
         statut: "brouillon",
         opportunite_id: "",
         session_id: sessionId || "",
+        commanditaire_id: commanditaireId || "",
         lignes,
       };
 
@@ -1007,6 +1033,28 @@ export default function DevisDetailPage() {
                 </div>
               )}
             </div>
+
+            {/* Commanditaire (visible only when session is linked) */}
+            {sessionId && commanditaires.length > 0 && (
+              <div className="rounded-lg border border-border/40 bg-card p-4">
+                <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-3 block">
+                  Commanditaire
+                </Label>
+                <select
+                  value={commanditaireId}
+                  onChange={(e) => setCommanditaireId(e.target.value)}
+                  disabled={isReadOnly}
+                  className="h-8 w-full rounded-md border border-input bg-muted px-2 text-sm text-foreground disabled:opacity-50"
+                >
+                  <option value="">-- Aucun commanditaire --</option>
+                  {commanditaires.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.entreprises?.nom ?? "Commanditaire"}{c.financeurs ? ` + ${c.financeurs.nom}` : ""} — {new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(c.budget)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Lignes */}
             <div className="rounded-lg border border-border/40 bg-card p-4">

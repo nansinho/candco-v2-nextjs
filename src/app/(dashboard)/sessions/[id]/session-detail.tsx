@@ -59,6 +59,7 @@ import {
   addSessionFormateur,
   removeSessionFormateur,
   addCommanditaire,
+  updateCommanditaire,
   updateCommanditaireWorkflow,
   removeCommanditaire,
   addInscription,
@@ -86,6 +87,7 @@ import {
 import { isDocumensoConfigured } from "@/lib/documenso";
 import { sendConventionForSignature, checkConventionSignatureStatus } from "@/actions/signatures";
 import { generateSessionConvention } from "@/actions/documents";
+import { SessionFinancierTab } from "@/components/sessions/session-financier-tab";
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -125,9 +127,16 @@ interface SessionCommanditaire {
   statut_workflow: string;
   notes: string | null;
   convention_signee?: boolean;
+  convention_statut?: string | null;
+  convention_pdf_url?: string | null;
   documenso_envelope_id?: number | null;
   documenso_status?: string | null;
   signature_sent_at?: string | null;
+  subrogation_mode?: string | null;
+  montant_entreprise?: number | null;
+  montant_financeur?: number | null;
+  facturer_entreprise?: boolean | null;
+  facturer_financeur?: boolean | null;
   entreprises: { id: string; nom: string; email: string | null } | null;
   contacts_clients: { id: string; prenom: string; nom: string; email: string | null } | null;
   financeurs: { id: string; nom: string; type: string | null } | null;
@@ -156,6 +165,8 @@ interface Financials {
   budget: number;
   cout: number;
   rentabilite: number;
+  totalFacture: number;
+  totalPaye: number;
 }
 
 interface EmargementApprenant {
@@ -732,7 +743,10 @@ export function SessionDetail({
               </div>
             ) : (
               <div className="space-y-3">
-                {commanditaires.map((c) => (
+                {commanditaires.map((c) => {
+                  const mode = c.subrogation_mode ?? "direct";
+                  const convStatut = c.convention_statut ?? (c.convention_signee ? "signee" : "aucune");
+                  return (
                   <div key={c.id} className="rounded-lg border border-border/60 bg-card p-4 space-y-3 group">
                     <div className="flex items-start justify-between">
                       <div>
@@ -742,10 +756,20 @@ export function SessionDetail({
                           {c.financeurs && (
                             <Badge variant="outline" className="text-xs">{c.financeurs.nom}</Badge>
                           )}
+                          {mode !== "direct" && (
+                            <Badge variant="outline" className="text-xs border-blue-500/30 text-blue-400">
+                              {mode === "subrogation_totale" ? "Subrogation totale" : "Subrogation partielle"}
+                            </Badge>
+                          )}
                         </div>
                         {c.contacts_clients && (
                           <p className="mt-1 text-xs text-muted-foreground">
                             Contact: {c.contacts_clients.prenom} {c.contacts_clients.nom}
+                          </p>
+                        )}
+                        {mode !== "direct" && (
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            Entreprise: {formatCurrency(Number(c.montant_entreprise ?? 0))} | Financeur: {formatCurrency(Number(c.montant_financeur ?? 0))}
                           </p>
                         )}
                       </div>
@@ -789,7 +813,15 @@ export function SessionDetail({
                     <div className="flex items-center justify-between">
                       <p className="text-xs text-muted-foreground/60">{WORKFLOW_LABELS[c.statut_workflow] ?? c.statut_workflow}</p>
                       <div className="flex items-center gap-1.5">
+                        {/* Convention status badge */}
+                        {convStatut !== "aucune" && convStatut !== "signee" && convStatut !== "refusee" && (
+                          <Badge variant="outline" className="h-6 text-xs border-border/60 text-muted-foreground">
+                            <FileText className="mr-1 h-3 w-3" />
+                            Conv. {convStatut === "brouillon" ? "brouillon" : convStatut === "generee" ? "générée" : "envoyée"}
+                          </Badge>
+                        )}
                         {/* Generate convention */}
+                        {(convStatut === "aucune" || convStatut === "brouillon") && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -799,7 +831,7 @@ export function SessionDetail({
                             if ("error" in res && res.error) {
                               toast({ title: "Erreur", description: String(res.error), variant: "destructive" });
                             } else {
-                              toast({ title: "Convention generee" });
+                              toast({ title: "Convention générée" });
                               router.refresh();
                             }
                           }}
@@ -807,8 +839,9 @@ export function SessionDetail({
                           <FileText className="mr-1 h-3 w-3" />
                           Convention
                         </Button>
+                        )}
                         {/* Send for signature (Documenso) */}
-                        {isDocumensoConfigured() && !c.documenso_status && (
+                        {isDocumensoConfigured() && (convStatut === "generee" || (convStatut !== "envoyee" && convStatut !== "signee" && convStatut !== "refusee" && !c.documenso_status)) && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -818,7 +851,7 @@ export function SessionDetail({
                               if ("error" in res && res.error) {
                                 toast({ title: "Erreur", description: String(res.error), variant: "destructive" });
                               } else {
-                                toast({ title: "Convention envoyee en signature" });
+                                toast({ title: "Convention envoyée en signature" });
                                 router.refresh();
                               }
                             }}
@@ -839,27 +872,28 @@ export function SessionDetail({
                             }}
                           >
                             <Clock className="mr-1 h-3 w-3" />
-                            Verifier
+                            Vérifier
                           </Button>
                         )}
                         {/* Signed badge */}
-                        {c.documenso_status === "signed" && (
+                        {(c.documenso_status === "signed" || convStatut === "signee") && (
                           <Badge variant="outline" className="h-6 text-xs border-emerald-500/30 text-emerald-400">
                             <CheckCircle2 className="mr-1 h-3 w-3" />
-                            Signee
+                            Signée
                           </Badge>
                         )}
                         {/* Rejected badge */}
-                        {c.documenso_status === "rejected" && (
+                        {(c.documenso_status === "rejected" || convStatut === "refusee") && (
                           <Badge variant="outline" className="h-6 text-xs border-red-500/30 text-red-400">
                             <XCircle className="mr-1 h-3 w-3" />
-                            Refusee
+                            Refusée
                           </Badge>
                         )}
                       </div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -1190,50 +1224,12 @@ export function SessionDetail({
 
         {/* ═══ Financier Tab ═══ */}
         <TabsContent value="financier" className="mt-6">
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="rounded-lg border border-border/60 bg-card p-6 text-center">
-                <p className="text-xs text-muted-foreground/60 uppercase font-semibold tracking-wider">Total Budget</p>
-                <p className="mt-2 text-2xl font-mono font-semibold">{formatCurrency(financials.budget)}</p>
-                <p className="mt-1 text-xs text-muted-foreground">{commanditaires.length} commanditaire(s)</p>
-              </div>
-              <div className="rounded-lg border border-border/60 bg-card p-6 text-center">
-                <p className="text-xs text-muted-foreground/60 uppercase font-semibold tracking-wider">Coût de revient</p>
-                <p className="mt-2 text-2xl font-mono font-semibold text-muted-foreground">{formatCurrency(financials.cout)}</p>
-                <p className="mt-1 text-xs text-muted-foreground">{creneaux.length} créneau(x)</p>
-              </div>
-              <div className="rounded-lg border border-border/60 bg-card p-6 text-center">
-                <p className="text-xs text-muted-foreground/60 uppercase font-semibold tracking-wider">Rentabilité</p>
-                <p className={`mt-2 text-2xl font-mono font-semibold ${financials.rentabilite >= 0 ? "text-emerald-400" : "text-destructive"}`}>
-                  {formatCurrency(financials.rentabilite)}
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {financials.budget > 0 ? `${Math.round((financials.rentabilite / financials.budget) * 100)}% de marge` : "--"}
-                </p>
-              </div>
-            </div>
-
-            {/* Budget breakdown by commanditaire */}
-            {commanditaires.length > 0 && (
-              <div className="rounded-lg border border-border/60 bg-card">
-                <div className="px-4 py-3 border-b border-border/60">
-                  <h3 className="text-sm font-medium">Revenus par commanditaire</h3>
-                </div>
-                <div className="divide-y divide-border/40">
-                  {commanditaires.map((c) => (
-                    <div key={c.id} className="flex items-center justify-between px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <Building2 className="h-3.5 w-3.5 text-muted-foreground/50" />
-                        <span className="text-sm">{c.entreprises?.nom ?? "Commanditaire"}</span>
-                        <Badge variant="outline" className="text-xs">{WORKFLOW_LABELS[c.statut_workflow] ?? c.statut_workflow}</Badge>
-                      </div>
-                      <span className="font-mono text-sm font-medium">{formatCurrency(Number(c.budget))}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+          <SessionFinancierTab
+            sessionId={session.id}
+            financials={financials}
+            creneauxCount={creneaux.length}
+            commanditairesCount={commanditaires.length}
+          />
         </TabsContent>
 
         {/* ═══ Tâches Tab ═══ */}
@@ -1512,7 +1508,49 @@ function AddCommanditaireForm({
   onSuccess: () => void;
 }) {
   const [loading, setLoading] = React.useState(false);
+  const [subrogationMode, setSubrogationMode] = React.useState<"direct" | "subrogation_partielle" | "subrogation_totale">("direct");
+  const [budget, setBudget] = React.useState(0);
+  const [montantEntreprise, setMontantEntreprise] = React.useState(0);
+  const [montantFinanceur, setMontantFinanceur] = React.useState(0);
   const { toast } = useToast();
+
+  const handleBudgetChange = (newBudget: number) => {
+    setBudget(newBudget);
+    if (subrogationMode === "direct") {
+      setMontantEntreprise(newBudget);
+      setMontantFinanceur(0);
+    } else if (subrogationMode === "subrogation_totale") {
+      setMontantEntreprise(0);
+      setMontantFinanceur(newBudget);
+    }
+  };
+
+  const handleModeChange = (mode: "direct" | "subrogation_partielle" | "subrogation_totale") => {
+    setSubrogationMode(mode);
+    if (mode === "direct") {
+      setMontantEntreprise(budget);
+      setMontantFinanceur(0);
+    } else if (mode === "subrogation_totale") {
+      setMontantEntreprise(0);
+      setMontantFinanceur(budget);
+    } else {
+      // subrogation_partielle — keep current or split 50/50
+      if (montantEntreprise === 0 && montantFinanceur === 0 && budget > 0) {
+        setMontantEntreprise(Math.round(budget / 2 * 100) / 100);
+        setMontantFinanceur(Math.round(budget / 2 * 100) / 100);
+      }
+    }
+  };
+
+  const handleMontantEntrepriseChange = (val: number) => {
+    setMontantEntreprise(val);
+    setMontantFinanceur(Math.max(0, Math.round((budget - val) * 100) / 100));
+  };
+
+  const handleMontantFinanceurChange = (val: number) => {
+    setMontantFinanceur(val);
+    setMontantEntreprise(Math.max(0, Math.round((budget - val) * 100) / 100));
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -1522,8 +1560,13 @@ function AddCommanditaireForm({
       entreprise_id: (fd.get("entreprise_id") as string) || "",
       contact_client_id: (fd.get("contact_client_id") as string) || "",
       financeur_id: (fd.get("financeur_id") as string) || "",
-      budget: Number(fd.get("budget")) || 0,
+      budget,
       notes: (fd.get("notes") as string) || "",
+      subrogation_mode: subrogationMode,
+      montant_entreprise: montantEntreprise,
+      montant_financeur: montantFinanceur,
+      facturer_entreprise: subrogationMode === "subrogation_totale" ? false : true,
+      facturer_financeur: subrogationMode !== "direct",
     };
 
     const res = await addCommanditaire(sessionId, input);
@@ -1535,6 +1578,8 @@ function AddCommanditaireForm({
     toast({ title: "Commanditaire ajouté", variant: "success" });
     onSuccess();
   };
+
+  const showSubrogation = subrogationMode !== "direct";
 
   return (
     <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-4">
@@ -1565,7 +1610,7 @@ function AddCommanditaireForm({
             </select>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs">Financeur</Label>
+            <Label className="text-xs">Financeur (OPCO)</Label>
             <select name="financeur_id" className="h-8 w-full rounded-md border border-input bg-muted px-2 text-sm text-foreground">
               <option value="">-- Aucun --</option>
               {financeurs.map((f) => (
@@ -1574,10 +1619,70 @@ function AddCommanditaireForm({
             </select>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs">Budget (€)</Label>
-            <Input name="budget" type="number" step="0.01" min="0" defaultValue="0" className="h-8 text-sm border-border/60" />
+            <Label className="text-xs">Budget total (€)</Label>
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              value={budget || ""}
+              onChange={(e) => handleBudgetChange(Number(e.target.value) || 0)}
+              className="h-8 text-sm border-border/60"
+            />
           </div>
         </div>
+
+        {/* Mode de facturation */}
+        <div className="space-y-1.5">
+          <Label className="text-xs">Mode de facturation</Label>
+          <select
+            value={subrogationMode}
+            onChange={(e) => handleModeChange(e.target.value as "direct" | "subrogation_partielle" | "subrogation_totale")}
+            className="h-8 w-full rounded-md border border-input bg-muted px-2 text-sm text-foreground"
+          >
+            <option value="direct">Direct — l&apos;entreprise paie 100%</option>
+            <option value="subrogation_partielle">Subrogation partielle — OPCO + entreprise</option>
+            <option value="subrogation_totale">Subrogation totale — OPCO paie 100%</option>
+          </select>
+        </div>
+
+        {/* Répartition montants (visible si subrogation) */}
+        {showSubrogation && (
+          <div className="rounded-md border border-border/60 bg-muted/30 p-3 space-y-3">
+            <p className="text-xs font-medium text-muted-foreground">Répartition du budget</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Part entreprise (€)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={montantEntreprise || ""}
+                  onChange={(e) => handleMontantEntrepriseChange(Number(e.target.value) || 0)}
+                  disabled={subrogationMode === "subrogation_totale"}
+                  className="h-8 text-sm border-border/60"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Part financeur (€)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={montantFinanceur || ""}
+                  onChange={(e) => handleMontantFinanceurChange(Number(e.target.value) || 0)}
+                  disabled={subrogationMode === "subrogation_totale"}
+                  className="h-8 text-sm border-border/60"
+                />
+              </div>
+            </div>
+            {budget > 0 && Math.abs(montantEntreprise + montantFinanceur - budget) > 0.01 && (
+              <p className="text-xs text-destructive">
+                La somme ({(montantEntreprise + montantFinanceur).toFixed(2)} €) ne correspond pas au budget ({budget.toFixed(2)} €)
+              </p>
+            )}
+          </div>
+        )}
+
         <div className="space-y-1.5">
           <Label className="text-xs">Notes</Label>
           <Input name="notes" placeholder="Notes optionnelles..." className="h-8 text-sm border-border/60" />

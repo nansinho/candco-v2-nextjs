@@ -578,6 +578,8 @@ export async function sendConventionForSignature(sessionId: string, commanditair
       documenso_envelope_id: envelopeId,
       documenso_status: "pending",
       signature_sent_at: new Date().toISOString(),
+      convention_statut: "envoyee",
+      convention_sent_at: new Date().toISOString(),
     };
     // Auto-advance workflow if currently at 'convention'
     if (commanditaire.statut_workflow === "convention" || commanditaire.statut_workflow === "analyse") {
@@ -691,10 +693,14 @@ export async function checkConventionSignatureStatus(commanditaireId: string) {
 
       if (newStatus === "signed") {
         updates.convention_signee = true;
+        updates.convention_statut = "signee";
+        updates.convention_signed_at = recipient?.signedAt || new Date().toISOString();
         // Auto-advance workflow if at 'signature'
         if (cmd.statut_workflow === "signature") {
           updates.statut_workflow = "facturation";
         }
+      } else if (newStatus === "rejected") {
+        updates.convention_statut = "refusee";
       }
 
       await admin.from("session_commanditaires").update(updates).eq("id", commanditaireId);
@@ -703,7 +709,7 @@ export async function checkConventionSignatureStatus(commanditaireId: string) {
       await admin
         .from("signature_requests")
         .update({
-          documenso_status: newStatus === "signed" ? "completed" : newStatus,
+          documenso_status: newStatus,
           signed_at: newStatus === "signed" ? (recipient?.signedAt || new Date().toISOString()) : null,
           updated_at: new Date().toISOString(),
         })

@@ -39,6 +39,7 @@ const CreateDevisSchema = z.object({
   statut: z.enum(["brouillon", "envoye", "signe", "refuse", "expire"]).default("brouillon"),
   opportunite_id: z.string().uuid().optional().or(z.literal("")),
   session_id: z.string().uuid().optional().or(z.literal("")),
+  commanditaire_id: z.string().uuid().optional().or(z.literal("")),
   lignes: z.array(DevisLigneSchema).default([]),
 });
 
@@ -100,6 +101,7 @@ export async function createDevis(input: CreateDevisInput) {
       statut: parsed.data.statut,
       opportunite_id: parsed.data.opportunite_id || null,
       session_id: parsed.data.session_id || null,
+      commanditaire_id: parsed.data.commanditaire_id || null,
       ...totals,
     })
     .select()
@@ -241,6 +243,7 @@ export async function updateDevis(id: string, input: UpdateDevisInput) {
       // Note: statut is NOT updated via form save — only through explicit actions (sendDevis, markDevisRefused, etc.)
       opportunite_id: parsed.data.opportunite_id || null,
       session_id: parsed.data.session_id || null,
+      commanditaire_id: parsed.data.commanditaire_id || null,
       ...totals,
     })
     .eq("id", id)
@@ -422,6 +425,7 @@ export async function convertDevisToFacture(devisId: string) {
       statut: "brouillon",
       devis_id: devisId,
       session_id: devisData.session_id,
+      commanditaire_id: devisData.commanditaire_id || null,
     })
     .select()
     .single();
@@ -803,4 +807,98 @@ export async function convertDevisToSession(devisId: string) {
   revalidatePath(`/devis/${devisId}`);
   revalidatePath("/sessions");
   return { data: { id: session.id, numero_affichage: session.numero_affichage } };
+}
+
+// ─── Create devis from commanditaire ────────────────────
+
+export async function createDevisFromCommanditaire(sessionId: string, commanditaireId: string) {
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role, supabase } = result;
+  requirePermission(role as UserRole, canManageFinances, "créer un devis");
+
+  // Fetch commanditaire with related data
+  const { data: cmd } = await supabase
+    .from("session_commanditaires")
+    .select(`
+      *,
+      entreprises(id, nom, email),
+      contacts_clients(id, prenom, nom, email),
+      financeurs(id, nom)
+    `)
+    .eq("id", commanditaireId)
+    .single();
+
+  if (!cmd) return { error: "Commanditaire introuvable" };
+
+  // Fetch session info for the devis objet
+  const { data: session } = await supabase
+    .from("sessions")
+    .select("nom, numero_affichage, produit_id, produits_formation(intitule)")
+    .eq("id", sessionId)
+    .single();
+
+  const { data: numero } = await supabase.rpc("next_numero", {
+    p_organisation_id: organisationId,
+    p_entite: "D",
+    p_year: new Date().getFullYear(),
+  });
+
+  const produit = session?.produits_formation as unknown as { intitule: string } | null;
+  const objet = produit?.intitule
+    ? `Formation : ${produit.intitule} — Session ${session?.numero_affichage ?? ""}`
+    : `Session ${session?.numero_affichage ?? session?.nom ?? ""}`;
+
+  const budget = Number(cmd.budget) || 0;
+
+  const { data: devis, error } = await supabase
+    .from("devis")
+    .insert({
+      organisation_id: organisationId,
+      numero_affichage: numero,
+      entreprise_id: cmd.entreprise_id || null,
+      contact_client_id: cmd.contact_client_id || null,
+      date_emission: new Date().toISOString().split("T")[0],
+      objet,
+      statut: "brouillon",
+      session_id: sessionId,
+      commanditaire_id: commanditaireId,
+      total_ht: budget,
+      total_tva: 0,
+      total_ttc: budget,
+    })
+    .select()
+    .single();
+
+  if (error) return { error: error.message };
+
+  // Create a default line from the budget
+  if (budget > 0) {
+    await supabase.from("devis_lignes").insert({
+      devis_id: devis.id,
+      designation: objet,
+      quantite: 1,
+      prix_unitaire_ht: budget,
+      taux_tva: 0,
+      montant_ht: budget,
+      ordre: 0,
+    });
+  }
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "devis",
+    action: "created",
+    entiteType: "devis",
+    entiteId: devis.id,
+    entiteLabel: devis.numero_affichage,
+    description: `Devis ${devis.numero_affichage} créé depuis commanditaire "${cmd.entreprises?.nom ?? "?"}" (session ${session?.numero_affichage ?? sessionId})`,
+    objetHref: `/devis/${devis.id}`,
+  });
+
+  revalidatePath(`/sessions/${sessionId}`);
+  revalidatePath("/devis");
+  return { data: devis };
 }
