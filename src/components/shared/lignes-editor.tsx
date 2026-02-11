@@ -57,8 +57,8 @@ export function LignesEditor({ lignes, onChange, readOnly = false }: LignesEdito
 
   return (
     <div className="space-y-3">
-      {/* Header */}
-      <div className="grid grid-cols-[1fr_80px_100px_70px_100px_32px] gap-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wide px-1">
+      {/* Header — desktop only */}
+      <div className="hidden md:grid grid-cols-[1fr_80px_100px_70px_100px_32px] gap-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wide px-1">
         <span>Désignation</span>
         <span className="text-right">Qté</span>
         <span className="text-right">P.U. HT</span>
@@ -71,11 +71,86 @@ export function LignesEditor({ lignes, onChange, readOnly = false }: LignesEdito
       {lignes.map((ligne, index) => {
         const ligneHT = ligne.quantite * ligne.prix_unitaire_ht;
         return (
-          <div
-            key={index}
-            className="grid grid-cols-[1fr_80px_100px_70px_100px_32px] gap-2 items-start"
-          >
-            <div className="space-y-1">
+          <div key={index}>
+            {/* Desktop layout */}
+            <div className="hidden md:grid grid-cols-[1fr_80px_100px_70px_100px_32px] gap-2 items-start">
+              <div className="space-y-1">
+                <Input
+                  value={ligne.designation}
+                  onChange={(e) => updateLigne(index, "designation", e.target.value)}
+                  placeholder="Désignation"
+                  className="h-8 text-[13px] border-border/60"
+                  readOnly={readOnly}
+                />
+                <Input
+                  value={ligne.description}
+                  onChange={(e) => updateLigne(index, "description", e.target.value)}
+                  placeholder="Description (optionnel)"
+                  className="h-7 text-[11px] text-muted-foreground border-border/40"
+                  readOnly={readOnly}
+                />
+              </div>
+              <Input
+                type="number"
+                value={ligne.quantite}
+                onChange={(e) => updateLigne(index, "quantite", Number(e.target.value))}
+                className="h-8 text-[13px] text-right border-border/60"
+                min="0"
+                step="0.01"
+                readOnly={readOnly}
+              />
+              <Input
+                type="number"
+                value={ligne.prix_unitaire_ht}
+                onChange={(e) => updateLigne(index, "prix_unitaire_ht", Number(e.target.value))}
+                className="h-8 text-[13px] text-right border-border/60"
+                min="0"
+                step="0.01"
+                readOnly={readOnly}
+              />
+              <Input
+                type="number"
+                value={ligne.taux_tva}
+                onChange={(e) => updateLigne(index, "taux_tva", Number(e.target.value))}
+                className="h-8 text-[13px] text-right border-border/60"
+                min="0"
+                step="0.01"
+                readOnly={readOnly}
+              />
+              <div className="flex h-8 items-center justify-end font-mono text-[13px]">
+                {formatCurrency(ligneHT)}
+              </div>
+              {!readOnly && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeLigne(index)}
+                  className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
+
+            {/* Mobile layout — card per line */}
+            <div className="md:hidden rounded-lg border border-border/40 bg-muted/30 p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+                  Ligne {index + 1}
+                </span>
+                {!readOnly && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeLigne(index)}
+                    className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </div>
               <Input
                 value={ligne.designation}
                 onChange={(e) => updateLigne(index, "designation", e.target.value)}
@@ -90,48 +165,49 @@ export function LignesEditor({ lignes, onChange, readOnly = false }: LignesEdito
                 className="h-7 text-[11px] text-muted-foreground border-border/40"
                 readOnly={readOnly}
               />
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="text-[10px] text-muted-foreground mb-1 block">Qté</label>
+                  <Input
+                    type="number"
+                    value={ligne.quantite}
+                    onChange={(e) => updateLigne(index, "quantite", Number(e.target.value))}
+                    className="h-8 text-[13px] text-right border-border/60"
+                    min="0"
+                    step="0.01"
+                    readOnly={readOnly}
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-muted-foreground mb-1 block">P.U. HT</label>
+                  <Input
+                    type="number"
+                    value={ligne.prix_unitaire_ht}
+                    onChange={(e) => updateLigne(index, "prix_unitaire_ht", Number(e.target.value))}
+                    className="h-8 text-[13px] text-right border-border/60"
+                    min="0"
+                    step="0.01"
+                    readOnly={readOnly}
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-muted-foreground mb-1 block">TVA %</label>
+                  <Input
+                    type="number"
+                    value={ligne.taux_tva}
+                    onChange={(e) => updateLigne(index, "taux_tva", Number(e.target.value))}
+                    className="h-8 text-[13px] text-right border-border/60"
+                    min="0"
+                    step="0.01"
+                    readOnly={readOnly}
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end pt-1 border-t border-border/30">
+                <span className="text-[12px] text-muted-foreground mr-2">Total HT :</span>
+                <span className="font-mono text-[13px] font-medium">{formatCurrency(ligneHT)}</span>
+              </div>
             </div>
-            <Input
-              type="number"
-              value={ligne.quantite}
-              onChange={(e) => updateLigne(index, "quantite", Number(e.target.value))}
-              className="h-8 text-[13px] text-right border-border/60"
-              min="0"
-              step="0.01"
-              readOnly={readOnly}
-            />
-            <Input
-              type="number"
-              value={ligne.prix_unitaire_ht}
-              onChange={(e) => updateLigne(index, "prix_unitaire_ht", Number(e.target.value))}
-              className="h-8 text-[13px] text-right border-border/60"
-              min="0"
-              step="0.01"
-              readOnly={readOnly}
-            />
-            <Input
-              type="number"
-              value={ligne.taux_tva}
-              onChange={(e) => updateLigne(index, "taux_tva", Number(e.target.value))}
-              className="h-8 text-[13px] text-right border-border/60"
-              min="0"
-              step="0.01"
-              readOnly={readOnly}
-            />
-            <div className="flex h-8 items-center justify-end font-mono text-[13px]">
-              {formatCurrency(ligneHT)}
-            </div>
-            {!readOnly && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => removeLigne(index)}
-                className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
-            )}
           </div>
         );
       })}
@@ -143,7 +219,7 @@ export function LignesEditor({ lignes, onChange, readOnly = false }: LignesEdito
           variant="outline"
           size="sm"
           onClick={addLigne}
-          className="h-8 text-xs border-dashed border-border/60"
+          className="h-8 text-xs border-dashed border-border/60 w-full md:w-auto"
         >
           <Plus className="mr-1 h-3 w-3" />
           Ajouter une ligne

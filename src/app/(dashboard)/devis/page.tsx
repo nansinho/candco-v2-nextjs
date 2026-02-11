@@ -259,7 +259,7 @@ export default function DevisPage() {
       />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto w-[calc(100%-1rem)] sm:w-[calc(100%-2rem)]">
           <DialogHeader>
             <DialogTitle>Nouveau devis</DialogTitle>
             <DialogDescription>
@@ -439,7 +439,7 @@ function CreateDevisForm({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="particulier_email" className="text-[13px]">
                 Email
@@ -483,7 +483,7 @@ function CreateDevisForm({
         </>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-2">
           <Label htmlFor="date_emission" className="text-[13px]">
             Date d'émission <span className="text-destructive">*</span>
