@@ -17,6 +17,7 @@ import {
 import { useToast } from "@/components/ui/toast";
 import { getProduits, createDraftProduit, createProduitFromPDF, archiveProduit, unarchiveProduit, deleteProduits, importProduits } from "@/actions/produits";
 import { formatDate } from "@/lib/utils";
+import { formatHoursMinutes } from "@/components/planning/calendar-utils";
 
 interface Produit {
   id: string;
@@ -140,7 +141,7 @@ const columns: Column<Produit>[] = [
         return (
           <span className="flex items-center gap-1 text-[13px] text-muted-foreground">
             <Clock className="h-3 w-3" />
-            {item.duree_heures}h
+            {formatHoursMinutes(item.duree_heures)}
           </span>
         );
       }

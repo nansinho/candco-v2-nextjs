@@ -43,6 +43,7 @@ import {
 } from "@/components/shared/session-status-badge";
 import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
 import { formatDate, formatCurrency } from "@/lib/utils";
+import { formatDuration } from "@/components/planning/calendar-utils";
 import { DatePicker } from "@/components/ui/date-picker";
 import { useBreadcrumb } from "@/components/layout/breadcrumb-context";
 import {
@@ -904,7 +905,7 @@ export function SessionDetail({
                       </span>
                       {c.duree_minutes && (
                         <span className="text-[11px] text-muted-foreground/50">
-                          ({Math.round(c.duree_minutes / 60 * 10) / 10}h)
+                          ({formatDuration(c.duree_minutes)})
                         </span>
                       )}
                     </div>
