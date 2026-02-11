@@ -1,5 +1,5 @@
-import { getProduit, getBpfSpecialites } from "@/actions/produits";
-import { getQuestionnairesByProduit, getProductPlanifications } from "@/actions/questionnaires";
+import { getProduit, getBpfSpecialites, getProduitQuestionnaires } from "@/actions/produits";
+import { getAllQuestionnaires, getProductPlanifications } from "@/actions/questionnaires";
 import { notFound } from "next/navigation";
 import { ProduitDetail } from "./produit-detail";
 
@@ -9,10 +9,11 @@ interface PageProps {
 
 export default async function ProduitDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const [result, bpfResult, questionnairesResult] = await Promise.all([
+  const [result, bpfResult, produitQuestionnairesResult, allQuestionnairesResult] = await Promise.all([
     getProduit(id),
     getBpfSpecialites(),
-    getQuestionnairesByProduit(id),
+    getProduitQuestionnaires(id),
+    getAllQuestionnaires(),
   ]);
 
   if (!result.data) {
@@ -20,7 +21,7 @@ export default async function ProduitDetailPage({ params }: PageProps) {
   }
 
   // Fetch planifications for the linked questionnaires
-  const qIds = (questionnairesResult.data ?? []).map((q) => q.id);
+  const qIds = (produitQuestionnairesResult.data ?? []).map((pq) => pq.questionnaire_id);
   const planificationsResult = await getProductPlanifications(qIds);
 
   return (
@@ -36,7 +37,8 @@ export default async function ProduitDetailPage({ params }: PageProps) {
       ouvrages={result.ouvrages}
       articles={result.articles}
       bpfSpecialites={bpfResult.data}
-      questionnaires={questionnairesResult.data}
+      produitQuestionnaires={produitQuestionnairesResult.data}
+      allQuestionnaires={allQuestionnairesResult.data}
       planifications={planificationsResult.data}
     />
   );
