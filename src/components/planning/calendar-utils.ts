@@ -154,6 +154,28 @@ export function formatDuration(minutes: number | null): string {
   return `${h}h${String(m).padStart(2, "0")}`;
 }
 
+/**
+ * Format decimal hours (e.g. 14.5) into "14h30" format.
+ * Returns "" if value is null/undefined/0.
+ */
+export function formatHoursMinutes(hours: number | null | undefined): string {
+  if (!hours) return "";
+  const h = Math.floor(hours);
+  const m = Math.round((hours - h) * 60);
+  if (m === 0) return `${h}h`;
+  return `${h}h${String(m).padStart(2, "0")}`;
+}
+
+/**
+ * Split decimal hours into { hours, minutes } for form inputs.
+ */
+export function splitHoursMinutes(decimalHours: number | null | undefined): { hours: number; minutes: number } {
+  if (!decimalHours) return { hours: 0, minutes: 0 };
+  const h = Math.floor(decimalHours);
+  const m = Math.round((decimalHours - h) * 60);
+  return { hours: h, minutes: m };
+}
+
 export function formatTimeRange(debut: string, fin: string): string {
   return `${debut.slice(0, 5)} — ${fin.slice(0, 5)}`;
 }

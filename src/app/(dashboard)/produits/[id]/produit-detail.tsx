@@ -55,6 +55,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { TachesActivitesTab } from "@/components/shared/taches-activites";
 import { HistoriqueTimeline } from "@/components/shared/historique-timeline";
 import { formatDate, formatCurrency } from "@/lib/utils";
+import { formatHoursMinutes, splitHoursMinutes } from "@/components/planning/calendar-utils";
 import { useBreadcrumb } from "@/components/layout/breadcrumb-context";
 import {
   updateProduit,
@@ -455,7 +456,7 @@ export function ProduitDetail({
   // ─── Dynamic field tracking for real-time completion ────
   const TRACKABLE_FIELDS = [
     "intitule", "sous_titre", "description", "domaine", "categorie",
-    "type_action", "modalite", "formule", "duree_heures", "duree_jours",
+    "type_action", "modalite", "formule", "duree_h", "duree_jours",
     "certification", "delai_acces", "lieu_format",
     "modalites_evaluation", "modalites_pedagogiques", "moyens_pedagogiques",
     "accessibilite", "equipe_pedagogique",
@@ -504,7 +505,7 @@ export function ProduitDetail({
   // ─── Dynamic completion calculation ─────────────────────
   const COMPLETION_FIELDS = [
     "intitule", "description", "domaine", "type_action", "modalite", "formule",
-    "duree_heures", "duree_jours", "certification", "delai_acces", "lieu_format",
+    "duree_h", "duree_jours", "certification", "delai_acces", "lieu_format",
     "modalites_evaluation", "modalites_pedagogiques", "moyens_pedagogiques",
     "accessibilite", "equipe_pedagogique",
   ];
@@ -529,7 +530,7 @@ export function ProduitDetail({
 
   // ─── Dynamic missing counts (for tab badges) ───────────
   const missingGeneral = [isFilled("intitule"), isFilled("description"), isFilled("domaine"), isFilled("type_action"), isFilled("modalite"), isFilled("formule")].filter((v) => !v).length;
-  const missingPratique = [isFilled("duree_heures"), isFilled("certification"), isFilled("delai_acces"), isFilled("lieu_format")].filter((v) => !v).length
+  const missingPratique = [isFilled("duree_h"), isFilled("certification"), isFilled("delai_acces"), isFilled("lieu_format")].filter((v) => !v).length
     + (initialTarifs.length === 0 ? 1 : 0) + (initialPrerequis.length === 0 ? 1 : 0) + (initialPublicVise.length === 0 ? 1 : 0)
     + (initialFinancement.length === 0 ? 1 : 0)
     + ((!isFilled("nombre_participants_min") && !isFilled("nombre_participants_max")) ? 1 : 0);
@@ -556,7 +557,9 @@ export function ProduitDetail({
       type_action: (fd.get("type_action") as string) || undefined,
       modalite: (fd.get("modalite") as string) || undefined,
       formule: (fd.get("formule") as string) || undefined,
-      duree_heures: fd.get("duree_heures") ? Number(fd.get("duree_heures")) : undefined,
+      duree_heures: (fd.get("duree_h") || fd.get("duree_m"))
+        ? (Number(fd.get("duree_h") || 0) + Number(fd.get("duree_m") || 0) / 60)
+        : undefined,
       duree_jours: fd.get("duree_jours") ? Number(fd.get("duree_jours")) : undefined,
       bpf_specialite_id: (fd.get("bpf_specialite_id") as string) || undefined,
       bpf_categorie: (fd.get("bpf_categorie") as string) || undefined,
@@ -924,12 +927,16 @@ export function ProduitDetail({
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Label className="text-[13px]">Durée <span className="text-destructive">*</span></Label>
-                      <FieldBadge filled={isFilled("duree_heures")} />
+                      <FieldBadge filled={isFilled("duree_h")} />
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-[1fr_auto_1fr_1fr] gap-2 items-center">
                       <div className="flex items-center gap-2">
-                        <Input id="duree_heures" name="duree_heures" type="number" step="0.5" min="0" defaultValue={produit.duree_heures ?? ""} placeholder="15" className="h-9 text-[13px] border-border/60" />
-                        <span className="text-xs text-muted-foreground shrink-0">heures</span>
+                        <Input id="duree_h" name="duree_h" type="number" step="1" min="0" defaultValue={splitHoursMinutes(produit.duree_heures).hours || ""} placeholder="14" className="h-9 text-[13px] border-border/60" />
+                        <span className="text-xs text-muted-foreground shrink-0">h</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Input id="duree_m" name="duree_m" type="number" step="5" min="0" max="59" defaultValue={splitHoursMinutes(produit.duree_heures).minutes || ""} placeholder="30" className="h-9 text-[13px] border-border/60 w-[70px]" />
+                        <span className="text-xs text-muted-foreground shrink-0">min</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Input id="duree_jours" name="duree_jours" type="number" step="0.5" min="0" defaultValue={produit.duree_jours ?? ""} placeholder="2" className="h-9 text-[13px] border-border/60" />
@@ -1351,7 +1358,7 @@ function FormationPreview({ open, onClose, produit, tarifs, objectifs, programme
 
   const handleShareEmail = () => {
     const subject = encodeURIComponent(`Formation : ${produit.intitule}`);
-    const body = encodeURIComponent(`Découvrez notre formation "${produit.intitule}".\n\n${produit.description ? produit.description.replace(/<[^>]+>/g, '') : ''}\n\nDurée : ${produit.duree_heures ? `${produit.duree_heures}h` : 'Non défini'}${produit.duree_jours ? ` (${produit.duree_jours} jour${produit.duree_jours > 1 ? 's' : ''})` : ''}`);
+    const body = encodeURIComponent(`Découvrez notre formation "${produit.intitule}".\n\n${produit.description ? produit.description.replace(/<[^>]+>/g, '') : ''}\n\nDurée : ${produit.duree_heures ? formatHoursMinutes(produit.duree_heures) : 'Non défini'}${produit.duree_jours ? ` (${produit.duree_jours} jour${produit.duree_jours > 1 ? 's' : ''})` : ''}`);
     window.open(`mailto:?subject=${subject}&body=${body}`);
   };
 
@@ -1440,7 +1447,7 @@ function FormationPreview({ open, onClose, produit, tarifs, objectifs, programme
             {produit.duree_heures && (
               <div className="rounded-lg border border-border/60 p-3">
                 <p className="text-[10px] text-muted-foreground">Durée</p>
-                <p className="text-[12px] font-medium mt-0.5">{produit.duree_heures}h{produit.duree_jours ? ` (${produit.duree_jours}j)` : ""}</p>
+                <p className="text-[12px] font-medium mt-0.5">{formatHoursMinutes(produit.duree_heures)}{produit.duree_jours ? ` (${produit.duree_jours}j)` : ""}</p>
               </div>
             )}
             {tarifs.length > 0 && (
