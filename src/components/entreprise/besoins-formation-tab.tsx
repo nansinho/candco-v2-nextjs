@@ -37,6 +37,7 @@ import {
   deleteBesoinFormation,
   searchProduitsForBesoin,
   getProduitDefaultTarif,
+  getProduitTarifs,
   type CreateBesoinInput,
 } from "@/actions/besoins-formation";
 import {
@@ -53,6 +54,15 @@ import {
 
 // ─── Types ───────────────────────────────────────────────
 
+interface TarifOption {
+  id: string;
+  nom: string | null;
+  prix_ht: number;
+  taux_tva: number;
+  unite: string | null;
+  is_default: boolean;
+}
+
 interface Besoin {
   id: string;
   intitule: string;
@@ -67,6 +77,7 @@ interface Besoin {
   agence_id: string | null;
   session_id: string | null;
   produit_id: string | null;
+  tarif_id: string | null;
   plan_formation_id: string | null;
   siege_social: boolean;
   agences_ids: string[];
@@ -204,17 +215,29 @@ export function BesoinsFormationTab({
       const alertsRes = await checkBudgetAlerts(entrepriseId, targetYr);
       setBudgetAlerts(alertsRes.data);
 
-      // Load tarifs for all produit_ids in besoins (for card display)
-      const produitIds = [...new Set(
-        loadedBesoins.filter((b) => b.produit_id).map((b) => b.produit_id as string)
-      )];
+      // Load tarifs for card display (keyed by tarif_id or produit_id)
       const newCache: Record<string, number> = {};
-      for (const pid of produitIds) {
-        if (!tarifCache[pid]) {
-          const tarifRes = await getProduitDefaultTarif(pid);
-          if (tarifRes.data?.prix_ht) {
-            newCache[pid] = Number(tarifRes.data.prix_ht);
-          }
+      const produitIdsToFetch = [...new Set(
+        loadedBesoins.filter((b) => b.produit_id).map((b) => b.produit_id as string),
+      )];
+      // Fetch all tarifs for all relevant products in batch
+      const allTarifsMap = new Map<string, TarifOption[]>();
+      for (const pid of produitIdsToFetch) {
+        const tarifsRes = await getProduitTarifs(pid);
+        allTarifsMap.set(pid, (tarifsRes.data ?? []) as TarifOption[]);
+      }
+      // Build cache: for each besoin, use tarif_id price or default price
+      for (const b of loadedBesoins) {
+        const cacheKey = b.tarif_id || b.produit_id;
+        if (!cacheKey || tarifCache[cacheKey] || newCache[cacheKey]) continue;
+
+        const tarifs = b.produit_id ? allTarifsMap.get(b.produit_id) : undefined;
+        if (b.tarif_id && tarifs) {
+          const found = tarifs.find((t) => t.id === b.tarif_id);
+          if (found) newCache[b.tarif_id] = Number(found.prix_ht);
+        } else if (b.produit_id && tarifs) {
+          const defaultTarif = tarifs.find((t) => t.is_default);
+          if (defaultTarif) newCache[b.produit_id] = Number(defaultTarif.prix_ht);
         }
       }
       if (Object.keys(newCache).length > 0) {
@@ -274,6 +297,7 @@ export function BesoinsFormationTab({
       type_besoin: typeBesoin,
       produit_id: produitId,
       plan_formation_id: isPonctuel ? "" : planFormationId,
+      tarif_id: (fd.get("tarif_id") as string) || "",
       siege_social: fd.get("siege_social") === "on",
       agences_ids: agencesIds,
     };
@@ -614,7 +638,7 @@ export function BesoinsFormationTab({
               key={b.id}
               besoin={b}
               agences={agences}
-              tarifPrixHt={b.produit_id ? (tarifCache[b.produit_id] ?? null) : null}
+              tarifPrixHt={(b.tarif_id || b.produit_id) ? (tarifCache[b.tarif_id || b.produit_id || ""] ?? null) : null}
               editingId={editingId}
               editIntitule={editIntitule}
               onEditIntituleChange={setEditIntitule}
@@ -789,7 +813,9 @@ function CreateFormationPlanForm({
   const [showProduitSearch, setShowProduitSearch] = React.useState(false);
   const [searchLoading, setSearchLoading] = React.useState(false);
   const [intitule, setIntitule] = React.useState("");
-  const [tarifInfo, setTarifInfo] = React.useState<{ prix_ht: number; unite: string } | null>(null);
+  const [availableTarifs, setAvailableTarifs] = React.useState<TarifOption[]>([]);
+  const [selectedTarif, setSelectedTarif] = React.useState<TarifOption | null>(null);
+  const [tarifsLoading, setTarifsLoading] = React.useState(false);
   const [selectedAgences, setSelectedAgences] = React.useState<string[]>([]);
   const [siegeSocial, setSiegeSocial] = React.useState(false);
   const [selectedAnnee, setSelectedAnnee] = React.useState(currentYear);
@@ -812,12 +838,19 @@ function CreateFormationPlanForm({
     setShowProduitSearch(false);
     setSearchProduit("");
 
-    // Fetch default tarif for display
-    const tarifRes = await getProduitDefaultTarif(produit.id);
-    if (tarifRes.data?.prix_ht) {
-      setTarifInfo({ prix_ht: Number(tarifRes.data.prix_ht), unite: tarifRes.data.unite || "" });
-    } else {
-      setTarifInfo(null);
+    // Reset tariff state and fetch ALL tarifs for this product
+    setSelectedTarif(null);
+    setAvailableTarifs([]);
+    setTarifsLoading(true);
+
+    const tarifsRes = await getProduitTarifs(produit.id);
+    const tarifs = (tarifsRes.data ?? []) as TarifOption[];
+    setAvailableTarifs(tarifs);
+    setTarifsLoading(false);
+
+    // Auto-select if single tariff
+    if (tarifs.length === 1) {
+      setSelectedTarif(tarifs[0]);
     }
   };
 
@@ -839,7 +872,7 @@ function CreateFormationPlanForm({
   // Budget preview: show what happens after adding this formation
   const activePlan = plans.find((p) => p.annee === selectedAnnee);
   const activeBudget = activePlan ? planBudgets[activePlan.id] : null;
-  const addedCost = tarifInfo?.prix_ht ?? 0;
+  const addedCost = selectedTarif?.prix_ht ?? 0;
   const previewEngaged = (activeBudget?.budgetEngage ?? 0) + addedCost;
   const previewRemaining = (activeBudget?.budgetTotal ?? 0) - previewEngaged;
 
@@ -856,6 +889,7 @@ function CreateFormationPlanForm({
 
       <form onSubmit={onSubmit} className="space-y-3">
         <input type="hidden" name="produit_id" value={selectedProduit?.id || ""} />
+        <input type="hidden" name="tarif_id" value={selectedTarif?.id || ""} />
         <input type="hidden" name="siege_social" value={siegeSocial ? "on" : ""} />
         {selectedAgences.map((id) => (
           <input key={id} type="hidden" name="agences_ids" value={id} />
@@ -869,16 +903,16 @@ function CreateFormationPlanForm({
               <BookOpen className="h-3.5 w-3.5 text-primary shrink-0" />
               <span className="text-[12px] font-medium truncate">{selectedProduit.intitule}</span>
               <span className="text-[10px] font-mono text-muted-foreground/50">{selectedProduit.numero_affichage}</span>
-              {tarifInfo && (
+              {selectedTarif && (
                 <Badge variant="outline" className="text-[10px] ml-auto shrink-0 text-emerald-400 border-emerald-500/20">
                   <TrendingUp className="h-2.5 w-2.5 mr-0.5" />
-                  {formatCurrency(tarifInfo.prix_ht)}
-                  {tarifInfo.unite && ` / ${tarifInfo.unite}`}
+                  {formatCurrency(selectedTarif.prix_ht)}
+                  {selectedTarif.unite && ` / ${selectedTarif.unite}`}
                 </Badge>
               )}
               <button
                 type="button"
-                onClick={() => { setSelectedProduit(null); setIntitule(""); setTarifInfo(null); }}
+                onClick={() => { setSelectedProduit(null); setIntitule(""); setSelectedTarif(null); setAvailableTarifs([]); }}
                 className="text-muted-foreground hover:text-foreground shrink-0"
               >
                 <X className="h-3 w-3" />
@@ -932,6 +966,78 @@ function CreateFormationPlanForm({
             </div>
           )}
         </div>
+
+        {/* Tariff selection */}
+        {selectedProduit && (
+          <div className="space-y-1.5">
+            <Label className="text-[12px]">
+              Tarif <span className="text-destructive">*</span>
+            </Label>
+            {tarifsLoading ? (
+              <div className="flex items-center gap-2 py-2">
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                <span className="text-[11px] text-muted-foreground/60">Chargement des tarifs...</span>
+              </div>
+            ) : availableTarifs.length === 0 ? (
+              <p className="text-[11px] text-amber-400">
+                Aucun tarif configuré pour ce programme.
+              </p>
+            ) : availableTarifs.length === 1 ? (
+              <div className="flex items-center gap-2 rounded-md border border-emerald-500/20 bg-emerald-500/5 px-3 py-2">
+                <TrendingUp className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                <span className="text-[12px] font-medium">
+                  {selectedTarif?.nom || "Tarif unique"}
+                </span>
+                <span className="text-[12px] text-emerald-400 font-semibold ml-auto">
+                  {formatCurrency(selectedTarif?.prix_ht ?? 0)}
+                  {selectedTarif?.unite && ` / ${selectedTarif.unite}`}
+                </span>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                {availableTarifs.map((tarif) => {
+                  const isSelected = selectedTarif?.id === tarif.id;
+                  const prixTTC = tarif.prix_ht * (1 + (tarif.taux_tva || 0) / 100);
+                  return (
+                    <button
+                      key={tarif.id}
+                      type="button"
+                      onClick={() => setSelectedTarif(tarif)}
+                      className={`flex items-center gap-3 w-full rounded-md border px-3 py-2 text-left transition-colors ${
+                        isSelected
+                          ? "border-primary bg-primary/5"
+                          : "border-border/40 bg-muted/20 hover:border-border/80"
+                      }`}
+                    >
+                      <div className={`h-3.5 w-3.5 rounded-full border-2 shrink-0 flex items-center justify-center ${
+                        isSelected ? "border-primary" : "border-muted-foreground/30"
+                      }`}>
+                        {isSelected && <div className="h-1.5 w-1.5 rounded-full bg-primary" />}
+                      </div>
+                      <span className="text-[12px] font-medium truncate">
+                        {tarif.nom || "Tarif"}
+                        {tarif.is_default && (
+                          <span className="ml-1 text-[10px] text-muted-foreground/50">(défaut)</span>
+                        )}
+                      </span>
+                      <div className="ml-auto flex items-center gap-2 shrink-0 text-[11px]">
+                        <span className="font-semibold">{formatCurrency(tarif.prix_ht)} HT</span>
+                        {tarif.taux_tva > 0 && (
+                          <span className="text-muted-foreground/50">
+                            TVA {tarif.taux_tva}% = {formatCurrency(prixTTC)} TTC
+                          </span>
+                        )}
+                        {tarif.unite && (
+                          <span className="text-muted-foreground/40">/ {tarif.unite}</span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Intitulé (editable, auto-filled from programme) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1025,7 +1131,7 @@ function CreateFormationPlanForm({
         </div>
 
         {/* Budget impact preview — only for plan mode */}
-        {!isPonctuel && tarifInfo && activeBudget && activeBudget.budgetTotal > 0 && (
+        {!isPonctuel && selectedTarif && activeBudget && activeBudget.budgetTotal > 0 && (
           <div className={`rounded-md border px-3 py-2 text-[11px] ${
             previewRemaining < 0
               ? "border-destructive/30 bg-destructive/5 text-destructive"
@@ -1046,7 +1152,7 @@ function CreateFormationPlanForm({
           <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={onCancel}>
             Annuler
           </Button>
-          <Button type="submit" size="sm" className="h-7 text-xs" disabled={saving || !selectedProduit}>
+          <Button type="submit" size="sm" className="h-7 text-xs" disabled={saving || !selectedProduit || (availableTarifs.length > 0 && !selectedTarif)}>
             {saving ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Plus className="mr-1 h-3 w-3" />}
             {isPonctuel ? "Ajouter" : "Ajouter au plan"}
           </Button>
@@ -1087,6 +1193,29 @@ function EditFormationModal({
   const [selectedAgences, setSelectedAgences] = React.useState<string[]>(besoin.agences_ids || []);
   const [saving, setSaving] = React.useState(false);
   const searchTimeout = React.useRef<NodeJS.Timeout | null>(null);
+  const [availableTarifs, setAvailableTarifs] = React.useState<TarifOption[]>([]);
+  const [selectedTarif, setSelectedTarif] = React.useState<TarifOption | null>(null);
+  const [tarifsLoading, setTarifsLoading] = React.useState(false);
+
+  // Load tariffs for the current product on mount
+  React.useEffect(() => {
+    if (besoin.produit_id) {
+      setTarifsLoading(true);
+      getProduitTarifs(besoin.produit_id).then((res) => {
+        const tarifs = (res.data ?? []) as TarifOption[];
+        setAvailableTarifs(tarifs);
+        // Pre-select current tarif if stored, otherwise find default
+        const current = tarifs.find((t) => t.id === besoin.tarif_id);
+        if (current) {
+          setSelectedTarif(current);
+        } else {
+          const defaultTarif = tarifs.find((t) => t.is_default);
+          if (defaultTarif) setSelectedTarif(defaultTarif);
+        }
+        setTarifsLoading(false);
+      });
+    }
+  }, [besoin.produit_id, besoin.tarif_id]);
 
   const handleProduitSearch = (value: string) => {
     setSearchProduit(value);
@@ -1099,11 +1228,21 @@ function EditFormationModal({
     }, 300);
   };
 
-  const handleProduitSelect = (produit: ProduitOption) => {
+  const handleProduitSelect = async (produit: ProduitOption) => {
     setSelectedProduit(produit);
     setIntitule(produit.intitule);
     setShowProduitSearch(false);
     setSearchProduit("");
+
+    // Reload tariffs for new product
+    setSelectedTarif(null);
+    setAvailableTarifs([]);
+    setTarifsLoading(true);
+    const tarifsRes = await getProduitTarifs(produit.id);
+    const tarifs = (tarifsRes.data ?? []) as TarifOption[];
+    setAvailableTarifs(tarifs);
+    setTarifsLoading(false);
+    if (tarifs.length === 1) setSelectedTarif(tarifs[0]);
   };
 
   React.useEffect(() => {
@@ -1133,6 +1272,9 @@ function EditFormationModal({
     };
     if (selectedProduit && selectedProduit.id !== besoin.produit_id) {
       updates.produit_id = selectedProduit.id;
+    }
+    if (selectedTarif && selectedTarif.id !== besoin.tarif_id) {
+      updates.tarif_id = selectedTarif.id;
     }
     onSave(updates);
   };
@@ -1210,6 +1352,76 @@ function EditFormationModal({
           </div>
         )}
       </div>
+
+      {/* Tariff selection */}
+      {selectedProduit && (
+        <div className="space-y-1.5">
+          <Label className="text-[12px]">Tarif</Label>
+          {tarifsLoading ? (
+            <div className="flex items-center gap-2 py-2">
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+              <span className="text-[11px] text-muted-foreground/60">Chargement des tarifs...</span>
+            </div>
+          ) : availableTarifs.length === 0 ? (
+            <p className="text-[11px] text-amber-400">
+              Aucun tarif configuré pour ce programme.
+            </p>
+          ) : availableTarifs.length === 1 ? (
+            <div className="flex items-center gap-2 rounded-md border border-emerald-500/20 bg-emerald-500/5 px-3 py-2">
+              <TrendingUp className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+              <span className="text-[12px] font-medium">
+                {selectedTarif?.nom || "Tarif unique"}
+              </span>
+              <span className="text-[12px] text-emerald-400 font-semibold ml-auto">
+                {formatCurrency(selectedTarif?.prix_ht ?? 0)}
+                {selectedTarif?.unite && ` / ${selectedTarif.unite}`}
+              </span>
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              {availableTarifs.map((tarif) => {
+                const isSelected = selectedTarif?.id === tarif.id;
+                const prixTTC = tarif.prix_ht * (1 + (tarif.taux_tva || 0) / 100);
+                return (
+                  <button
+                    key={tarif.id}
+                    type="button"
+                    onClick={() => setSelectedTarif(tarif)}
+                    className={`flex items-center gap-3 w-full rounded-md border px-3 py-2 text-left transition-colors ${
+                      isSelected
+                        ? "border-primary bg-primary/5"
+                        : "border-border/40 bg-muted/20 hover:border-border/80"
+                    }`}
+                  >
+                    <div className={`h-3.5 w-3.5 rounded-full border-2 shrink-0 flex items-center justify-center ${
+                      isSelected ? "border-primary" : "border-muted-foreground/30"
+                    }`}>
+                      {isSelected && <div className="h-1.5 w-1.5 rounded-full bg-primary" />}
+                    </div>
+                    <span className="text-[12px] font-medium truncate">
+                      {tarif.nom || "Tarif"}
+                      {tarif.is_default && (
+                        <span className="ml-1 text-[10px] text-muted-foreground/50">(défaut)</span>
+                      )}
+                    </span>
+                    <div className="ml-auto flex items-center gap-2 shrink-0 text-[11px]">
+                      <span className="font-semibold">{formatCurrency(tarif.prix_ht)} HT</span>
+                      {tarif.taux_tva > 0 && (
+                        <span className="text-muted-foreground/50">
+                          TVA {tarif.taux_tva}% = {formatCurrency(prixTTC)} TTC
+                        </span>
+                      )}
+                      {tarif.unite && (
+                        <span className="text-muted-foreground/40">/ {tarif.unite}</span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1.5">
