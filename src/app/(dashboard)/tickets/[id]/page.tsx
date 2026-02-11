@@ -39,6 +39,7 @@ import {
   type TicketHistoriqueEntry,
 } from "@/actions/tickets";
 import { useRealtimeTicket } from "@/hooks/use-realtime-tickets";
+import { useBreadcrumb } from "@/components/layout/breadcrumb-context";
 import { formatDate } from "@/lib/utils";
 
 // ─── Constants ───────────────────────────────────────────
@@ -130,6 +131,12 @@ export default function TicketDetailPage() {
 
   // Enable realtime
   useRealtimeTicket(ticketId);
+
+  // Set breadcrumb label
+  useBreadcrumb(
+    ticketId,
+    ticketData ? `${ticketData.ticket.numero_affichage} — ${ticketData.ticket.titre}` : undefined,
+  );
 
   // Fetch ticket
   const fetchTicket = React.useCallback(async () => {
@@ -277,9 +284,9 @@ export default function TicketDetailPage() {
     }
   };
 
-  // Keyboard shortcut: Ctrl+Enter to send
+  // Keyboard shortcut: Enter to send, Shift+Enter for new line
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendReply();
     }
@@ -433,7 +440,7 @@ export default function TicketDetailPage() {
             <div className="relative">
               <Textarea
                 ref={textareaRef}
-                placeholder="Écrire une réponse... (Ctrl+Entrée pour envoyer)"
+                placeholder="Écrire une réponse... (Entrée pour envoyer, Shift+Entrée pour nouvelle ligne)"
                 value={replyContent}
                 onChange={handleReplyChange}
                 onKeyDown={handleKeyDown}
@@ -582,7 +589,12 @@ export default function TicketDetailPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {orgUsers.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>{u.nom}</SelectItem>
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.nom}
+                      {u.role === "super_admin" && (
+                        <span className="ml-1 text-muted-foreground">(Super-admin)</span>
+                      )}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -615,6 +627,49 @@ export default function TicketDetailPage() {
               {ticket.closed_at && <InfoRow label="Fermé le" value={formatDate(ticket.closed_at)} />}
             </div>
           </div>
+
+          {/* Fichiers joints — collapsible */}
+          {(() => {
+            const allFiles = messages.flatMap((m) =>
+              (m.fichiers || []).map((f) => ({
+                ...f,
+                auteur_nom: m.auteur_nom,
+                date: m.created_at,
+              })),
+            );
+            if (allFiles.length === 0) return null;
+            return (
+              <details open className="group/files rounded-lg border border-border/60 bg-card">
+                <summary className="flex items-center gap-2 p-4 cursor-pointer select-none text-xs font-medium uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors">
+                  <ChevronDown className="h-3.5 w-3.5 transition-transform group-open/files:rotate-180" />
+                  Fichiers joints ({allFiles.length})
+                </summary>
+                <div className="px-4 pb-4 space-y-1.5">
+                  {allFiles.map((file, i) => {
+                    const isImage = file.mime_type.startsWith("image/");
+                    return (
+                      <a
+                        key={i}
+                        href={file.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 rounded-md border border-border/40 bg-muted/50 px-2.5 py-1.5 text-xs hover:bg-accent transition-colors"
+                      >
+                        {isImage ? <ImageIcon className="h-3.5 w-3.5 shrink-0" /> : <FileText className="h-3.5 w-3.5 shrink-0" />}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-medium">{file.nom}</p>
+                          <p className="text-muted-foreground/60 truncate">
+                            {file.auteur_nom} · {formatTime(file.date)}
+                          </p>
+                        </div>
+                        <Download className="h-3 w-3 text-muted-foreground shrink-0" />
+                      </a>
+                    );
+                  })}
+                </div>
+              </details>
+            );
+          })()}
 
           {/* Historique — collapsible */}
           <details className="group/hist rounded-lg border border-border/60 bg-card">
