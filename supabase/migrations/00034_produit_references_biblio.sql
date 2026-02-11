@@ -97,4 +97,4 @@ CREATE POLICY "Access through produit" ON produit_references_biblio
 CREATE TRIGGER set_updated_at
   BEFORE UPDATE ON produit_references_biblio
   FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
+  EXECUTE FUNCTION update_updated_at();
