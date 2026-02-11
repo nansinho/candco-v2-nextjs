@@ -344,7 +344,7 @@ export async function deleteBesoinFormation(id: string) {
   // Fetch before archiving for historique + budget impact
   const { data: current } = await admin
     .from("besoins_formation")
-    .select("intitule, entreprise_id, produit_id, tarif_id")
+    .select("*")
     .eq("id", id)
     .eq("organisation_id", organisationId)
     .single();
