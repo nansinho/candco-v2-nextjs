@@ -1,6 +1,7 @@
 "use server";
 
 import { getOrganisationId } from "@/lib/auth-helpers";
+import { requirePermission, canCreate, canEdit, canDelete, type UserRole } from "@/lib/permissions";
 import { logHistorique } from "@/lib/historique";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -121,6 +122,7 @@ export async function createAgence(entrepriseId: string, input: z.infer<typeof A
     if ("error" in result) return { error: { _form: [result.error] } };
 
     const { admin, organisationId, userId, role } = result;
+    requirePermission(role as UserRole, canCreate, "créer dans l'organisation");
 
     const d = parsed.data;
     const { data, error } = await admin
@@ -181,6 +183,7 @@ export async function updateAgence(agenceId: string, entrepriseId: string, input
     if ("error" in result) return { error: { _form: [result.error] } };
 
     const { admin, organisationId, userId, role } = result;
+    requirePermission(role as UserRole, canEdit, "modifier l'organisation");
 
     const d = parsed.data;
     const { data, error } = await admin
@@ -233,6 +236,7 @@ export async function deleteAgence(agenceId: string, entrepriseId: string) {
     if ("error" in result) return { error: result.error };
 
     const { admin, organisationId, userId, role } = result;
+    requirePermission(role as UserRole, canDelete, "supprimer dans l'organisation");
 
     // Fetch name before delete
     const { data: agence } = await admin.from("entreprise_agences").select("nom").eq("id", agenceId).single();
@@ -307,6 +311,7 @@ export async function createPole(entrepriseId: string, input: z.infer<typeof Pol
     if ("error" in result) return { error: { _form: [result.error] } };
 
     const { admin, organisationId, userId, role } = result;
+    requirePermission(role as UserRole, canCreate, "créer dans l'organisation");
 
     const d = parsed.data;
     const { data, error } = await admin
@@ -356,6 +361,7 @@ export async function updatePole(poleId: string, entrepriseId: string, input: z.
     if ("error" in result) return { error: { _form: [result.error] } };
 
     const { admin, organisationId, userId, role } = result;
+    requirePermission(role as UserRole, canEdit, "modifier l'organisation");
 
     const d = parsed.data;
     const { data, error } = await admin
@@ -402,6 +408,7 @@ export async function deletePole(poleId: string, entrepriseId: string) {
     if ("error" in result) return { error: result.error };
 
     const { admin, organisationId, userId, role } = result;
+    requirePermission(role as UserRole, canDelete, "supprimer dans l'organisation");
 
     // Fetch name before delete
     const { data: pole } = await admin.from("entreprise_poles").select("nom").eq("id", poleId).single();
@@ -519,6 +526,7 @@ export async function createMembre(entrepriseId: string, input: z.infer<typeof M
     if ("error" in result) return { error: { _form: [result.error] } };
 
     const { admin, organisationId, userId, role } = result;
+    requirePermission(role as UserRole, canCreate, "créer dans l'organisation");
 
     const { data, error } = await admin
       .from("entreprise_membres")
@@ -609,6 +617,7 @@ export async function updateMembre(membreId: string, entrepriseId: string, input
     if ("error" in result) return { error: { _form: [result.error] } };
 
     const { admin, organisationId, userId, role } = result;
+    requirePermission(role as UserRole, canEdit, "modifier l'organisation");
 
     const { data, error } = await admin
       .from("entreprise_membres")
@@ -670,6 +679,7 @@ export async function deleteMembre(membreId: string, entrepriseId: string) {
     if ("error" in result) return { error: result.error };
 
     const { admin, organisationId, userId, role } = result;
+    requirePermission(role as UserRole, canDelete, "supprimer dans l'organisation");
 
     // Fetch member info before delete
     const { data: membre } = await admin
@@ -735,6 +745,7 @@ export async function quickCreateApprenant(input: z.infer<typeof QuickApprenantS
   if ("error" in result) return { data: null, error: { _form: [result.error] } };
 
   const { organisationId, userId, role, admin } = result;
+  requirePermission(role as UserRole, canCreate, "créer dans l'organisation");
 
   const { data: numero } = await admin.rpc("next_numero", {
     p_organisation_id: organisationId,

@@ -1,6 +1,7 @@
 "use server";
 
 import { getOrganisationId } from "@/lib/auth-helpers";
+import { requirePermission, canManageFinances, canDelete, canArchive, type UserRole } from "@/lib/permissions";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { QueryFilter } from "@/lib/utils";
@@ -65,10 +66,12 @@ export async function createFacture(input: CreateFactureInput) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: { _form: [result.error] } };
   const { organisationId, userId, role, supabase } = result;
+  requirePermission(role as UserRole, canManageFinances, "créer une facture");
 
   const { data: numero } = await supabase.rpc("next_numero", {
     p_organisation_id: organisationId,
     p_entite: "F",
+    p_year: new Date().getFullYear(),
   });
 
   const totals = calcTotals(parsed.data.lignes);
@@ -213,6 +216,7 @@ export async function updateFacture(id: string, input: UpdateFactureInput) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: { _form: [result.error] } };
   const { organisationId, userId, role, supabase } = result;
+  requirePermission(role as UserRole, canManageFinances, "modifier une facture");
 
   const totals = calcTotals(parsed.data.lignes);
 
@@ -275,6 +279,7 @@ export async function updateFactureStatut(id: string, statut: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, supabase } = result;
+  requirePermission(role as UserRole, canManageFinances, "modifier le statut d'une facture");
 
   const updates: Record<string, unknown> = { statut };
   if (statut === "envoyee") updates.envoye_le = new Date().toISOString();
@@ -325,6 +330,7 @@ export async function addPaiement(factureId: string, input: PaiementInput) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: { _form: [result.error] } };
   const { organisationId, userId, role, supabase } = result;
+  requirePermission(role as UserRole, canManageFinances, "enregistrer un paiement");
 
   const { data: paiement, error } = await supabase
     .from("facture_paiements")
@@ -388,7 +394,8 @@ export async function addPaiement(factureId: string, input: PaiementInput) {
 export async function deletePaiement(paiementId: string, factureId: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { supabase } = result;
+  const { role, supabase } = result;
+  requirePermission(role as UserRole, canManageFinances, "supprimer un paiement");
 
   await supabase.from("facture_paiements").delete().eq("id", paiementId);
 
@@ -430,7 +437,8 @@ export async function deletePaiement(paiementId: string, factureId: string) {
 export async function archiveFacture(id: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { supabase } = result;
+  const { role, supabase } = result;
+  requirePermission(role as UserRole, canArchive, "archiver une facture");
 
   await supabase.from("factures").update({ archived_at: new Date().toISOString() }).eq("id", id);
   revalidatePath("/factures");
@@ -439,7 +447,8 @@ export async function archiveFacture(id: string) {
 export async function unarchiveFacture(id: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { supabase } = result;
+  const { role, supabase } = result;
+  requirePermission(role as UserRole, canArchive, "restaurer une facture");
 
   await supabase.from("factures").update({ archived_at: null }).eq("id", id);
   revalidatePath("/factures");
@@ -448,7 +457,8 @@ export async function unarchiveFacture(id: string) {
 export async function deleteFacturesBulk(ids: string[]) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { supabase } = result;
+  const { role, supabase } = result;
+  requirePermission(role as UserRole, canDelete, "supprimer des factures");
 
   const { error } = await supabase.from("factures").delete().in("id", ids);
   if (error) return { error: error.message };

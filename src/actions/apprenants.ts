@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getOrganisationId } from "@/lib/auth-helpers";
+import { requirePermission, canCreate, canEdit, canDelete, canArchive, type UserRole } from "@/lib/permissions";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { QueryFilter } from "@/lib/utils";
@@ -55,6 +56,7 @@ export async function createApprenant(input: CreateApprenantInput) {
   }
 
   const { organisationId, userId, role, supabase, admin } = result;
+  requirePermission(role as UserRole, canCreate, "créer un apprenant");
 
   // Auto-assign BPF F.1.a
   const { data: bpfF1a } = await admin
@@ -278,6 +280,7 @@ export async function updateApprenant(id: string, input: UpdateApprenantInput) {
     return { error: { _form: [result.error] } };
   }
   const { organisationId, userId, role, supabase, admin } = result;
+  requirePermission(role as UserRole, canEdit, "modifier un apprenant");
 
   // Fetch old data for change tracking
   const { data: oldData } = await admin
@@ -344,6 +347,7 @@ export async function archiveApprenant(id: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, supabase, admin } = result;
+  requirePermission(role as UserRole, canArchive, "archiver un apprenant");
 
   // Fetch name for logging
   const { data: app } = await admin
@@ -383,6 +387,7 @@ export async function unarchiveApprenant(id: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, supabase, admin } = result;
+  requirePermission(role as UserRole, canArchive, "restaurer un apprenant");
 
   // Fetch name for logging
   const { data: app } = await admin
@@ -422,6 +427,7 @@ export async function deleteApprenants(ids: string[]) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, supabase, admin } = result;
+  requirePermission(role as UserRole, canDelete, "supprimer des apprenants");
 
   // Fetch names before deletion for logging
   const { data: apps } = await admin
@@ -503,6 +509,7 @@ export async function importApprenants(
   }
 
   const { organisationId, userId, role, supabase } = authResult;
+  requirePermission(role as UserRole, canCreate, "importer des apprenants");
   let successCount = 0;
   const importErrors: string[] = [];
 
@@ -695,6 +702,7 @@ export async function linkEntrepriseToApprenant(
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, admin } = result;
+  requirePermission(role as UserRole, canEdit, "rattacher une entreprise à un apprenant");
 
   const selectedAgences = options?.agence_ids ?? [];
   // Zero-friction rule: if no agency selected, auto-assign to headquarters
@@ -763,6 +771,7 @@ export async function unlinkEntrepriseFromApprenant(apprenantId: string, entrepr
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, supabase, admin } = result;
+  requirePermission(role as UserRole, canEdit, "détacher une entreprise d'un apprenant");
 
   // Fetch labels before unlinking
   const [{ data: ent }, { data: app }] = await Promise.all([
@@ -838,6 +847,7 @@ export async function updateApprenantEntrepriseLink(
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, admin } = result;
+  requirePermission(role as UserRole, canEdit, "modifier un rattachement entreprise");
 
   // Zero-friction rule: if no agency selected, auto-assign to headquarters
   const estSiege = options.agence_ids.length === 0 ? true : options.est_siege;

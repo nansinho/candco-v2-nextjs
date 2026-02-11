@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getOrganisationId } from "@/lib/auth-helpers";
+import { requirePermission, canCreate, canEdit, canDelete, canArchive, type UserRole } from "@/lib/permissions";
 import { logHistorique, logHistoriqueBatch } from "@/lib/historique";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -211,6 +212,7 @@ export async function createProduit(input: CreateProduitInput) {
   }
 
   const { organisationId, userId, role, supabase } = result;
+  requirePermission(role as UserRole, canCreate, "créer un produit");
 
   const { data: numero } = await supabase.rpc("next_numero", {
     p_organisation_id: organisationId,
@@ -260,6 +262,7 @@ export async function createDraftProduit() {
   }
 
   const { organisationId, userId, role, supabase } = result;
+  requirePermission(role as UserRole, canCreate, "créer un produit");
 
   const { data: numero } = await supabase.rpc("next_numero", {
     p_organisation_id: organisationId,
@@ -347,6 +350,7 @@ export async function createProduitFromPDF(extracted: PDFExtractedData) {
   }
 
   const { organisationId, userId, role, supabase } = result;
+  requirePermission(role as UserRole, canCreate, "créer un produit");
 
   // Generate display number
   const { data: numero } = await supabase.rpc("next_numero", {
@@ -729,6 +733,7 @@ export async function updateProduit(id: string, input: UpdateProduitInput) {
     return { error: { _form: [orgResult.error] } };
   }
   const { organisationId, userId, role, supabase } = orgResult;
+  requirePermission(role as UserRole, canEdit, "modifier un produit");
   const cleanedData = cleanEmptyStrings(parsed.data);
 
   // Query related data counts for completion calculation
@@ -848,6 +853,7 @@ export async function updateProduitImage(id: string, imageUrl: string) {
   const orgResult = await getOrganisationId();
   if ("error" in orgResult) return { error: orgResult.error };
   const { organisationId, userId, role, supabase } = orgResult;
+  requirePermission(role as UserRole, canEdit, "modifier un produit");
 
   const { error } = await supabase
     .from("produits_formation")
@@ -878,6 +884,7 @@ export async function deleteProduits(ids: string[]) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, supabase, admin } = result;
+  requirePermission(role as UserRole, canDelete, "supprimer des produits");
 
   // Fetch names before deletion using admin client
   const { data: produits } = await admin
@@ -920,6 +927,7 @@ export async function archiveProduit(id: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, supabase } = result;
+  requirePermission(role as UserRole, canArchive, "archiver un produit");
 
   // Fetch name for logging
   const { data: produit } = await supabase
@@ -959,6 +967,7 @@ export async function unarchiveProduit(id: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, supabase } = result;
+  requirePermission(role as UserRole, canArchive, "archiver un produit");
 
   // Fetch name for logging
   const { data: produit } = await supabase
@@ -1015,6 +1024,7 @@ export async function addTarif(produitId: string, input: TarifInput) {
   const orgResult = await getOrganisationId();
   if ("error" in orgResult) return { error: { _form: [orgResult.error] } };
   const { organisationId, userId, role, supabase } = orgResult;
+  requirePermission(role as UserRole, canEdit, "gérer les tarifs");
 
   const { data, error } = await supabase
     .from("produit_tarifs")
@@ -1061,6 +1071,7 @@ export async function updateTarif(tarifId: string, produitId: string, input: Tar
   const orgResult = await getOrganisationId();
   if ("error" in orgResult) return { error: { _form: [orgResult.error] } };
   const { organisationId, userId, role, supabase } = orgResult;
+  requirePermission(role as UserRole, canEdit, "gérer les tarifs");
 
   const { data, error } = await supabase
     .from("produit_tarifs")
@@ -1100,6 +1111,7 @@ export async function deleteTarif(tarifId: string, produitId: string) {
   const orgResult = await getOrganisationId();
   if ("error" in orgResult) return { error: orgResult.error };
   const { organisationId, userId, role, supabase } = orgResult;
+  requirePermission(role as UserRole, canEdit, "gérer les tarifs");
 
   // Fetch tarif name before deletion
   const { data: tarif } = await supabase
@@ -1142,6 +1154,7 @@ export async function addObjectif(produitId: string, objectif: string) {
   const orgResult = await getOrganisationId();
   if ("error" in orgResult) return { error: orgResult.error };
   const { organisationId, userId, role, supabase } = orgResult;
+  requirePermission(role as UserRole, canEdit, "gérer les objectifs");
 
   const { data: existing } = await supabase
     .from("produit_objectifs")
@@ -1184,6 +1197,7 @@ export async function updateObjectif(objectifId: string, produitId: string, obje
   const orgResult = await getOrganisationId();
   if ("error" in orgResult) return { error: orgResult.error };
   const { organisationId, userId, role, supabase } = orgResult;
+  requirePermission(role as UserRole, canEdit, "gérer les objectifs");
 
   const { error } = await supabase
     .from("produit_objectifs")
@@ -1214,6 +1228,7 @@ export async function deleteObjectif(objectifId: string, produitId: string) {
   const orgResult = await getOrganisationId();
   if ("error" in orgResult) return { error: orgResult.error };
   const { organisationId, userId, role, supabase } = orgResult;
+  requirePermission(role as UserRole, canEdit, "gérer les objectifs");
 
   const { error } = await supabase
     .from("produit_objectifs")
@@ -1261,6 +1276,7 @@ export async function addProgrammeModule(produitId: string, input: ProgrammeModu
   const orgResult = await getOrganisationId();
   if ("error" in orgResult) return { error: { _form: [orgResult.error] } };
   const { organisationId, userId, role, supabase } = orgResult;
+  requirePermission(role as UserRole, canEdit, "gérer le programme");
 
   const { data: existing } = await supabase
     .from("produit_programme")
@@ -1318,6 +1334,7 @@ export async function updateProgrammeModule(
   const orgResult = await getOrganisationId();
   if ("error" in orgResult) return { error: { _form: [orgResult.error] } };
   const { organisationId, userId, role, supabase } = orgResult;
+  requirePermission(role as UserRole, canEdit, "gérer le programme");
 
   const { error } = await supabase
     .from("produit_programme")
@@ -1352,6 +1369,7 @@ export async function deleteProgrammeModule(moduleId: string, produitId: string)
   const orgResult = await getOrganisationId();
   if ("error" in orgResult) return { error: orgResult.error };
   const { organisationId, userId, role, supabase } = orgResult;
+  requirePermission(role as UserRole, canEdit, "gérer le programme");
 
   // Fetch title before deletion
   const { data: mod } = await supabase
@@ -1436,6 +1454,7 @@ export async function addListItem(
   const orgResult = await getOrganisationId();
   if ("error" in orgResult) return { error: orgResult.error };
   const { organisationId, userId, role, supabase } = orgResult;
+  requirePermission(role as UserRole, canEdit, "modifier un produit");
 
   const tableLabels: Record<string, string> = {
     produit_prerequis: "Prérequis",
@@ -1490,6 +1509,7 @@ export async function updateListItem(
   const orgResult = await getOrganisationId();
   if ("error" in orgResult) return { error: orgResult.error };
   const { organisationId, userId, role, supabase } = orgResult;
+  requirePermission(role as UserRole, canEdit, "modifier un produit");
 
   const tableLabels: Record<string, string> = {
     produit_prerequis: "Prérequis",
@@ -1531,6 +1551,7 @@ export async function deleteListItem(
   const orgResult = await getOrganisationId();
   if ("error" in orgResult) return { error: orgResult.error };
   const { organisationId, userId, role, supabase } = orgResult;
+  requirePermission(role as UserRole, canEdit, "modifier un produit");
 
   const tableLabels: Record<string, string> = {
     produit_prerequis: "Prérequis",
@@ -1612,6 +1633,7 @@ export async function importProduits(
   }
 
   const { organisationId, userId, role, supabase } = authResult;
+  requirePermission(role as UserRole, canCreate, "créer un produit");
   let successCount = 0;
   const importErrors: string[] = [];
 
@@ -1749,6 +1771,7 @@ export async function saveImportTemplate(
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, supabase } = result;
+  requirePermission(role as UserRole, canCreate, "créer un produit");
 
   const { data, error } = await supabase
     .from("import_templates")
@@ -1791,6 +1814,7 @@ export async function addOuvrage(produitId: string, input: OuvrageInput) {
   const orgResult = await getOrganisationId();
   if ("error" in orgResult) return { error: orgResult.error };
   const { organisationId, userId, role, supabase } = orgResult;
+  requirePermission(role as UserRole, canEdit, "gérer les ouvrages");
 
   const { data: existing } = await supabase
     .from("produit_ouvrages")
@@ -1838,6 +1862,7 @@ export async function updateOuvrage(ouvrageId: string, produitId: string, input:
   const orgResult = await getOrganisationId();
   if ("error" in orgResult) return { error: orgResult.error };
   const { organisationId, userId, role, supabase } = orgResult;
+  requirePermission(role as UserRole, canEdit, "gérer les ouvrages");
 
   const { error } = await supabase
     .from("produit_ouvrages")
@@ -1873,6 +1898,7 @@ export async function deleteOuvrage(ouvrageId: string, produitId: string) {
   const orgResult = await getOrganisationId();
   if ("error" in orgResult) return { error: orgResult.error };
   const { organisationId, userId, role, supabase } = orgResult;
+  requirePermission(role as UserRole, canEdit, "gérer les ouvrages");
 
   // Fetch title before deletion
   const { data: ouvrage } = await supabase
@@ -1920,6 +1946,7 @@ export async function addArticle(produitId: string, input: ArticleInput) {
   const orgResult = await getOrganisationId();
   if ("error" in orgResult) return { error: orgResult.error };
   const { organisationId, userId, role, supabase } = orgResult;
+  requirePermission(role as UserRole, canEdit, "gérer les articles");
 
   const { data: existing } = await supabase
     .from("produit_articles")
@@ -1968,6 +1995,7 @@ export async function updateArticle(articleId: string, produitId: string, input:
   const orgResult = await getOrganisationId();
   if ("error" in orgResult) return { error: orgResult.error };
   const { organisationId, userId, role, supabase } = orgResult;
+  requirePermission(role as UserRole, canEdit, "gérer les articles");
 
   const { error } = await supabase
     .from("produit_articles")
@@ -2004,6 +2032,7 @@ export async function deleteArticle(articleId: string, produitId: string) {
   const orgResult = await getOrganisationId();
   if ("error" in orgResult) return { error: orgResult.error };
   const { organisationId, userId, role, supabase } = orgResult;
+  requirePermission(role as UserRole, canEdit, "gérer les articles");
 
   // Fetch title before deletion
   const { data: article } = await supabase

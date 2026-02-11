@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getOrganisationId } from "@/lib/auth-helpers";
+import { requirePermission, canCreate, canEdit, canDelete, canArchive, type UserRole } from "@/lib/permissions";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { QueryFilter } from "@/lib/utils";
@@ -169,6 +170,7 @@ export async function createEntreprise(input: CreateEntrepriseInput) {
   }
 
   const { organisationId, userId, role, supabase } = result;
+  requirePermission(role as UserRole, canCreate, "créer une entreprise");
 
   // Generate display number
   const { data: numero } = await supabase.rpc("next_numero", {
@@ -221,6 +223,7 @@ export async function updateEntreprise(id: string, input: UpdateEntrepriseInput)
     return { error: { _form: [result.error] } };
   }
   const { organisationId, userId, role, supabase, admin } = result;
+  requirePermission(role as UserRole, canEdit, "modifier une entreprise");
 
   // Fetch old data for change tracking
   const { data: oldData } = await admin
@@ -279,6 +282,7 @@ export async function archiveEntreprise(id: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, supabase, admin } = result;
+  requirePermission(role as UserRole, canArchive, "archiver une entreprise");
 
   // Fetch name for logging
   const { data: ent } = await admin
@@ -319,6 +323,7 @@ export async function unarchiveEntreprise(id: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, supabase, admin } = result;
+  requirePermission(role as UserRole, canArchive, "archiver une entreprise");
 
   const { data: ent } = await admin
     .from("entreprises")
@@ -358,6 +363,7 @@ export async function deleteEntreprises(ids: string[]) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, supabase, admin } = result;
+  requirePermission(role as UserRole, canDelete, "supprimer des entreprises");
 
   // Fetch names before deletion for logging
   const { data: ents } = await admin
@@ -436,6 +442,7 @@ export async function importEntreprises(
   }
 
   const { organisationId, userId, role, supabase } = authResult;
+  requirePermission(role as UserRole, canCreate, "créer une entreprise");
   let successCount = 0;
   const importErrors: string[] = [];
 
@@ -608,6 +615,7 @@ export async function linkApprenantToEntreprise(entrepriseId: string, apprenantI
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, admin } = result;
+  requirePermission(role as UserRole, canEdit, "modifier les rattachements entreprise");
 
   const { error } = await admin
     .from("apprenant_entreprises")
@@ -648,6 +656,7 @@ export async function unlinkApprenantFromEntreprise(entrepriseId: string, appren
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, admin } = result;
+  requirePermission(role as UserRole, canEdit, "modifier les rattachements entreprise");
 
   // Fetch labels before unlinking
   const [{ data: ent }, { data: app }] = await Promise.all([
@@ -741,6 +750,7 @@ export async function linkContactToEntreprise(entrepriseId: string, contactId: s
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, supabase, admin } = result;
+  requirePermission(role as UserRole, canEdit, "modifier les rattachements entreprise");
 
   // Use admin to bypass RLS (needed for super-admin org switching)
   const { error } = await admin
@@ -781,6 +791,7 @@ export async function unlinkContactFromEntreprise(entrepriseId: string, contactI
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, supabase, admin } = result;
+  requirePermission(role as UserRole, canEdit, "modifier les rattachements entreprise");
 
   const [{ data: ent }, { data: contact }] = await Promise.all([
     admin.from("entreprises").select("numero_affichage, nom").eq("id", entrepriseId).single(),

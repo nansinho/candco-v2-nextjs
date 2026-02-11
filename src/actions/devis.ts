@@ -1,6 +1,7 @@
 "use server";
 
 import { getOrganisationId } from "@/lib/auth-helpers";
+import { requirePermission, canManageFinances, canDelete, canArchive, type UserRole } from "@/lib/permissions";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { QueryFilter } from "@/lib/utils";
@@ -67,10 +68,12 @@ export async function createDevis(input: CreateDevisInput) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: { _form: [result.error] } };
   const { organisationId, userId, role, supabase } = result;
+  requirePermission(role as UserRole, canManageFinances, "créer un devis");
 
   const { data: numero } = await supabase.rpc("next_numero", {
     p_organisation_id: organisationId,
     p_entite: "D",
+    p_year: new Date().getFullYear(),
   });
 
   const totals = calcTotals(parsed.data.lignes);
@@ -214,6 +217,7 @@ export async function updateDevis(id: string, input: UpdateDevisInput) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: { _form: [result.error] } };
   const { organisationId, userId, role, supabase } = result;
+  requirePermission(role as UserRole, canManageFinances, "modifier un devis");
 
   const totals = calcTotals(parsed.data.lignes);
 
@@ -280,6 +284,7 @@ export async function updateDevisStatut(id: string, statut: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, supabase } = result;
+  requirePermission(role as UserRole, canManageFinances, "modifier le statut d'un devis");
 
   const updates: Record<string, unknown> = { statut };
   if (statut === "envoye") updates.envoye_le = new Date().toISOString();
@@ -315,7 +320,8 @@ export async function updateDevisStatut(id: string, statut: string) {
 export async function archiveDevis(id: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { supabase } = result;
+  const { role, supabase } = result;
+  requirePermission(role as UserRole, canArchive, "archiver un devis");
 
   await supabase.from("devis").update({ archived_at: new Date().toISOString() }).eq("id", id);
   revalidatePath("/devis");
@@ -324,7 +330,8 @@ export async function archiveDevis(id: string) {
 export async function unarchiveDevis(id: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { supabase } = result;
+  const { role, supabase } = result;
+  requirePermission(role as UserRole, canArchive, "restaurer un devis");
 
   await supabase.from("devis").update({ archived_at: null }).eq("id", id);
   revalidatePath("/devis");
@@ -333,7 +340,8 @@ export async function unarchiveDevis(id: string) {
 export async function deleteDevisBulk(ids: string[]) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { supabase } = result;
+  const { role, supabase } = result;
+  requirePermission(role as UserRole, canDelete, "supprimer des devis");
 
   const { error } = await supabase.from("devis").delete().in("id", ids);
   if (error) return { error: error.message };
@@ -382,6 +390,7 @@ export async function convertDevisToFacture(devisId: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, supabase } = result;
+  requirePermission(role as UserRole, canManageFinances, "convertir un devis en facture");
 
   const devisData = await getDevis(devisId);
   if (!devisData) return { error: "Devis introuvable" };
@@ -389,6 +398,7 @@ export async function convertDevisToFacture(devisId: string) {
   const { data: numero } = await supabase.rpc("next_numero", {
     p_organisation_id: organisationId,
     p_entite: "F",
+    p_year: new Date().getFullYear(),
   });
 
   const { data: facture, error } = await supabase

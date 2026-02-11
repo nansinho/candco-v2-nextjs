@@ -1,6 +1,7 @@
 "use server";
 
 import { getOrganisationId } from "@/lib/auth-helpers";
+import { requirePermission, canManageFinances, canDelete, canArchive, type UserRole } from "@/lib/permissions";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { QueryFilter } from "@/lib/utils";
@@ -58,10 +59,12 @@ export async function createAvoir(input: CreateAvoirInput) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: { _form: [result.error] } };
   const { organisationId, userId, role, supabase } = result;
+  requirePermission(role as UserRole, canManageFinances, "créer un avoir");
 
   const { data: numero } = await supabase.rpc("next_numero", {
     p_organisation_id: organisationId,
     p_entite: "A",
+    p_year: new Date().getFullYear(),
   });
 
   const totals = calcTotals(parsed.data.lignes);
@@ -194,6 +197,7 @@ export async function updateAvoir(id: string, input: UpdateAvoirInput) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: { _form: [result.error] } };
   const { organisationId, userId, role, supabase } = result;
+  requirePermission(role as UserRole, canManageFinances, "modifier un avoir");
 
   const totals = calcTotals(parsed.data.lignes);
 
@@ -250,7 +254,8 @@ export async function updateAvoir(id: string, input: UpdateAvoirInput) {
 export async function archiveAvoir(id: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { supabase } = result;
+  const { role, supabase } = result;
+  requirePermission(role as UserRole, canArchive, "archiver un avoir");
 
   await supabase.from("avoirs").update({ archived_at: new Date().toISOString() }).eq("id", id);
   revalidatePath("/avoirs");
@@ -259,7 +264,8 @@ export async function archiveAvoir(id: string) {
 export async function unarchiveAvoir(id: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { supabase } = result;
+  const { role, supabase } = result;
+  requirePermission(role as UserRole, canArchive, "restaurer un avoir");
 
   await supabase.from("avoirs").update({ archived_at: null }).eq("id", id);
   revalidatePath("/avoirs");
@@ -268,7 +274,8 @@ export async function unarchiveAvoir(id: string) {
 export async function deleteAvoirsBulk(ids: string[]) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { supabase } = result;
+  const { role, supabase } = result;
+  requirePermission(role as UserRole, canDelete, "supprimer des avoirs");
 
   const { error } = await supabase.from("avoirs").delete().in("id", ids);
   if (error) return { error: error.message };
