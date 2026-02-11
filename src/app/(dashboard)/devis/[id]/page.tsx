@@ -26,6 +26,7 @@ import {
   getContactsForSelect,
   type UpdateDevisInput,
 } from "@/actions/devis";
+import { getOrganisationBillingInfo } from "@/actions/factures";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { DevisStatusBadge, DEVIS_STATUT_OPTIONS } from "@/components/shared/status-badges";
 import { LignesEditor, DocumentPreview, type LigneItem } from "@/components/shared/lignes-editor";
@@ -72,16 +73,21 @@ export default function DevisDetailPage() {
     Array<{ id: string; prenom: string; nom: string; numero_affichage?: string }>
   >([]);
 
+  // Organisation billing info
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [orgInfo, setOrgInfo] = React.useState<any>(null);
+
   // ─── Load initial data ─────────────────────────────────────
 
   React.useEffect(() => {
     async function loadData() {
       setLoading(true);
       try {
-        const [devisData, entreprisesData, contactsData] = await Promise.all([
+        const [devisData, entreprisesData, contactsData, orgData] = await Promise.all([
           getDevis(devisId),
           getEntreprisesForSelect(),
           getContactsForSelect(),
+          getOrganisationBillingInfo(),
         ]);
 
         if (!devisData) {
@@ -93,6 +99,7 @@ export default function DevisDetailPage() {
         setDevis(devisData);
         setEntreprises(entreprisesData);
         setContacts(contactsData);
+        setOrgInfo(orgData);
 
         // Determine type
         const hasEntreprise = !!devisData.entreprise_id;
@@ -109,8 +116,8 @@ export default function DevisDetailPage() {
         setDateEmission(devisData.date_emission || "");
         setDateEcheance(devisData.date_echeance || "");
         setObjet(devisData.objet || "");
-        setConditions(devisData.conditions || "");
-        setMentionsLegales(devisData.mentions_legales || "");
+        setConditions(devisData.conditions || orgData?.conditions_paiement || "");
+        setMentionsLegales(devisData.mentions_legales || orgData?.mentions_legales || "");
         setStatut((devisData.statut || "brouillon") as typeof statut);
 
         // Lines
@@ -595,18 +602,23 @@ export default function DevisDetailPage() {
                 dateEcheance={dateEcheance ? formatDate(dateEcheance) : undefined}
                 objet={objet || undefined}
                 destinataire={destinatairePreview}
-                emetteur={{
-                  nom: "Votre organisme",
-                  siret: "123 456 789 00012",
-                  nda: "11 75 12345 75",
-                  adresse: "1 rue de la Formation, 75001 Paris",
-                }}
+                emetteur={orgInfo ? {
+                  nom: orgInfo.nom,
+                  siret: orgInfo.siret || undefined,
+                  nda: orgInfo.nda || undefined,
+                  adresse: [orgInfo.adresse_rue, orgInfo.adresse_complement, [orgInfo.adresse_cp, orgInfo.adresse_ville].filter(Boolean).join(" ")].filter(Boolean).join(", ") || undefined,
+                  email: orgInfo.email || undefined,
+                  telephone: orgInfo.telephone || undefined,
+                  tva_intra: orgInfo.numero_tva_intracommunautaire || undefined,
+                  logo_url: orgInfo.logo_url || undefined,
+                } : undefined}
                 lignes={lignes}
                 totalHT={totalHT}
                 totalTVA={totalTVA}
                 totalTTC={totalTTC}
                 conditions={conditions || undefined}
                 mentionsLegales={mentionsLegales || undefined}
+                coordonneesBancaires={orgInfo?.coordonnees_bancaires || undefined}
               />
             </div>
           </div>

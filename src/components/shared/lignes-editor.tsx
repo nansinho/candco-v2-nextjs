@@ -188,6 +188,10 @@ interface DocumentPreviewProps {
     siret?: string;
     nda?: string;
     adresse?: string;
+    email?: string;
+    telephone?: string;
+    tva_intra?: string;
+    logo_url?: string;
   };
   lignes: LigneItem[];
   totalHT: number;
@@ -195,6 +199,7 @@ interface DocumentPreviewProps {
   totalTTC: number;
   conditions?: string;
   mentionsLegales?: string;
+  coordonneesBancaires?: string;
 }
 
 export function DocumentPreview({
@@ -211,6 +216,7 @@ export function DocumentPreview({
   totalTTC,
   conditions,
   mentionsLegales,
+  coordonneesBancaires,
 }: DocumentPreviewProps) {
   const title = type === "devis" ? "DEVIS" : type === "facture" ? "FACTURE" : "AVOIR";
 
@@ -219,12 +225,25 @@ export function DocumentPreview({
       {/* Header */}
       <div className="flex justify-between mb-6">
         <div>
+          {emetteur?.logo_url && (
+            <div className="mb-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={emetteur.logo_url}
+                alt={emetteur.nom || "Logo"}
+                className="h-12 max-w-[160px] object-contain"
+              />
+            </div>
+          )}
           {emetteur && (
             <>
               <p className="font-bold text-sm">{emetteur.nom}</p>
               {emetteur.siret && <p className="text-gray-600">SIRET : {emetteur.siret}</p>}
               {emetteur.nda && <p className="text-gray-600">NDA : {emetteur.nda}</p>}
+              {emetteur.tva_intra && <p className="text-gray-600">TVA : {emetteur.tva_intra}</p>}
               {emetteur.adresse && <p className="text-gray-600">{emetteur.adresse}</p>}
+              {emetteur.email && <p className="text-gray-600">{emetteur.email}</p>}
+              {emetteur.telephone && <p className="text-gray-600">{emetteur.telephone}</p>}
             </>
           )}
         </div>
@@ -243,9 +262,11 @@ export function DocumentPreview({
       {/* Destinataire */}
       {destinataire && (
         <div className="mb-4 p-3 bg-gray-50 rounded">
+          <p className="text-[10px] text-gray-400 uppercase font-semibold mb-1">Destinataire</p>
           <p className="font-semibold">{destinataire.nom}</p>
           {destinataire.adresse && <p>{destinataire.adresse}</p>}
           {destinataire.siret && <p className="text-gray-600">SIRET : {destinataire.siret}</p>}
+          {destinataire.email && <p className="text-gray-600">{destinataire.email}</p>}
         </div>
       )}
 
@@ -315,11 +336,17 @@ export function DocumentPreview({
       {conditions && (
         <div className="mb-3">
           <p className="font-semibold text-[10px] text-gray-500 uppercase">Conditions</p>
-          <p className="text-gray-600">{conditions}</p>
+          <p className="text-gray-600 whitespace-pre-line">{conditions}</p>
+        </div>
+      )}
+      {coordonneesBancaires && (
+        <div className="mb-3">
+          <p className="font-semibold text-[10px] text-gray-500 uppercase">Coordonnées bancaires</p>
+          <p className="text-gray-600 whitespace-pre-line">{coordonneesBancaires}</p>
         </div>
       )}
       {mentionsLegales && (
-        <div className="text-[9px] text-gray-400 border-t border-gray-200 pt-2 mt-4">
+        <div className="text-[9px] text-gray-400 border-t border-gray-200 pt-2 mt-4 whitespace-pre-line">
           {mentionsLegales}
         </div>
       )}

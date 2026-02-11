@@ -432,6 +432,108 @@ export async function deletePaiement(paiementId: string, factureId: string) {
   return { success: true };
 }
 
+// ─── Duplicate ───────────────────────────────────────────
+
+export async function duplicateFacture(factureId: string) {
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role, supabase } = result;
+  requirePermission(role as UserRole, canManageFinances, "dupliquer une facture");
+
+  const original = await getFacture(factureId);
+  if (!original) return { error: "Facture introuvable" };
+
+  const { data: numero } = await supabase.rpc("next_numero", {
+    p_organisation_id: organisationId,
+    p_entite: "F",
+    p_year: new Date().getFullYear(),
+  });
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const lignes = (original.facture_lignes ?? []).map((l: any) => ({
+    designation: l.designation,
+    description: l.description || "",
+    quantite: Number(l.quantite) || 1,
+    prix_unitaire_ht: Number(l.prix_unitaire_ht) || 0,
+    taux_tva: Number(l.taux_tva) || 0,
+    ordre: Number(l.ordre) || 0,
+  }));
+
+  const totals = calcTotals(lignes);
+
+  const { data, error } = await supabase
+    .from("factures")
+    .insert({
+      organisation_id: organisationId,
+      numero_affichage: numero,
+      entreprise_id: original.entreprise_id || null,
+      contact_client_id: original.contact_client_id || null,
+      date_emission: new Date().toISOString().split("T")[0],
+      date_echeance: null,
+      objet: original.objet || null,
+      conditions_paiement: original.conditions_paiement || null,
+      mentions_legales: original.mentions_legales || null,
+      statut: "brouillon",
+      ...totals,
+    })
+    .select()
+    .single();
+
+  if (error) return { error: error.message };
+
+  if (lignes.length > 0) {
+    const insertLignes = lignes.map((l: FactureLigneInput, i: number) => ({
+      facture_id: data.id,
+      designation: l.designation,
+      description: l.description || null,
+      quantite: l.quantite,
+      prix_unitaire_ht: l.prix_unitaire_ht,
+      taux_tva: l.taux_tva,
+      montant_ht: Math.round(l.quantite * l.prix_unitaire_ht * 100) / 100,
+      ordre: l.ordre ?? i,
+    }));
+    await supabase.from("facture_lignes").insert(insertLignes);
+  }
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "facture",
+    action: "created",
+    entiteType: "facture",
+    entiteId: data.id,
+    entiteLabel: data.numero_affichage,
+    description: `Facture ${data.numero_affichage} dupliquée depuis ${original.numero_affichage}`,
+    objetHref: `/factures/${data.id}`,
+  });
+
+  revalidatePath("/factures");
+  return { data };
+}
+
+// ─── Organisation Billing Info ──────────────────────────
+
+export async function getOrganisationBillingInfo() {
+  const result = await getOrganisationId();
+  if ("error" in result) return null;
+  const { organisationId, supabase } = result;
+
+  const { data } = await supabase
+    .from("organisations")
+    .select(
+      `nom, siret, nda, email, telephone,
+       adresse_rue, adresse_complement, adresse_cp, adresse_ville,
+       logo_url,
+       mentions_legales, conditions_paiement, coordonnees_bancaires,
+       tva_defaut, numero_tva_intracommunautaire`,
+    )
+    .eq("id", organisationId)
+    .single();
+
+  return data;
+}
+
 // ─── Archive / Delete ────────────────────────────────────
 
 export async function archiveFacture(id: string) {

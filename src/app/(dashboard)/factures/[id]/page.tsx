@@ -5,12 +5,11 @@ import { useRouter, useParams } from "next/navigation";
 import {
   ArrowLeft,
   Loader2,
-  Send,
   Plus,
   Trash2,
   Receipt,
   CreditCard,
-  Check,
+  Copy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +39,8 @@ import {
   updateFactureStatut,
   addPaiement,
   deletePaiement,
+  duplicateFacture,
+  getOrganisationBillingInfo,
   type UpdateFactureInput,
   type PaiementInput,
 } from "@/actions/factures";
@@ -90,6 +91,24 @@ interface Paiement {
   created_at: string;
 }
 
+interface OrgBillingInfo {
+  nom: string;
+  siret: string | null;
+  nda: string | null;
+  email: string | null;
+  telephone: string | null;
+  adresse_rue: string | null;
+  adresse_complement: string | null;
+  adresse_cp: string | null;
+  adresse_ville: string | null;
+  logo_url: string | null;
+  mentions_legales: string | null;
+  conditions_paiement: string | null;
+  coordonnees_bancaires: string | null;
+  tva_defaut: number | null;
+  numero_tva_intracommunautaire: string | null;
+}
+
 export default function FactureDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -98,10 +117,14 @@ export default function FactureDetailPage() {
 
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
+  const [duplicating, setDuplicating] = React.useState(false);
 
   // Raw facture data from API
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [factureRaw, setFactureRaw] = React.useState<any>(null);
+
+  // Organisation billing info
+  const [orgInfo, setOrgInfo] = React.useState<OrgBillingInfo | null>(null);
 
   // Options
   const [entreprises, setEntreprises] = React.useState<EntrepriseOption[]>([]);
@@ -130,10 +153,11 @@ export default function FactureDetailPage() {
   const loadData = React.useCallback(async () => {
     try {
       setLoading(true);
-      const [factureData, entreprisesData, contactsData] = await Promise.all([
+      const [factureData, entreprisesData, contactsData, orgData] = await Promise.all([
         getFacture(factureId),
         getEntreprisesForSelect(),
         getContactsForSelect(),
+        getOrganisationBillingInfo(),
       ]);
 
       if (!factureData) {
@@ -147,13 +171,20 @@ export default function FactureDetailPage() {
       }
 
       setFactureRaw(factureData);
+      setOrgInfo(orgData);
       setEntrepriseId(factureData.entreprise_id || "");
       setContactId(factureData.contact_client_id || "");
       setDateEmission(factureData.date_emission || "");
       setDateEcheance(factureData.date_echeance || "");
       setObjet(factureData.objet || "");
-      setConditionsPaiement(factureData.conditions_paiement || "");
-      setMentionsLegales(factureData.mentions_legales || "");
+
+      // Auto-populate from org settings if fields are empty on the facture
+      setConditionsPaiement(
+        factureData.conditions_paiement || orgData?.conditions_paiement || "",
+      );
+      setMentionsLegales(
+        factureData.mentions_legales || orgData?.mentions_legales || "",
+      );
 
       // Map facture_lignes to LigneItem format
       const mappedLignes: LigneItem[] = (factureData.facture_lignes ?? []).map(
@@ -245,6 +276,25 @@ export default function FactureDetailPage() {
     }
   }
 
+  async function handleDuplicate() {
+    setDuplicating(true);
+    try {
+      const result = await duplicateFacture(factureId);
+      if ("error" in result) {
+        toast({ variant: "destructive", title: "Erreur", description: "Impossible de dupliquer" });
+        return;
+      }
+      if ("data" in result && result.data) {
+        toast({ title: "Facture dupliquée", description: `Nouvelle facture ${result.data.numero_affichage} créée` });
+        router.push(`/factures/${result.data.id}`);
+      }
+    } catch (error) {
+      console.error("Error duplicating facture:", error);
+    } finally {
+      setDuplicating(false);
+    }
+  }
+
   async function handleAddPaiement() {
     if (!factureRaw || !newPaiementDate || !newPaiementMontant) {
       toast({ variant: "destructive", title: "Erreur", description: "Veuillez remplir les champs obligatoires" });
@@ -325,71 +375,122 @@ export default function FactureDetailPage() {
   const totalTVA = lignes.reduce((sum, l) => sum + ((l.montant_ht ?? l.quantite * l.prix_unitaire_ht) * l.taux_tva) / 100, 0);
   const totalTTCCalc = totalHT + totalTVA;
 
-  // Find selected entreprise/contact for preview
-  const selectedEntreprise = entreprises.find((e) => e.id === entrepriseId);
-  const selectedContact = contacts.find((c) => c.id === contactId);
+  // Build emetteur from org settings
+  const emetteurPreview = orgInfo
+    ? {
+        nom: orgInfo.nom,
+        siret: orgInfo.siret || undefined,
+        nda: orgInfo.nda || undefined,
+        adresse: [orgInfo.adresse_rue, orgInfo.adresse_complement, [orgInfo.adresse_cp, orgInfo.adresse_ville].filter(Boolean).join(" ")].filter(Boolean).join(", ") || undefined,
+        email: orgInfo.email || undefined,
+        telephone: orgInfo.telephone || undefined,
+        tva_intra: orgInfo.numero_tva_intracommunautaire || undefined,
+        logo_url: orgInfo.logo_url || undefined,
+      }
+    : undefined;
+
+  // Build destinataire from selected entreprise (use facture's enterprise data for full details)
+  const entrepriseData = factureRaw.entreprises as Record<string, unknown> | null;
+  const destinatairePreview = entrepriseData
+    ? {
+        nom: (entrepriseData.facturation_raison_sociale as string) || (entrepriseData.nom as string) || "",
+        adresse: [
+          (entrepriseData.facturation_rue as string) || (entrepriseData.adresse_rue as string),
+          [(entrepriseData.facturation_cp as string) || (entrepriseData.adresse_cp as string), (entrepriseData.facturation_ville as string) || (entrepriseData.adresse_ville as string)].filter(Boolean).join(" "),
+        ].filter(Boolean).join(", ") || undefined,
+        siret: (entrepriseData.siret as string) || undefined,
+        email: (entrepriseData.email as string) || undefined,
+      }
+    : undefined;
 
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border/60">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={() => router.push("/factures")} className="h-9">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Retour
-          </Button>
+      <div className="sticky top-0 z-10 border-b border-border/40 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
+        <div className="flex items-center justify-between h-14 px-4 gap-4">
           <div className="flex items-center gap-3">
-            <Receipt className="w-5 h-5 text-muted-foreground" />
-            <h1 className="text-lg font-semibold">{factureRaw.numero_affichage}</h1>
-            <FactureStatusBadge statut={factureRaw.statut} />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push("/factures")}
+              className="h-8 w-8 p-0"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div className="flex items-center gap-2">
+              <Receipt className="w-4 h-4 text-muted-foreground" />
+              <h1 className="text-sm font-semibold">{factureRaw.numero_affichage}</h1>
+              <FactureStatusBadge statut={factureRaw.statut} />
+            </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-2">
-          {factureRaw.statut === "brouillon" && (
-            <Button variant="outline" size="sm" onClick={() => handleChangeStatut("envoyee")} className="h-9">
-              <Send className="w-4 h-4 mr-2" />
-              Marquer comme envoyée
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSave}
+              disabled={saving}
+              className="h-8 text-xs border-border/60"
+            >
+              {saving ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                "Enregistrer"
+              )}
             </Button>
-          )}
-          {(factureRaw.statut === "envoyee" || factureRaw.statut === "partiellement_payee" || factureRaw.statut === "en_retard") && soldeRestant <= 0 && (
-            <Button variant="outline" size="sm" onClick={() => handleChangeStatut("payee")} className="h-9">
-              <Check className="w-4 h-4 mr-2" />
-              Marquer comme payée
+
+            <Select value={factureRaw.statut} onValueChange={handleChangeStatut}>
+              <SelectTrigger className="h-8 w-[170px] text-xs border-border/60">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {FACTURE_STATUT_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDuplicate}
+              disabled={duplicating}
+              className="h-8 text-xs border-border/60"
+            >
+              {duplicating ? (
+                <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+              ) : (
+                <Copy className="mr-1 h-3 w-3" />
+              )}
+              Dupliquer
             </Button>
-          )}
-          <Button onClick={handleSave} disabled={saving} size="sm" className="h-9">
-            {saving ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Enregistrement...
-              </>
-            ) : (
-              "Enregistrer"
-            )}
-          </Button>
+          </div>
         </div>
       </div>
 
       {/* Main content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="grid lg:grid-cols-2 gap-6 p-6">
+      <div className="flex-1 overflow-hidden">
+        <div className="grid lg:grid-cols-2 gap-6 h-full p-6">
           {/* Left column - Editor */}
-          <div className="space-y-6">
+          <div className="overflow-y-auto pr-2 space-y-6">
             {/* Basic info */}
-            <div className="rounded-lg border border-border/60 bg-background/50 p-5">
-              <h2 className="text-sm font-semibold mb-4">Informations générales</h2>
+            <div className="rounded-lg border border-border/40 bg-card p-4">
+              <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-3 block">
+                Informations générales
+              </Label>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="text-[13px]">Entreprise *</Label>
+                  <Label className="text-xs">Entreprise *</Label>
                   <Select value={entrepriseId} onValueChange={setEntrepriseId}>
-                    <SelectTrigger className="h-9">
+                    <SelectTrigger className="h-9 text-[13px] border-border/60">
                       <SelectValue placeholder="Sélectionner une entreprise" />
                     </SelectTrigger>
                     <SelectContent>
                       {entreprises.map((e) => (
                         <SelectItem key={e.id} value={e.id}>
-                          {e.nom}
+                          {e.numero_affichage ? `${e.numero_affichage} — ` : ""}{e.nom}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -397,15 +498,16 @@ export default function FactureDetailPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-[13px]">Contact client</Label>
+                  <Label className="text-xs">Contact client</Label>
                   <Select value={contactId} onValueChange={setContactId}>
-                    <SelectTrigger className="h-9">
+                    <SelectTrigger className="h-9 text-[13px] border-border/60">
                       <SelectValue placeholder="Sélectionner un contact" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="">Aucun</SelectItem>
                       {contacts.map((c) => (
                         <SelectItem key={c.id} value={c.id}>
-                          {c.prenom} {c.nom}
+                          {c.numero_affichage ? `${c.numero_affichage} — ` : ""}{c.prenom} {c.nom}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -414,63 +516,75 @@ export default function FactureDetailPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-[13px]">Date d{"'"}émission *</Label>
+                    <Label className="text-xs">Date d{"'"}émission *</Label>
                     <DatePicker value={dateEmission} onChange={setDateEmission} />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-[13px]">Date d{"'"}échéance</Label>
+                    <Label className="text-xs">Date d{"'"}échéance</Label>
                     <DatePicker value={dateEcheance} onChange={setDateEcheance} />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-[13px]">Objet</Label>
+                  <Label className="text-xs">Objet</Label>
                   <Input
                     value={objet}
                     onChange={(e) => setObjet(e.target.value)}
                     placeholder="Objet de la facture"
-                    className="h-9 text-[13px]"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-[13px]">Conditions de paiement</Label>
-                  <Textarea
-                    value={conditionsPaiement}
-                    onChange={(e) => setConditionsPaiement(e.target.value)}
-                    placeholder="Ex: Paiement à 30 jours"
-                    rows={2}
-                    className="text-[13px] resize-none"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-[13px]">Mentions légales</Label>
-                  <Textarea
-                    value={mentionsLegales}
-                    onChange={(e) => setMentionsLegales(e.target.value)}
-                    placeholder="Mentions légales obligatoires"
-                    rows={3}
-                    className="text-[13px] resize-none"
+                    className="h-9 text-[13px] border-border/60"
                   />
                 </div>
               </div>
             </div>
 
             {/* Lignes */}
-            <div className="rounded-lg border border-border/60 bg-background/50 p-5">
-              <h2 className="text-sm font-semibold mb-4">Lignes de la facture</h2>
+            <div className="rounded-lg border border-border/40 bg-card p-4">
+              <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-3 block">
+                Lignes de la facture
+              </Label>
               <LignesEditor lignes={lignes} onChange={setLignes} />
             </div>
 
+            {/* Conditions & Mentions */}
+            <div className="rounded-lg border border-border/40 bg-card p-4">
+              <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-3 block">
+                Conditions & mentions
+              </Label>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-xs">Conditions de paiement</Label>
+                  <Textarea
+                    value={conditionsPaiement}
+                    onChange={(e) => setConditionsPaiement(e.target.value)}
+                    placeholder="Ex: Paiement à 30 jours"
+                    rows={2}
+                    className="min-h-[60px] text-[13px] border-border/60 resize-none"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs">Mentions légales</Label>
+                  <Textarea
+                    value={mentionsLegales}
+                    onChange={(e) => setMentionsLegales(e.target.value)}
+                    placeholder="Mentions légales obligatoires (NDA, SIRET, TVA...)"
+                    rows={3}
+                    className="min-h-[80px] text-[13px] border-border/60 resize-none"
+                  />
+                </div>
+              </div>
+            </div>
+
             {/* Payments section */}
-            <div className="rounded-lg border border-border/60 bg-background/50 p-5">
+            <div className="rounded-lg border border-border/40 bg-card p-4">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-sm font-semibold">Paiements</h2>
+                <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                  Paiements
+                </Label>
                 <Dialog open={paiementDialogOpen} onOpenChange={setPaiementDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button size="sm" variant="outline" className="h-8">
-                      <Plus className="w-4 h-4 mr-2" />
+                    <Button size="sm" variant="outline" className="h-8 text-xs border-border/60">
+                      <Plus className="w-3.5 h-3.5 mr-1.5" />
                       Ajouter un paiement
                     </Button>
                   </DialogTrigger>
@@ -596,12 +710,14 @@ export default function FactureDetailPage() {
           </div>
 
           {/* Right column - Preview & Summary */}
-          <div className="space-y-6">
+          <div className="overflow-y-auto pl-2 space-y-6">
             {/* Payment summary */}
-            <div className="rounded-lg border border-border/60 bg-background/50 p-5">
+            <div className="rounded-lg border border-border/40 bg-card p-4">
               <div className="flex items-center gap-2 mb-4">
                 <CreditCard className="w-4 h-4 text-muted-foreground" />
-                <h2 className="text-sm font-semibold">Suivi des paiements</h2>
+                <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                  Suivi des paiements
+                </Label>
               </div>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
@@ -626,24 +742,24 @@ export default function FactureDetailPage() {
             </div>
 
             {/* Preview */}
-            <DocumentPreview
-              type="facture"
-              numero={factureRaw.numero_affichage}
-              dateEmission={dateEmission}
-              dateEcheance={dateEcheance || undefined}
-              objet={objet}
-              destinataire={
-                selectedEntreprise
-                  ? { nom: selectedEntreprise.nom }
-                  : undefined
-              }
-              lignes={lignes}
-              totalHT={totalHT}
-              totalTVA={totalTVA}
-              totalTTC={totalTTCCalc}
-              conditions={conditionsPaiement || undefined}
-              mentionsLegales={mentionsLegales || undefined}
-            />
+            <div className="sticky top-0">
+              <DocumentPreview
+                type="facture"
+                numero={factureRaw.numero_affichage}
+                dateEmission={dateEmission ? formatDate(dateEmission) : "---"}
+                dateEcheance={dateEcheance ? formatDate(dateEcheance) : undefined}
+                objet={objet}
+                emetteur={emetteurPreview}
+                destinataire={destinatairePreview}
+                lignes={lignes}
+                totalHT={totalHT}
+                totalTVA={totalTVA}
+                totalTTC={totalTTCCalc}
+                conditions={conditionsPaiement || undefined}
+                mentionsLegales={mentionsLegales || undefined}
+                coordonneesBancaires={orgInfo?.coordonnees_bancaires || undefined}
+              />
+            </div>
           </div>
         </div>
       </div>
