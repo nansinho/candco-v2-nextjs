@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Loader2, Send, Copy, FileText, ArrowRight, Trash2 } from "lucide-react";
+import { ArrowLeft, Loader2, Send, Copy, FileText, ArrowRight, Trash2, PenLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,6 +27,8 @@ import {
   type UpdateDevisInput,
 } from "@/actions/devis";
 import { getOrganisationBillingInfo } from "@/actions/factures";
+import { sendDevisForSignature, checkDevisSignatureStatus } from "@/actions/signatures";
+import { isDocumensoConfigured } from "@/lib/documenso";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { DevisStatusBadge, DEVIS_STATUT_OPTIONS } from "@/components/shared/status-badges";
 import { LignesEditor, DocumentPreview, type LigneItem } from "@/components/shared/lignes-editor";
@@ -43,6 +45,9 @@ export default function DevisDetailPage() {
   const [saving, setSaving] = React.useState(false);
   const [converting, setConverting] = React.useState(false);
   const [duplicating, setDuplicating] = React.useState(false);
+  const [sendingSignature, setSendingSignature] = React.useState(false);
+  const [documensoAvailable] = React.useState(() => isDocumensoConfigured());
+  const [documensoStatus, setDocumensoStatus] = React.useState<string | null>(null);
 
   // Devis data
   const [devis, setDevis] = React.useState<Record<string, unknown> | null>(null);
@@ -119,6 +124,7 @@ export default function DevisDetailPage() {
         setConditions(devisData.conditions || orgData?.conditions_paiement || "");
         setMentionsLegales(devisData.mentions_legales || orgData?.mentions_legales || "");
         setStatut((devisData.statut || "brouillon") as typeof statut);
+        setDocumensoStatus((devisData.documenso_status as string) || null);
 
         // Lines
         const devisLignes = (devisData.devis_lignes as unknown[]) || [];
@@ -243,6 +249,55 @@ export default function DevisDetailPage() {
       console.error("Erreur conversion:", error);
     } finally {
       setConverting(false);
+    }
+  };
+
+  const handleSendForSignature = async () => {
+    setSendingSignature(true);
+    try {
+      const result = await sendDevisForSignature(devisId);
+      if ("error" in result && result.error) {
+        toast({
+          title: "Erreur",
+          description: result.error,
+          variant: "destructive",
+        });
+        return;
+      }
+      setStatut("envoye");
+      setDocumensoStatus("pending");
+      toast({
+        title: "Succès",
+        description: "Devis envoyé en signature électronique",
+        variant: "success",
+      });
+    } catch (error) {
+      console.error("Erreur envoi signature:", error);
+      toast({ title: "Erreur", description: "Impossible d'envoyer en signature", variant: "destructive" });
+    } finally {
+      setSendingSignature(false);
+    }
+  };
+
+  const handleCheckSignatureStatus = async () => {
+    try {
+      const result = await checkDevisSignatureStatus(devisId);
+      if ("error" in result && result.error) {
+        toast({ title: "Erreur", description: result.error, variant: "destructive" });
+        return;
+      }
+      if ("status" in result) {
+        setDocumensoStatus(result.status ?? null);
+        if (result.status === "signed") setStatut("signe");
+        if (result.status === "rejected") setStatut("refuse");
+        toast({
+          title: "Statut mis à jour",
+          description: `Signature : ${result.status}`,
+          variant: "success",
+        });
+      }
+    } catch (error) {
+      console.error("Erreur vérification signature:", error);
     }
   };
 
@@ -373,6 +428,41 @@ export default function DevisDetailPage() {
               )}
               Convertir en facture
             </Button>
+
+            {documensoAvailable && !documensoStatus && statut === "brouillon" && (
+              <Button
+                size="sm"
+                onClick={handleSendForSignature}
+                disabled={sendingSignature}
+                className="h-8 text-xs bg-[#F97316] hover:bg-[#EA580C] text-white"
+              >
+                {sendingSignature ? (
+                  <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                ) : (
+                  <PenLine className="mr-1 h-3 w-3" />
+                )}
+                Envoyer en signature
+              </Button>
+            )}
+
+            {documensoStatus === "pending" && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCheckSignatureStatus}
+                className="h-8 text-xs border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+              >
+                <PenLine className="mr-1 h-3 w-3" />
+                Vérifier signature
+              </Button>
+            )}
+
+            {documensoStatus === "signed" && (
+              <span className="flex items-center gap-1 text-xs text-emerald-400">
+                <PenLine className="h-3 w-3" />
+                Signé
+              </span>
+            )}
           </div>
         </div>
       </div>
