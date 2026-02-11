@@ -88,6 +88,79 @@ export async function createSession(input: CreateSessionInput) {
     objetHref: `/sessions/${data.id}`,
   });
 
+  // ─── Auto-add questionnaires from product ───────────────
+  const produitId = parsed.data.produit_id || null;
+  if (produitId) {
+    try {
+      // Fetch active questionnaires linked to this product
+      const { data: produitQuestionnaires } = await supabase
+        .from("produit_questionnaires")
+        .select("questionnaire_id, type_usage")
+        .eq("produit_id", produitId)
+        .eq("actif", true);
+
+      if (produitQuestionnaires && produitQuestionnaires.length > 0) {
+        // Map type_usage to session_evaluations type
+        const typeUsageToEvalType: Record<string, string> = {
+          positionnement: "pedagogique_pre",
+          satisfaction_chaud: "satisfaction_chaud",
+          satisfaction_client: "satisfaction_froid",
+          evaluation_froid: "satisfaction_froid",
+          autre: "pedagogique_post",
+        };
+
+        // Get existing evaluations to avoid duplicates
+        const { data: existingEvals } = await supabase
+          .from("session_evaluations")
+          .select("questionnaire_id")
+          .eq("session_id", data.id);
+
+        const existingQIds = new Set((existingEvals ?? []).map(e => e.questionnaire_id));
+
+        const newEvals = produitQuestionnaires
+          .filter(pq => !existingQIds.has(pq.questionnaire_id))
+          .map(pq => ({
+            session_id: data.id,
+            questionnaire_id: pq.questionnaire_id,
+            type: typeUsageToEvalType[pq.type_usage] ?? "satisfaction_chaud",
+          }));
+
+        if (newEvals.length > 0) {
+          await supabase.from("session_evaluations").insert(newEvals);
+
+          // Fetch product name for log
+          const { data: produit } = await supabase
+            .from("produits_formation")
+            .select("intitule")
+            .eq("id", produitId)
+            .single();
+
+          await logHistorique({
+            organisationId,
+            userId,
+            userRole: role,
+            module: "session",
+            action: "linked",
+            entiteType: "session",
+            entiteId: data.id,
+            entiteLabel: `${data.numero_affichage} — ${data.nom}`,
+            description: `${newEvals.length} questionnaire(s) ajouté(s) automatiquement depuis le programme "${produit?.intitule ?? produitId}"`,
+            objetHref: `/sessions/${data.id}`,
+            metadata: {
+              source: "auto_from_produit",
+              produit_id: produitId,
+              questionnaire_count: newEvals.length,
+              questionnaire_ids: newEvals.map(e => e.questionnaire_id),
+            },
+          });
+        }
+      }
+    } catch (err) {
+      // Non-blocking: if the produit_questionnaires table doesn't exist yet, continue
+      console.warn("[createSession] Auto-add questionnaires failed (migration may not be applied):", err);
+    }
+  }
+
   revalidatePath("/sessions");
   return { data };
 }

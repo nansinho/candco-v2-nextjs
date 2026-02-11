@@ -1,4 +1,5 @@
-import { getProduit, getBpfSpecialites } from "@/actions/produits";
+import { getProduit, getBpfSpecialites, getProduitQuestionnaires } from "@/actions/produits";
+import { getAllQuestionnaires } from "@/actions/questionnaires";
 import { notFound } from "next/navigation";
 import { ProduitDetail } from "./produit-detail";
 
@@ -8,9 +9,11 @@ interface PageProps {
 
 export default async function ProduitDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const [result, bpfResult] = await Promise.all([
+  const [result, bpfResult, produitQuestionnairesResult, allQuestionnairesResult] = await Promise.all([
     getProduit(id),
     getBpfSpecialites(),
+    getProduitQuestionnaires(id),
+    getAllQuestionnaires(),
   ]);
 
   if (!result.data) {
@@ -30,6 +33,8 @@ export default async function ProduitDetailPage({ params }: PageProps) {
       ouvrages={result.ouvrages}
       articles={result.articles}
       bpfSpecialites={bpfResult.data}
+      produitQuestionnaires={produitQuestionnairesResult.data}
+      allQuestionnaires={allQuestionnairesResult.data}
     />
   );
 }
