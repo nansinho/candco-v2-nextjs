@@ -6,6 +6,8 @@ import { getOrganisationId } from "@/lib/auth-helpers";
 import { requirePermission, canCreate, canEdit, canDelete, type UserRole } from "@/lib/permissions";
 import { logHistorique } from "@/lib/historique";
 import { callClaude, checkCredits, deductCredits } from "@/lib/ai-providers";
+import { sendEmail } from "@/lib/emails/send-email";
+import { questionnaireInvitationTemplate } from "@/lib/emails/templates";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { QueryFilter } from "@/lib/utils";
@@ -530,7 +532,52 @@ export async function sendQuestionnaireInvitations(
 
   if (error) return { error: error.message };
 
-  // TODO: Send emails via Resend here (Phase 4 email integration)
+  // Fetch questionnaire name + org name for email template
+  const { data: questionnaire } = await admin
+    .from("questionnaires")
+    .select("nom")
+    .eq("id", questionnaireId)
+    .single();
+
+  const { data: org } = await admin
+    .from("organisations")
+    .select("nom")
+    .eq("id", organisationId)
+    .single();
+
+  const questionnaireNom = questionnaire?.nom || "Questionnaire";
+  const orgName = org?.nom || "C&CO Formation";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.candco.fr";
+
+  // Send invitation email to each recipient
+  if (data && data.length > 0) {
+    const emailPromises = data.map((invitation) => {
+      const lien = `${appUrl}/questionnaires/repondre?token=${invitation.token}`;
+      const html = questionnaireInvitationTemplate({
+        prenom: invitation.prenom || invitation.email.split("@")[0],
+        questionnaireNom,
+        lien,
+        orgName,
+      });
+
+      return sendEmail({
+        organisationId,
+        to: invitation.email,
+        toName: invitation.prenom && invitation.nom
+          ? `${invitation.prenom} ${invitation.nom}`
+          : undefined,
+        subject: `${orgName} — Questionnaire : ${questionnaireNom}`,
+        html,
+        entiteType: "questionnaire",
+        entiteId: questionnaireId,
+        template: "questionnaire_invitation",
+      }).catch((err) => {
+        console.error(`Erreur envoi email questionnaire à ${invitation.email}:`, err);
+      });
+    });
+
+    await Promise.allSettled(emailPromises);
+  }
 
   await logHistorique({
     organisationId,
@@ -540,7 +587,7 @@ export async function sendQuestionnaireInvitations(
     action: "sent",
     entiteType: "questionnaire",
     entiteId: questionnaireId,
-    description: `${recipients.length} invitation(s) envoyée(s)`,
+    description: `${recipients.length} invitation(s) envoyée(s) par email`,
     objetHref: `/questionnaires/${questionnaireId}`,
   });
 
