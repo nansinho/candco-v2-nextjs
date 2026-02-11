@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { autoCreateFactureFromDevis } from "@/lib/devis-utils";
 
 /**
  * Webhook Documenso — reçoit les notifications de signature.
@@ -91,6 +92,15 @@ export async function POST(request: NextRequest) {
     }
 
     await admin.from("devis").update(updates).eq("id", devis.id);
+
+    // Auto-create facture when devis is signed
+    if (newStatus === "signed") {
+      try {
+        await autoCreateFactureFromDevis(devis.id, devis.organisation_id);
+      } catch (e) {
+        console.error(`[Documenso Webhook] Failed to auto-create facture for devis ${devis.id}:`, e);
+      }
+    }
 
     // Log historique
     await admin.from("historique_events").insert({

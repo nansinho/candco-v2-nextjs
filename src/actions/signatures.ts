@@ -18,6 +18,7 @@ import {
   type DevisData,
   type ContratSousTraitanceData,
 } from "@/lib/pdf-generator";
+import { autoCreateFactureFromDevis } from "@/lib/devis-utils";
 import { generateSessionConvention } from "@/actions/documents";
 import { sendEmail } from "@/lib/emails/send-email";
 import {
@@ -410,8 +411,21 @@ export async function checkDevisSignatureStatus(devisId: string) {
         .eq("entite_type", "devis")
         .eq("entite_id", devisId);
 
+      // Auto-create facture when devis is signed
+      if (newStatus === "signed") {
+        const { data: devisFull } = await admin
+          .from("devis")
+          .select("organisation_id")
+          .eq("id", devisId)
+          .single();
+        if (devisFull?.organisation_id) {
+          await autoCreateFactureFromDevis(devisId, devisFull.organisation_id);
+        }
+      }
+
       revalidatePath("/devis");
       revalidatePath(`/devis/${devisId}`);
+      revalidatePath("/factures");
     }
 
     return {
