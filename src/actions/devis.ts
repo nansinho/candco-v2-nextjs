@@ -87,7 +87,8 @@ export async function createDevis(input: CreateDevisInput) {
       contact_client_id: parsed.data.contact_client_id || null,
       particulier_nom: parsed.data.particulier_nom || null,
       particulier_email: parsed.data.particulier_email || null,
-      particulier_telephone: parsed.data.particulier_telephone || null,
+      // particulier_telephone omitted: PostgREST schema cache doesn't know this column yet
+      // Re-add after restarting PostgREST container in Coolify
       particulier_adresse: parsed.data.particulier_adresse || null,
       date_emission: parsed.data.date_emission,
       date_echeance: parsed.data.date_echeance || null,
@@ -228,7 +229,7 @@ export async function updateDevis(id: string, input: UpdateDevisInput) {
       contact_client_id: parsed.data.contact_client_id || null,
       particulier_nom: parsed.data.particulier_nom || null,
       particulier_email: parsed.data.particulier_email || null,
-      particulier_telephone: parsed.data.particulier_telephone || null,
+      // particulier_telephone omitted: PostgREST schema cache doesn't know this column yet
       particulier_adresse: parsed.data.particulier_adresse || null,
       date_emission: parsed.data.date_emission,
       date_echeance: parsed.data.date_echeance || null,
