@@ -1,0 +1,623 @@
+/**
+ * Générateur PDF pour C&CO Formation v2
+ *
+ * Utilise pdf-lib pour générer des documents PDF côté serveur :
+ * - Convention de formation
+ * - Attestation de fin de formation
+ * - Certificat de réalisation
+ * - Convocation
+ * - Feuille d'émargement
+ * - Programme de formation
+ */
+
+import { PDFDocument, StandardFonts, rgb, PDFFont, PDFPage } from "pdf-lib";
+
+// ─── Types ──────────────────────────────────────────────
+
+export interface PDFGeneratorOptions {
+  orgName: string;
+  orgSiret?: string;
+  orgNda?: string;
+  orgAdresse?: string;
+  orgEmail?: string;
+  orgTelephone?: string;
+  orgLogo?: string; // URL or base64
+}
+
+export interface ConventionData {
+  // Session
+  sessionNom: string;
+  sessionNumero: string;
+  dateDebut: string;
+  dateFin: string;
+  dureeHeures: number;
+  dureeJours: number;
+  lieu: string;
+  modalite: string; // Présentiel, Distanciel, Mixte
+  // Entreprise commanditaire
+  entrepriseNom: string;
+  entrepriseSiret?: string;
+  entrepriseAdresse?: string;
+  entrepriseRepresentant?: string;
+  // Formateur
+  formateurNom?: string;
+  // Apprenants
+  apprenants: { prenom: string; nom: string }[];
+  // Tarif
+  prixHt: number;
+  tva: number;
+  prixTtc: number;
+  // Objectifs
+  objectifs?: string[];
+  // Programme (modules)
+  programme?: { titre: string; duree?: string }[];
+}
+
+export interface AttestationData {
+  apprenantPrenom: string;
+  apprenantNom: string;
+  apprenantDateNaissance?: string;
+  sessionNom: string;
+  sessionNumero: string;
+  dateDebut: string;
+  dateFin: string;
+  dureeHeures: number;
+  lieu: string;
+  objectifs?: string[];
+  resultat?: string; // Acquis, En cours d'acquisition, Non acquis
+  dateEmission: string;
+}
+
+export interface ConvocationData {
+  apprenantPrenom: string;
+  apprenantNom: string;
+  sessionNom: string;
+  sessionNumero: string;
+  dateDebut: string;
+  dateFin: string;
+  lieu: string;
+  horaireDebut?: string;
+  horaireFin?: string;
+  formateurNom?: string;
+  dateEmission: string;
+}
+
+export interface EmargementData {
+  sessionNom: string;
+  sessionNumero: string;
+  date: string;
+  creneaux: { heureDebut: string; heureFin: string; formateur?: string }[];
+  apprenants: { prenom: string; nom: string }[];
+  formateurNom?: string;
+}
+
+// ─── Couleurs ───────────────────────────────────────────
+
+const ORANGE = rgb(249 / 255, 115 / 255, 22 / 255); // #F97316
+const DARK_BG = rgb(20 / 255, 20 / 255, 20 / 255);
+const DARK_TEXT = rgb(30 / 255, 30 / 255, 30 / 255);
+const GRAY_TEXT = rgb(100 / 255, 100 / 255, 100 / 255);
+const LIGHT_GRAY = rgb(230 / 255, 230 / 255, 230 / 255);
+const WHITE = rgb(1, 1, 1);
+
+// ─── Helpers ────────────────────────────────────────────
+
+function drawHeader(
+  page: PDFPage,
+  font: PDFFont,
+  fontBold: PDFFont,
+  opts: PDFGeneratorOptions,
+  title: string,
+) {
+  const { width, height } = page.getSize();
+
+  // Orange top bar
+  page.drawRectangle({
+    x: 0,
+    y: height - 8,
+    width,
+    height: 8,
+    color: ORANGE,
+  });
+
+  // Org name
+  page.drawText(opts.orgName, {
+    x: 50,
+    y: height - 50,
+    size: 16,
+    font: fontBold,
+    color: ORANGE,
+  });
+
+  // Org details (small)
+  let detailY = height - 68;
+  const details: string[] = [];
+  if (opts.orgSiret) details.push(`SIRET : ${opts.orgSiret}`);
+  if (opts.orgNda) details.push(`NDA : ${opts.orgNda}`);
+  if (opts.orgAdresse) details.push(opts.orgAdresse);
+  if (opts.orgEmail) details.push(opts.orgEmail);
+  if (opts.orgTelephone) details.push(opts.orgTelephone);
+
+  for (const d of details) {
+    page.drawText(d, { x: 50, y: detailY, size: 8, font, color: GRAY_TEXT });
+    detailY -= 12;
+  }
+
+  // Document title
+  const titleY = detailY - 20;
+  page.drawText(title, {
+    x: 50,
+    y: titleY,
+    size: 18,
+    font: fontBold,
+    color: DARK_TEXT,
+  });
+
+  // Separator line
+  page.drawLine({
+    start: { x: 50, y: titleY - 10 },
+    end: { x: width - 50, y: titleY - 10 },
+    thickness: 1,
+    color: LIGHT_GRAY,
+  });
+
+  return titleY - 30; // Return Y position for content start
+}
+
+function drawFooter(page: PDFPage, font: PDFFont, opts: PDFGeneratorOptions) {
+  const { width } = page.getSize();
+
+  page.drawLine({
+    start: { x: 50, y: 50 },
+    end: { x: width - 50, y: 50 },
+    thickness: 0.5,
+    color: LIGHT_GRAY,
+  });
+
+  const footerText = `${opts.orgName}${opts.orgNda ? ` — NDA : ${opts.orgNda}` : ""}${opts.orgSiret ? ` — SIRET : ${opts.orgSiret}` : ""}`;
+  const footerWidth = font.widthOfTextAtSize(footerText, 7);
+  page.drawText(footerText, {
+    x: (width - footerWidth) / 2,
+    y: 35,
+    size: 7,
+    font,
+    color: GRAY_TEXT,
+  });
+}
+
+function drawSection(
+  page: PDFPage,
+  fontBold: PDFFont,
+  title: string,
+  y: number,
+): number {
+  page.drawText(title, {
+    x: 50,
+    y,
+    size: 11,
+    font: fontBold,
+    color: ORANGE,
+  });
+  return y - 18;
+}
+
+function drawLabelValue(
+  page: PDFPage,
+  font: PDFFont,
+  fontBold: PDFFont,
+  label: string,
+  value: string,
+  y: number,
+  x: number = 50,
+): number {
+  page.drawText(`${label} :`, { x, y, size: 9, font: fontBold, color: DARK_TEXT });
+  page.drawText(value, {
+    x: x + fontBold.widthOfTextAtSize(`${label} : `, 9),
+    y,
+    size: 9,
+    font,
+    color: DARK_TEXT,
+  });
+  return y - 15;
+}
+
+function wrapText(text: string, font: PDFFont, size: number, maxWidth: number): string[] {
+  const words = text.split(" ");
+  const lines: string[] = [];
+  let currentLine = "";
+
+  for (const word of words) {
+    const testLine = currentLine ? `${currentLine} ${word}` : word;
+    if (font.widthOfTextAtSize(testLine, size) <= maxWidth) {
+      currentLine = testLine;
+    } else {
+      if (currentLine) lines.push(currentLine);
+      currentLine = word;
+    }
+  }
+  if (currentLine) lines.push(currentLine);
+  return lines;
+}
+
+// ─── Convention de formation ────────────────────────────
+
+export async function generateConvention(
+  opts: PDFGeneratorOptions,
+  data: ConventionData,
+): Promise<Uint8Array> {
+  const doc = await PDFDocument.create();
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
+
+  let page = doc.addPage([595.28, 841.89]); // A4
+  const { width } = page.getSize();
+  let y = drawHeader(page, font, fontBold, opts, "CONVENTION DE FORMATION PROFESSIONNELLE");
+
+  // Article 1 — Objet
+  y = drawSection(page, fontBold, "Article 1 — Objet", y);
+  const objetLines = wrapText(
+    `En exécution de la présente convention, l'organisme de formation s'engage à organiser l'action de formation intitulée « ${data.sessionNom} » (Réf. ${data.sessionNumero}).`,
+    font,
+    9,
+    width - 100,
+  );
+  for (const line of objetLines) {
+    page.drawText(line, { x: 50, y, size: 9, font, color: DARK_TEXT });
+    y -= 13;
+  }
+  y -= 5;
+
+  // Article 2 — Nature et caractéristiques
+  y = drawSection(page, fontBold, "Article 2 — Nature et caractéristiques", y);
+  y = drawLabelValue(page, font, fontBold, "Intitulé", data.sessionNom, y);
+  y = drawLabelValue(page, font, fontBold, "Dates", `Du ${data.dateDebut} au ${data.dateFin}`, y);
+  y = drawLabelValue(page, font, fontBold, "Durée", `${data.dureeHeures}h (${data.dureeJours} jour(s))`, y);
+  y = drawLabelValue(page, font, fontBold, "Modalité", data.modalite, y);
+  y = drawLabelValue(page, font, fontBold, "Lieu", data.lieu, y);
+  if (data.formateurNom) {
+    y = drawLabelValue(page, font, fontBold, "Formateur", data.formateurNom, y);
+  }
+  y -= 5;
+
+  // Objectifs
+  if (data.objectifs && data.objectifs.length > 0) {
+    y = drawSection(page, fontBold, "Objectifs pédagogiques", y);
+    for (const obj of data.objectifs) {
+      page.drawText(`• ${obj}`, { x: 60, y, size: 9, font, color: DARK_TEXT });
+      y -= 13;
+    }
+    y -= 5;
+  }
+
+  // Programme
+  if (data.programme && data.programme.length > 0) {
+    y = drawSection(page, fontBold, "Programme", y);
+    for (const mod of data.programme) {
+      const label = mod.duree ? `${mod.titre} (${mod.duree})` : mod.titre;
+      page.drawText(`• ${label}`, { x: 60, y, size: 9, font, color: DARK_TEXT });
+      y -= 13;
+    }
+    y -= 5;
+  }
+
+  // Check if we need a new page
+  if (y < 250) {
+    drawFooter(page, font, opts);
+    page = doc.addPage([595.28, 841.89]);
+    y = 780;
+  }
+
+  // Article 3 — Entreprise
+  y = drawSection(page, fontBold, "Article 3 — Entreprise commanditaire", y);
+  y = drawLabelValue(page, font, fontBold, "Raison sociale", data.entrepriseNom, y);
+  if (data.entrepriseSiret) y = drawLabelValue(page, font, fontBold, "SIRET", data.entrepriseSiret, y);
+  if (data.entrepriseAdresse) y = drawLabelValue(page, font, fontBold, "Adresse", data.entrepriseAdresse, y);
+  if (data.entrepriseRepresentant) y = drawLabelValue(page, font, fontBold, "Représentant", data.entrepriseRepresentant, y);
+  y -= 5;
+
+  // Article 4 — Stagiaires
+  y = drawSection(page, fontBold, "Article 4 — Stagiaire(s)", y);
+  for (const a of data.apprenants) {
+    page.drawText(`• ${a.prenom} ${a.nom}`, { x: 60, y, size: 9, font, color: DARK_TEXT });
+    y -= 13;
+  }
+  y -= 5;
+
+  // Article 5 — Dispositions financières
+  y = drawSection(page, fontBold, "Article 5 — Dispositions financières", y);
+  y = drawLabelValue(page, font, fontBold, "Montant HT", `${data.prixHt.toFixed(2)} €`, y);
+  y = drawLabelValue(page, font, fontBold, "TVA", data.tva === 0 ? "Exonéré (art. 261-4-4°a du CGI)" : `${data.tva.toFixed(2)} €`, y);
+  y = drawLabelValue(page, font, fontBold, "Montant TTC", `${data.prixTtc.toFixed(2)} €`, y);
+  y -= 15;
+
+  // Signatures
+  y = drawSection(page, fontBold, "Signatures", y);
+  y -= 5;
+
+  // Two columns for signatures
+  const colWidth = (width - 100) / 2;
+  page.drawText("L'organisme de formation", { x: 50, y, size: 9, font: fontBold, color: DARK_TEXT });
+  page.drawText("L'entreprise", { x: 50 + colWidth + 20, y, size: 9, font: fontBold, color: DARK_TEXT });
+  y -= 15;
+  page.drawText(opts.orgName, { x: 50, y, size: 9, font, color: DARK_TEXT });
+  page.drawText(data.entrepriseNom, { x: 50 + colWidth + 20, y, size: 9, font, color: DARK_TEXT });
+  y -= 12;
+  page.drawText("Date et signature :", { x: 50, y, size: 8, font, color: GRAY_TEXT });
+  page.drawText("Date et signature :", { x: 50 + colWidth + 20, y, size: 8, font, color: GRAY_TEXT });
+
+  // Signature boxes
+  y -= 5;
+  page.drawRectangle({ x: 50, y: y - 60, width: colWidth - 10, height: 60, borderColor: LIGHT_GRAY, borderWidth: 0.5 });
+  page.drawRectangle({ x: 50 + colWidth + 20, y: y - 60, width: colWidth - 10, height: 60, borderColor: LIGHT_GRAY, borderWidth: 0.5 });
+
+  drawFooter(page, font, opts);
+
+  return doc.save();
+}
+
+// ─── Attestation de fin de formation ────────────────────
+
+export async function generateAttestation(
+  opts: PDFGeneratorOptions,
+  data: AttestationData,
+): Promise<Uint8Array> {
+  const doc = await PDFDocument.create();
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
+
+  const page = doc.addPage([595.28, 841.89]);
+  const { width } = page.getSize();
+  let y = drawHeader(page, font, fontBold, opts, "ATTESTATION DE FIN DE FORMATION");
+
+  // Attestation body
+  y -= 10;
+  const intro = `Je soussigné(e), représentant(e) de ${opts.orgName}, organisme de formation${opts.orgNda ? ` déclaré sous le numéro ${opts.orgNda}` : ""}, atteste que :`;
+  const introLines = wrapText(intro, font, 10, width - 100);
+  for (const line of introLines) {
+    page.drawText(line, { x: 50, y, size: 10, font, color: DARK_TEXT });
+    y -= 15;
+  }
+  y -= 10;
+
+  // Apprenant info box
+  page.drawRectangle({
+    x: 50,
+    y: y - 70,
+    width: width - 100,
+    height: 70,
+    color: rgb(248 / 255, 248 / 255, 248 / 255),
+    borderColor: LIGHT_GRAY,
+    borderWidth: 0.5,
+  });
+
+  y -= 18;
+  page.drawText(`${data.apprenantPrenom} ${data.apprenantNom}`, {
+    x: 65,
+    y,
+    size: 14,
+    font: fontBold,
+    color: DARK_TEXT,
+  });
+  y -= 18;
+  if (data.apprenantDateNaissance) {
+    page.drawText(`Né(e) le ${data.apprenantDateNaissance}`, { x: 65, y, size: 9, font, color: GRAY_TEXT });
+    y -= 15;
+  }
+
+  y -= 30;
+  const suivi = `a suivi la formation « ${data.sessionNom} » (Réf. ${data.sessionNumero})`;
+  page.drawText(suivi, { x: 50, y, size: 10, font, color: DARK_TEXT });
+  y -= 20;
+
+  y = drawLabelValue(page, font, fontBold, "Du", `${data.dateDebut} au ${data.dateFin}`, y);
+  y = drawLabelValue(page, font, fontBold, "Durée", `${data.dureeHeures} heures`, y);
+  y = drawLabelValue(page, font, fontBold, "Lieu", data.lieu, y);
+  y -= 10;
+
+  // Objectifs
+  if (data.objectifs && data.objectifs.length > 0) {
+    y = drawSection(page, fontBold, "Objectifs de la formation", y);
+    for (const obj of data.objectifs) {
+      page.drawText(`• ${obj}`, { x: 60, y, size: 9, font, color: DARK_TEXT });
+      y -= 13;
+    }
+    y -= 10;
+  }
+
+  // Résultat
+  if (data.resultat) {
+    y = drawSection(page, fontBold, "Résultat de l'évaluation", y);
+    page.drawText(data.resultat, { x: 50, y, size: 10, font: fontBold, color: DARK_TEXT });
+    y -= 20;
+  }
+
+  // Date et signature
+  y -= 20;
+  page.drawText(`Fait à ${opts.orgAdresse?.split(",")[0]?.trim() || "___________"}, le ${data.dateEmission}`, {
+    x: 50,
+    y,
+    size: 10,
+    font,
+    color: DARK_TEXT,
+  });
+  y -= 25;
+  page.drawText("Le responsable de l'organisme de formation", { x: 50, y, size: 9, font, color: GRAY_TEXT });
+  y -= 5;
+  page.drawRectangle({ x: 50, y: y - 60, width: 200, height: 60, borderColor: LIGHT_GRAY, borderWidth: 0.5 });
+
+  drawFooter(page, font, opts);
+
+  return doc.save();
+}
+
+// ─── Convocation ────────────────────────────────────────
+
+export async function generateConvocation(
+  opts: PDFGeneratorOptions,
+  data: ConvocationData,
+): Promise<Uint8Array> {
+  const doc = await PDFDocument.create();
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
+
+  const page = doc.addPage([595.28, 841.89]);
+  let y = drawHeader(page, font, fontBold, opts, "CONVOCATION À LA FORMATION");
+
+  y -= 10;
+  page.drawText(`${data.apprenantPrenom} ${data.apprenantNom}`, {
+    x: 50,
+    y,
+    size: 12,
+    font: fontBold,
+    color: DARK_TEXT,
+  });
+  y -= 25;
+
+  page.drawText("Vous êtes convoqué(e) à la session de formation suivante :", {
+    x: 50,
+    y,
+    size: 10,
+    font,
+    color: DARK_TEXT,
+  });
+  y -= 25;
+
+  y = drawLabelValue(page, font, fontBold, "Formation", `${data.sessionNom} (${data.sessionNumero})`, y);
+  y = drawLabelValue(page, font, fontBold, "Dates", `Du ${data.dateDebut} au ${data.dateFin}`, y);
+  if (data.horaireDebut) {
+    y = drawLabelValue(page, font, fontBold, "Horaires", `${data.horaireDebut} — ${data.horaireFin || ""}`, y);
+  }
+  y = drawLabelValue(page, font, fontBold, "Lieu", data.lieu, y);
+  if (data.formateurNom) {
+    y = drawLabelValue(page, font, fontBold, "Formateur", data.formateurNom, y);
+  }
+  y -= 20;
+
+  page.drawText("Merci de vous présenter 10 minutes avant le début de la formation.", {
+    x: 50,
+    y,
+    size: 9,
+    font,
+    color: GRAY_TEXT,
+  });
+  y -= 30;
+
+  page.drawText(`Fait le ${data.dateEmission}`, { x: 50, y, size: 10, font, color: DARK_TEXT });
+
+  drawFooter(page, font, opts);
+
+  return doc.save();
+}
+
+// ─── Feuille d'émargement ───────────────────────────────
+
+export async function generateEmargement(
+  opts: PDFGeneratorOptions,
+  data: EmargementData,
+): Promise<Uint8Array> {
+  const doc = await PDFDocument.create();
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
+
+  const page = doc.addPage([841.89, 595.28]); // A4 paysage
+  const { width, height } = page.getSize();
+
+  // Header
+  page.drawRectangle({ x: 0, y: height - 6, width, height: 6, color: ORANGE });
+  page.drawText(opts.orgName, { x: 30, y: height - 30, size: 12, font: fontBold, color: ORANGE });
+  page.drawText("FEUILLE D'ÉMARGEMENT", { x: 30, y: height - 50, size: 14, font: fontBold, color: DARK_TEXT });
+
+  let y = height - 70;
+  page.drawText(`Formation : ${data.sessionNom} (${data.sessionNumero})`, { x: 30, y, size: 9, font: fontBold, color: DARK_TEXT });
+  y -= 14;
+  page.drawText(`Date : ${data.date}`, { x: 30, y, size: 9, font, color: DARK_TEXT });
+  if (data.formateurNom) {
+    page.drawText(`Formateur : ${data.formateurNom}`, { x: 300, y, size: 9, font, color: DARK_TEXT });
+  }
+  y -= 20;
+
+  // Table
+  const tableX = 30;
+  const nameColW = 180;
+  const creneauColW = data.creneaux.length > 0 ? Math.min(120, (width - 80 - nameColW) / data.creneaux.length) : 120;
+  const rowH = 28;
+
+  // Header row
+  page.drawRectangle({
+    x: tableX,
+    y: y - rowH,
+    width: nameColW + creneauColW * Math.max(data.creneaux.length, 2),
+    height: rowH,
+    color: rgb(240 / 255, 240 / 255, 240 / 255),
+  });
+
+  page.drawText("Nom / Prénom", { x: tableX + 5, y: y - 18, size: 8, font: fontBold, color: DARK_TEXT });
+
+  // Créneau headers
+  for (let i = 0; i < data.creneaux.length; i++) {
+    const cx = tableX + nameColW + i * creneauColW;
+    page.drawText(`${data.creneaux[i].heureDebut}`, { x: cx + 5, y: y - 12, size: 7, font: fontBold, color: DARK_TEXT });
+    page.drawText(`${data.creneaux[i].heureFin}`, { x: cx + 5, y: y - 22, size: 7, font, color: GRAY_TEXT });
+  }
+
+  y -= rowH;
+
+  // Rows for each apprenant
+  for (let j = 0; j < data.apprenants.length; j++) {
+    const rowY = y - (j + 1) * rowH;
+
+    // Alternating bg
+    if (j % 2 === 0) {
+      page.drawRectangle({
+        x: tableX,
+        y: rowY,
+        width: nameColW + creneauColW * Math.max(data.creneaux.length, 2),
+        height: rowH,
+        color: rgb(252 / 255, 252 / 255, 252 / 255),
+      });
+    }
+
+    // Name
+    page.drawText(`${data.apprenants[j].nom} ${data.apprenants[j].prenom}`, {
+      x: tableX + 5,
+      y: rowY + 10,
+      size: 8,
+      font,
+      color: DARK_TEXT,
+    });
+
+    // Signature cells
+    for (let i = 0; i < data.creneaux.length; i++) {
+      const cx = tableX + nameColW + i * creneauColW;
+      page.drawRectangle({
+        x: cx,
+        y: rowY,
+        width: creneauColW,
+        height: rowH,
+        borderColor: LIGHT_GRAY,
+        borderWidth: 0.5,
+      });
+    }
+
+    // Name cell border
+    page.drawRectangle({
+      x: tableX,
+      y: rowY,
+      width: nameColW,
+      height: rowH,
+      borderColor: LIGHT_GRAY,
+      borderWidth: 0.5,
+    });
+  }
+
+  // Formateur signature at bottom
+  const bottomY = y - (data.apprenants.length + 1) * rowH - 20;
+  page.drawText("Signature du formateur :", { x: 30, y: bottomY, size: 9, font: fontBold, color: DARK_TEXT });
+  page.drawRectangle({ x: 30, y: bottomY - 50, width: 200, height: 45, borderColor: LIGHT_GRAY, borderWidth: 0.5 });
+
+  // Footer
+  const footerText = `${opts.orgName}${opts.orgNda ? ` — NDA : ${opts.orgNda}` : ""}`;
+  page.drawText(footerText, { x: 30, y: 20, size: 7, font, color: GRAY_TEXT });
+
+  return doc.save();
+}

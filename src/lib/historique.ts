@@ -21,7 +21,8 @@ export type HistoriqueModule =
   | "organisation"
   | "questionnaire"
   | "opportunite"
-  | "ticket";
+  | "ticket"
+  | "document";
 
 export type HistoriqueAction =
   | "created"

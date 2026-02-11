@@ -1627,7 +1627,55 @@ articles (
 )
 ```
 
-### Total estimé : ~55 tables
+-- ═══════════════════════════════════════════
+-- TABLES SUPPLÉMENTAIRES (ajoutées post-design initial)
+-- ═══════════════════════════════════════════
+
+-- Entreprise : structure organisationnelle
+entreprise_agences (id, entreprise_id, nom, adresse, ...)
+entreprise_poles (id, entreprise_id, nom, ...)
+entreprise_membres (id, entreprise_id, nom, fonction, ...)
+membre_agences (id, membre_id, agence_id)
+apprenant_entreprise_agences (id, apprenant_entreprise_id, agence_id)
+
+-- Produits : champs étendus
+produit_competences (id, produit_id, competence, ordre)
+produit_prerequis (id, produit_id, prerequis, ordre)
+produit_public_vise (id, produit_id, public, ordre)
+produit_financement (id, produit_id, financeur, description)
+produit_ouvrages (id, produit_id, titre, auteur, editeur, annee, isbn)
+produit_articles (id, produit_id, titre, auteur, revue, annee, doi)
+produit_references_biblio (id, produit_id, type, titre, auteur, ...)
+produit_questionnaires (id, produit_id, questionnaire_id)
+produit_questionnaire_planifications (id, produit_id, questionnaire_id, type, timing, ...)
+session_questionnaire_planifications (id, session_id, questionnaire_id, type, timing, ...)
+
+-- Catalogue
+catalogue_categories (id, organisation_id, nom, parent_id, ordre)
+
+-- Formation
+besoins_formation (id, organisation_id, titre, description, statut, ...)
+plans_formation (id, organisation_id, nom, periode, statut, ...)
+plan_budgets_agence (id, plan_id, agence_id, budget, ...)
+
+-- Import
+import_templates (id, organisation_id, nom, entite_type, mapping jsonb)
+
+-- Formateur
+formateur_disponibilites (id, formateur_id, date_debut, date_fin, statut)
+
+-- Tickets étendus
+ticket_mentions (id, ticket_message_id, user_id)
+ticket_historique (id, ticket_id, action, details jsonb, user_id)
+
+-- Historique
+historique_events (id, organisation_id, module, action, description, ...)
+
+-- Fonctions prédéfinies
+fonctions_predefinies (id, organisation_id, libelle, entite_type)
+```
+
+### Total : ~75 tables
 
 ---
 
@@ -1696,9 +1744,11 @@ articles (
 - [x] Module **Financeurs** (CRUD, types OPCO/PE/Région)
 - [x] Module **Salles** (CRUD, capacité, équipements)
 - [x] Système de **tâches & activités** (polymorphique, rattachable à toute entité)
-- [ ] Système de **vues personnalisables** (colonnes, filtres, tri sauvegardés)
-- [ ] **Recherche avancée** + **Export CSV/Excel**
-- [ ] **Archivage** (soft delete avec restauration)
+- [x] **Colonnes personnalisables** (toggles de colonnes sauvegardés en localStorage)
+- [x] **Recherche avancée** + **Export CSV** (UTF-8 BOM, tous les modules)
+- [x] **Archivage** (soft delete avec archived_at)
+- [x] **Import CSV/Excel** (SheetJS, mapping colonnes intelligent)
+- [ ] Système de **vues sauvegardées** en onglets (filtres + tri sauvegardés en BDD)
 
 ### Phase 2 — Catalogue & Bibliothèque ✅ TERMINÉE
 > **Objectif** : Pouvoir créer et gérer le catalogue de formations
@@ -1723,109 +1773,119 @@ articles (
 - [x] **Émargement** (ouverture/fermeture par créneau + suivi présence admin)
 - [x] **Planning** (vue calendrier — semaine/mois)
 - [x] Workflow commanditaires (pipeline d'étapes configurable)
-- [ ] Évaluations rattachées (satisfaction + pédagogique) — *dépend Phase 4*
+- [x] Évaluations rattachées (satisfaction + pédagogique)
 - [x] Documents session (import + suppression + catégorisation)
 - [x] Calcul **rentabilité** auto (budget - coût formateur - charges)
 
-### Phase 4 — Questionnaires
+### Phase 4 — Questionnaires ✅ TERMINÉE
 > **Objectif** : Enquêtes de satisfaction + évaluations pédagogiques
 
-- [ ] Module **Questionnaires** unifié (satisfaction + péda + standalone)
-- [ ] Création questions (5 types + scoring)
-- [ ] Envoi par email (Resend, lien unique par destinataire)
-- [ ] Relances automatiques (J+3, J+7 via pg_cron)
-- [ ] Dashboard réponses + graphiques statistiques
-- [ ] Alertes email configurables (si note < seuil)
-- [ ] Import IA : PDF/Word → extraction questions automatique
-- [ ] Export réponses (CSV, PDF)
+- [x] Module **Questionnaires** unifié (satisfaction + péda + standalone)
+- [x] Création questions (5 types + scoring)
+- [x] Envoi par email (Resend, lien unique par destinataire)
+- [x] Relances automatiques (J+3, J+7 — planification auto)
+- [x] Dashboard réponses + graphiques statistiques
+- [x] Alertes email configurables (si note < seuil)
+- [x] Import IA : PDF/Word → extraction questions automatique
+- [x] Export réponses (CSV, PDF)
+- [x] Planification automatique (rattachement auto aux sessions depuis le produit)
 
-### Phase 5 — Commercial
+### Phase 5 — Commercial ✅ TERMINÉE
 > **Objectif** : Pipeline commercial complet
 
-- [ ] Module **Opportunités** (pipeline, statuts, montant estimé)
-- [ ] Module **Devis** (CRUD, layout édition/aperçu PDF)
-- [ ] Multi-lignes devis + calculs auto (HT, TVA, TTC)
-- [ ] Conversion **devis → session**
-- [ ] Conversion **devis → facture**
-- [ ] Envoi devis par email (Resend + tracking ouverture)
-- [ ] Templates de devis
+- [x] Module **Opportunités** (pipeline, statuts, montant estimé)
+- [x] Module **Devis** (CRUD, layout édition/aperçu PDF)
+- [x] Multi-lignes devis + calculs auto (HT, TVA, TTC)
+- [x] Conversion **devis → facture**
+- [x] Envoi devis par email (Resend + tracking ouverture)
+- [x] Templates de devis
+- [ ] Conversion **devis → session** (à implémenter)
 - [ ] Signature électronique (à évaluer : intégration externe ou maison)
 
-### Phase 6 — Facturation
+### Phase 6 — Facturation ✅ TERMINÉE
 > **Objectif** : Facturation complète + export comptable
 
-- [ ] Module **Factures** (CRUD, même layout que devis)
-- [ ] Multi-lignes + calculs auto
-- [ ] Suivi paiements (enregistrement, mode, solde auto)
-- [ ] Relances automatiques (échéance + J+7 + J+14 + J+30)
-- [ ] Module **Avoirs** (lié facture, partiel/total)
-- [ ] **Export comptable** FEC (Fichier Écritures Comptables)
-- [ ] Génération PDF factures/avoirs
+- [x] Module **Factures** (CRUD, même layout que devis)
+- [x] Multi-lignes + calculs auto
+- [x] Suivi paiements (enregistrement, mode, solde auto)
+- [x] Module **Avoirs** (lié facture, partiel/total)
+- [x] **Export comptable** FEC (Fichier Écritures Comptables)
+- [ ] Relances automatiques (échéance + J+7 + J+14 + J+30 via pg_cron)
 
-### Phase 7 — Documents & Génération
+### Phase 7 — Documents & Génération ✅ TERMINÉE
 > **Objectif** : Génération automatique de tous les documents réglementaires
 
-- [ ] Templates de documents (convention, attestation, certificat, programme, contrat sous-traitance)
-- [ ] Variables dynamiques ({{nom}}, {{date}}, {{session}}, etc.)
-- [ ] Génération PDF/DOCX côté serveur
-- [ ] Gestion documents par entité (upload + téléchargement)
+- [x] Templates de documents (convention, attestation, certificat, programme, contrat sous-traitance)
+- [x] Variables dynamiques via pdf-lib
+- [x] Génération PDF côté serveur (convention, attestation, convocation, émargement)
+- [x] Gestion documents par entité (upload + téléchargement)
+- [x] Génération par lot (toutes les attestations/convocations d'une session)
 
-### Phase 8 — Accès, Rôles & Multi-organisation ⭐ NOUVEAU
+### Phase 8 — Accès, Rôles & Multi-organisation ✅ TERMINÉE
 > **Objectif** : Système complet de gestion des accès et rôles
 
-- [ ] Migration BDD : `user_organisations`, `extranet_acces`, `apprenants.extranet_*`
-- [ ] **RBAC back-office** : permissions admin / manager / user (navigation conditionnelle, protection Server Actions)
-- [ ] **Middleware routing par rôle** : détection utilisateur vs extranet → redirection automatique
-- [ ] **Flux d'invitation extranet** : créer compte Auth + envoyer email (Resend) + activation MDP
-- [ ] UI d'invitation sur les fiches formateur/apprenant/contact client
-- [ ] **Sélecteur d'organisation** dans la sidebar pour super-admin
-- [ ] **Vue Admin plateforme** (`/admin`) : liste OF, stats globales, tickets de tous les OF, abonnements
-- [ ] Gestion utilisateurs dans Paramètres OF (inviter, modifier rôle, désactiver)
+- [x] Migration BDD : `user_organisations`, `extranet_acces`, `apprenants.extranet_*`
+- [x] **RBAC back-office** : permissions admin / manager / user (navigation conditionnelle, protection Server Actions)
+- [x] **Middleware routing par rôle** : détection utilisateur vs extranet → redirection automatique (avec cache Redis 5min)
+- [x] **Flux d'invitation extranet** : créer compte Auth + envoyer email (Resend) + activation MDP
+- [x] UI d'invitation sur les fiches formateur/apprenant/contact client
+- [x] **Sélecteur d'organisation** dans la sidebar pour super-admin
+- [x] **Vue Admin plateforme** (`/admin`) : liste OF, stats globales, tickets de tous les OF, utilisateurs
+- [x] Gestion utilisateurs dans Paramètres OF (inviter, modifier rôle, désactiver)
 
-### Phase 9 — Extranet Formateur ⭐ NOUVEAU
+### Phase 9 — Extranet Formateur ✅ TERMINÉE
 > **Objectif** : Espace connecté pour les formateurs
 
-- [ ] Layout extranet formateur (sidebar dédiée, header, design adapté)
-- [ ] **Tableau de bord** : prochaines sessions, alertes
-- [ ] **Mes sessions** : liste sessions assignées + détail (apprenants, créneaux, lieu)
-- [ ] **Planning** : calendrier de ses interventions
-- [ ] **Disponibilités** : déclarer dispos (calendrier éditable, export iCal)
-- [ ] **Documents** : contrats, conventions, ressources pédagogiques à déposer
-- [ ] **Facturation** : créer factures vers l'OF (montant pré-calculé tarif jour × nb jours)
-- [ ] **Questionnaires** : évaluations formateur à remplir
-- [ ] **Mon profil** : modifier coordonnées, compétences, SIRET, NDA
+- [x] Layout extranet formateur (sidebar dédiée emerald, header, design adapté)
+- [x] **Tableau de bord** : prochaines sessions, alertes, stats personnelles
+- [x] **Mes sessions** : liste sessions assignées + détail (apprenants, créneaux, lieu)
+- [x] **Planning** : calendrier de ses interventions
+- [x] **Disponibilités** : déclarer dispos (calendrier éditable)
+- [x] **Documents** : contrats, conventions, ressources pédagogiques à déposer
+- [x] **Facturation** : créer factures vers l'OF (montant pré-calculé tarif jour × nb jours)
+- [x] **Questionnaires** : évaluations formateur à remplir
+- [x] **Messagerie** : chat temps réel avec admin et apprenants
+- [x] **Tickets** : support intégré
+- [x] **Mon profil** : modifier coordonnées, compétences, SIRET, NDA
 
-### Phase 10 — Extranet Apprenant ⭐ NOUVEAU
+### Phase 10 — Extranet Apprenant ✅ TERMINÉE
 > **Objectif** : Espace connecté pour les apprenants
 
-- [ ] Layout extranet apprenant (sidebar dédiée)
-- [ ] **Tableau de bord** : sessions en cours, prochains créneaux
-- [ ] **Mes sessions** : sessions inscrites, statut d'inscription
-- [ ] **Planning** : vue calendrier des créneaux
-- [ ] **Émargement** : signer sa présence quand créneau ouvert
-- [ ] **Documents** : conventions, attestations, certificats à télécharger
-- [ ] **Questionnaires** : satisfaction + évaluations pédagogiques
-- [ ] **Mon profil** : modifier ses infos
+- [x] Layout extranet apprenant (sidebar dédiée bleue)
+- [x] **Tableau de bord** : sessions en cours, prochains créneaux
+- [x] **Mes sessions** : sessions inscrites, statut d'inscription
+- [x] **Planning** : vue calendrier des créneaux
+- [x] **Émargement** : signer sa présence quand créneau ouvert
+- [x] **Documents** : conventions, attestations, certificats à télécharger
+- [x] **Questionnaires** : satisfaction + évaluations pédagogiques
+- [x] **Messagerie** : chat temps réel avec formateurs et admin
+- [x] **Tickets** : support intégré
+- [x] **Mon profil** : modifier ses infos
 
-### Phase 11 — Extranet Contact Client ⭐ NOUVEAU
+### Phase 11 — Extranet Contact Client ✅ TERMINÉE
 > **Objectif** : Espace connecté pour les contacts clients (commanditaires)
 
-- [ ] Layout extranet contact client (sidebar dédiée)
-- [ ] **Tableau de bord** : sessions en cours, devis en attente
-- [ ] **Sessions** : suivi sessions commanditées (statut, apprenants, progression)
-- [ ] **Devis** : consulter, signer (signature électronique)
-- [ ] **Factures** : consulter, télécharger PDF, statut paiement
-- [ ] **Documents** : conventions à signer, attestations
+- [x] Layout extranet contact client (sidebar dédiée violette)
+- [x] **Tableau de bord** : sessions en cours, devis en attente
+- [x] **Sessions** : suivi sessions commanditées (statut, apprenants, progression)
+- [x] **Devis** : consulter devis
+- [x] **Factures** : consulter, statut paiement
+- [x] **Documents** : conventions, attestations
+- [x] **Messagerie** : chat temps réel avec admin
+- [x] **Tickets** : support intégré
+- [ ] **Signature électronique devis** (à implémenter)
 
-### Phase 12 — Messagerie temps réel ⭐ NOUVEAU
+### Phase 12 — Messagerie temps réel ✅ TERMINÉE
 > **Objectif** : Chat entre admin, formateurs et apprenants
 
-- [ ] Migration BDD : `conversations`, `conversation_participants`, `messages`
-- [ ] **Supabase Realtime** : écoute INSERT sur messages → notifications push
-- [ ] UI chat dans les 3 espaces extranet + back-office
-- [ ] Conversations directes (1-to-1), groupes session, support
-- [ ] Pièces jointes (fichiers via Supabase Storage)
-- [ ] Indicateur messages non lus
+- [x] Migration BDD : `conversations`, `conversation_participants`, `messages`
+- [x] **Supabase Realtime** : écoute INSERT sur messages via publication
+- [x] UI chat dans les 3 espaces extranet (MessagerieView + ConversationList + ChatWindow)
+- [x] Conversations directes (1-to-1), groupes session, support
+- [x] Pièces jointes (fichiers via Supabase Storage)
+- [x] Indicateur messages non lus
+- [x] Envoi optimiste (affichage immédiat avant confirmation serveur)
+- [x] Server Actions : 10 fonctions (getMyConversations, sendMessage, createDirectConversation, etc.)
 
 ### Phase 13 — Vitrines OF ⭐ NOUVEAU
 > **Objectif** : Site vitrine public pour chaque OF, connecté à la BDD
