@@ -2740,7 +2740,7 @@ function QuestionnairesTab({
                       <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
                         <CalendarClock className="h-3 w-3 text-primary/60" />
                         {planifSummary}
-                        {planif.jours_ouvres_uniquement && (
+                        {planif?.jours_ouvres_uniquement && (
                           <span className="text-[10px] text-muted-foreground/60">(jours ouvrés)</span>
                         )}
                       </p>
