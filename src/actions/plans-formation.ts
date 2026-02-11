@@ -245,38 +245,55 @@ export async function getPlanBudgetSummary(planId: string) {
 
   if (!plan) return { data: null };
 
-  // Get all besoins linked to this plan with their produit_id
+  // Get all besoins linked to this plan with their produit_id and tarif_id
   const { data: besoins } = await admin
     .from("besoins_formation")
-    .select("id, intitule, statut, produit_id")
+    .select("id, intitule, statut, produit_id, tarif_id")
     .eq("plan_formation_id", planId)
     .eq("organisation_id", organisationId)
     .is("archived_at", null);
 
-  const besoinsList = (besoins ?? []) as { id: string; intitule: string; statut: string; produit_id: string | null }[];
+  const besoinsList = (besoins ?? []) as { id: string; intitule: string; statut: string; produit_id: string | null; tarif_id: string | null }[];
 
-  // Compute budget engagé from live produit_tarifs (default tarif for each linked produit)
-  const produitIds = besoinsList
-    .filter((b: { produit_id: string | null }) => b.produit_id)
-    .map((b: { produit_id: string | null }) => b.produit_id as string);
-
+  // Compute budget engagé using tarif_id when available, fallback to default tarif
   let budgetEngage = 0;
-  if (produitIds.length > 0) {
-    const uniqueProduitIds = [...new Set(produitIds)];
+
+  // Group 1: besoins with explicit tarif_id
+  const tarifIds = [...new Set(
+    besoinsList.filter((b) => b.tarif_id).map((b) => b.tarif_id as string),
+  )];
+  const tarifPriceMap = new Map<string, number>();
+  if (tarifIds.length > 0) {
+    const { data: tarifs } = await admin
+      .from("produit_tarifs")
+      .select("id, prix_ht")
+      .in("id", tarifIds);
+    for (const t of (tarifs ?? []) as { id: string; prix_ht: number }[]) {
+      tarifPriceMap.set(t.id, Number(t.prix_ht) || 0);
+    }
+  }
+
+  // Group 2: besoins without tarif_id → fallback to default by produit_id
+  const fallbackProduitIds = [...new Set(
+    besoinsList.filter((b) => !b.tarif_id && b.produit_id).map((b) => b.produit_id as string),
+  )];
+  const defaultTarifMap = new Map<string, number>();
+  if (fallbackProduitIds.length > 0) {
     const { data: tarifs } = await admin
       .from("produit_tarifs")
       .select("produit_id, prix_ht")
-      .in("produit_id", uniqueProduitIds)
+      .in("produit_id", fallbackProduitIds)
       .eq("is_default", true);
-
-    const tarifMap = new Map(
-      ((tarifs ?? []) as { produit_id: string; prix_ht: number }[]).map((t: { produit_id: string; prix_ht: number }) => [t.produit_id, Number(t.prix_ht) || 0]),
-    );
-    budgetEngage = besoinsList.reduce(
-      (sum: number, b: { produit_id: string | null }) => sum + (b.produit_id ? (tarifMap.get(b.produit_id) || 0) : 0),
-      0,
-    );
+    for (const t of (tarifs ?? []) as { produit_id: string; prix_ht: number }[]) {
+      defaultTarifMap.set(t.produit_id, Number(t.prix_ht) || 0);
+    }
   }
+
+  budgetEngage = besoinsList.reduce((sum, b) => {
+    if (b.tarif_id) return sum + (tarifPriceMap.get(b.tarif_id) || 0);
+    if (b.produit_id) return sum + (defaultTarifMap.get(b.produit_id) || 0);
+    return sum;
+  }, 0);
 
   const budgetRestant = (Number(plan.budget_total) || 0) - budgetEngage;
   const nbBesoins = besoinsList.length;
@@ -330,40 +347,57 @@ export async function getPonctuelBudgetSummary(entrepriseId: string, annee: numb
   if ("error" in result) return { data: null };
   const { admin, organisationId } = result;
 
-  // Get all ponctuel besoins for this year
+  // Get all ponctuel besoins for this year (include tarif_id)
   const { data: besoins } = await admin
     .from("besoins_formation")
-    .select("id, produit_id")
+    .select("id, produit_id, tarif_id")
     .eq("organisation_id", organisationId)
     .eq("entreprise_id", entrepriseId)
     .eq("annee_cible", annee)
     .eq("type_besoin", "ponctuel")
     .is("archived_at", null);
 
-  const besoinsList = (besoins ?? []) as { id: string; produit_id: string | null }[];
+  const besoinsList = (besoins ?? []) as { id: string; produit_id: string | null; tarif_id: string | null }[];
 
-  // Get tarifs
-  const produitIds = [...new Set(
-    besoinsList.filter((b) => b.produit_id).map((b) => b.produit_id as string),
-  )];
-
+  // Compute budget using tarif_id when available, fallback to default
   let budgetTotal = 0;
-  if (produitIds.length > 0) {
+
+  // Group 1: besoins with explicit tarif_id
+  const tarifIds = [...new Set(
+    besoinsList.filter((b) => b.tarif_id).map((b) => b.tarif_id as string),
+  )];
+  const tarifPriceMap = new Map<string, number>();
+  if (tarifIds.length > 0) {
+    const { data: tarifs } = await admin
+      .from("produit_tarifs")
+      .select("id, prix_ht")
+      .in("id", tarifIds);
+    for (const t of (tarifs ?? []) as { id: string; prix_ht: number }[]) {
+      tarifPriceMap.set(t.id, Number(t.prix_ht) || 0);
+    }
+  }
+
+  // Group 2: besoins without tarif_id → fallback to default
+  const fallbackProduitIds = [...new Set(
+    besoinsList.filter((b) => !b.tarif_id && b.produit_id).map((b) => b.produit_id as string),
+  )];
+  const defaultTarifMap = new Map<string, number>();
+  if (fallbackProduitIds.length > 0) {
     const { data: tarifs } = await admin
       .from("produit_tarifs")
       .select("produit_id, prix_ht")
-      .in("produit_id", produitIds)
+      .in("produit_id", fallbackProduitIds)
       .eq("is_default", true);
-
-    const tarifMap = new Map(
-      ((tarifs ?? []) as { produit_id: string; prix_ht: number }[]).map((t) => [t.produit_id, Number(t.prix_ht) || 0]),
-    );
-
-    budgetTotal = besoinsList.reduce(
-      (sum, b) => sum + (b.produit_id ? (tarifMap.get(b.produit_id) || 0) : 0),
-      0,
-    );
+    for (const t of (tarifs ?? []) as { produit_id: string; prix_ht: number }[]) {
+      defaultTarifMap.set(t.produit_id, Number(t.prix_ht) || 0);
+    }
   }
+
+  budgetTotal = besoinsList.reduce((sum, b) => {
+    if (b.tarif_id) return sum + (tarifPriceMap.get(b.tarif_id) || 0);
+    if (b.produit_id) return sum + (defaultTarifMap.get(b.produit_id) || 0);
+    return sum;
+  }, 0);
 
   return {
     data: {

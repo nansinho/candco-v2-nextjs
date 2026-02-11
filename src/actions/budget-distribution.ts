@@ -307,10 +307,10 @@ async function computeBudgetEngage(
   annee: number,
   typeBesoin: "plan" | "ponctuel",
 ) {
-  // Get besoins for this type
+  // Get besoins for this type (include tarif_id for specific tariff lookup)
   const { data: besoins } = await admin
     .from("besoins_formation")
-    .select("id, produit_id, siege_social, agences_ids")
+    .select("id, produit_id, tarif_id, siege_social, agences_ids")
     .eq("organisation_id", organisationId)
     .eq("entreprise_id", entrepriseId)
     .eq("annee_cible", annee)
@@ -320,25 +320,56 @@ async function computeBudgetEngage(
   const besoinsList = (besoins ?? []) as {
     id: string;
     produit_id: string | null;
+    tarif_id: string | null;
     siege_social: boolean;
     agences_ids: string[];
   }[];
 
-  // Get tarifs for all produit_ids
-  const produitIds = [...new Set(
-    besoinsList.filter((b) => b.produit_id).map((b) => b.produit_id as string),
-  )];
+  // Build a cost map: besoin.id → cost
+  const costMap = new Map<string, number>();
 
-  const tarifMap = new Map<string, number>();
-  if (produitIds.length > 0) {
+  // Group 1: besoins with explicit tarif_id → fetch price by tarif id
+  const tarifIds = [...new Set(
+    besoinsList.filter((b) => b.tarif_id).map((b) => b.tarif_id as string),
+  )];
+  if (tarifIds.length > 0) {
+    const { data: tarifs } = await admin
+      .from("produit_tarifs")
+      .select("id, prix_ht")
+      .in("id", tarifIds);
+
+    const tarifPriceMap = new Map<string, number>();
+    for (const t of (tarifs ?? []) as { id: string; prix_ht: number }[]) {
+      tarifPriceMap.set(t.id, Number(t.prix_ht) || 0);
+    }
+    for (const b of besoinsList) {
+      if (b.tarif_id) {
+        costMap.set(b.id, tarifPriceMap.get(b.tarif_id) || 0);
+      }
+    }
+  }
+
+  // Group 2: besoins without tarif_id → fallback to default tariff by produit_id
+  const fallbackProduitIds = [...new Set(
+    besoinsList
+      .filter((b) => !b.tarif_id && b.produit_id)
+      .map((b) => b.produit_id as string),
+  )];
+  if (fallbackProduitIds.length > 0) {
     const { data: tarifs } = await admin
       .from("produit_tarifs")
       .select("produit_id, prix_ht")
-      .in("produit_id", produitIds)
+      .in("produit_id", fallbackProduitIds)
       .eq("is_default", true);
 
+    const defaultTarifMap = new Map<string, number>();
     for (const t of (tarifs ?? []) as { produit_id: string; prix_ht: number }[]) {
-      tarifMap.set(t.produit_id, Number(t.prix_ht) || 0);
+      defaultTarifMap.set(t.produit_id, Number(t.prix_ht) || 0);
+    }
+    for (const b of besoinsList) {
+      if (!b.tarif_id && b.produit_id) {
+        costMap.set(b.id, defaultTarifMap.get(b.produit_id) || 0);
+      }
     }
   }
 
@@ -347,7 +378,7 @@ async function computeBudgetEngage(
   const perAgence = new Map<string | null, number>(); // null key = siège
 
   for (const b of besoinsList) {
-    const cost = b.produit_id ? (tarifMap.get(b.produit_id) || 0) : 0;
+    const cost = costMap.get(b.id) || 0;
     total += cost;
 
     // Single cost bearer rule:

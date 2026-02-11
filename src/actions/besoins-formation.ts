@@ -23,6 +23,7 @@ const CreateBesoinSchema = z.object({
   type_besoin: z.enum(["plan", "ponctuel"]).default("plan"),
   produit_id: z.string().uuid("Un programme de formation est requis"),
   plan_formation_id: z.string().uuid().optional().or(z.literal("")),
+  tarif_id: z.string().uuid().optional().or(z.literal("")),
   // Périmètre
   siege_social: z.boolean().optional().default(false),
   agences_ids: z.array(z.string().uuid()).optional().default([]),
@@ -44,6 +45,7 @@ const UpdateBesoinSchema = z.object({
   intitule_original: z.string().optional().nullable(),
   produit_id: z.string().uuid().optional().nullable(),
   plan_formation_id: z.string().uuid().optional().nullable(),
+  tarif_id: z.string().uuid().optional().nullable(),
   siege_social: z.boolean().optional(),
   agences_ids: z.array(z.string().uuid()).optional(),
 });
@@ -103,9 +105,16 @@ export async function createBesoinFormation(input: CreateBesoinInput) {
 
   const { data: d } = parsed;
 
-  // Fetch produit tarif for budget impact logging
+  // Fetch tarif price for budget impact logging (use selected tarif, fallback to default)
   let tarifPrixHt = 0;
-  if (d.produit_id) {
+  if (d.tarif_id) {
+    const { data: tarif } = await admin
+      .from("produit_tarifs")
+      .select("prix_ht")
+      .eq("id", d.tarif_id)
+      .maybeSingle();
+    tarifPrixHt = Number(tarif?.prix_ht) || 0;
+  } else if (d.produit_id) {
     const { data: tarif } = await admin
       .from("produit_tarifs")
       .select("prix_ht")
@@ -138,6 +147,7 @@ export async function createBesoinFormation(input: CreateBesoinInput) {
   // Store original title from programme for reference
   insertData.intitule_original = d.intitule;
   if (d.plan_formation_id) insertData.plan_formation_id = d.plan_formation_id;
+  if (d.tarif_id) insertData.tarif_id = d.tarif_id;
 
   const { data, error } = await admin
     .from("besoins_formation")
@@ -163,6 +173,7 @@ export async function createBesoinFormation(input: CreateBesoinInput) {
       annee_cible: d.annee_cible,
       priorite: d.priorite,
       produit_id: d.produit_id,
+      tarif_id: d.tarif_id || null,
       impact_budgetaire: tarifPrixHt,
       siege_social: d.siege_social,
       agences_ids: d.agences_ids,
@@ -211,6 +222,7 @@ export async function updateBesoinFormation(id: string, input: UpdateBesoinInput
   if (d.produit_id !== undefined) updateData.produit_id = d.produit_id || null;
   if (d.plan_formation_id !== undefined) updateData.plan_formation_id = d.plan_formation_id || null;
   if (d.intitule_original !== undefined) updateData.intitule_original = d.intitule_original;
+  if (d.tarif_id !== undefined) updateData.tarif_id = d.tarif_id || null;
   if (d.siege_social !== undefined) updateData.siege_social = d.siege_social;
   if (d.agences_ids !== undefined) updateData.agences_ids = d.agences_ids;
 
@@ -235,7 +247,14 @@ export async function updateBesoinFormation(id: string, input: UpdateBesoinInput
   if (d.produit_id !== undefined && d.produit_id !== current.produit_id) {
     let oldTarif = 0;
     let newTarif = 0;
-    if (current.produit_id) {
+    if (current.tarif_id) {
+      const { data: ot } = await admin
+        .from("produit_tarifs")
+        .select("prix_ht")
+        .eq("id", current.tarif_id)
+        .maybeSingle();
+      oldTarif = Number(ot?.prix_ht) || 0;
+    } else if (current.produit_id) {
       const { data: ot } = await admin
         .from("produit_tarifs")
         .select("prix_ht")
@@ -244,7 +263,14 @@ export async function updateBesoinFormation(id: string, input: UpdateBesoinInput
         .maybeSingle();
       oldTarif = Number(ot?.prix_ht) || 0;
     }
-    if (d.produit_id) {
+    if (d.tarif_id) {
+      const { data: nt } = await admin
+        .from("produit_tarifs")
+        .select("prix_ht")
+        .eq("id", d.tarif_id)
+        .maybeSingle();
+      newTarif = Number(nt?.prix_ht) || 0;
+    } else if (d.produit_id) {
       const { data: nt } = await admin
         .from("produit_tarifs")
         .select("prix_ht")
@@ -255,6 +281,39 @@ export async function updateBesoinFormation(id: string, input: UpdateBesoinInput
     }
     const oldName = current.produits_formation?.intitule || "aucun";
     changes.push(`Programme modifié : "${oldName}" → nouveau programme (impact budget : ${oldTarif > 0 ? `-${oldTarif}` : "0"} / +${newTarif} €)`);
+  }
+
+  // Track tariff change (same programme, different tariff)
+  if (d.tarif_id !== undefined && d.tarif_id !== current.tarif_id && (d.produit_id === undefined || d.produit_id === current.produit_id)) {
+    let oldTarifPrice = 0;
+    let newTarifPrice = 0;
+    let oldTarifName = "défaut";
+    let newTarifName = "défaut";
+
+    if (current.tarif_id) {
+      const { data: ot } = await admin
+        .from("produit_tarifs")
+        .select("prix_ht, nom")
+        .eq("id", current.tarif_id)
+        .maybeSingle();
+      oldTarifPrice = Number(ot?.prix_ht) || 0;
+      oldTarifName = ot?.nom || "défaut";
+    }
+    if (d.tarif_id) {
+      const { data: nt } = await admin
+        .from("produit_tarifs")
+        .select("prix_ht, nom")
+        .eq("id", d.tarif_id)
+        .maybeSingle();
+      newTarifPrice = Number(nt?.prix_ht) || 0;
+      newTarifName = nt?.nom || "défaut";
+    }
+
+    const diff = newTarifPrice - oldTarifPrice;
+    changes.push(
+      `Tarif modifié : "${oldTarifName}" (${oldTarifPrice} €) → "${newTarifName}" (${newTarifPrice} €)` +
+      (diff !== 0 ? ` (impact budget : ${diff > 0 ? "+" : ""}${diff} €)` : ""),
+    );
   }
 
   if (changes.length > 0) {
@@ -285,7 +344,7 @@ export async function deleteBesoinFormation(id: string) {
   // Fetch before archiving for historique + budget impact
   const { data: current } = await admin
     .from("besoins_formation")
-    .select("intitule, entreprise_id, produit_id")
+    .select("intitule, entreprise_id, produit_id, tarif_id")
     .eq("id", id)
     .eq("organisation_id", organisationId)
     .single();
@@ -299,9 +358,16 @@ export async function deleteBesoinFormation(id: string) {
   if (error) return { error: error.message };
 
   if (current) {
-    // Get budget impact
+    // Get budget impact (use stored tarif_id, fallback to default)
     let tarifPrixHt = 0;
-    if (current.produit_id) {
+    if (current.tarif_id) {
+      const { data: tarif } = await admin
+        .from("produit_tarifs")
+        .select("prix_ht")
+        .eq("id", current.tarif_id)
+        .maybeSingle();
+      tarifPrixHt = Number(tarif?.prix_ht) || 0;
+    } else if (current.produit_id) {
       const { data: tarif } = await admin
         .from("produit_tarifs")
         .select("prix_ht")
@@ -412,4 +478,22 @@ export async function getProduitDefaultTarif(produitId: string) {
     .single();
 
   return { data: data ?? null };
+}
+
+// ─── Get all tarifs for a produit (for tarif selection) ──
+
+export async function getProduitTarifs(produitId: string) {
+  const result = await getOrganisationId();
+  if ("error" in result) return { data: [] };
+  const { admin } = result;
+
+  const { data, error } = await admin
+    .from("produit_tarifs")
+    .select("id, nom, prix_ht, taux_tva, unite, is_default")
+    .eq("produit_id", produitId)
+    .order("is_default", { ascending: false })
+    .order("created_at", { ascending: true });
+
+  if (error) return { data: [] };
+  return { data: data ?? [] };
 }
