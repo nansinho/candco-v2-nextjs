@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getOrganisationId } from "@/lib/auth-helpers";
+import { requirePermission, canManageSessions, canDelete, canArchive, type UserRole } from "@/lib/permissions";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { QueryFilter } from "@/lib/utils";
@@ -43,6 +44,7 @@ export async function createSession(input: CreateSessionInput) {
   }
 
   const { organisationId, userId, role, supabase } = result;
+  requirePermission(role as UserRole, canManageSessions, "créer une session");
 
   const { data: numero } = await supabase.rpc("next_numero", {
     p_organisation_id: organisationId,
@@ -186,6 +188,7 @@ export async function updateSession(id: string, input: UpdateSessionInput) {
     return { error: { _form: [result.error] } };
   }
   const { organisationId, userId, role, supabase } = result;
+  requirePermission(role as UserRole, canManageSessions, "modifier une session");
 
   const { data, error } = await supabase
     .from("sessions")
@@ -233,6 +236,7 @@ export async function deleteSessions(ids: string[]) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, supabase, admin } = result;
+  requirePermission(role as UserRole, canDelete, "supprimer des sessions");
 
   // Fetch session names BEFORE deletion
   const { data: sessions } = await admin
@@ -273,6 +277,7 @@ export async function archiveSession(id: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, supabase, admin } = result;
+  requirePermission(role as UserRole, canArchive, "archiver une session");
 
   // Fetch session name for logging
   const { data: session } = await admin
@@ -312,6 +317,7 @@ export async function unarchiveSession(id: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, supabase, admin } = result;
+  requirePermission(role as UserRole, canArchive, "archiver une session");
 
   // Fetch session name for logging
   const { data: session } = await admin
@@ -365,6 +371,7 @@ export async function addSessionFormateur(sessionId: string, formateurId: string
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role: userRole, supabase, admin } = result;
+  requirePermission(userRole as UserRole, canManageSessions, "gérer les formateurs de session");
 
   const { error } = await supabase
     .from("session_formateurs")
@@ -403,6 +410,7 @@ export async function removeSessionFormateur(sessionId: string, formateurId: str
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role: userRole, supabase, admin } = result;
+  requirePermission(userRole as UserRole, canManageSessions, "gérer les formateurs de session");
 
   // Fetch labels BEFORE deletion
   const [{ data: session }, { data: formateur }] = await Promise.all([
@@ -476,6 +484,7 @@ export async function addCommanditaire(sessionId: string, input: CommanditaireIn
   const result = await getOrganisationId();
   if ("error" in result) return { error: { _form: [result.error] } };
   const { organisationId, userId, role, supabase, admin } = result;
+  requirePermission(role as UserRole, canManageSessions, "gérer les commanditaires");
 
   const { data, error } = await supabase
     .from("session_commanditaires")
@@ -534,6 +543,7 @@ export async function updateCommanditaireWorkflow(commanditaireId: string, sessi
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role: userRole, supabase, admin } = result;
+  requirePermission(userRole as UserRole, canManageSessions, "gérer les commanditaires");
 
   // Fetch old data for logging
   const { data: oldCmd } = await admin
@@ -582,6 +592,7 @@ export async function removeCommanditaire(commanditaireId: string, sessionId: st
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role: userRole, supabase, admin } = result;
+  requirePermission(userRole as UserRole, canManageSessions, "gérer les commanditaires");
 
   // Fetch labels BEFORE deletion
   const [{ data: cmd }, { data: session }] = await Promise.all([
@@ -645,6 +656,7 @@ export async function addInscription(
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, supabase, admin } = result;
+  requirePermission(role as UserRole, canManageSessions, "gérer les inscriptions");
 
   const { data, error } = await supabase
     .from("inscriptions")
@@ -691,6 +703,7 @@ export async function updateInscriptionStatut(inscriptionId: string, sessionId: 
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role: userRole, supabase, admin } = result;
+  requirePermission(userRole as UserRole, canManageSessions, "gérer les inscriptions");
 
   // Fetch old data for logging
   const { data: oldInscription } = await admin
@@ -738,6 +751,7 @@ export async function removeInscription(inscriptionId: string, sessionId: string
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role: userRole, supabase, admin } = result;
+  requirePermission(userRole as UserRole, canManageSessions, "gérer les inscriptions");
 
   // Fetch labels BEFORE deletion
   const [{ data: inscription }, { data: session }] = await Promise.all([
@@ -811,6 +825,7 @@ export async function addCreneau(sessionId: string, input: CreneauInput) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: { _form: [result.error] } };
   const { organisationId, userId, role, supabase, admin } = result;
+  requirePermission(role as UserRole, canManageSessions, "gérer les créneaux");
 
   const { data, error } = await supabase
     .from("session_creneaux")
@@ -856,6 +871,7 @@ export async function removeCreneau(creneauId: string, sessionId: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role: userRole, supabase, admin } = result;
+  requirePermission(userRole as UserRole, canManageSessions, "gérer les créneaux");
 
   // Fetch labels BEFORE deletion
   const [{ data: creneau }, { data: session }] = await Promise.all([
@@ -937,6 +953,7 @@ export async function bulkAddInscriptions(
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, supabase, admin } = result;
+  requirePermission(role as UserRole, canManageSessions, "gérer les inscriptions");
 
   // Get existing inscriptions for this session to avoid duplicates
   const { data: existing } = await supabase
@@ -1004,6 +1021,7 @@ export async function toggleCreneauEmargement(creneauId: string, sessionId: stri
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role: userRole, supabase, admin } = result;
+  requirePermission(userRole as UserRole, canManageSessions, "gérer les créneaux");
 
   // Get current state
   const { data: creneau } = await supabase
@@ -1135,7 +1153,8 @@ export async function toggleEmargementPresence(
 ) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { supabase } = result;
+  const { role, supabase } = result;
+  requirePermission(role as UserRole, canManageSessions, "gérer les créneaux");
 
   // Upsert: create or update emargement record
   const { error } = await supabase
@@ -1183,6 +1202,7 @@ export async function addSessionDocument(input: {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role: userRole, supabase, admin } = result;
+  requirePermission(userRole as UserRole, canManageSessions, "gérer les documents de session");
 
   const { data, error } = await supabase
     .from("documents")
@@ -1230,6 +1250,7 @@ export async function removeSessionDocument(documentId: string, sessionId: strin
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role: userRole, supabase, admin } = result;
+  requirePermission(userRole as UserRole, canManageSessions, "gérer les documents de session");
 
   // Get document info before deletion
   const { data: doc } = await admin
@@ -1318,6 +1339,7 @@ export async function updateSessionStatut(sessionId: string, newStatut: string) 
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, supabase } = result;
+  requirePermission(role as UserRole, canManageSessions, "modifier une session");
 
   // Get current statut
   const { data: session } = await supabase

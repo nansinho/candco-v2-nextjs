@@ -1,6 +1,7 @@
 "use server";
 
 import { getOrganisationId } from "@/lib/auth-helpers";
+import { requirePermission, canCreate, canEdit, canDelete, type UserRole } from "@/lib/permissions";
 import { logHistorique } from "@/lib/historique";
 import { z } from "zod";
 
@@ -88,6 +89,7 @@ export async function createTache(input: CreateTacheInput) {
   }
 
   const { organisationId, userId, role, supabase } = result;
+  requirePermission(role as UserRole, canCreate, "créer une tâche");
   const cleanedData = cleanEmptyStrings(parsed.data);
 
   const { data, error } = await supabase
@@ -130,6 +132,7 @@ export async function updateTache(id: string, input: UpdateTacheInput) {
     return { error: { _form: [result.error] } };
   }
   const { organisationId, userId, role, supabase } = result;
+  requirePermission(role as UserRole, canEdit, "modifier une tâche");
 
   const cleanedData = cleanEmptyStrings(parsed.data);
 
@@ -179,6 +182,7 @@ export async function deleteTache(id: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, admin } = result;
+  requirePermission(role as UserRole, canDelete, "supprimer une tâche");
 
   // Fetch title before deletion
   const { data: tache } = await admin.from("taches").select("titre, entite_type, entite_id").eq("id", id).single();

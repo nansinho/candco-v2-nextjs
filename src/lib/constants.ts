@@ -101,7 +101,7 @@ export const EXTRANET_APPRENANT_NAV = [
   { label: "Tableau de bord", href: "/extranet/apprenant", icon: "BarChart3" },
   { label: "Mes sessions", href: "/extranet/apprenant/sessions", icon: "Calendar" },
   { label: "Planning", href: "/extranet/apprenant/planning", icon: "CalendarDays" },
-  { label: "\u00c9margement", href: "/extranet/apprenant/emargement", icon: "PenLine" },
+  { label: "\u00c9margement", href: "/extranet/apprenant/emargement", icon: "PenTool" },
   { label: "Documents", href: "/extranet/apprenant/documents", icon: "FileText" },
   { label: "Questionnaires", href: "/extranet/apprenant/questionnaires", icon: "ClipboardList" },
   { label: "Messagerie", href: "/extranet/apprenant/messagerie", icon: "MessageSquare" },

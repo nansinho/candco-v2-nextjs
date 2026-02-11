@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getOrganisationId } from "@/lib/auth-helpers";
+import { requirePermission, canCreate, canEdit, canDelete, canArchive, type UserRole } from "@/lib/permissions";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { QueryFilter } from "@/lib/utils";
@@ -43,6 +44,7 @@ export async function createFinanceur(input: FinanceurInput) {
   }
 
   const { organisationId, userId, role, supabase } = result;
+  requirePermission(role as UserRole, canCreate, "créer un financeur");
 
   // Generate display number
   const { data: numero } = await supabase.rpc("next_numero", {
@@ -176,6 +178,7 @@ export async function updateFinanceur(id: string, input: FinanceurInput) {
     return { error: { _form: [orgResult.error] } };
   }
   const { organisationId, userId, role } = orgResult;
+  requirePermission(role as UserRole, canEdit, "modifier un financeur");
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -223,6 +226,7 @@ export async function deleteFinanceurs(ids: string[]) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, admin, supabase } = result;
+  requirePermission(role as UserRole, canDelete, "supprimer des financeurs");
 
   // Fetch names before deletion for history logging
   const { data: financeurs } = await admin
@@ -265,6 +269,7 @@ export async function archiveFinanceur(id: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, admin, supabase } = result;
+  requirePermission(role as UserRole, canArchive, "archiver un financeur");
 
   // Fetch name before archiving for history logging
   const { data: financeur } = await admin
@@ -307,6 +312,7 @@ export async function unarchiveFinanceur(id: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, admin, supabase } = result;
+  requirePermission(role as UserRole, canArchive, "archiver un financeur");
 
   // Fetch name before unarchiving for history logging
   const { data: financeur } = await admin
@@ -368,6 +374,7 @@ export async function importFinanceurs(
   }
 
   const { organisationId, userId, role, supabase } = authResult;
+  requirePermission(role as UserRole, canCreate, "créer un financeur");
   let successCount = 0;
   const importErrors: string[] = [];
 

@@ -2,6 +2,7 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { requirePermission, canInviteExtranet, type UserRole } from "@/lib/permissions";
 import { sendEmail } from "@/lib/emails/send-email";
 import { invitationExtranetTemplate } from "@/lib/emails/templates";
 import { revalidatePath } from "next/cache";
@@ -27,7 +28,7 @@ export type InviteInput = z.infer<typeof InviteSchema>;
 /**
  * Get the current authenticated user id, or return an error.
  */
-async function requireAuth(): Promise<{ userId: string } | { error: string }> {
+async function requireAuth(): Promise<{ userId: string; role: string } | { error: string }> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -36,7 +37,18 @@ async function requireAuth(): Promise<{ userId: string } | { error: string }> {
   if (!user) {
     return { error: "Non authentifié" };
   }
-  return { userId: user.id };
+
+  // Fetch role from utilisateurs table
+  const admin = createAdminClient();
+  const { data: utilisateur } = await admin
+    .from("utilisateurs")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  const role = utilisateur?.role || "user";
+
+  return { userId: user.id, role };
 }
 
 /**
@@ -86,6 +98,8 @@ export async function inviteToExtranet(input: InviteInput) {
     if ("error" in authCheck) {
       return { error: authCheck.error };
     }
+
+    requirePermission(authCheck.role as UserRole, canInviteExtranet, "inviter à l'extranet");
 
     const { entiteType, entiteId, email, prenom, nom } = parsed.data;
     const admin = createAdminClient();
@@ -282,6 +296,8 @@ export async function revokeExtranetAccess(extranetAccesId: string) {
       return { error: authCheck.error };
     }
 
+    requirePermission(authCheck.role as UserRole, canInviteExtranet, "révoquer un accès extranet");
+
     const admin = createAdminClient();
 
     const { data: acces, error: fetchError } = await admin
@@ -333,6 +349,8 @@ export async function resendExtranetInvitation(params: {
   try {
     const authCheck = await requireAuth();
     if ("error" in authCheck) return { error: authCheck.error };
+
+    requirePermission(authCheck.role as UserRole, canInviteExtranet, "renvoyer une invitation extranet");
 
     const admin = createAdminClient();
     const { entiteType, entiteId, email, prenom, nom } = params;

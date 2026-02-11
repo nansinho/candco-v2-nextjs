@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getOrganisationId } from "@/lib/auth-helpers";
+import { requirePermission, canCreate, canEdit, canDelete, canArchive, type UserRole } from "@/lib/permissions";
 import { logHistorique, logHistoriqueBatch } from "@/lib/historique";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -39,6 +40,7 @@ export async function createFormateur(input: FormateurInput) {
   }
 
   const { organisationId, userId, role, supabase } = result;
+  requirePermission(role as UserRole, canCreate, "créer un formateur");
 
   // Generate display number
   const { data: numero } = await supabase.rpc("next_numero", {
@@ -177,6 +179,7 @@ export async function updateFormateur(id: string, input: Partial<FormateurInput>
     return { error: { _form: [orgResult.error] } };
   }
   const { organisationId, userId, role } = orgResult;
+  requirePermission(role as UserRole, canEdit, "modifier un formateur");
   const supabase = await createClient();
 
   // Build update payload, converting empty strings to null
@@ -262,6 +265,7 @@ export async function importFormateurs(
   }
 
   const { organisationId, userId, role, supabase } = authResult;
+  requirePermission(role as UserRole, canCreate, "créer un formateur");
   let success = 0;
   const errors: string[] = [];
 
@@ -376,6 +380,7 @@ export async function deleteFormateurs(ids: string[]) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, admin, supabase } = result;
+  requirePermission(role as UserRole, canDelete, "supprimer des formateurs");
 
   // Fetch names before deletion for history logging
   const { data: formateursToDelete } = await admin
@@ -418,6 +423,7 @@ export async function archiveFormateur(id: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, admin, supabase } = result;
+  requirePermission(role as UserRole, canArchive, "archiver un formateur");
 
   // Fetch name before archiving for history logging
   const { data: formateur } = await admin
@@ -460,6 +466,7 @@ export async function unarchiveFormateur(id: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, admin, supabase } = result;
+  requirePermission(role as UserRole, canArchive, "archiver un formateur");
 
   // Fetch name before unarchiving for history logging
   const { data: formateur } = await admin

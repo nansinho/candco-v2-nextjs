@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getOrganisationId } from "@/lib/auth-helpers";
+import { requirePermission, canCreate, canEdit, canDelete, canArchive, type UserRole } from "@/lib/permissions";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { QueryFilter } from "@/lib/utils";
@@ -152,6 +153,7 @@ export async function createContactClient(input: CreateContactClientInput) {
   }
 
   const { organisationId, userId, role, admin } = result;
+  requirePermission(role as UserRole, canCreate, "créer un contact client");
 
   // Generate display number (use admin to bypass RLS for super-admin org switching)
   const { data: numero } = await admin.rpc("next_numero", {
@@ -203,6 +205,7 @@ export async function updateContactClient(id: string, input: UpdateContactClient
     return { error: { _form: [result.error] } };
   }
   const { organisationId, userId, role, supabase } = result;
+  requirePermission(role as UserRole, canEdit, "modifier un contact client");
 
   const cleanedData = cleanEmptyStrings(parsed.data);
 
@@ -243,6 +246,7 @@ export async function deleteContactsClients(ids: string[]) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, supabase, admin } = result;
+  requirePermission(role as UserRole, canDelete, "supprimer des contacts clients");
 
   // Fetch names before deletion for logging
   const { data: contacts } = await admin
@@ -285,6 +289,7 @@ export async function archiveContactClient(id: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, supabase, admin } = result;
+  requirePermission(role as UserRole, canArchive, "archiver un contact client");
 
   // Fetch name for logging
   const { data: contact } = await admin
@@ -324,6 +329,7 @@ export async function unarchiveContactClient(id: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, supabase, admin } = result;
+  requirePermission(role as UserRole, canArchive, "archiver un contact client");
 
   // Fetch name for logging
   const { data: contact } = await admin
@@ -384,6 +390,7 @@ export async function linkEntrepriseToContact(contactId: string, entrepriseId: s
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, supabase, admin } = result;
+  requirePermission(role as UserRole, canEdit, "modifier les rattachements contact");
 
   const { error } = await supabase
     .from("contact_entreprises")
@@ -418,6 +425,7 @@ export async function unlinkEntrepriseFromContact(contactId: string, entrepriseI
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, supabase, admin } = result;
+  requirePermission(role as UserRole, canEdit, "modifier les rattachements contact");
 
   // Fetch labels before unlinking
   const [{ data: contact }, { data: ent }] = await Promise.all([
@@ -464,6 +472,7 @@ export async function importContactsClients(
   }
 
   const { organisationId, userId, role, supabase } = authResult;
+  requirePermission(role as UserRole, canCreate, "créer un contact client");
   let successCount = 0;
   const importErrors: string[] = [];
 

@@ -1,6 +1,7 @@
 "use server";
 
 import { getOrganisationId } from "@/lib/auth-helpers";
+import { requirePermission, canCreate, canEdit, canDelete, type UserRole } from "@/lib/permissions";
 import { logHistorique, logHistoriqueBatch } from "@/lib/historique";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -26,6 +27,7 @@ export async function createSalle(input: SalleInput) {
   }
 
   const { organisationId, userId, role, supabase } = result;
+  requirePermission(role as UserRole, canCreate, "créer une salle");
 
   const { data, error } = await supabase
     .from("salles")
@@ -123,6 +125,7 @@ export async function updateSalle(id: string, input: SalleInput) {
     return { error: { _form: [orgResult.error] } };
   }
   const { organisationId, userId, role, supabase } = orgResult;
+  requirePermission(role as UserRole, canEdit, "modifier une salle");
 
   const { data, error } = await supabase
     .from("salles")
@@ -162,6 +165,7 @@ export async function deleteSalles(ids: string[]) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, admin, supabase } = result;
+  requirePermission(role as UserRole, canDelete, "supprimer des salles");
 
   // Fetch names before soft-delete
   const { data: salles } = await admin.from("salles").select("id, nom").in("id", ids);

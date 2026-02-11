@@ -2,6 +2,7 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getOrganisationId } from "@/lib/auth-helpers";
+import { requirePermission, canCreate, canEdit, canDelete, type UserRole } from "@/lib/permissions";
 import { getExtranetUserContext } from "@/actions/extranet-context";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -156,6 +157,7 @@ export async function addDisponibilite(input: DisponibiliteInput) {
     organisationId = ctx.data.organisationId;
     client = createAdminClient();
   } else {
+    requirePermission(orgResult.role as UserRole, canCreate, "créer une disponibilité");
     organisationId = orgResult.organisationId;
     client = orgResult.admin;
   }
@@ -196,6 +198,7 @@ export async function updateDisponibilite(id: string, input: DisponibiliteInput)
     if (ctx.data.entiteId !== parsed.data.formateur_id) return { error: { _form: ["Non autorise"] } };
     client = createAdminClient();
   } else {
+    requirePermission(orgResult.role as UserRole, canEdit, "modifier une disponibilité");
     client = orgResult.admin;
   }
 
@@ -230,6 +233,7 @@ export async function removeDisponibilite(id: string) {
     if (ctx.error || !ctx.data) return { error: "Non autorise" };
     client = createAdminClient();
   } else {
+    requirePermission(orgResult.role as UserRole, canDelete, "supprimer une disponibilité");
     client = orgResult.admin;
   }
 

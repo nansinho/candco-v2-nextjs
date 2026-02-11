@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getOrganisationId } from "@/lib/auth-helpers";
+import { requirePermission, canCreate, canEdit, canDelete, type UserRole } from "@/lib/permissions";
 import { logHistorique } from "@/lib/historique";
 import { callClaude, checkCredits, deductCredits } from "@/lib/ai-providers";
 import { revalidatePath } from "next/cache";
@@ -125,6 +126,8 @@ export async function createQuestionnaire(input: CreateQuestionnaireInput) {
   if ("error" in result) return { error: { _form: [result.error] } };
   const { organisationId, userId, role, admin } = result;
 
+  requirePermission(role as UserRole, canCreate, "créer un questionnaire");
+
   const { data, error } = await admin
     .from("questionnaires")
     .insert({
@@ -167,6 +170,8 @@ export async function updateQuestionnaire(id: string, input: UpdateQuestionnaire
   const result = await getOrganisationId();
   if ("error" in result) return { error: { _form: [result.error] } };
   const { organisationId, userId, role, admin } = result;
+
+  requirePermission(role as UserRole, canEdit, "modifier un questionnaire");
 
   const { data, error } = await admin
     .from("questionnaires")
@@ -211,6 +216,8 @@ export async function deleteQuestionnaires(ids: string[]) {
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, admin } = result;
 
+  requirePermission(role as UserRole, canDelete, "supprimer des questionnaires");
+
   const { data: questionnaires } = await admin
     .from("questionnaires")
     .select("id, nom")
@@ -246,6 +253,8 @@ export async function duplicateQuestionnaire(id: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, admin } = result;
+
+  requirePermission(role as UserRole, canCreate, "dupliquer un questionnaire");
 
   // Get original
   const { data: original } = await admin
@@ -321,7 +330,9 @@ export async function addQuestion(questionnaireId: string, input: QuestionInput)
 
   const result = await getOrganisationId();
   if ("error" in result) return { error: { _form: [result.error] } };
-  const { admin } = result;
+  const { role, admin } = result;
+
+  requirePermission(role as UserRole, canEdit, "modifier un questionnaire");
 
   const { data, error } = await admin
     .from("questionnaire_questions")
@@ -353,7 +364,9 @@ export async function updateQuestion(
 
   const result = await getOrganisationId();
   if ("error" in result) return { error: { _form: [result.error] } };
-  const { admin } = result;
+  const { role, admin } = result;
+
+  requirePermission(role as UserRole, canEdit, "modifier une question");
 
   const { data, error } = await admin
     .from("questionnaire_questions")
@@ -378,7 +391,9 @@ export async function updateQuestion(
 export async function removeQuestion(questionId: string, questionnaireId: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { admin } = result;
+  const { role, admin } = result;
+
+  requirePermission(role as UserRole, canEdit, "supprimer une question");
 
   const { error } = await admin
     .from("questionnaire_questions")
@@ -397,7 +412,9 @@ export async function reorderQuestions(
 ) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { admin } = result;
+  const { role, admin } = result;
+
+  requirePermission(role as UserRole, canEdit, "réordonner les questions");
 
   // Update each question's ordre
   for (let i = 0; i < orderedIds.length; i++) {
@@ -444,7 +461,9 @@ export async function addSessionEvaluation(
 ) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { admin } = result;
+  const { role, admin } = result;
+
+  requirePermission(role as UserRole, canEdit, "rattacher une évaluation");
 
   const { data, error } = await admin
     .from("session_evaluations")
@@ -465,7 +484,9 @@ export async function addSessionEvaluation(
 export async function removeSessionEvaluation(evaluationId: string, sessionId: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
-  const { admin } = result;
+  const { role, admin } = result;
+
+  requirePermission(role as UserRole, canEdit, "retirer une évaluation");
 
   const { error } = await admin
     .from("session_evaluations")
@@ -488,6 +509,8 @@ export async function sendQuestionnaireInvitations(
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role, admin } = result;
+
+  requirePermission(role as UserRole, canEdit, "envoyer des invitations questionnaire");
 
   const invitations = recipients.map((r) => ({
     questionnaire_id: questionnaireId,
@@ -888,6 +911,8 @@ export async function createQuestionnaireFromPDF(
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role } = result;
 
+  requirePermission(role as UserRole, canCreate, "créer un questionnaire depuis un PDF");
+
   const res = await createQuestionnaireFromAI(
     organisationId,
     userId,
@@ -955,6 +980,8 @@ export async function generateQuestionnaireFromPrompt(
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
   const { organisationId, userId, role } = result;
+
+  requirePermission(role as UserRole, canCreate, "générer un questionnaire par IA");
 
   // Check credits
   const { ok, credits } = await checkCredits(organisationId, "generate_questionnaire");
