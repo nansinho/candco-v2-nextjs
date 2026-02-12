@@ -24,8 +24,10 @@ import {
   deleteDevisBulk,
   getEntreprisesForSelect,
   getContactsForSelect,
+  getSessionsForDevisSelect,
   type CreateDevisInput,
 } from "@/actions/devis";
+import { getSessionCommanditaires } from "@/actions/sessions";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { DatePicker } from "@/components/ui/date-picker";
 import { LignesEditor, type LigneItem } from "@/components/shared/lignes-editor";
@@ -278,6 +280,22 @@ export default function DevisPage() {
 
 // ─── Create Form ─────────────────────────────────────────
 
+interface SessionOption {
+  id: string;
+  nom: string;
+  numero_affichage: string;
+  statut: string;
+  date_debut: string | null;
+}
+
+interface CommanditaireOption {
+  id: string;
+  budget: number;
+  entreprises: { id: string; nom: string; email: string | null } | null;
+  contacts_clients: { id: string; prenom: string; nom: string; email: string | null } | null;
+  financeurs: { id: string; nom: string; type: string | null } | null;
+}
+
 function CreateDevisForm({
   onSuccess,
   onCancel,
@@ -289,6 +307,8 @@ function CreateDevisForm({
   const [errors, setErrors] = React.useState<Record<string, string[] | undefined>>({});
   const [entreprises, setEntreprises] = React.useState<{ id: string; nom: string }[]>([]);
   const [contacts, setContacts] = React.useState<{ id: string; prenom: string; nom: string }[]>([]);
+  const [sessions, setSessions] = React.useState<SessionOption[]>([]);
+  const [commanditaires, setCommanditaires] = React.useState<CommanditaireOption[]>([]);
   const [isParticulier, setIsParticulier] = React.useState(false);
   const [form, setForm] = React.useState<CreateDevisInput>({
     entreprise_id: "",
@@ -305,20 +325,51 @@ function CreateDevisForm({
     statut: "brouillon",
     opportunite_id: "",
     session_id: "",
+    commanditaire_id: "",
     lignes: [],
   });
 
   React.useEffect(() => {
     async function load() {
-      const [ent, cont] = await Promise.all([
+      const [ent, cont, sess] = await Promise.all([
         getEntreprisesForSelect(),
         getContactsForSelect(),
+        getSessionsForDevisSelect(),
       ]);
       setEntreprises(ent);
       setContacts(cont);
+      setSessions(sess as SessionOption[]);
     }
     load();
   }, []);
+
+  // Load commanditaires when session changes
+  React.useEffect(() => {
+    if (!form.session_id) {
+      setCommanditaires([]);
+      return;
+    }
+    async function loadCmd() {
+      const result = await getSessionCommanditaires(form.session_id!);
+      setCommanditaires((result.data ?? []) as CommanditaireOption[]);
+    }
+    loadCmd();
+  }, [form.session_id]);
+
+  // Auto-fill entreprise/contact when commanditaire is selected
+  const handleCommanditaireChange = (cmdId: string) => {
+    setForm((prev) => ({ ...prev, commanditaire_id: cmdId }));
+    if (!cmdId) return;
+    const cmd = commanditaires.find((c) => c.id === cmdId);
+    if (!cmd) return;
+    setIsParticulier(false);
+    setForm((prev) => ({
+      ...prev,
+      commanditaire_id: cmdId,
+      entreprise_id: cmd.entreprises?.id || prev.entreprise_id,
+      contact_client_id: cmd.contacts_clients?.id || prev.contact_client_id,
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -350,6 +401,57 @@ function CreateDevisForm({
       {errors._form && (
         <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {errors._form.join(", ")}
+        </div>
+      )}
+
+      {/* Session selector (optional) */}
+      <div className="space-y-2">
+        <Label htmlFor="session_id" className="text-sm">
+          Session (optionnel)
+        </Label>
+        <select
+          id="session_id"
+          value={form.session_id}
+          onChange={(e) => {
+            setForm((prev) => ({ ...prev, session_id: e.target.value, commanditaire_id: "" }));
+          }}
+          className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
+        >
+          <option value="">-- Aucune session --</option>
+          {sessions.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.numero_affichage} — {s.nom}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Commanditaire selector (visible when session is selected) */}
+      {form.session_id && commanditaires.length > 0 && (
+        <div className="space-y-2">
+          <Label htmlFor="commanditaire_id" className="text-sm">
+            Commanditaire
+          </Label>
+          <select
+            id="commanditaire_id"
+            value={form.commanditaire_id}
+            onChange={(e) => handleCommanditaireChange(e.target.value)}
+            className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
+          >
+            <option value="">-- Sélectionner un commanditaire --</option>
+            {commanditaires.map((c) => {
+              const label = [
+                c.entreprises?.nom,
+                c.financeurs ? `+ ${c.financeurs.nom}` : null,
+                c.budget ? `— ${formatCurrency(c.budget)}` : null,
+              ].filter(Boolean).join(" ");
+              return (
+                <option key={c.id} value={c.id}>
+                  {label || "Commanditaire"}
+                </option>
+              );
+            })}
+          </select>
         </div>
       )}
 
