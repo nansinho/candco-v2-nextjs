@@ -6,6 +6,9 @@ export const AI_COSTS = {
   extract_programme: 1,
   extract_questionnaire: 1,
   generate_questionnaire: 1,
+  generate_devis: 2,
+  generate_facture: 2,
+  generate_convention: 2,
 } as const;
 
 export type AIAction = keyof typeof AI_COSTS;

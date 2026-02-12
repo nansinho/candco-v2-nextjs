@@ -184,8 +184,14 @@ export function LignesEditor({ lignes, onChange, readOnly = false }: LignesEdito
       taux_tva: ligne.taux_tva,
       unite: "",
     });
-    if ("error" in result) {
-      toast({ title: "Erreur", description: "Impossible de sauvegarder l'article", variant: "destructive" });
+    if ("error" in result && result.error) {
+      const err = result.error;
+      const errMsg = typeof err === "object" && "_form" in err
+        ? (err._form as string[]).join(", ")
+        : typeof err === "object"
+          ? Object.values(err).flat().join(", ") || "Impossible de sauvegarder l'article"
+          : "Impossible de sauvegarder l'article";
+      toast({ title: "Erreur", description: errMsg, variant: "destructive" });
     } else {
       toast({ title: "Article sauvegardé", description: `"${ligne.designation}" ajouté au catalogue`, variant: "success" });
     }

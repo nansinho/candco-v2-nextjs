@@ -110,6 +110,7 @@ export async function createDevis(input: CreateDevisInput) {
   if (error) return { error: { _form: [error.message] } };
 
   // Insert lines
+  let warning: string | undefined;
   if (parsed.data.lignes.length > 0) {
     const lignes = parsed.data.lignes.map((l, i) => ({
       devis_id: data.id,
@@ -121,7 +122,11 @@ export async function createDevis(input: CreateDevisInput) {
       montant_ht: Math.round(l.quantite * l.prix_unitaire_ht * 100) / 100,
       ordre: l.ordre ?? i,
     }));
-    await supabase.from("devis_lignes").insert(lignes);
+    const { error: lignesError } = await supabase.from("devis_lignes").insert(lignes);
+    if (lignesError) {
+      console.error("Failed to insert devis_lignes:", lignesError.message);
+      warning = `Le devis a été créé (${data.numero_affichage}) mais les lignes n'ont pas pu être sauvegardées : ${lignesError.message}`;
+    }
   }
 
   await logHistorique({
@@ -138,7 +143,7 @@ export async function createDevis(input: CreateDevisInput) {
   });
 
   revalidatePath("/devis");
-  return { data };
+  return warning ? { data, warning } : { data };
 }
 
 export async function getDevisList(
@@ -253,7 +258,13 @@ export async function updateDevis(id: string, input: UpdateDevisInput) {
   if (error) return { error: { _form: [error.message] } };
 
   // Replace all lines: delete old, insert new
-  await supabase.from("devis_lignes").delete().eq("devis_id", id);
+  const { error: deleteError } = await supabase.from("devis_lignes").delete().eq("devis_id", id);
+  if (deleteError) {
+    console.error("Failed to delete devis_lignes:", deleteError.message);
+    return { error: { _form: [`Erreur lors de la mise à jour des lignes : ${deleteError.message}`] } };
+  }
+
+  let warning: string | undefined;
   if (parsed.data.lignes.length > 0) {
     const lignes = parsed.data.lignes.map((l, i) => ({
       devis_id: id,
@@ -265,7 +276,11 @@ export async function updateDevis(id: string, input: UpdateDevisInput) {
       montant_ht: Math.round(l.quantite * l.prix_unitaire_ht * 100) / 100,
       ordre: l.ordre ?? i,
     }));
-    await supabase.from("devis_lignes").insert(lignes);
+    const { error: insertError } = await supabase.from("devis_lignes").insert(lignes);
+    if (insertError) {
+      console.error("Failed to insert devis_lignes:", insertError.message);
+      warning = `Le devis a été mis à jour mais les lignes n'ont pas pu être sauvegardées : ${insertError.message}`;
+    }
   }
 
   await logHistorique({
@@ -283,7 +298,7 @@ export async function updateDevis(id: string, input: UpdateDevisInput) {
 
   revalidatePath("/devis");
   revalidatePath(`/devis/${id}`);
-  return { data };
+  return warning ? { data, warning } : { data };
 }
 
 export async function updateDevisStatut(id: string, statut: string) {
@@ -444,7 +459,10 @@ export async function convertDevisToFacture(devisId: string) {
       montant_ht: l.montant_ht,
       ordre: l.ordre,
     }));
-    await supabase.from("facture_lignes").insert(lignes);
+    const { error: lignesError } = await supabase.from("facture_lignes").insert(lignes);
+    if (lignesError) {
+      console.error("Failed to copy devis_lignes to facture_lignes:", lignesError.message);
+    }
   }
 
   await logHistorique({
@@ -874,7 +892,7 @@ export async function createDevisFromCommanditaire(sessionId: string, commandita
 
   // Create a default line from the budget
   if (budget > 0) {
-    await supabase.from("devis_lignes").insert({
+    const { error: lignesError } = await supabase.from("devis_lignes").insert({
       devis_id: devis.id,
       designation: objet,
       quantite: 1,
@@ -883,6 +901,9 @@ export async function createDevisFromCommanditaire(sessionId: string, commandita
       montant_ht: budget,
       ordre: 0,
     });
+    if (lignesError) {
+      console.error("Failed to insert devis_lignes from commanditaire:", lignesError.message);
+    }
   }
 
   await logHistorique({
