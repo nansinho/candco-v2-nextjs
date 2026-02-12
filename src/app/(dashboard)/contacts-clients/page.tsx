@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Users, Building2, Loader2 } from "lucide-react";
+import { Users, Building2, Loader2, RefreshCw } from "lucide-react";
 import { DataTable, type Column, type ActiveFilter } from "@/components/data-table/DataTable";
 import {
   Dialog,
@@ -51,6 +51,7 @@ interface ContactClient {
   telephone: string | null;
   fonction: string | null;
   created_at: string;
+  sync_source_apprenant_id: string | null;
   contact_entreprises: { entreprise_id: string; entreprises: { nom: string } | null }[];
 }
 
@@ -82,6 +83,12 @@ const columns: Column<ContactClient>[] = [
         <span className="font-medium">
           {item.prenom} {item.nom}
         </span>
+        {item.sync_source_apprenant_id && (
+          <span className="inline-flex items-center gap-0.5 rounded-full bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-medium text-blue-400 border border-blue-500/20">
+            <RefreshCw className="h-2.5 w-2.5" />
+            Synchronisé
+          </span>
+        )}
       </div>
     ),
   },

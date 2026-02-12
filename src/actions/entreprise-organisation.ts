@@ -3,6 +3,7 @@
 import { getOrganisationId } from "@/lib/auth-helpers";
 import { requirePermission, canCreate, canEdit, canDelete, type UserRole } from "@/lib/permissions";
 import { logHistorique } from "@/lib/historique";
+import { syncContactForDirectionMembre, unsyncContactForDirectionMembre } from "@/lib/sync-contact-direction";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -598,6 +599,19 @@ export async function createMembre(entrepriseId: string, input: z.infer<typeof M
       objetHref: `/entreprises/${entrepriseId}`,
     });
 
+    // Sync contact client if apprenant has "direction" role
+    if (d.apprenant_id && d.roles.includes("direction")) {
+      await syncContactForDirectionMembre({
+        admin,
+        organisationId,
+        userId,
+        role,
+        apprenantId: d.apprenant_id,
+        entrepriseId,
+        fonction: d.fonction || null,
+      });
+    }
+
     revalidatePath(`/entreprises/${entrepriseId}`);
     return { data };
   } catch (err) {
@@ -618,6 +632,13 @@ export async function updateMembre(membreId: string, entrepriseId: string, input
 
     const { admin, organisationId, userId, role } = result;
     requirePermission(role as UserRole, canEdit, "modifier l'organisation");
+
+    // Fetch old member data before update (for direction role change detection)
+    const { data: oldMembre } = await admin
+      .from("entreprise_membres")
+      .select("roles, apprenant_id, fonction")
+      .eq("id", membreId)
+      .single();
 
     const { data, error } = await admin
       .from("entreprise_membres")
@@ -652,6 +673,48 @@ export async function updateMembre(membreId: string, entrepriseId: string, input
       }
     }
 
+    // Sync contact client on direction role change
+    if (oldMembre?.apprenant_id) {
+      const oldRoles = (oldMembre.roles as string[]) || [];
+      const newRoles = d.roles.length > 0 ? d.roles : ["employe"];
+      const hadDirection = oldRoles.includes("direction");
+      const hasDirection = newRoles.includes("direction");
+
+      if (!hadDirection && hasDirection) {
+        // Direction role added → sync contact
+        await syncContactForDirectionMembre({
+          admin,
+          organisationId,
+          userId,
+          role,
+          apprenantId: oldMembre.apprenant_id as string,
+          entrepriseId,
+          fonction: d.fonction || null,
+        });
+      } else if (hadDirection && !hasDirection) {
+        // Direction role removed → unsync contact
+        await unsyncContactForDirectionMembre({
+          admin,
+          organisationId,
+          userId,
+          role,
+          apprenantId: oldMembre.apprenant_id as string,
+          entrepriseId,
+        });
+      } else if (hasDirection && oldMembre.fonction !== (d.fonction || null)) {
+        // Direction role kept but fonction changed → update contact fonction
+        await syncContactForDirectionMembre({
+          admin,
+          organisationId,
+          userId,
+          role,
+          apprenantId: oldMembre.apprenant_id as string,
+          entrepriseId,
+          fonction: d.fonction || null,
+        });
+      }
+    }
+
     await logHistorique({
       organisationId,
       userId,
@@ -681,10 +744,10 @@ export async function deleteMembre(membreId: string, entrepriseId: string) {
     const { admin, organisationId, userId, role } = result;
     requirePermission(role as UserRole, canDelete, "supprimer dans l'organisation");
 
-    // Fetch member info before delete
+    // Fetch member info before delete (including roles for direction sync)
     const { data: membre } = await admin
       .from("entreprise_membres")
-      .select("apprenants(prenom, nom), contacts_clients(prenom, nom)")
+      .select("roles, apprenant_id, apprenants(prenom, nom), contacts_clients(prenom, nom)")
       .eq("id", membreId)
       .single();
 
@@ -704,6 +767,22 @@ export async function deleteMembre(membreId: string, entrepriseId: string) {
     if (error) {
       console.error("[deleteMembre] Supabase error:", error.message, error.details, error.hint);
       return { error: error.message };
+    }
+
+    // Unsync contact client if member had "direction" role
+    if (
+      membre?.apprenant_id &&
+      Array.isArray(membre.roles) &&
+      (membre.roles as string[]).includes("direction")
+    ) {
+      await unsyncContactForDirectionMembre({
+        admin,
+        organisationId,
+        userId,
+        role,
+        apprenantId: membre.apprenant_id as string,
+        entrepriseId,
+      });
     }
 
     await logHistorique({
