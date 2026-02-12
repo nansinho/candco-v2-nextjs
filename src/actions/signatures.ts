@@ -103,7 +103,10 @@ export async function generateDevisDocument(devisId: string) {
       *,
       entreprises(nom, siret, adresse_rue, adresse_cp, adresse_ville),
       contacts_clients(prenom, nom),
-      entreprise_membres!contact_membre_id(apprenants(prenom, nom)),
+      entreprise_membres!contact_membre_id(
+        apprenants(prenom, nom),
+        contacts_clients(prenom, nom)
+      ),
       devis_lignes(designation, description, quantite, prix_unitaire_ht, taux_tva, montant_ht, ordre)
     `)
     .eq("id", devisId)
@@ -114,7 +117,8 @@ export async function generateDevisDocument(devisId: string) {
   const orgOpts = await getOrgOptions(admin, organisationId);
   const entreprise = devis.entreprises as { nom: string; siret: string; adresse_rue: string; adresse_cp: string; adresse_ville: string } | null;
   const contact = devis.contacts_clients as { prenom: string; nom: string } | null;
-  const membreForPdf = devis.entreprise_membres as { apprenants: { prenom: string; nom: string } | null } | null;
+  const membreForPdf = devis.entreprise_membres as { apprenants: { prenom: string; nom: string } | null; contacts_clients: { prenom: string; nom: string } | null } | null;
+  const membreContactForPdf = membreForPdf?.contacts_clients ?? null;
   const apprenantForPdf = membreForPdf?.apprenants ?? null;
   const lignes = ((devis.devis_lignes || []) as Record<string, unknown>[])
     .sort((a, b) => ((a.ordre as number) || 0) - ((b.ordre as number) || 0));
@@ -129,7 +133,7 @@ export async function generateDevisDocument(devisId: string) {
     entrepriseNom: entreprise?.nom || undefined,
     entrepriseSiret: entreprise?.siret || undefined,
     entrepriseAdresse: adresseParts.join(", ") || undefined,
-    contactNom: contact ? `${contact.prenom} ${contact.nom}` : apprenantForPdf ? `${apprenantForPdf.prenom} ${apprenantForPdf.nom}` : undefined,
+    contactNom: contact ? `${contact.prenom} ${contact.nom}` : membreContactForPdf ? `${membreContactForPdf.prenom} ${membreContactForPdf.nom}` : apprenantForPdf ? `${apprenantForPdf.prenom} ${apprenantForPdf.nom}` : undefined,
     particulierNom: devis.particulier_nom || undefined,
     particulierEmail: devis.particulier_email || undefined,
     particulierAdresse: devis.particulier_adresse || undefined,
@@ -201,7 +205,10 @@ export async function sendDevisForSignature(devisId: string) {
       *,
       entreprises(nom, siret, email, adresse_rue, adresse_cp, adresse_ville),
       contacts_clients(prenom, nom, email),
-      entreprise_membres!contact_membre_id(apprenants(prenom, nom, email)),
+      entreprise_membres!contact_membre_id(
+        apprenants(prenom, nom, email),
+        contacts_clients(prenom, nom, email)
+      ),
       devis_lignes(designation, description, quantite, prix_unitaire_ht, taux_tva, montant_ht, ordre)
     `)
     .eq("id", devisId)
@@ -216,15 +223,18 @@ export async function sendDevisForSignature(devisId: string) {
   // Determine signer
   const contact = devis.contacts_clients as { prenom: string; nom: string; email: string } | null;
   const entreprise = devis.entreprises as { nom: string; siret: string; email: string; adresse_rue: string; adresse_cp: string; adresse_ville: string } | null;
-  const membreForPdf = devis.entreprise_membres as { apprenants: { prenom: string; nom: string; email: string | null } | null } | null;
+  const membreForPdf = devis.entreprise_membres as { apprenants: { prenom: string; nom: string; email: string | null } | null; contacts_clients: { prenom: string; nom: string; email: string | null } | null } | null;
+  const membreContactForPdf = membreForPdf?.contacts_clients ?? null;
   const apprenantForPdf = membreForPdf?.apprenants ?? null;
 
-  const signerEmail = contact?.email || apprenantForPdf?.email || entreprise?.email || devis.particulier_email;
+  const signerEmail = contact?.email || membreContactForPdf?.email || apprenantForPdf?.email || entreprise?.email || devis.particulier_email;
   const signerName = contact
     ? `${contact.prenom} ${contact.nom}`
-    : apprenantForPdf
-      ? `${apprenantForPdf.prenom} ${apprenantForPdf.nom}`
-      : devis.particulier_nom || entreprise?.nom || "Client";
+    : membreContactForPdf
+      ? `${membreContactForPdf.prenom} ${membreContactForPdf.nom}`
+      : apprenantForPdf
+        ? `${apprenantForPdf.prenom} ${apprenantForPdf.nom}`
+        : devis.particulier_nom || entreprise?.nom || "Client";
 
   if (!signerEmail) {
     return { error: "Aucune adresse email trouvée pour le signataire. Renseignez l'email du contact ou de l'entreprise." };
@@ -245,7 +255,7 @@ export async function sendDevisForSignature(devisId: string) {
     entrepriseNom: entreprise?.nom || undefined,
     entrepriseSiret: entreprise?.siret || undefined,
     entrepriseAdresse: adresseParts.join(", ") || undefined,
-    contactNom: contact ? `${contact.prenom} ${contact.nom}` : apprenantForPdf ? `${apprenantForPdf.prenom} ${apprenantForPdf.nom}` : undefined,
+    contactNom: contact ? `${contact.prenom} ${contact.nom}` : membreContactForPdf ? `${membreContactForPdf.prenom} ${membreContactForPdf.nom}` : apprenantForPdf ? `${apprenantForPdf.prenom} ${apprenantForPdf.nom}` : undefined,
     particulierNom: devis.particulier_nom || undefined,
     particulierEmail: devis.particulier_email || undefined,
     particulierAdresse: devis.particulier_adresse || undefined,

@@ -575,9 +575,9 @@ export async function getContactsForSelect() {
   return data ?? [];
 }
 
-// ─── Siege social contacts for auto-selection ────────────
+// ─── Interlocuteur entreprise (Direction / Responsable formation) ────────────
 
-export interface SiegeContact {
+export interface InterlocuteurContact {
   /** ID of the entreprise_membres record — used as dropdown key */
   membre_id: string;
   /** If this member is a contact_client, its ID. Null for apprenant-only members. */
@@ -595,8 +595,11 @@ export interface SiegeContact {
   roles: string[];
 }
 
-export async function getEntrepriseSiegeContacts(entrepriseId: string): Promise<{
-  contacts: SiegeContact[];
+/** @deprecated Use InterlocuteurContact instead */
+export type SiegeContact = InterlocuteurContact;
+
+export async function getEntrepriseInterlocuteurs(entrepriseId: string): Promise<{
+  contacts: InterlocuteurContact[];
   error?: string;
 }> {
   if (!entrepriseId) return { contacts: [] };
@@ -605,7 +608,7 @@ export async function getEntrepriseSiegeContacts(entrepriseId: string): Promise<
   if ("error" in result) return { contacts: [], error: result.error };
   const { admin } = result;
 
-  // Query ALL siege members — both contact_client and apprenant based
+  // Query members with roles Direction or Responsable formation
   const { data, error } = await admin
     .from("entreprise_membres")
     .select(`
@@ -614,7 +617,7 @@ export async function getEntrepriseSiegeContacts(entrepriseId: string): Promise<
       apprenants(id, prenom, nom, email, telephone, fonction, numero_affichage)
     `)
     .eq("entreprise_id", entrepriseId)
-    .eq("rattache_siege", true);
+    .overlaps("roles", ["direction", "responsable_formation"]);
 
   if (error) return { contacts: [], error: error.message };
 
@@ -629,7 +632,7 @@ export async function getEntrepriseSiegeContacts(entrepriseId: string): Promise<
     apprenants: PersonInfo | null;
   };
 
-  const contacts: SiegeContact[] = ((data as unknown as JoinedRow[]) ?? [])
+  const contacts: InterlocuteurContact[] = ((data as unknown as JoinedRow[]) ?? [])
     .filter((m) => m.contacts_clients || m.apprenants)
     .map((m) => {
       const cc = m.contacts_clients;
@@ -669,6 +672,9 @@ export async function getEntrepriseSiegeContacts(entrepriseId: string): Promise<
   return { contacts };
 }
 
+/** @deprecated Use getEntrepriseInterlocuteurs instead */
+export const getEntrepriseSiegeContacts = getEntrepriseInterlocuteurs;
+
 // ─── Send devis (validates + sends via Documenso or email fallback) ─
 
 export async function sendDevis(devisId: string) {
@@ -685,7 +691,10 @@ export async function sendDevis(devisId: string) {
       entreprise_id, contact_client_id, contact_membre_id, particulier_nom, particulier_email,
       entreprises(nom, email),
       contacts_clients(prenom, nom, email),
-      entreprise_membres!contact_membre_id(apprenants(prenom, nom, email)),
+      entreprise_membres!contact_membre_id(
+        apprenants(prenom, nom, email),
+        contacts_clients(prenom, nom, email)
+      ),
       devis_lignes(id)
     `)
     .eq("id", devisId)
@@ -698,16 +707,18 @@ export async function sendDevis(devisId: string) {
     return { error: "Le devis doit contenir au moins une ligne" };
   }
 
-  // Determine recipient email — check contact_client, then membre/apprenant, then entreprise, then particulier
+  // Determine recipient email — check contact_client, then membre (contact_client or apprenant), then entreprise, then particulier
   const contactRaw = devis.contacts_clients;
   const contact = (Array.isArray(contactRaw) ? contactRaw[0] : contactRaw) as { prenom: string; nom: string; email: string } | null;
   const membreRawData = devis.entreprise_membres;
-  const membreFirst = (Array.isArray(membreRawData) ? membreRawData[0] : membreRawData) as unknown as { apprenants: unknown } | null;
+  const membreFirst = (Array.isArray(membreRawData) ? membreRawData[0] : membreRawData) as unknown as { apprenants: unknown; contacts_clients: unknown } | null;
   const apprenantNested = membreFirst?.apprenants;
   const apprenantContact = (Array.isArray(apprenantNested) ? apprenantNested[0] : apprenantNested) as { prenom: string; nom: string; email: string | null } | null;
+  const membreContactNested = membreFirst?.contacts_clients;
+  const membreContactClient = (Array.isArray(membreContactNested) ? membreContactNested[0] : membreContactNested) as { prenom: string; nom: string; email: string | null } | null;
   const entrepriseRaw = devis.entreprises;
   const entreprise = (Array.isArray(entrepriseRaw) ? entrepriseRaw[0] : entrepriseRaw) as { nom: string; email: string } | null;
-  const recipientEmail = contact?.email || apprenantContact?.email || entreprise?.email || devis.particulier_email;
+  const recipientEmail = contact?.email || membreContactClient?.email || apprenantContact?.email || entreprise?.email || devis.particulier_email;
 
   if (!recipientEmail) {
     return { error: "Aucune adresse email trouvée pour le destinataire. Renseignez l'email du contact, de l'entreprise ou du particulier." };
@@ -734,9 +745,11 @@ export async function sendDevis(devisId: string) {
   const pdfUrl = "url" in pdfResult ? pdfResult.url : undefined;
   const recipientName = contact
     ? `${contact.prenom} ${contact.nom}`
-    : apprenantContact
-      ? `${apprenantContact.prenom} ${apprenantContact.nom}`
-      : devis.particulier_nom || entreprise?.nom || "Client";
+    : membreContactClient
+      ? `${membreContactClient.prenom} ${membreContactClient.nom}`
+      : apprenantContact
+        ? `${apprenantContact.prenom} ${apprenantContact.nom}`
+        : devis.particulier_nom || entreprise?.nom || "Client";
 
   // Fetch org name for email
   const { data: org } = await admin
