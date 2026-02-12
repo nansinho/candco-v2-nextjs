@@ -32,6 +32,7 @@ import {
   ChevronRight,
   Pencil,
   ExternalLink,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -86,7 +87,18 @@ import {
   toggleSessionPlanification,
   type PlanificationConfig,
 } from "@/actions/questionnaires";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { isDocumensoConfigured } from "@/lib/documenso";
+import {
+  getEntrepriseInterlocuteurs,
+  type InterlocuteurContact,
+} from "@/actions/devis";
 import { sendConventionForSignature, checkConventionSignatureStatus } from "@/actions/signatures";
 import { generateSessionConvention } from "@/actions/documents";
 import { SessionFinancierTab } from "@/components/sessions/session-financier-tab";
@@ -139,6 +151,7 @@ interface SessionCommanditaire {
   montant_financeur?: number | null;
   facturer_entreprise?: boolean | null;
   facturer_financeur?: boolean | null;
+  contact_membre_id?: string | null;
   entreprises: { id: string; nom: string; email: string | null } | null;
   contacts_clients: { id: string; prenom: string; nom: string; email: string | null } | null;
   financeurs: { id: string; nom: string; type: string | null } | null;
@@ -284,13 +297,6 @@ interface ApprenantOption {
   numero_affichage: string;
 }
 
-interface ContactOption {
-  id: string;
-  prenom: string;
-  nom: string;
-  email: string | null;
-}
-
 interface FinanceurOption {
   id: string;
   nom: string;
@@ -324,7 +330,6 @@ export function SessionDetail({
   allFormateurs,
   allEntreprises,
   allApprenants,
-  allContacts,
   allFinanceurs,
   linkedDevis,
 }: {
@@ -343,7 +348,6 @@ export function SessionDetail({
   allFormateurs: FormateurOption[];
   allEntreprises: EntrepriseOption[];
   allApprenants: ApprenantOption[];
-  allContacts: ContactOption[];
   allFinanceurs: FinanceurOption[];
   linkedDevis: { id: string; numero_affichage: string; statut: string; total_ttc: number; date_emission: string; objet: string | null }[];
 }) {
@@ -760,7 +764,6 @@ export function SessionDetail({
               <AddCommanditaireForm
                 sessionId={session.id}
                 entreprises={allEntreprises}
-                contacts={allContacts}
                 financeurs={allFinanceurs}
                 onClose={() => setShowAddCommanditaire(false)}
                 onSuccess={() => {
@@ -808,7 +811,6 @@ export function SessionDetail({
                         )}
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-sm font-medium">{formatCurrency(Number(c.budget))}</span>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -1529,61 +1531,71 @@ function AddFormateurInline({
 function AddCommanditaireForm({
   sessionId,
   entreprises,
-  contacts,
   financeurs,
   onClose,
   onSuccess,
 }: {
   sessionId: string;
   entreprises: EntrepriseOption[];
-  contacts: ContactOption[];
   financeurs: FinanceurOption[];
   onClose: () => void;
   onSuccess: () => void;
 }) {
   const [loading, setLoading] = React.useState(false);
   const [subrogationMode, setSubrogationMode] = React.useState<"direct" | "subrogation_partielle" | "subrogation_totale">("direct");
-  const [budget, setBudget] = React.useState(0);
   const [montantEntreprise, setMontantEntreprise] = React.useState(0);
   const [montantFinanceur, setMontantFinanceur] = React.useState(0);
   const { toast } = useToast();
 
-  const handleBudgetChange = (newBudget: number) => {
-    setBudget(newBudget);
-    if (subrogationMode === "direct") {
-      setMontantEntreprise(newBudget);
-      setMontantFinanceur(0);
-    } else if (subrogationMode === "subrogation_totale") {
-      setMontantEntreprise(0);
-      setMontantFinanceur(newBudget);
+  // Interlocuteur (Direction / Resp. formation) selection — same pattern as devis
+  const [selectedEntrepriseId, setSelectedEntrepriseId] = React.useState("");
+  const [interlocuteurs, setInterlocuteurs] = React.useState<InterlocuteurContact[]>([]);
+  const [contactMembreId, setContactMembreId] = React.useState("");
+  const [contactClientId, setContactClientId] = React.useState("");
+  const [contactAutoSelected, setContactAutoSelected] = React.useState(false);
+  const [noInterlocuteurs, setNoInterlocuteurs] = React.useState(false);
+  const [interlocuteurLoading, setInterlocuteurLoading] = React.useState(false);
+
+  const handleEntrepriseChange = async (newEntrepriseId: string) => {
+    setSelectedEntrepriseId(newEntrepriseId);
+    setContactAutoSelected(false);
+    setNoInterlocuteurs(false);
+    setInterlocuteurs([]);
+    setContactClientId("");
+    setContactMembreId("");
+
+    if (!newEntrepriseId) return;
+
+    setInterlocuteurLoading(true);
+    try {
+      const result = await getEntrepriseInterlocuteurs(newEntrepriseId);
+      if (result.error || result.contacts.length === 0) {
+        setNoInterlocuteurs(true);
+        return;
+      }
+      setInterlocuteurs(result.contacts);
+      if (result.contacts.length === 1) {
+        const c = result.contacts[0];
+        setContactClientId(c.contact_client_id || "");
+        setContactMembreId(c.membre_id);
+        setContactAutoSelected(true);
+      }
+    } catch {
+      setNoInterlocuteurs(true);
+    } finally {
+      setInterlocuteurLoading(false);
     }
   };
 
   const handleModeChange = (mode: "direct" | "subrogation_partielle" | "subrogation_totale") => {
     setSubrogationMode(mode);
     if (mode === "direct") {
-      setMontantEntreprise(budget);
+      setMontantEntreprise(0);
       setMontantFinanceur(0);
     } else if (mode === "subrogation_totale") {
       setMontantEntreprise(0);
-      setMontantFinanceur(budget);
-    } else {
-      // subrogation_partielle — keep current or split 50/50
-      if (montantEntreprise === 0 && montantFinanceur === 0 && budget > 0) {
-        setMontantEntreprise(Math.round(budget / 2 * 100) / 100);
-        setMontantFinanceur(Math.round(budget / 2 * 100) / 100);
-      }
+      setMontantFinanceur(0);
     }
-  };
-
-  const handleMontantEntrepriseChange = (val: number) => {
-    setMontantEntreprise(val);
-    setMontantFinanceur(Math.max(0, Math.round((budget - val) * 100) / 100));
-  };
-
-  const handleMontantFinanceurChange = (val: number) => {
-    setMontantFinanceur(val);
-    setMontantEntreprise(Math.max(0, Math.round((budget - val) * 100) / 100));
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -1591,10 +1603,11 @@ function AddCommanditaireForm({
     setLoading(true);
     const fd = new FormData(e.currentTarget);
     const input: CommanditaireInput = {
-      entreprise_id: (fd.get("entreprise_id") as string) || "",
-      contact_client_id: (fd.get("contact_client_id") as string) || "",
+      entreprise_id: selectedEntrepriseId,
+      contact_client_id: contactClientId,
+      contact_membre_id: contactMembreId,
       financeur_id: (fd.get("financeur_id") as string) || "",
-      budget,
+      budget: 0,
       notes: (fd.get("notes") as string) || "",
       subrogation_mode: subrogationMode,
       montant_entreprise: montantEntreprise,
@@ -1627,7 +1640,11 @@ function AddCommanditaireForm({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <Label className="text-xs">Entreprise</Label>
-            <select name="entreprise_id" className="h-8 w-full rounded-md border border-input bg-muted px-2 text-sm text-foreground">
+            <select
+              value={selectedEntrepriseId}
+              onChange={(e) => handleEntrepriseChange(e.target.value)}
+              className="h-8 w-full rounded-md border border-input bg-muted px-2 text-sm text-foreground"
+            >
               <option value="">-- Sélectionner --</option>
               {entreprises.map((e) => (
                 <option key={e.id} value={e.id}>{e.nom}</option>
@@ -1635,13 +1652,78 @@ function AddCommanditaireForm({
             </select>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs">Contact client</Label>
-            <select name="contact_client_id" className="h-8 w-full rounded-md border border-input bg-muted px-2 text-sm text-foreground">
-              <option value="">-- Sélectionner --</option>
-              {contacts.map((c) => (
-                <option key={c.id} value={c.id}>{c.prenom} {c.nom}</option>
-              ))}
-            </select>
+            <div className="flex items-center gap-2">
+              <Label className="text-xs">Interlocuteur entreprise</Label>
+              {contactAutoSelected && (
+                <span className="inline-flex items-center rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-400 ring-1 ring-inset ring-blue-500/20">
+                  Auto
+                </span>
+              )}
+            </div>
+
+            {interlocuteurLoading ? (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Chargement des interlocuteurs...
+              </div>
+            ) : interlocuteurs.length > 0 ? (
+              <Select
+                value={contactMembreId}
+                onValueChange={(val) => {
+                  const selected = interlocuteurs.find(c => c.membre_id === val);
+                  setContactClientId(selected?.contact_client_id || "");
+                  setContactMembreId(val);
+                  setContactAutoSelected(false);
+                }}
+              >
+                <SelectTrigger className="h-8 text-sm border-border/60">
+                  <SelectValue placeholder="Sélectionner un interlocuteur" />
+                </SelectTrigger>
+                <SelectContent>
+                  {interlocuteurs.map((c) => (
+                    <SelectItem key={c.membre_id} value={c.membre_id}>
+                      <span className="flex items-center gap-2">
+                        <span>{c.prenom} {c.nom.toUpperCase()}</span>
+                        {c.roles.filter(r => r === "direction" || r === "responsable_formation").map(r => (
+                          <span
+                            key={r}
+                            className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ring-1 ring-inset ${
+                              r === "direction"
+                                ? "bg-amber-500/10 text-amber-400 ring-amber-500/20"
+                                : "bg-purple-500/10 text-purple-400 ring-purple-500/20"
+                            }`}
+                          >
+                            {r === "direction" ? "Direction" : "Resp. formation"}
+                          </span>
+                        ))}
+                        {c.email && <span className="text-muted-foreground text-[10px]">{c.email}</span>}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <>
+                {noInterlocuteurs && selectedEntrepriseId ? (
+                  <div className="flex items-start gap-2 text-xs text-amber-400 mt-1">
+                    <AlertTriangle className="h-3 w-3 shrink-0 mt-0.5" />
+                    <span>
+                      Aucun membre &laquo;&nbsp;Direction&nbsp;&raquo; ou &laquo;&nbsp;Responsable de formation&nbsp;&raquo; n&apos;est rattaché à cette entreprise.{" "}
+                      <a
+                        href={`/entreprises/${selectedEntrepriseId}?tab=organisation`}
+                        className="underline hover:text-amber-300"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Configurer l&apos;organisation
+                      </a>
+                    </span>
+                  </div>
+                ) : !selectedEntrepriseId ? (
+                  <p className="text-xs text-muted-foreground mt-1">Sélectionnez d&apos;abord une entreprise</p>
+                ) : null}
+              </>
+            )}
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Financeur (OPCO)</Label>
@@ -1651,17 +1733,6 @@ function AddCommanditaireForm({
                 <option key={f.id} value={f.id}>{f.nom}{f.type ? ` (${f.type})` : ""}</option>
               ))}
             </select>
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">Budget total (€)</Label>
-            <Input
-              type="number"
-              step="0.01"
-              min="0"
-              value={budget || ""}
-              onChange={(e) => handleBudgetChange(Number(e.target.value) || 0)}
-              className="h-8 text-sm border-border/60"
-            />
           </div>
         </div>
 
@@ -1682,7 +1753,7 @@ function AddCommanditaireForm({
         {/* Répartition montants (visible si subrogation) */}
         {showSubrogation && (
           <div className="rounded-md border border-border/60 bg-muted/30 p-3 space-y-3">
-            <p className="text-xs font-medium text-muted-foreground">Répartition du budget</p>
+            <p className="text-xs font-medium text-muted-foreground">Répartition des montants</p>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Part entreprise (€)</Label>
@@ -1691,7 +1762,7 @@ function AddCommanditaireForm({
                   step="0.01"
                   min="0"
                   value={montantEntreprise || ""}
-                  onChange={(e) => handleMontantEntrepriseChange(Number(e.target.value) || 0)}
+                  onChange={(e) => setMontantEntreprise(Number(e.target.value) || 0)}
                   disabled={subrogationMode === "subrogation_totale"}
                   className="h-8 text-sm border-border/60"
                 />
@@ -1703,17 +1774,12 @@ function AddCommanditaireForm({
                   step="0.01"
                   min="0"
                   value={montantFinanceur || ""}
-                  onChange={(e) => handleMontantFinanceurChange(Number(e.target.value) || 0)}
+                  onChange={(e) => setMontantFinanceur(Number(e.target.value) || 0)}
                   disabled={subrogationMode === "subrogation_totale"}
                   className="h-8 text-sm border-border/60"
                 />
               </div>
             </div>
-            {budget > 0 && Math.abs(montantEntreprise + montantFinanceur - budget) > 0.01 && (
-              <p className="text-xs text-destructive">
-                La somme ({(montantEntreprise + montantFinanceur).toFixed(2)} €) ne correspond pas au budget ({budget.toFixed(2)} €)
-              </p>
-            )}
           </div>
         )}
 
