@@ -568,6 +568,150 @@ export async function getSessionCommanditaires(sessionId: string) {
   return { data: data ?? [] };
 }
 
+// ─── Apprenants filtrés par commanditaires ──────────────
+
+export interface SessionApprenantOption {
+  id: string;
+  civilite: string | null;
+  prenom: string;
+  nom: string;
+  email: string | null;
+  numero_affichage: string;
+  entreprise_id: string;
+  entreprise_nom: string;
+  agence_label: string; // nom agence, "Siège social", ou "—"
+}
+
+export async function getApprenantsForSession(sessionId: string): Promise<{
+  data: SessionApprenantOption[];
+  noCommanditaires: boolean;
+}> {
+  const result = await getOrganisationId();
+  if ("error" in result) return { data: [], noCommanditaires: true };
+  const { admin } = result;
+
+  // 1. Get commanditaire entreprise_ids for this session
+  const { data: commanditaires } = await admin
+    .from("session_commanditaires")
+    .select("entreprise_id, entreprises(id, nom)")
+    .eq("session_id", sessionId)
+    .not("entreprise_id", "is", null);
+
+  if (!commanditaires || commanditaires.length === 0) {
+    return { data: [], noCommanditaires: true };
+  }
+
+  const entrepriseIds = commanditaires
+    .map((c) => c.entreprise_id)
+    .filter(Boolean) as string[];
+
+  if (entrepriseIds.length === 0) {
+    return { data: [], noCommanditaires: true };
+  }
+
+  // Build entreprise name map
+  const entrepriseMap = new Map<string, string>();
+  for (const c of commanditaires) {
+    if (c.entreprise_id && c.entreprises) {
+      const ent = Array.isArray(c.entreprises) ? c.entreprises[0] : c.entreprises;
+      if (ent) entrepriseMap.set(c.entreprise_id, ent.nom);
+    }
+  }
+
+  // 2. Source 1: apprenant_entreprises with agence info
+  const { data: links } = await admin
+    .from("apprenant_entreprises")
+    .select(`
+      apprenant_id, entreprise_id, est_siege,
+      apprenants!inner(id, civilite, numero_affichage, prenom, nom, email),
+      apprenant_entreprise_agences(
+        entreprise_agences(id, nom)
+      )
+    `)
+    .in("entreprise_id", entrepriseIds);
+
+  // 3. Source 2: entreprise_membres
+  const { data: membres } = await admin
+    .from("entreprise_membres")
+    .select(`
+      apprenant_id, entreprise_id,
+      apprenants!inner(id, civilite, numero_affichage, prenom, nom, email),
+      entreprise_agences(id, nom)
+    `)
+    .in("entreprise_id", entrepriseIds)
+    .not("apprenant_id", "is", null);
+
+  // 4. Merge, deduplicate, compute agence_label
+  const seen = new Map<string, SessionApprenantOption>();
+
+  for (const row of links ?? []) {
+    const a = row.apprenants as unknown as {
+      id: string; civilite: string | null; numero_affichage: string;
+      prenom: string; nom: string; email: string | null;
+    } | null;
+    if (!a || seen.has(a.id)) continue;
+
+    const agencesRaw = (row as Record<string, unknown>).apprenant_entreprise_agences as Array<{
+      entreprise_agences: { id: string; nom: string } | null;
+    }> | null;
+    const agences = (agencesRaw ?? [])
+      .filter((ag) => ag.entreprise_agences != null)
+      .map((ag) => ag.entreprise_agences!.nom);
+
+    let agenceLabel = "—";
+    if (agences.length > 1) {
+      agenceLabel = "Multi-agences";
+    } else if (agences.length === 1) {
+      agenceLabel = agences[0];
+    } else if (row.est_siege) {
+      agenceLabel = "Siège social";
+    }
+
+    seen.set(a.id, {
+      id: a.id,
+      civilite: a.civilite,
+      prenom: a.prenom,
+      nom: a.nom,
+      email: a.email,
+      numero_affichage: a.numero_affichage,
+      entreprise_id: row.entreprise_id,
+      entreprise_nom: entrepriseMap.get(row.entreprise_id) ?? "",
+      agence_label: agenceLabel,
+    });
+  }
+
+  for (const row of membres ?? []) {
+    const a = row.apprenants as unknown as {
+      id: string; civilite: string | null; numero_affichage: string;
+      prenom: string; nom: string; email: string | null;
+    } | null;
+    if (!a || seen.has(a.id)) continue;
+
+    const agence = row.entreprise_agences as unknown as { id: string; nom: string } | null;
+    const agenceLabel = agence?.nom ?? "—";
+
+    seen.set(a.id, {
+      id: a.id,
+      civilite: a.civilite,
+      prenom: a.prenom,
+      nom: a.nom,
+      email: a.email,
+      numero_affichage: a.numero_affichage,
+      entreprise_id: row.entreprise_id,
+      entreprise_nom: entrepriseMap.get(row.entreprise_id) ?? "",
+      agence_label: agenceLabel,
+    });
+  }
+
+  const apprenants = Array.from(seen.values());
+  apprenants.sort((a, b) => {
+    const cmp = a.nom.localeCompare(b.nom, "fr");
+    return cmp !== 0 ? cmp : a.prenom.localeCompare(b.prenom, "fr");
+  });
+
+  return { data: apprenants, noCommanditaires: false };
+}
+
 const CommanditaireSchema = z.object({
   entreprise_id: z.string().uuid().optional().or(z.literal("")),
   contact_client_id: z.string().uuid().optional().or(z.literal("")),
