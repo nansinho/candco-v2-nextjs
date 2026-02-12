@@ -622,7 +622,7 @@ export async function getEntrepriseSiegeContacts(entrepriseId: string): Promise<
     apprenants: PersonInfo | null;
   };
 
-  const contacts: SiegeContact[] = ((data as JoinedRow[]) ?? [])
+  const contacts: SiegeContact[] = ((data as unknown as JoinedRow[]) ?? [])
     .filter((m) => m.contacts_clients || m.apprenants)
     .map((m) => {
       const cc = m.contacts_clients;
@@ -694,8 +694,10 @@ export async function sendDevis(devisId: string) {
   // Determine recipient email — check contact_client, then membre/apprenant, then entreprise, then particulier
   const contactRaw = devis.contacts_clients;
   const contact = (Array.isArray(contactRaw) ? contactRaw[0] : contactRaw) as { prenom: string; nom: string; email: string } | null;
-  const membreRaw = devis.entreprise_membres as { apprenants: { prenom: string; nom: string; email: string | null } | null } | null;
-  const apprenantContact = membreRaw?.apprenants ?? null;
+  const membreRawData = devis.entreprise_membres;
+  const membreFirst = (Array.isArray(membreRawData) ? membreRawData[0] : membreRawData) as unknown as { apprenants: unknown } | null;
+  const apprenantNested = membreFirst?.apprenants;
+  const apprenantContact = (Array.isArray(apprenantNested) ? apprenantNested[0] : apprenantNested) as { prenom: string; nom: string; email: string | null } | null;
   const entrepriseRaw = devis.entreprises;
   const entreprise = (Array.isArray(entrepriseRaw) ? entrepriseRaw[0] : entrepriseRaw) as { nom: string; email: string } | null;
   const recipientEmail = contact?.email || apprenantContact?.email || entreprise?.email || devis.particulier_email;
