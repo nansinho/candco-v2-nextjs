@@ -3211,7 +3211,9 @@ function BiblioTab({
   const [savingRef, setSavingRef] = React.useState(false);
   const [refForm, setRefForm] = React.useState<ReferenceBiblioInput>({ ...EMPTY_REF_FORM });
   const [editingRefId, setEditingRefId] = React.useState<string | null>(null);
-  const [legacyExpanded, setLegacyExpanded] = React.useState(false);
+  const [legacyExpanded, setLegacyExpanded] = React.useState(
+    hasLegacyBiblio && referencesBiblio.length === 0
+  );
 
   // Legacy ouvrages state
   const [addingOuvrage, setAddingOuvrage] = React.useState(false);
