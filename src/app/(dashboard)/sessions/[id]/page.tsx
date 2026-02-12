@@ -3,7 +3,6 @@ import { getSessionEvaluations, getAllQuestionnaires, getSessionPlanifications }
 import { getAllSalles } from "@/actions/salles";
 import { getAllFormateurs } from "@/actions/formateurs";
 import { getAllEntreprises } from "@/actions/entreprises";
-import { getAllContactsClients } from "@/actions/contacts-clients";
 import { getAllFinanceurs } from "@/actions/financeurs";
 import { getLinkedDevisForSession } from "@/actions/devis";
 import { notFound } from "next/navigation";
@@ -32,7 +31,6 @@ export default async function SessionDetailPage({ params }: PageProps) {
     allFormateursResult,
     allEntreprisesResult,
     sessionApprenantsResult,
-    allContactsResult,
     allFinanceursResult,
     linkedDevisResult,
   ] = await Promise.all([
@@ -51,7 +49,6 @@ export default async function SessionDetailPage({ params }: PageProps) {
     getAllFormateurs(),
     getAllEntreprises(),
     getApprenantsForSession(id),
-    getAllContactsClients(),
     getAllFinanceurs(),
     getLinkedDevisForSession(id),
   ]);
@@ -78,7 +75,6 @@ export default async function SessionDetailPage({ params }: PageProps) {
       allEntreprises={allEntreprisesResult.data}
       sessionApprenants={sessionApprenantsResult.data}
       noCommanditaireApprenants={sessionApprenantsResult.noCommanditaires}
-      allContacts={allContactsResult.data}
       allFinanceurs={allFinanceursResult.data}
       linkedDevis={linkedDevisResult}
     />

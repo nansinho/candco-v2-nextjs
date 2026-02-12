@@ -715,6 +715,7 @@ export async function getApprenantsForSession(sessionId: string): Promise<{
 const CommanditaireSchema = z.object({
   entreprise_id: z.string().uuid().optional().or(z.literal("")),
   contact_client_id: z.string().uuid().optional().or(z.literal("")),
+  contact_membre_id: z.string().uuid().optional().or(z.literal("")),
   financeur_id: z.string().uuid().optional().or(z.literal("")),
   budget: z.coerce.number().nonnegative().default(0),
   notes: z.string().optional().or(z.literal("")),
@@ -743,6 +744,7 @@ export async function addCommanditaire(sessionId: string, input: CommanditaireIn
       session_id: sessionId,
       entreprise_id: parsed.data.entreprise_id || null,
       contact_client_id: parsed.data.contact_client_id || null,
+      contact_membre_id: parsed.data.contact_membre_id || null,
       financeur_id: parsed.data.financeur_id || null,
       budget: parsed.data.budget,
       notes: parsed.data.notes || null,
@@ -847,6 +849,7 @@ export async function updateCommanditaireWorkflow(commanditaireId: string, sessi
 const UpdateCommanditaireSchema = z.object({
   entreprise_id: z.string().uuid().optional().or(z.literal("")),
   contact_client_id: z.string().uuid().optional().or(z.literal("")),
+  contact_membre_id: z.string().uuid().optional().or(z.literal("")),
   financeur_id: z.string().uuid().optional().or(z.literal("")),
   budget: z.coerce.number().nonnegative().optional(),
   notes: z.string().optional().or(z.literal("")),
@@ -871,6 +874,7 @@ export async function updateCommanditaire(commanditaireId: string, sessionId: st
   const updateData: Record<string, unknown> = {};
   if (parsed.data.entreprise_id !== undefined) updateData.entreprise_id = parsed.data.entreprise_id || null;
   if (parsed.data.contact_client_id !== undefined) updateData.contact_client_id = parsed.data.contact_client_id || null;
+  if (parsed.data.contact_membre_id !== undefined) updateData.contact_membre_id = parsed.data.contact_membre_id || null;
   if (parsed.data.financeur_id !== undefined) updateData.financeur_id = parsed.data.financeur_id || null;
   if (parsed.data.budget !== undefined) updateData.budget = parsed.data.budget;
   if (parsed.data.notes !== undefined) updateData.notes = parsed.data.notes || null;
