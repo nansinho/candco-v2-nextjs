@@ -248,15 +248,22 @@ export default function DevisDetailPage() {
       const result = await updateDevis(devisId, input);
 
       if (result.error) {
+        const errMsg = typeof result.error === "object" && "_form" in result.error
+          ? (result.error._form as string[]).join(", ")
+          : "Impossible de sauvegarder le devis";
         toast({
           title: "Erreur",
-          description: "Impossible de sauvegarder le devis",
+          description: errMsg,
           variant: "destructive",
         });
         return;
       }
 
-      toast({ title: "Succès", description: "Devis sauvegardé", variant: "success" });
+      if ("warning" in result && result.warning) {
+        toast({ title: "Attention", description: result.warning, variant: "destructive" });
+      } else {
+        toast({ title: "Succès", description: "Devis sauvegardé", variant: "success" });
+      }
     } catch (error) {
       console.error("Erreur sauvegarde:", error);
       toast({ title: "Erreur", description: "Une erreur est survenue", variant: "destructive" });

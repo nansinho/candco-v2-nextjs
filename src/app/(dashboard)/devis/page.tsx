@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { FileText, Loader2 } from "lucide-react";
+import { FileText, Loader2, Sparkles } from "lucide-react";
 import { DataTable, type Column, type ActiveFilter } from "@/components/data-table/DataTable";
 import {
   Dialog,
@@ -28,6 +28,7 @@ import {
   type CreateDevisInput,
 } from "@/actions/devis";
 import { getSessionCommanditaires } from "@/actions/sessions";
+import { AIDocumentDialog } from "@/components/shared/ai-document-dialog";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { DatePicker } from "@/components/ui/date-picker";
 import { LignesEditor, type LigneItem } from "@/components/shared/lignes-editor";
@@ -171,6 +172,7 @@ export default function DevisPage() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [showArchived, setShowArchived] = React.useState(false);
   const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [aiDialogOpen, setAiDialogOpen] = React.useState(false);
   const [sortBy, setSortBy] = React.useState("created_at");
   const [sortDir, setSortDir] = React.useState<"asc" | "desc">("desc");
   const [filters, setFilters] = React.useState<ActiveFilter[]>([]);
@@ -228,6 +230,17 @@ export default function DevisPage() {
         onSearchChange={setSearch}
         onAdd={() => setDialogOpen(true)}
         addLabel="Nouveau devis"
+        headerExtra={
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs border-primary/30 text-primary hover:bg-primary/10"
+            onClick={() => setAiDialogOpen(true)}
+          >
+            <Sparkles className="mr-1.5 h-3 w-3" />
+            <span className="hidden sm:inline">Generer par IA</span>
+          </Button>
+        }
         onRowClick={(item) => router.push(`/devis/${item.id}`)}
         getRowId={(item) => item.id}
         isLoading={isLoading}
@@ -274,6 +287,21 @@ export default function DevisPage() {
           />
         </DialogContent>
       </Dialog>
+
+      <AIDocumentDialog
+        open={aiDialogOpen}
+        onOpenChange={setAiDialogOpen}
+        documentType="devis"
+        onSuccess={(id, _type, numero) => {
+          fetchData();
+          toast({
+            title: "Devis genere par IA",
+            description: `${numero || "Devis"} cree en brouillon. Verifiez et completez les details.`,
+            variant: "success",
+          });
+          router.push(`/devis/${id}`);
+        }}
+      />
     </>
   );
 }
@@ -303,6 +331,7 @@ function CreateDevisForm({
   onSuccess: () => void;
   onCancel: () => void;
 }) {
+  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string[] | undefined>>({});
   const [entreprises, setEntreprises] = React.useState<{ id: string; nom: string }[]>([]);
@@ -386,6 +415,10 @@ function CreateDevisForm({
       }
       setIsSubmitting(false);
       return;
+    }
+
+    if ("warning" in result && result.warning) {
+      toast({ title: "Attention", description: result.warning, variant: "destructive" });
     }
 
     setIsSubmitting(false);

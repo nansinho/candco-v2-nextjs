@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Receipt, Building2, Loader2 } from "lucide-react";
+import { Receipt, Building2, Loader2, Sparkles } from "lucide-react";
 import { DataTable, type Column, type ActiveFilter } from "@/components/data-table/DataTable";
 import {
   Dialog,
@@ -37,6 +37,7 @@ import {
   getContactsForSelect,
 } from "@/actions/devis";
 import { FactureStatusBadge, FACTURE_STATUT_OPTIONS } from "@/components/shared/status-badges";
+import { AIDocumentDialog } from "@/components/shared/ai-document-dialog";
 import { LignesEditor, type LigneItem } from "@/components/shared/lignes-editor";
 import { formatDate, formatCurrency } from "@/lib/utils";
 
@@ -194,6 +195,7 @@ export default function FacturesPage() {
 
   // Create dialog state
   const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [aiDialogOpen, setAiDialogOpen] = React.useState(false);
 
   React.useEffect(() => {
     const timer = setTimeout(() => {
@@ -249,6 +251,17 @@ export default function FacturesPage() {
         onSearchChange={setSearch}
         onAdd={() => setDialogOpen(true)}
         addLabel="Nouvelle facture"
+        headerExtra={
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs border-primary/30 text-primary hover:bg-primary/10"
+            onClick={() => setAiDialogOpen(true)}
+          >
+            <Sparkles className="mr-1.5 h-3 w-3" />
+            <span className="hidden sm:inline">Generer par IA</span>
+          </Button>
+        }
         onRowClick={(item) => router.push(`/factures/${item.id}`)}
         getRowId={(item) => item.id}
         isLoading={isLoading}
@@ -291,6 +304,21 @@ export default function FacturesPage() {
           />
         </DialogContent>
       </Dialog>
+
+      <AIDocumentDialog
+        open={aiDialogOpen}
+        onOpenChange={setAiDialogOpen}
+        documentType="facture"
+        onSuccess={(id, _type, numero) => {
+          fetchData();
+          toast({
+            title: "Facture generee par IA",
+            description: `${numero || "Facture"} creee en brouillon. Verifiez et completez les details.`,
+            variant: "success",
+          });
+          router.push(`/factures/${id}`);
+        }}
+      />
     </>
   );
 }
@@ -364,7 +392,7 @@ function CreateFactureForm({
       };
 
       const result = await createFacture(input);
-      if ("error" in result) {
+      if ("error" in result && result.error) {
         toast({
           title: "Erreur",
           description: "Impossible de créer la facture",
@@ -373,7 +401,11 @@ function CreateFactureForm({
         return;
       }
 
-      onSuccess(result.data.id);
+      if ("warning" in result && result.warning) {
+        toast({ title: "Attention", description: result.warning, variant: "destructive" });
+      }
+
+      onSuccess((result as { data: { id: string } }).data.id);
     } catch {
       toast({
         title: "Erreur",

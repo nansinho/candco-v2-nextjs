@@ -262,14 +262,21 @@ export default function FactureDetailPage() {
       };
 
       const result = await updateFacture(factureId, input);
-      if ("error" in result) {
+      if ("error" in result && result.error) {
+        const errMsg = typeof result.error === "object" && "_form" in result.error
+          ? (result.error._form as string[]).join(", ")
+          : "Impossible de sauvegarder";
         toast({
           variant: "destructive",
           title: "Erreur",
-          description: "Impossible de sauvegarder",
+          description: errMsg,
         });
       } else {
-        toast({ title: "Sauvegardé", description: "Facture mise à jour avec succès" });
+        if ("warning" in result && result.warning) {
+          toast({ title: "Attention", description: result.warning, variant: "destructive" });
+        } else {
+          toast({ title: "Sauvegardé", description: "Facture mise à jour avec succès" });
+        }
         await loadData();
       }
     } catch (error) {

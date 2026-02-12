@@ -106,6 +106,7 @@ export async function createFacture(input: CreateFactureInput) {
 
   if (error) return { error: { _form: [error.message] } };
 
+  let warning: string | undefined;
   if (parsed.data.lignes.length > 0) {
     const lignes = parsed.data.lignes.map((l, i) => ({
       facture_id: data.id,
@@ -117,7 +118,11 @@ export async function createFacture(input: CreateFactureInput) {
       montant_ht: Math.round(l.quantite * l.prix_unitaire_ht * 100) / 100,
       ordre: l.ordre ?? i,
     }));
-    await supabase.from("facture_lignes").insert(lignes);
+    const { error: lignesError } = await supabase.from("facture_lignes").insert(lignes);
+    if (lignesError) {
+      console.error("Failed to insert facture_lignes:", lignesError.message);
+      warning = `La facture a été créée (${data.numero_affichage}) mais les lignes n'ont pas pu être sauvegardées : ${lignesError.message}`;
+    }
   }
 
   await logHistorique({
@@ -134,7 +139,7 @@ export async function createFacture(input: CreateFactureInput) {
   });
 
   revalidatePath("/factures");
-  return { data };
+  return warning ? { data, warning } : { data };
 }
 
 export async function getFacturesList(
@@ -254,7 +259,13 @@ export async function updateFacture(id: string, input: UpdateFactureInput) {
   if (error) return { error: { _form: [error.message] } };
 
   // Replace lines
-  await supabase.from("facture_lignes").delete().eq("facture_id", id);
+  const { error: deleteError } = await supabase.from("facture_lignes").delete().eq("facture_id", id);
+  if (deleteError) {
+    console.error("Failed to delete facture_lignes:", deleteError.message);
+    return { error: { _form: [`Erreur lors de la mise à jour des lignes : ${deleteError.message}`] } };
+  }
+
+  let warning: string | undefined;
   if (parsed.data.lignes.length > 0) {
     const lignes = parsed.data.lignes.map((l, i) => ({
       facture_id: id,
@@ -266,7 +277,11 @@ export async function updateFacture(id: string, input: UpdateFactureInput) {
       montant_ht: Math.round(l.quantite * l.prix_unitaire_ht * 100) / 100,
       ordre: l.ordre ?? i,
     }));
-    await supabase.from("facture_lignes").insert(lignes);
+    const { error: insertError } = await supabase.from("facture_lignes").insert(lignes);
+    if (insertError) {
+      console.error("Failed to insert facture_lignes:", insertError.message);
+      warning = `La facture a été mise à jour mais les lignes n'ont pas pu être sauvegardées : ${insertError.message}`;
+    }
   }
 
   await logHistorique({
@@ -284,7 +299,7 @@ export async function updateFacture(id: string, input: UpdateFactureInput) {
 
   revalidatePath("/factures");
   revalidatePath(`/factures/${id}`);
-  return { data };
+  return warning ? { data, warning } : { data };
 }
 
 export async function updateFactureStatut(id: string, statut: string) {
@@ -504,7 +519,10 @@ export async function duplicateFacture(factureId: string) {
       montant_ht: Math.round(l.quantite * l.prix_unitaire_ht * 100) / 100,
       ordre: l.ordre ?? i,
     }));
-    await supabase.from("facture_lignes").insert(insertLignes);
+    const { error: lignesError } = await supabase.from("facture_lignes").insert(insertLignes);
+    if (lignesError) {
+      console.error("Failed to insert facture_lignes (duplicate):", lignesError.message);
+    }
   }
 
   await logHistorique({
@@ -650,7 +668,7 @@ export async function createFactureAcompte(
   if (error) return { error: error.message };
 
   // Create default line
-  await supabase.from("facture_lignes").insert({
+  const { error: lignesError } = await supabase.from("facture_lignes").insert({
     facture_id: facture.id,
     designation: objet,
     quantite: 1,
@@ -659,6 +677,9 @@ export async function createFactureAcompte(
     montant_ht: montantAcompte,
     ordre: 0,
   });
+  if (lignesError) {
+    console.error("Failed to insert facture_lignes (acompte):", lignesError.message);
+  }
 
   await logHistorique({
     organisationId,
@@ -759,7 +780,7 @@ export async function createFactureSolde(
   if (error) return { error: error.message };
 
   // Create default line
-  await supabase.from("facture_lignes").insert({
+  const { error: soldeLignesError } = await supabase.from("facture_lignes").insert({
     facture_id: facture.id,
     designation: objet,
     quantite: 1,
@@ -768,6 +789,9 @@ export async function createFactureSolde(
     montant_ht: montantSolde,
     ordre: 0,
   });
+  if (soldeLignesError) {
+    console.error("Failed to insert facture_lignes (solde):", soldeLignesError.message);
+  }
 
   await logHistorique({
     organisationId,
