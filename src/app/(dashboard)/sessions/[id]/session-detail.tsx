@@ -32,6 +32,10 @@ import {
   ChevronRight,
   Pencil,
   ExternalLink,
+  Sun,
+  Sunset,
+  Calendar,
+  Settings2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,7 +53,7 @@ import {
 } from "@/components/shared/session-status-badge";
 import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
 import { DevisStatusBadge } from "@/components/shared/status-badges";
-import { formatDate, formatCurrency } from "@/lib/utils";
+import { cn, formatDate, formatCurrency } from "@/lib/utils";
 import { formatDuration } from "@/components/planning/calendar-utils";
 import { DatePicker } from "@/components/ui/date-picker";
 import { useBreadcrumb } from "@/components/layout/breadcrumb-context";
@@ -68,6 +72,7 @@ import {
   updateInscriptionStatut,
   removeInscription,
   addCreneau,
+  addCreneauxBatch,
   removeCreneau,
   toggleCreneauEmargement,
   toggleEmargementPresence,
@@ -77,6 +82,7 @@ import {
   type CommanditaireInput,
   type CreneauInput,
 } from "@/actions/sessions";
+import { CRENEAU_PRESETS, type CreneauMode } from "@/lib/constants";
 import { createFormateur } from "@/actions/formateurs";
 import { createApprenant } from "@/actions/apprenants";
 import {
@@ -2193,6 +2199,13 @@ function DocumentsTab({
   );
 }
 
+const MODE_OPTIONS: { value: CreneauMode; label: string; icon: React.ReactNode }[] = [
+  { value: "matin", label: "Matin", icon: <Sun className="h-3.5 w-3.5" /> },
+  { value: "apres_midi", label: "Après-midi", icon: <Sunset className="h-3.5 w-3.5" /> },
+  { value: "journee", label: "Journée", icon: <Calendar className="h-3.5 w-3.5" /> },
+  { value: "personnalise", label: "Personnalisé", icon: <Settings2 className="h-3.5 w-3.5" /> },
+];
+
 function AddCreneauForm({
   sessionId,
   formateurs,
@@ -2207,28 +2220,62 @@ function AddCreneauForm({
   onSuccess: () => void;
 }) {
   const [loading, setLoading] = React.useState(false);
+  const [mode, setMode] = React.useState<CreneauMode>("matin");
+  const [heureDebut, setHeureDebut] = React.useState<string>(CRENEAU_PRESETS.matin.heure_debut);
+  const [heureFin, setHeureFin] = React.useState<string>(CRENEAU_PRESETS.matin.heure_fin);
   const { toast } = useToast();
+
+  const handleModeChange = (newMode: CreneauMode) => {
+    setMode(newMode);
+    if (newMode === "matin") {
+      setHeureDebut(CRENEAU_PRESETS.matin.heure_debut);
+      setHeureFin(CRENEAU_PRESETS.matin.heure_fin);
+    } else if (newMode === "apres_midi") {
+      setHeureDebut(CRENEAU_PRESETS.apres_midi.heure_debut);
+      setHeureFin(CRENEAU_PRESETS.apres_midi.heure_fin);
+    } else if (newMode === "personnalise") {
+      setHeureDebut("09:00");
+      setHeureFin("17:00");
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     const fd = new FormData(e.currentTarget);
-    const input: CreneauInput = {
-      date: fd.get("date") as string,
-      heure_debut: fd.get("heure_debut") as string,
-      heure_fin: fd.get("heure_fin") as string,
-      formateur_id: (fd.get("formateur_id") as string) || "",
-      salle_id: (fd.get("salle_id") as string) || "",
-      type: (fd.get("type") as CreneauInput["type"]) || "presentiel",
-    };
+    const date = fd.get("date") as string;
+    const formateurId = (fd.get("formateur_id") as string) || "";
+    const salleId = (fd.get("salle_id") as string) || "";
+    const type = (fd.get("type") as CreneauInput["type"]) || "presentiel";
 
-    const res = await addCreneau(sessionId, input);
-    setLoading(false);
-    if (res.error) {
-      toast({ title: "Erreur", description: "Impossible d'ajouter le créneau.", variant: "destructive" });
+    if (!date) {
+      toast({ title: "Erreur", description: "Veuillez sélectionner une date.", variant: "destructive" });
+      setLoading(false);
       return;
     }
-    toast({ title: "Créneau ajouté", variant: "success" });
+
+    if (mode === "journee") {
+      const inputs: CreneauInput[] = [
+        { date, heure_debut: CRENEAU_PRESETS.matin.heure_debut, heure_fin: CRENEAU_PRESETS.matin.heure_fin, formateur_id: formateurId, salle_id: salleId, type },
+        { date, heure_debut: CRENEAU_PRESETS.apres_midi.heure_debut, heure_fin: CRENEAU_PRESETS.apres_midi.heure_fin, formateur_id: formateurId, salle_id: salleId, type },
+      ];
+      const res = await addCreneauxBatch(sessionId, inputs);
+      setLoading(false);
+      if (res.error) {
+        toast({ title: "Erreur", description: "Impossible d'ajouter les créneaux.", variant: "destructive" });
+        return;
+      }
+      toast({ title: "2 créneaux ajoutés", description: "Matin + Après-midi", variant: "success" });
+    } else {
+      const input: CreneauInput = { date, heure_debut: heureDebut, heure_fin: heureFin, formateur_id: formateurId, salle_id: salleId, type };
+      const res = await addCreneau(sessionId, input);
+      setLoading(false);
+      if (res.error) {
+        toast({ title: "Erreur", description: "Impossible d'ajouter le créneau.", variant: "destructive" });
+        return;
+      }
+      toast({ title: "Créneau ajouté", variant: "success" });
+    }
     onSuccess();
   };
 
@@ -2240,20 +2287,55 @@ function AddCreneauForm({
           <X className="h-4 w-4" />
         </button>
       </div>
+
+      {/* Mode selector */}
+      <div className="flex flex-wrap gap-1.5">
+        {MODE_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => handleModeChange(opt.value)}
+            className={cn(
+              "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors border",
+              mode === opt.value
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-muted/50 text-muted-foreground border-border/60 hover:bg-muted hover:text-foreground"
+            )}
+          >
+            {opt.icon}
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
       <form onSubmit={handleSubmit} className="space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="space-y-1.5">
             <Label className="text-xs">Date <span className="text-destructive">*</span></Label>
             <DatePicker name="date" className="h-8" />
           </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">Début <span className="text-destructive">*</span></Label>
-            <Input name="heure_debut" type="time" required defaultValue="09:00" className="h-8 text-sm border-border/60" />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">Fin <span className="text-destructive">*</span></Label>
-            <Input name="heure_fin" type="time" required defaultValue="17:00" className="h-8 text-sm border-border/60" />
-          </div>
+
+          {mode === "journee" ? (
+            <div className="sm:col-span-2 flex items-end">
+              <div className="rounded-md border border-border/60 bg-muted/30 px-3 py-1.5 text-xs text-muted-foreground w-full">
+                <span className="font-medium text-foreground">2 créneaux seront créés :</span>
+                <span className="ml-2">Matin {CRENEAU_PRESETS.matin.heure_debut}–{CRENEAU_PRESETS.matin.heure_fin}</span>
+                <span className="mx-1.5">•</span>
+                <span>Après-midi {CRENEAU_PRESETS.apres_midi.heure_debut}–{CRENEAU_PRESETS.apres_midi.heure_fin}</span>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Début <span className="text-destructive">*</span></Label>
+                <Input type="time" required value={heureDebut} onChange={(e) => setHeureDebut(e.target.value)} className="h-8 text-sm border-border/60" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Fin <span className="text-destructive">*</span></Label>
+                <Input type="time" required value={heureFin} onChange={(e) => setHeureFin(e.target.value)} className="h-8 text-sm border-border/60" />
+              </div>
+            </>
+          )}
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="space-y-1.5">
@@ -2290,7 +2372,7 @@ function AddCreneauForm({
           </Button>
           <Button type="submit" size="sm" className="h-7 text-xs" disabled={loading}>
             {loading ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Plus className="mr-1 h-3 w-3" />}
-            Ajouter
+            {mode === "journee" ? "Ajouter 2 créneaux" : "Ajouter"}
           </Button>
         </div>
       </form>

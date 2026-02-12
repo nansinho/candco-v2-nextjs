@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Loader2, AlertTriangle } from "lucide-react";
+import { Loader2, AlertTriangle, Sun, Sunset, Calendar, Settings2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -14,7 +14,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/toast";
-import { addCreneau, type CreneauInput } from "@/actions/sessions";
+import { cn } from "@/lib/utils";
+import { addCreneau, addCreneauxBatch, type CreneauInput } from "@/actions/sessions";
+import { CRENEAU_PRESETS, type CreneauMode } from "@/lib/constants";
 import { updateCreneau, checkCreneauConflicts, type Conflict } from "@/actions/planning";
 import type { PlanningCreneau } from "@/actions/planning";
 
@@ -51,11 +53,28 @@ export function CreneauFormModal({
 
   const isEdit = !!editCreneau;
 
+  // Mode state (only for create mode)
+  const [mode, setMode] = React.useState<CreneauMode>("matin");
+
+  const handleModeChange = (newMode: CreneauMode) => {
+    setMode(newMode);
+    if (newMode === "matin") {
+      setHeureDebut(CRENEAU_PRESETS.matin.heure_debut);
+      setHeureFin(CRENEAU_PRESETS.matin.heure_fin);
+    } else if (newMode === "apres_midi") {
+      setHeureDebut(CRENEAU_PRESETS.apres_midi.heure_debut);
+      setHeureFin(CRENEAU_PRESETS.apres_midi.heure_fin);
+    } else if (newMode === "personnalise") {
+      setHeureDebut("09:00");
+      setHeureFin("17:00");
+    }
+  };
+
   // Form state
   const [sessionId, setSessionId] = React.useState("");
   const [date, setDate] = React.useState("");
-  const [heureDebut, setHeureDebut] = React.useState("09:00");
-  const [heureFin, setHeureFin] = React.useState("17:00");
+  const [heureDebut, setHeureDebut] = React.useState<string>(CRENEAU_PRESETS.matin.heure_debut);
+  const [heureFin, setHeureFin] = React.useState<string>(CRENEAU_PRESETS.matin.heure_fin);
   const [type, setType] = React.useState<"presentiel" | "distanciel" | "elearning" | "stage">("presentiel");
   const [formateurId, setFormateurId] = React.useState("");
   const [salleId, setSalleId] = React.useState("");
@@ -73,10 +92,11 @@ export function CreneauFormModal({
         setFormateurId(editCreneau.formateur_id ?? "");
         setSalleId(editCreneau.salle_id ?? "");
       } else {
+        setMode("matin");
         setSessionId("");
         setDate(defaultDate ?? "");
-        setHeureDebut("09:00");
-        setHeureFin("17:00");
+        setHeureDebut(CRENEAU_PRESETS.matin.heure_debut);
+        setHeureFin(CRENEAU_PRESETS.matin.heure_fin);
         setType("presentiel");
         setFormateurId("");
         setSalleId("");
@@ -147,26 +167,42 @@ export function CreneauFormModal({
           return;
         }
 
-        const input: CreneauInput = {
-          date,
-          heure_debut: heureDebut,
-          heure_fin: heureFin,
-          type,
-          formateur_id: formateurId || undefined,
-          salle_id: salleId || undefined,
-        };
+        if (mode === "journee") {
+          const inputs: CreneauInput[] = [
+            { date, heure_debut: CRENEAU_PRESETS.matin.heure_debut, heure_fin: CRENEAU_PRESETS.matin.heure_fin, type, formateur_id: formateurId || undefined, salle_id: salleId || undefined },
+            { date, heure_debut: CRENEAU_PRESETS.apres_midi.heure_debut, heure_fin: CRENEAU_PRESETS.apres_midi.heure_fin, type, formateur_id: formateurId || undefined, salle_id: salleId || undefined },
+          ];
+          const result = await addCreneauxBatch(sessionId, inputs) as { error?: unknown; data?: unknown };
+          if (result.error) {
+            const msg = typeof result.error === "string"
+              ? result.error
+              : (result.error as Record<string, string[]>)._form?.[0] ?? "Erreur lors de la creation";
+            toast({ variant: "destructive", title: msg });
+            return;
+          }
+          toast({ variant: "success", title: "2 creneaux ajoutes", description: "Matin + Apres-midi" });
+        } else {
+          const input: CreneauInput = {
+            date,
+            heure_debut: heureDebut,
+            heure_fin: heureFin,
+            type,
+            formateur_id: formateurId || undefined,
+            salle_id: salleId || undefined,
+          };
 
-        const result = await addCreneau(sessionId, input) as { error?: unknown; data?: unknown };
+          const result = await addCreneau(sessionId, input) as { error?: unknown; data?: unknown };
 
-        if (result.error) {
-          const msg = typeof result.error === "string"
-            ? result.error
-            : (result.error as Record<string, string[]>)._form?.[0] ?? "Erreur lors de la creation";
-          toast({ variant: "destructive", title: msg });
-          return;
+          if (result.error) {
+            const msg = typeof result.error === "string"
+              ? result.error
+              : (result.error as Record<string, string[]>)._form?.[0] ?? "Erreur lors de la creation";
+            toast({ variant: "destructive", title: msg });
+            return;
+          }
+
+          toast({ variant: "success", title: "Creneau ajoute" });
         }
-
-        toast({ variant: "success", title: "Creneau ajoute" });
       }
 
       onOpenChange(false);
@@ -212,6 +248,36 @@ export function CreneauFormModal({
             </div>
           )}
 
+          {/* Mode selector (create mode only) */}
+          {!isEdit && (
+            <div className="space-y-1.5">
+              <Label className="text-xs">Mode</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {([
+                  { value: "matin" as const, label: "Matin", icon: <Sun className="h-3.5 w-3.5" /> },
+                  { value: "apres_midi" as const, label: "Après-midi", icon: <Sunset className="h-3.5 w-3.5" /> },
+                  { value: "journee" as const, label: "Journée", icon: <Calendar className="h-3.5 w-3.5" /> },
+                  { value: "personnalise" as const, label: "Personnalisé", icon: <Settings2 className="h-3.5 w-3.5" /> },
+                ]).map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => handleModeChange(opt.value)}
+                    className={cn(
+                      "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors border",
+                      mode === opt.value
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-muted/50 text-muted-foreground border-border/60 hover:bg-muted hover:text-foreground"
+                    )}
+                  >
+                    {opt.icon}
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Date */}
           <div className="space-y-1.5">
             <Label htmlFor="creneau-date" className="text-xs">Date *</Label>
@@ -225,28 +291,37 @@ export function CreneauFormModal({
           </div>
 
           {/* Time range */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="creneau-debut" className="text-xs">Debut *</Label>
-              <Input
-                id="creneau-debut"
-                type="time"
-                value={heureDebut}
-                onChange={(e) => setHeureDebut(e.target.value)}
-                required
-              />
+          {!isEdit && mode === "journee" ? (
+            <div className="rounded-md border border-border/60 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">2 créneaux seront créés :</span>
+              <span className="ml-2">Matin {CRENEAU_PRESETS.matin.heure_debut}–{CRENEAU_PRESETS.matin.heure_fin}</span>
+              <span className="mx-1.5">•</span>
+              <span>Après-midi {CRENEAU_PRESETS.apres_midi.heure_debut}–{CRENEAU_PRESETS.apres_midi.heure_fin}</span>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="creneau-fin" className="text-xs">Fin *</Label>
-              <Input
-                id="creneau-fin"
-                type="time"
-                value={heureFin}
-                onChange={(e) => setHeureFin(e.target.value)}
-                required
-              />
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="creneau-debut" className="text-xs">Debut *</Label>
+                <Input
+                  id="creneau-debut"
+                  type="time"
+                  value={heureDebut}
+                  onChange={(e) => setHeureDebut(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="creneau-fin" className="text-xs">Fin *</Label>
+                <Input
+                  id="creneau-fin"
+                  type="time"
+                  value={heureFin}
+                  onChange={(e) => setHeureFin(e.target.value)}
+                  required
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Type */}
           <div className="space-y-1.5">
@@ -339,7 +414,7 @@ export function CreneauFormModal({
               disabled={saving}
             >
               {saving && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
-              {isEdit ? "Modifier" : "Ajouter"}
+              {isEdit ? "Modifier" : mode === "journee" ? "Ajouter 2 créneaux" : "Ajouter"}
             </Button>
           </DialogFooter>
         </form>
