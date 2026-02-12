@@ -28,7 +28,11 @@ import {
   getSessionBillingPipeline,
 } from "@/actions/billing-pipeline";
 import { createDevisFromCommanditaire } from "@/actions/devis";
-import { createFactureAcompte, createFactureSolde } from "@/actions/factures";
+import {
+  createFactureAcompte,
+  createFactureSolde,
+  createFactureFromSessionDevis,
+} from "@/actions/factures";
 
 // ─── Status helpers ─────────────────────────────────────
 
@@ -169,6 +173,24 @@ function CommanditairePipelineCard({
         toast({ title: "Erreur", description: String(res.error), variant: "destructive" });
       } else {
         toast({ title: "Facture de solde creee" });
+        onRefresh();
+      }
+    } finally {
+      setCreating(null);
+    }
+  };
+
+  const handleCreateFacture = async () => {
+    setCreating("facture");
+    try {
+      const res = await createFactureFromSessionDevis(cmd.id, sessionId);
+      if ("error" in res && res.error) {
+        toast({ title: "Erreur", description: String(res.error), variant: "destructive" });
+      } else {
+        const msg = res.warning
+          ? `Facture créée. ${res.warning}`
+          : "Facture créée depuis le devis avec participants présents";
+        toast({ title: "Facture créée", description: msg });
         onRefresh();
       }
     } finally {
@@ -353,6 +375,17 @@ function CommanditairePipelineCard({
             >
               <Receipt className="mr-1 h-3 w-3" />
               {creating === "solde" ? "..." : "+ Solde"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs border-primary/60 text-primary hover:bg-primary/10"
+              onClick={handleCreateFacture}
+              disabled={creating !== null || pipeline.devis.length === 0}
+              title={pipeline.devis.length === 0 ? "Créez d'abord un devis pour ce commanditaire" : "Créer une facture depuis le devis avec les participants présents"}
+            >
+              <Receipt className="mr-1 h-3 w-3" />
+              {creating === "facture" ? "..." : "+ Facture"}
             </Button>
           </div>
         </div>

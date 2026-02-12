@@ -10,6 +10,12 @@ import {
   Receipt,
   CreditCard,
   Copy,
+  RefreshCw,
+  Users,
+  MapPin,
+  Calendar,
+  Clock,
+  GraduationCap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +47,7 @@ import {
   deletePaiement,
   duplicateFacture,
   getOrganisationBillingInfo,
+  refreshFactureParticipants,
   type UpdateFactureInput,
   type PaiementInput,
 } from "@/actions/factures";
@@ -156,6 +163,7 @@ export default function FactureDetailPage() {
   const [newPaiementReference, setNewPaiementReference] = React.useState("");
   const [newPaiementNotes, setNewPaiementNotes] = React.useState("");
   const [addingPaiement, setAddingPaiement] = React.useState(false);
+  const [refreshingParticipants, setRefreshingParticipants] = React.useState(false);
 
   // Load data
   const loadData = React.useCallback(async () => {
@@ -258,6 +266,12 @@ export default function FactureDetailPage() {
         commanditaire_id: commanditaireId || "",
         type_facture: typeFacture as "standard" | "acompte" | "solde",
         pourcentage_acompte: pourcentageAcompte ?? undefined,
+        lieu_formation: (factureRaw.lieu_formation as string) || undefined,
+        dates_formation: (factureRaw.dates_formation as string) || undefined,
+        dates_formation_jours: (factureRaw.dates_formation_jours as string[]) || undefined,
+        nombre_participants_prevu: (factureRaw.nombre_participants_prevu as number) || undefined,
+        modalite_pedagogique: (factureRaw.modalite_pedagogique as string) || undefined,
+        duree_formation: (factureRaw.duree_formation as string) || undefined,
         lignes,
       };
 
@@ -377,6 +391,25 @@ export default function FactureDetailPage() {
     } catch (error) {
       console.error("Error deleting paiement:", error);
       toast({ variant: "destructive", title: "Erreur", description: "Une erreur est survenue" });
+    }
+  }
+
+  async function handleRefreshParticipants() {
+    try {
+      setRefreshingParticipants(true);
+      const result = await refreshFactureParticipants(factureId);
+      if ("error" in result && result.error) {
+        toast({ variant: "destructive", title: "Erreur", description: String(result.error) });
+      } else {
+        const count = result.data?.count ?? 0;
+        toast({ title: "Participants actualisés", description: `${count} participant(s) présent(s)` });
+        await loadData();
+      }
+    } catch (error) {
+      console.error("Error refreshing participants:", error);
+      toast({ variant: "destructive", title: "Erreur", description: "Une erreur est survenue" });
+    } finally {
+      setRefreshingParticipants(false);
     }
   }
 
@@ -599,6 +632,117 @@ export default function FactureDetailPage() {
               </div>
             </div>
 
+            {/* Formation info (read-only, shown when linked to a session) */}
+            {sessionId && (factureRaw.lieu_formation || factureRaw.dates_formation || factureRaw.modalite_pedagogique || factureRaw.duree_formation) && (
+              <div className="rounded-lg border border-border/40 bg-card p-4">
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 block">
+                  Informations formation
+                </Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {factureRaw.dates_formation && (
+                    <div className="flex items-start gap-2">
+                      <Calendar className="h-3.5 w-3.5 text-muted-foreground/60 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-[10px] text-muted-foreground/60 uppercase">Dates</p>
+                        <p className="text-xs">{factureRaw.dates_formation}</p>
+                      </div>
+                    </div>
+                  )}
+                  {factureRaw.lieu_formation && (
+                    <div className="flex items-start gap-2">
+                      <MapPin className="h-3.5 w-3.5 text-muted-foreground/60 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-[10px] text-muted-foreground/60 uppercase">Lieu</p>
+                        <p className="text-xs">{factureRaw.lieu_formation}</p>
+                      </div>
+                    </div>
+                  )}
+                  {factureRaw.modalite_pedagogique && (
+                    <div className="flex items-start gap-2">
+                      <GraduationCap className="h-3.5 w-3.5 text-muted-foreground/60 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-[10px] text-muted-foreground/60 uppercase">Modalité</p>
+                        <p className="text-xs capitalize">{factureRaw.modalite_pedagogique}</p>
+                      </div>
+                    </div>
+                  )}
+                  {factureRaw.duree_formation && (
+                    <div className="flex items-start gap-2">
+                      <Clock className="h-3.5 w-3.5 text-muted-foreground/60 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-[10px] text-muted-foreground/60 uppercase">Durée</p>
+                        <p className="text-xs">{factureRaw.duree_formation}</p>
+                      </div>
+                    </div>
+                  )}
+                  {factureRaw.nombre_participants_prevu != null && (
+                    <div className="flex items-start gap-2">
+                      <Users className="h-3.5 w-3.5 text-muted-foreground/60 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-[10px] text-muted-foreground/60 uppercase">Participants prévus</p>
+                        <p className="text-xs">{factureRaw.nombre_participants_prevu}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Participants présents */}
+            {(() => {
+              const participants = factureRaw.participants_presents as Array<{
+                apprenant_id: string;
+                prenom: string;
+                nom: string;
+                dates_presence: string[];
+                agence?: string | null;
+              }> | null;
+              if (!participants || participants.length === 0) return null;
+              return (
+                <div className="rounded-lg border border-border/40 bg-card p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                      Participants présents ({participants.length})
+                    </Label>
+                    {factureRaw.statut === "brouillon" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs border-border/60"
+                        onClick={handleRefreshParticipants}
+                        disabled={refreshingParticipants}
+                      >
+                        <RefreshCw className={`mr-1 h-3 w-3 ${refreshingParticipants ? "animate-spin" : ""}`} />
+                        {refreshingParticipants ? "Actualisation..." : "Actualiser"}
+                      </Button>
+                    )}
+                  </div>
+                  <div className="border border-border/60 rounded-lg overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="border-b border-border/40 bg-muted/30">
+                        <tr>
+                          <th className="px-3 py-1.5 text-left font-medium text-muted-foreground text-xs w-8">N°</th>
+                          <th className="px-3 py-1.5 text-left font-medium text-muted-foreground text-xs">Nom Prénom</th>
+                          <th className="px-3 py-1.5 text-left font-medium text-muted-foreground text-xs">Dates de présence</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {participants.map((p, idx) => (
+                          <tr key={p.apprenant_id} className="border-b border-border/20 hover:bg-muted/20">
+                            <td className="px-3 py-1.5 text-xs text-muted-foreground">{idx + 1}</td>
+                            <td className="px-3 py-1.5 text-xs font-medium">{p.nom.toUpperCase()} {p.prenom}</td>
+                            <td className="px-3 py-1.5 text-xs text-muted-foreground">
+                              {p.dates_presence.map((d) => formatDate(d)).join(", ")}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Lignes */}
             <div className="rounded-lg border border-border/40 bg-card p-4">
               <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 block">
@@ -820,6 +964,20 @@ export default function FactureDetailPage() {
                 conditions={conditionsPaiement || undefined}
                 mentionsLegales={mentionsLegales || undefined}
                 coordonneesBancaires={orgInfo?.coordonnees_bancaires || undefined}
+                exonerationTva={factureRaw.exoneration_tva ?? false}
+                formationInfo={sessionId ? {
+                  nom: objet || undefined,
+                  dates: (factureRaw.dates_formation as string) || undefined,
+                  lieu: (factureRaw.lieu_formation as string) || undefined,
+                  modalite: (factureRaw.modalite_pedagogique as string) || undefined,
+                  duree: (factureRaw.duree_formation as string) || undefined,
+                  participantsPrevus: (factureRaw.nombre_participants_prevu as number) || undefined,
+                } : undefined}
+                participantsPresents={
+                  Array.isArray(factureRaw.participants_presents) && factureRaw.participants_presents.length > 0
+                    ? (factureRaw.participants_presents as Array<{ prenom: string; nom: string; dates_presence: string[] }>)
+                    : undefined
+                }
               />
             </div>
           </div>

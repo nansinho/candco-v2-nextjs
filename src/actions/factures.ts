@@ -38,6 +38,15 @@ const CreateFactureSchema = z.object({
   type_facture: z.enum(["standard", "acompte", "solde"]).optional(),
   facture_parent_id: z.string().uuid().optional().or(z.literal("")),
   pourcentage_acompte: z.coerce.number().nonnegative().optional(),
+  // Formation metadata (from devis / session)
+  lieu_formation: z.string().optional(),
+  dates_formation: z.string().optional(),
+  dates_formation_jours: z.array(z.string()).optional(),
+  nombre_participants_prevu: z.coerce.number().int().nonnegative().optional(),
+  modalite_pedagogique: z.string().optional(),
+  duree_formation: z.string().optional(),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  participants_presents: z.any().optional(),
   lignes: z.array(FactureLigneSchema).default([]),
 });
 
@@ -99,6 +108,13 @@ export async function createFacture(input: CreateFactureInput) {
       type_facture: parsed.data.type_facture ?? "standard",
       facture_parent_id: parsed.data.facture_parent_id || null,
       pourcentage_acompte: parsed.data.pourcentage_acompte ?? null,
+      lieu_formation: parsed.data.lieu_formation || null,
+      dates_formation: parsed.data.dates_formation || null,
+      dates_formation_jours: parsed.data.dates_formation_jours?.length ? parsed.data.dates_formation_jours : null,
+      nombre_participants_prevu: parsed.data.nombre_participants_prevu || null,
+      modalite_pedagogique: parsed.data.modalite_pedagogique || null,
+      duree_formation: parsed.data.duree_formation || null,
+      participants_presents: parsed.data.participants_presents ?? [],
       ...totals,
     })
     .select()
@@ -250,6 +266,12 @@ export async function updateFacture(id: string, input: UpdateFactureInput) {
       type_facture: parsed.data.type_facture ?? "standard",
       facture_parent_id: parsed.data.facture_parent_id || null,
       pourcentage_acompte: parsed.data.pourcentage_acompte ?? null,
+      lieu_formation: parsed.data.lieu_formation || null,
+      dates_formation: parsed.data.dates_formation || null,
+      dates_formation_jours: parsed.data.dates_formation_jours?.length ? parsed.data.dates_formation_jours : null,
+      nombre_participants_prevu: parsed.data.nombre_participants_prevu || null,
+      modalite_pedagogique: parsed.data.modalite_pedagogique || null,
+      duree_formation: parsed.data.duree_formation || null,
       ...totals,
     })
     .eq("id", id)
@@ -831,4 +853,284 @@ export async function getFacturesForCommanditaire(commanditaireId: string) {
     .order("created_at", { ascending: true });
 
   return { data: data ?? [] };
+}
+
+// ─── Helper: Get present apprenants for a commanditaire ──
+
+interface ParticipantPresent {
+  apprenant_id: string;
+  prenom: string;
+  nom: string;
+  dates_presence: string[];
+  agence: string | null;
+}
+
+async function getPresentApprenantsForCommanditaire(
+  sessionId: string,
+  commanditaireId: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+): Promise<ParticipantPresent[]> {
+  // 1. Get inscriptions for this session + commanditaire (non-cancelled)
+  const { data: inscriptions } = await supabase
+    .from("inscriptions")
+    .select("apprenant_id, apprenants(id, prenom, nom)")
+    .eq("session_id", sessionId)
+    .eq("commanditaire_id", commanditaireId)
+    .in("statut", ["inscrit", "confirme"]);
+
+  if (!inscriptions || inscriptions.length === 0) return [];
+
+  // 2. Get all créneaux for this session
+  const { data: creneaux } = await supabase
+    .from("session_creneaux")
+    .select("id, date")
+    .eq("session_id", sessionId)
+    .order("date", { ascending: true });
+
+  if (!creneaux || creneaux.length === 0) return [];
+
+  // 3. Get emargements where present=true for these créneaux
+  const creneauIds = (creneaux as Array<{ id: string; date: string }>).map((c) => c.id);
+  const { data: emargements } = await supabase
+    .from("emargements")
+    .select("creneau_id, apprenant_id")
+    .in("creneau_id", creneauIds)
+    .eq("present", true);
+
+  if (!emargements || emargements.length === 0) return [];
+
+  // 4. Build map: apprenant_id → dates where present
+  const creneauDateMap = new Map<string, string>();
+  for (const c of creneaux as Array<{ id: string; date: string }>) {
+    creneauDateMap.set(c.id, c.date);
+  }
+
+  const presenceMap = new Map<string, string[]>();
+  for (const e of emargements as Array<{ creneau_id: string; apprenant_id: string }>) {
+    const date = creneauDateMap.get(e.creneau_id);
+    if (!date) continue;
+    const list = presenceMap.get(e.apprenant_id) ?? [];
+    if (!list.includes(date)) list.push(date);
+    presenceMap.set(e.apprenant_id, list);
+  }
+
+  // 5. Filter inscribed apprenants to only those with at least one presence
+  const participants: ParticipantPresent[] = [];
+  for (const insc of inscriptions as Array<{ apprenant_id: string; apprenants: Record<string, unknown> | Array<Record<string, unknown>> }>) {
+    const dates = presenceMap.get(insc.apprenant_id);
+    if (!dates || dates.length === 0) continue;
+
+    const apprenant = Array.isArray(insc.apprenants)
+      ? insc.apprenants[0]
+      : insc.apprenants;
+    if (!apprenant) continue;
+
+    participants.push({
+      apprenant_id: apprenant.id as string,
+      prenom: apprenant.prenom as string,
+      nom: apprenant.nom as string,
+      dates_presence: [...dates].sort(),
+      agence: null,
+    });
+  }
+
+  // Sort by nom then prenom
+  participants.sort((a, b) =>
+    a.nom.localeCompare(b.nom) || a.prenom.localeCompare(b.prenom),
+  );
+
+  return participants;
+}
+
+// ─── Create facture from session devis ───────────────────
+
+export async function createFactureFromSessionDevis(
+  commanditaireId: string,
+  sessionId: string,
+) {
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role, supabase } = result;
+  requirePermission(role as UserRole, canManageFinances, "créer une facture depuis un devis de session");
+
+  // 1. Find the most recent devis linked to this commanditaire + session
+  const { data: devisMatches } = await supabase
+    .from("devis")
+    .select(`
+      id, numero_affichage, objet, conditions, mentions_legales,
+      total_ht, total_tva, total_ttc,
+      entreprise_id, contact_client_id,
+      lieu_formation, dates_formation, dates_formation_jours,
+      nombre_participants, modalite_pedagogique, duree_formation,
+      exoneration_tva, produit_id,
+      devis_lignes(designation, description, quantite, prix_unitaire_ht, taux_tva, montant_ht, ordre)
+    `)
+    .eq("commanditaire_id", commanditaireId)
+    .eq("session_id", sessionId)
+    .is("archived_at", null)
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  if (!devisMatches || devisMatches.length === 0) {
+    return { error: "Aucun devis associé à ce commanditaire pour cette session." };
+  }
+  const devis = devisMatches[0];
+
+  // 2. Get present apprenants from emargements
+  const participants = await getPresentApprenantsForCommanditaire(
+    sessionId,
+    commanditaireId,
+    supabase,
+  );
+
+  let warning: string | undefined;
+  if (participants.length === 0) {
+    warning = "Aucun apprenant présent enregistré. La facture a été créée sans liste de participants.";
+  }
+
+  // 3. Generate facture number
+  const { data: numero } = await supabase.rpc("next_numero", {
+    p_organisation_id: organisationId,
+    p_entite: "F",
+    p_year: new Date().getFullYear(),
+  });
+
+  // 4. Create facture — faithful copy of devis + formation metadata + participants
+  const { data: facture, error } = await supabase
+    .from("factures")
+    .insert({
+      organisation_id: organisationId,
+      numero_affichage: numero,
+      entreprise_id: devis.entreprise_id || null,
+      contact_client_id: devis.contact_client_id || null,
+      date_emission: new Date().toISOString().split("T")[0],
+      date_echeance: null,
+      objet: devis.objet || null,
+      conditions_paiement: devis.conditions || null,
+      mentions_legales: devis.mentions_legales || null,
+      total_ht: devis.total_ht,
+      total_tva: devis.total_tva,
+      total_ttc: devis.total_ttc,
+      statut: "brouillon",
+      devis_id: devis.id,
+      session_id: sessionId,
+      commanditaire_id: commanditaireId,
+      type_facture: "standard",
+      exoneration_tva: devis.exoneration_tva ?? false,
+      // Formation metadata
+      lieu_formation: devis.lieu_formation || null,
+      dates_formation: devis.dates_formation || null,
+      dates_formation_jours: devis.dates_formation_jours || null,
+      nombre_participants_prevu: devis.nombre_participants || null,
+      modalite_pedagogique: devis.modalite_pedagogique || null,
+      duree_formation: devis.duree_formation || null,
+      // Participants presents snapshot
+      participants_presents: participants.length > 0 ? participants : [],
+    })
+    .select()
+    .single();
+
+  if (error) return { error: error.message };
+
+  // 5. Copy devis lines to facture lines
+  const devisLignes = devis.devis_lignes as Array<Record<string, unknown>> | null;
+  if (devisLignes && devisLignes.length > 0) {
+    const lignes = devisLignes.map((l) => ({
+      facture_id: facture.id,
+      designation: l.designation as string,
+      description: (l.description as string) ?? null,
+      quantite: l.quantite as number,
+      prix_unitaire_ht: l.prix_unitaire_ht as number,
+      taux_tva: l.taux_tva as number,
+      montant_ht: l.montant_ht as number,
+      ordre: l.ordre as number,
+    }));
+    const { error: lignesError } = await supabase.from("facture_lignes").insert(lignes);
+    if (lignesError) {
+      console.error("Failed to copy devis_lignes to facture_lignes:", lignesError.message);
+    }
+  }
+
+  // 6. Log historique
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "facture",
+    action: "created",
+    entiteType: "facture",
+    entiteId: facture.id,
+    entiteLabel: facture.numero_affichage,
+    description: `Facture ${facture.numero_affichage} créée depuis devis ${devis.numero_affichage} (session) — ${participants.length} participant(s) présent(s)`,
+    objetHref: `/factures/${facture.id}`,
+    metadata: {
+      source_devis_id: devis.id,
+      source_devis_numero: devis.numero_affichage,
+      session_id: sessionId,
+      commanditaire_id: commanditaireId,
+      participants_count: participants.length,
+    },
+  });
+
+  revalidatePath(`/sessions/${sessionId}`);
+  revalidatePath("/factures");
+  return warning
+    ? { data: { id: facture.id, numero_affichage: facture.numero_affichage }, warning }
+    : { data: { id: facture.id, numero_affichage: facture.numero_affichage } };
+}
+
+// ─── Refresh participants presents on brouillon facture ──
+
+export async function refreshFactureParticipants(factureId: string) {
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role, supabase } = result;
+  requirePermission(role as UserRole, canManageFinances, "actualiser les participants");
+
+  // 1. Get facture — check status + get session_id + commanditaire_id
+  const { data: facture } = await supabase
+    .from("factures")
+    .select("id, statut, session_id, commanditaire_id, numero_affichage")
+    .eq("id", factureId)
+    .single();
+
+  if (!facture) return { error: "Facture introuvable" };
+  if (facture.statut !== "brouillon") {
+    return { error: "Les participants ne peuvent être actualisés que sur une facture en brouillon." };
+  }
+  if (!facture.session_id || !facture.commanditaire_id) {
+    return { error: "Cette facture n'est pas liée à une session et un commanditaire." };
+  }
+
+  // 2. Re-fetch present apprenants
+  const participants = await getPresentApprenantsForCommanditaire(
+    facture.session_id,
+    facture.commanditaire_id,
+    supabase,
+  );
+
+  // 3. Update the facture
+  const { error } = await supabase
+    .from("factures")
+    .update({ participants_presents: participants })
+    .eq("id", factureId);
+
+  if (error) return { error: error.message };
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "facture",
+    action: "updated",
+    entiteType: "facture",
+    entiteId: factureId,
+    entiteLabel: facture.numero_affichage,
+    description: `Participants actualisés sur ${facture.numero_affichage} — ${participants.length} présent(s)`,
+    objetHref: `/factures/${factureId}`,
+  });
+
+  revalidatePath(`/factures/${factureId}`);
+  return { data: { count: participants.length } };
 }
