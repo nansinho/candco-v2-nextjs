@@ -52,7 +52,7 @@ import { getSessionCommanditaires } from "@/actions/sessions";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { DevisStatusBadge } from "@/components/shared/status-badges";
 import { LignesEditor, DocumentPreview, type LigneItem } from "@/components/shared/lignes-editor";
-import { formatDatesDisplay } from "@/lib/devis-helpers";
+import { formatDatesDisplay, computeQuantiteFromTarif, getQuantiteHint } from "@/lib/devis-helpers";
 import { MultiDatePicker } from "@/components/ui/multi-date-picker";
 import { ProduitSearchCombobox } from "@/components/shared/produit-search-combobox";
 import { EntrepriseSearchCombobox } from "@/components/shared/entreprise-search-combobox";
@@ -349,6 +349,61 @@ export default function DevisDetailPage() {
     }
     loadSessions();
   }, [showSessionSelect, sessionSearch]);
+
+  // ─── Auto-sync first line (participants ↔ QTÉ based on tariff) ───
+
+  const buildStructuredLine = React.useCallback((): LigneItem | null => {
+    if (!selectedProduit) return null;
+    const parts: string[] = [];
+    parts.push(`Formation : ${selectedProduit.intitule}`);
+    if (lieuFormation) parts.push(`Lieu : ${lieuFormation}`);
+    if (datesFormation) parts.push(`Date(s) : ${datesFormation}`);
+    if (nombreParticipants) parts.push(`${nombreParticipants} participant(s)`);
+    if (modalitePedagogique) {
+      const labels: Record<string, string> = { presentiel: "Présentiel", distanciel: "Distanciel", mixte: "Mixte", afest: "AFEST" };
+      parts.push(`Modalité : ${labels[modalitePedagogique] || modalitePedagogique}`);
+    }
+    if (dureeFormation) parts.push(`Durée : ${dureeFormation}`);
+
+    const tarif = produitTarifs.find((t) => t.id === selectedTarifId);
+    return {
+      designation: parts.join("\n"),
+      description: "",
+      quantite: computeQuantiteFromTarif(
+        tarif?.unite,
+        Number(nombreParticipants) || undefined,
+        selectedProduit?.duree_jours,
+        selectedProduit?.duree_heures,
+      ),
+      prix_unitaire_ht: tarif?.prix_ht || 0,
+      taux_tva: tarif?.taux_tva || 0,
+      ordre: 0,
+    };
+  }, [selectedProduit, lieuFormation, datesFormation, nombreParticipants, modalitePedagogique, dureeFormation, produitTarifs, selectedTarifId]);
+
+  // Skip the first effect run after initial hydration to preserve saved lines
+  const initialLoadDone = React.useRef(false);
+
+  React.useEffect(() => {
+    if (loading) return;
+    if (!initialLoadDone.current) {
+      initialLoadDone.current = true;
+      return;
+    }
+    if (!selectedProduit || isReadOnly) return;
+
+    const structuredLine = buildStructuredLine();
+    if (!structuredLine) return;
+
+    if (exonerationTva) {
+      structuredLine.taux_tva = 0;
+    }
+
+    setLignes((prev) => {
+      const otherLines = prev.filter((_, i) => i > 0);
+      return [structuredLine, ...otherLines];
+    });
+  }, [selectedProduit, buildStructuredLine, loading, isReadOnly, exonerationTva]);
 
   // ─── Handlers ──────────────────────────────────────────────
 
@@ -1325,6 +1380,11 @@ export default function DevisDetailPage() {
                             className="h-8 text-xs border-border/60"
                             disabled={isReadOnly}
                           />
+                          {(() => {
+                            const tarif = produitTarifs.find((t) => t.id === selectedTarifId);
+                            const hint = getQuantiteHint(tarif?.unite);
+                            return hint ? <p className="text-[10px] text-muted-foreground/70 leading-tight mt-0.5">{hint}</p> : null;
+                          })()}
                         </div>
                         <div className="space-y-1">
                           <Label className="text-xs">Modalité</Label>
@@ -1361,6 +1421,11 @@ export default function DevisDetailPage() {
                                 </option>
                               ))}
                             </select>
+                            {(() => {
+                              const tarif = produitTarifs.find((t) => t.id === selectedTarifId);
+                              const hint = getQuantiteHint(tarif?.unite);
+                              return hint ? <p className="text-[10px] text-muted-foreground/70 leading-tight mt-0.5">{hint}</p> : null;
+                            })()}
                           </div>
                         )}
                       </div>
