@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Loader2, Send, Copy, ArrowRight, PenLine, Link2, Unlink, Plus, ExternalLink, XCircle, CheckCircle2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Loader2, Send, Copy, ArrowRight, PenLine, Link2, Unlink, Plus, ExternalLink, XCircle, CheckCircle2, AlertTriangle, ArrowRightLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,9 +30,21 @@ import {
   linkDevisToSession,
   unlinkDevisFromSession,
   convertDevisToSession,
+  getDevisPreviewForTransform,
   type UpdateDevisInput,
   type SiegeContact,
+  type TransformPreviewData,
 } from "@/actions/devis";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { getProduitTarifsForDevis, type ProduitSearchResult, type ProduitTarifOption } from "@/actions/produits";
 import { getOrganisationBillingInfo } from "@/actions/factures";
 import { checkDevisSignatureStatus } from "@/actions/signatures";
@@ -78,7 +90,7 @@ export default function DevisDetailPage() {
   const [objet, setObjet] = React.useState("");
   const [conditions, setConditions] = React.useState("");
   const [mentionsLegales, setMentionsLegales] = React.useState("");
-  const [statut, setStatut] = React.useState<"brouillon" | "envoye" | "signe" | "refuse" | "expire">("brouillon");
+  const [statut, setStatut] = React.useState<"brouillon" | "envoye" | "signe" | "refuse" | "expire" | "transforme">("brouillon");
   const [lignes, setLignes] = React.useState<LigneItem[]>([]);
   const [exonerationTva, setExonerationTva] = React.useState(false);
 
@@ -90,6 +102,9 @@ export default function DevisDetailPage() {
   const [showSessionSelect, setShowSessionSelect] = React.useState(false);
   const [linkingSession, setLinkingSession] = React.useState(false);
   const [creatingSession, setCreatingSession] = React.useState(false);
+  const [showTransformDialog, setShowTransformDialog] = React.useState(false);
+  const [transformPreview, setTransformPreview] = React.useState<TransformPreviewData | null>(null);
+  const [loadingPreview, setLoadingPreview] = React.useState(false);
 
   // Commanditaire linking
   const [commanditaireId, setCommanditaireId] = React.useState<string>("");
@@ -561,7 +576,28 @@ export default function DevisDetailPage() {
   };
 
   const handleCreateSession = async () => {
+    setLoadingPreview(true);
+    try {
+      const preview = await getDevisPreviewForTransform(devisId);
+      if (preview.error) {
+        toast({ title: "Impossible de transformer en session", description: preview.error, variant: "destructive" });
+        return;
+      }
+      if (preview.data) {
+        setTransformPreview(preview.data);
+        setShowTransformDialog(true);
+      }
+    } catch (error) {
+      console.error("Erreur preview transform:", error);
+      toast({ title: "Erreur", description: "Une erreur est survenue", variant: "destructive" });
+    } finally {
+      setLoadingPreview(false);
+    }
+  };
+
+  const handleConfirmTransform = async () => {
     setCreatingSession(true);
+    setShowTransformDialog(false);
     try {
       const result = await convertDevisToSession(devisId);
       if ("error" in result && result.error) {
@@ -569,16 +605,17 @@ export default function DevisDetailPage() {
         return;
       }
       if ("data" in result && result.data) {
-        setSessionId(result.data.id);
-        setSessionInfo({ id: result.data.id, nom: objet || "Nouvelle session", numero_affichage: result.data.numero_affichage });
+        setStatut("transforme");
         toast({
-          title: "Session créée",
+          title: "Session créée avec succès",
           description: `Session ${result.data.numero_affichage} créée et liée au devis`,
           variant: "success",
         });
+        router.push(`/sessions/${result.data.id}`);
       }
     } catch (error) {
       console.error("Erreur création session:", error);
+      toast({ title: "Erreur", description: "Une erreur est survenue", variant: "destructive" });
     } finally {
       setCreatingSession(false);
     }
@@ -858,6 +895,44 @@ export default function DevisDetailPage() {
                 <span className="sm:hidden">Dupliquer</span>
               </Button>
             )}
+
+            {/* TRANSFORMÉ: View session + Duplicate */}
+            {statut === "transforme" && (
+              <>
+                <span className="flex items-center gap-1 text-xs text-violet-400 mr-1">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  Transformé en session
+                </span>
+
+                {sessionInfo && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => router.push(`/sessions/${sessionInfo.id}`)}
+                    className="h-8 text-xs border-violet-500/30 text-violet-400 hover:bg-violet-500/10"
+                  >
+                    <ExternalLink className="mr-1 h-3 w-3" />
+                    <span className="hidden sm:inline">Voir la session</span>
+                    <span className="sm:hidden">Session</span>
+                  </Button>
+                )}
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDuplicate}
+                  disabled={duplicating}
+                  className="h-8 text-xs border-border/60"
+                >
+                  {duplicating ? (
+                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                  ) : (
+                    <Copy className="mr-1 h-3 w-3" />
+                  )}
+                  <span className="hidden sm:inline">Dupliquer</span>
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -870,7 +945,7 @@ export default function DevisDetailPage() {
             {/* Read-only banner */}
             {isReadOnly && (
               <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-4 py-2.5 text-xs text-amber-400">
-                Ce devis est en lecture seule ({statut === "envoye" ? "envoyé" : statut === "signe" ? "signé" : statut === "refuse" ? "refusé" : "expiré"}). Pour modifier, dupliquez-le en nouveau brouillon.
+                Ce devis est en lecture seule ({statut === "envoye" ? "envoyé" : statut === "signe" ? "signé" : statut === "refuse" ? "refusé" : statut === "transforme" ? "transformé en session" : "expiré"}). Pour modifier, dupliquez-le en nouveau brouillon.
               </div>
             )}
 
@@ -1236,6 +1311,9 @@ export default function DevisDetailPage() {
                     <span className="text-xs font-medium text-foreground truncate">
                       {sessionInfo.numero_affichage} — {sessionInfo.nom}
                     </span>
+                    {statut === "transforme" && (
+                      <span className="text-[10px] text-violet-400 shrink-0">(transformé)</span>
+                    )}
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     <Button
@@ -1246,6 +1324,7 @@ export default function DevisDetailPage() {
                     >
                       <ExternalLink className="h-3 w-3" />
                     </Button>
+                    {/* Hide unlink in read-only mode (incl. transformed) */}
                     {!isReadOnly && (
                       <Button
                         variant="ghost"
@@ -1301,35 +1380,38 @@ export default function DevisDetailPage() {
                       </Button>
                     </div>
                   ) : (
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
+                      {/* Link to existing session: only in brouillon mode */}
                       {!isReadOnly && (
-                        <>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setShowSessionSelect(true)}
-                            className="h-8 text-xs border-border/60"
-                          >
-                            <Link2 className="mr-1 h-3 w-3" />
-                            Lier une session
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleCreateSession}
-                            disabled={creatingSession}
-                            className="h-8 text-xs border-border/60"
-                          >
-                            {creatingSession ? (
-                              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                            ) : (
-                              <Plus className="mr-1 h-3 w-3" />
-                            )}
-                            Créer une session
-                          </Button>
-                        </>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowSessionSelect(true)}
+                          className="h-8 text-xs border-border/60"
+                        >
+                          <Link2 className="mr-1 h-3 w-3" />
+                          Lier une session
+                        </Button>
                       )}
-                      {isReadOnly && (
+                      {/* Transform to session: available for brouillon, envoye, signe */}
+                      {["brouillon", "envoye", "signe"].includes(statut) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleCreateSession}
+                          disabled={creatingSession || loadingPreview}
+                          className="h-8 text-xs border-[#F97316]/30 text-[#F97316] hover:bg-[#F97316]/10"
+                        >
+                          {(creatingSession || loadingPreview) ? (
+                            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                          ) : (
+                            <ArrowRightLeft className="mr-1 h-3 w-3" />
+                          )}
+                          Transformer en session
+                        </Button>
+                      )}
+                      {/* Read-only states that can't transform */}
+                      {["refuse", "expire", "transforme"].includes(statut) && (
                         <p className="text-xs text-muted-foreground">Aucune session liée</p>
                       )}
                     </div>
@@ -1445,6 +1527,97 @@ export default function DevisDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* ─── Transform to session confirmation dialog ─── */}
+      <AlertDialog open={showTransformDialog} onOpenChange={setShowTransformDialog}>
+        <AlertDialogContent className="bg-card border-border/60 max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-base">Transformer en session de formation ?</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs text-muted-foreground">
+              Une session sera créée avec les informations suivantes. Vous pourrez les modifier ensuite sur la fiche session.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          {transformPreview && (
+            <div className="space-y-2 text-sm rounded-lg border border-border/40 bg-muted/20 p-3">
+              <div className="flex justify-between items-start gap-2">
+                <span className="text-muted-foreground text-xs shrink-0">Nom session</span>
+                <span className="text-xs font-medium text-right">{transformPreview.sessionName}</span>
+              </div>
+              {transformPreview.produitIntitule && (
+                <div className="flex justify-between items-start gap-2">
+                  <span className="text-muted-foreground text-xs shrink-0">Produit</span>
+                  <span className="text-xs text-right">{transformPreview.produitIntitule}</span>
+                </div>
+              )}
+              {transformPreview.entrepriseNom && (
+                <div className="flex justify-between items-start gap-2">
+                  <span className="text-muted-foreground text-xs shrink-0">Entreprise</span>
+                  <span className="text-xs text-right">{transformPreview.entrepriseNom}</span>
+                </div>
+              )}
+              {transformPreview.contactNom && (
+                <div className="flex justify-between items-start gap-2">
+                  <span className="text-muted-foreground text-xs shrink-0">Contact</span>
+                  <span className="text-xs text-right">{transformPreview.contactNom}</span>
+                </div>
+              )}
+              {transformPreview.lieuFormation && (
+                <div className="flex justify-between items-start gap-2">
+                  <span className="text-muted-foreground text-xs shrink-0">Lieu</span>
+                  <span className="text-xs text-right">{transformPreview.lieuFormation}</span>
+                </div>
+              )}
+              {transformPreview.modalite && (
+                <div className="flex justify-between items-start gap-2">
+                  <span className="text-muted-foreground text-xs shrink-0">Modalité</span>
+                  <span className="text-xs text-right">{transformPreview.modalite}</span>
+                </div>
+              )}
+              {transformPreview.dureeFormation && (
+                <div className="flex justify-between items-start gap-2">
+                  <span className="text-muted-foreground text-xs shrink-0">Durée</span>
+                  <span className="text-xs text-right">{transformPreview.dureeFormation}</span>
+                </div>
+              )}
+              {transformPreview.datesFormation && (
+                <div className="flex justify-between items-start gap-2">
+                  <span className="text-muted-foreground text-xs shrink-0">Dates</span>
+                  <span className="text-xs text-right">{transformPreview.datesFormation}</span>
+                </div>
+              )}
+              {transformPreview.nombreParticipants && (
+                <div className="flex justify-between items-start gap-2">
+                  <span className="text-muted-foreground text-xs shrink-0">Participants</span>
+                  <span className="text-xs text-right">{transformPreview.nombreParticipants}</span>
+                </div>
+              )}
+              <div className="flex justify-between items-start gap-2 pt-1 border-t border-border/30">
+                <span className="text-muted-foreground text-xs shrink-0">Budget TTC</span>
+                <span className="text-xs font-semibold text-right">{formatCurrency(transformPreview.budget)}</span>
+              </div>
+            </div>
+          )}
+
+          <div className="rounded-md bg-amber-500/5 border border-amber-500/20 px-3 py-2 text-[11px] text-amber-400">
+            Le statut du devis passera à &laquo; Transformé &raquo;. Le devis sera en lecture seule.
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel className="h-8 text-xs">
+              Annuler
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmTransform}
+              disabled={creatingSession}
+              className="h-8 text-xs bg-[#F97316] hover:bg-[#EA580C] text-white"
+            >
+              {creatingSession && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
+              Créer la session
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

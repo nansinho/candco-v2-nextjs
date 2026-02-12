@@ -85,13 +85,15 @@ function DevisStatusBadge({ statut }: { statut: string }) {
     signe: "text-emerald-400 border-emerald-500/30 bg-emerald-500/10",
     refuse: "text-red-400 border-red-500/30 bg-red-500/10",
     expire: "text-muted-foreground border-border/60 bg-muted/10",
+    transforme: "text-violet-400 border-violet-500/30 bg-violet-500/10",
   };
   const labels: Record<string, string> = {
     brouillon: "Brouillon",
-    envoye: "Envoye",
-    signe: "Signe",
-    refuse: "Refuse",
-    expire: "Expire",
+    envoye: "Envoyé",
+    signe: "Signé",
+    refuse: "Refusé",
+    expire: "Expiré",
+    transforme: "Transformé",
   };
   return (
     <Badge variant="outline" className={`text-[10px] h-5 ${colors[statut] ?? ""}`}>
