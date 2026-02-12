@@ -310,6 +310,48 @@ export async function createDraftProduit() {
 
 // ─── Create full product from PDF AI extraction ──────────
 
+/**
+ * Parse a source_revue string into structured APA 7 fields.
+ * Handles patterns like "Clinical Biomechanics, 18(8), 679-687."
+ */
+function parseSourceRevue(source: string | undefined | null): {
+  titre_revue: string | null;
+  volume: string | null;
+  numero: string | null;
+  pages: string | null;
+} {
+  if (!source || !source.trim()) {
+    return { titre_revue: null, volume: null, numero: null, pages: null };
+  }
+
+  const trimmed = source.trim().replace(/\.$/, "");
+
+  // Pattern: "Journal Name, Volume(Number), Pages"
+  const match = trimmed.match(/^(.+?),\s*(\d+)\((\d+)\),\s*([\d\-–]+)$/);
+  if (match) {
+    return {
+      titre_revue: match[1].trim(),
+      volume: match[2],
+      numero: match[3],
+      pages: match[4].replace("–", "-"),
+    };
+  }
+
+  // Pattern: "Journal Name, Volume, Pages" (no issue number)
+  const match2 = trimmed.match(/^(.+?),\s*(\d+),\s*([\d\-–]+)$/);
+  if (match2) {
+    return {
+      titre_revue: match2[1].trim(),
+      volume: match2[2],
+      numero: null,
+      pages: match2[3].replace("–", "-"),
+    };
+  }
+
+  // Fallback: treat entire string as journal name
+  return { titre_revue: trimmed, volume: null, numero: null, pages: null };
+}
+
 export interface PDFExtractedData {
   intitule?: string;
   sous_titre?: string | null;
@@ -549,7 +591,8 @@ export async function createProduitFromPDF(extracted: PDFExtractedData) {
     }
   }
 
-  // Bibliography data (migration 00017) — insert if present
+  // Bibliography data — insert into BOTH legacy tables AND APA 7 table
+  // Legacy tables (migration 00017) — kept for backward compatibility
   if (extracted.ouvrages && extracted.ouvrages.length > 0) {
     const ouvragesData = extracted.ouvrages.map((o, i) => ({
       produit_id: produitId,
@@ -573,6 +616,68 @@ export async function createProduitFromPDF(extracted: PDFExtractedData) {
       ordre: i + 1,
     }));
     insertPromises.push(supabase.from("produit_articles").insert(articlesData).select());
+  }
+
+  // APA 7 references (migration 00034) — primary display table
+  const apa7Refs: {
+    produit_id: string;
+    type_reference: string;
+    auteurs: string | null;
+    annee: string | null;
+    titre: string;
+    editeur: string | null;
+    titre_revue: string | null;
+    volume: string | null;
+    numero: string | null;
+    pages: string | null;
+    doi: string | null;
+    ordre: number;
+  }[] = [];
+
+  if (extracted.ouvrages && extracted.ouvrages.length > 0) {
+    extracted.ouvrages.forEach((o, i) => {
+      apa7Refs.push({
+        produit_id: produitId,
+        type_reference: "livre",
+        auteurs: o.auteurs || null,
+        annee: o.annee || null,
+        titre: o.titre,
+        editeur: o.source_editeur || null,
+        titre_revue: null,
+        volume: null,
+        numero: null,
+        pages: null,
+        doi: null,
+        ordre: i + 1,
+      });
+    });
+  }
+
+  if (extracted.articles && extracted.articles.length > 0) {
+    const ouvrageCount = apa7Refs.length;
+    extracted.articles.forEach((a, i) => {
+      const parsed = parseSourceRevue(a.source_revue);
+      apa7Refs.push({
+        produit_id: produitId,
+        type_reference: "article_revue",
+        auteurs: a.auteurs || null,
+        annee: a.annee || null,
+        titre: a.titre,
+        editeur: null,
+        titre_revue: parsed.titre_revue,
+        volume: parsed.volume,
+        numero: parsed.numero,
+        pages: parsed.pages,
+        doi: a.doi || null,
+        ordre: ouvrageCount + i + 1,
+      });
+    });
+  }
+
+  if (apa7Refs.length > 0) {
+    insertPromises.push(
+      supabase.from("produit_references_biblio").insert(apa7Refs).select()
+    );
   }
 
   await Promise.all(insertPromises);
