@@ -113,6 +113,21 @@ export interface DevisData {
   mentionsLegales?: string;
 }
 
+export interface ProgrammeFormationData {
+  intitule: string;
+  sousTitle?: string;
+  description?: string;
+  dureeHeures?: number;
+  dureeJours?: number;
+  modalite?: string;
+  publicVise?: string[];
+  prerequis?: string[];
+  objectifs?: string[];
+  competences?: string[];
+  programme: { titre: string; contenu?: string; duree?: string }[];
+  dateEmission: string;
+}
+
 export interface ContratSousTraitanceData {
   // Formateur
   formateurPrenom: string;
@@ -1018,6 +1033,202 @@ export async function generateContratSousTraitance(
   y -= 5;
   page.drawRectangle({ x: 50, y: y - 60, width: colWidth - 10, height: 60, borderColor: LIGHT_GRAY, borderWidth: 0.5 });
   page.drawRectangle({ x: 50 + colWidth + 20, y: y - 60, width: colWidth - 10, height: 60, borderColor: LIGHT_GRAY, borderWidth: 0.5 });
+
+  drawFooter(page, font, opts);
+
+  return doc.save();
+}
+
+// ─── Programme de formation PDF ─────────────────────────
+
+function stripHtml(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n")
+    .replace(/<\/li>/gi, "\n")
+    .replace(/<li[^>]*>/gi, "• ")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+export async function generateProgrammePdf(
+  opts: PDFGeneratorOptions,
+  data: ProgrammeFormationData,
+): Promise<Uint8Array> {
+  const doc = await PDFDocument.create();
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
+
+  let page = doc.addPage([595.28, 841.89]); // A4
+  const { width } = page.getSize();
+  let y = drawHeader(page, font, fontBold, opts, "PROGRAMME DE FORMATION");
+
+  const maxW = width - 100;
+
+  const ensurePage = (needed: number) => {
+    if (y < needed) {
+      drawFooter(page, font, opts);
+      page = doc.addPage([595.28, 841.89]);
+      y = 780;
+    }
+  };
+
+  // ── Intitulé ──
+  const intituleLines = wrapText(data.intitule, fontBold, 13, maxW);
+  for (const line of intituleLines) {
+    page.drawText(line, { x: 50, y, size: 13, font: fontBold, color: DARK_TEXT });
+    y -= 18;
+  }
+  if (data.sousTitle) {
+    const subLines = wrapText(data.sousTitle, font, 10, maxW);
+    for (const line of subLines) {
+      page.drawText(line, { x: 50, y, size: 10, font, color: GRAY_TEXT });
+      y -= 14;
+    }
+  }
+  y -= 10;
+
+  // ── Informations générales ──
+  y = drawSection(page, fontBold, "Informations générales", y);
+  if (data.dureeHeures || data.dureeJours) {
+    const dureeStr = [
+      data.dureeHeures ? `${data.dureeHeures}h` : null,
+      data.dureeJours ? `${data.dureeJours} jour(s)` : null,
+    ].filter(Boolean).join(" — ");
+    y = drawLabelValue(page, font, fontBold, "Durée", dureeStr, y);
+  }
+  if (data.modalite) {
+    y = drawLabelValue(page, font, fontBold, "Modalité", data.modalite, y);
+  }
+  y -= 8;
+
+  // ── Public visé ──
+  if (data.publicVise && data.publicVise.length > 0) {
+    ensurePage(100);
+    y = drawSection(page, fontBold, "Public visé", y);
+    for (const p of data.publicVise) {
+      const pLines = wrapText(`• ${p}`, font, 9, maxW - 10);
+      for (const line of pLines) {
+        ensurePage(80);
+        page.drawText(line, { x: 60, y, size: 9, font, color: DARK_TEXT });
+        y -= 13;
+      }
+    }
+    y -= 8;
+  }
+
+  // ── Prérequis ──
+  if (data.prerequis && data.prerequis.length > 0) {
+    ensurePage(100);
+    y = drawSection(page, fontBold, "Prérequis", y);
+    for (const p of data.prerequis) {
+      const pLines = wrapText(`• ${p}`, font, 9, maxW - 10);
+      for (const line of pLines) {
+        ensurePage(80);
+        page.drawText(line, { x: 60, y, size: 9, font, color: DARK_TEXT });
+        y -= 13;
+      }
+    }
+    y -= 8;
+  }
+
+  // ── Objectifs pédagogiques ──
+  if (data.objectifs && data.objectifs.length > 0) {
+    ensurePage(100);
+    y = drawSection(page, fontBold, "Objectifs pédagogiques", y);
+    for (const obj of data.objectifs) {
+      const objLines = wrapText(`• ${obj}`, font, 9, maxW - 10);
+      for (const line of objLines) {
+        ensurePage(80);
+        page.drawText(line, { x: 60, y, size: 9, font, color: DARK_TEXT });
+        y -= 13;
+      }
+    }
+    y -= 8;
+  }
+
+  // ── Compétences visées ──
+  if (data.competences && data.competences.length > 0) {
+    ensurePage(100);
+    y = drawSection(page, fontBold, "Compétences visées", y);
+    for (const c of data.competences) {
+      const cLines = wrapText(`• ${c}`, font, 9, maxW - 10);
+      for (const line of cLines) {
+        ensurePage(80);
+        page.drawText(line, { x: 60, y, size: 9, font, color: DARK_TEXT });
+        y -= 13;
+      }
+    }
+    y -= 8;
+  }
+
+  // ── Programme détaillé ──
+  if (data.programme.length > 0) {
+    ensurePage(100);
+    y = drawSection(page, fontBold, "Programme détaillé", y);
+    for (let i = 0; i < data.programme.length; i++) {
+      const mod = data.programme[i];
+      ensurePage(100);
+
+      // Module title with optional duration
+      const modTitle = mod.duree
+        ? `${i + 1}. ${mod.titre} (${mod.duree})`
+        : `${i + 1}. ${mod.titre}`;
+      const modTitleLines = wrapText(modTitle, fontBold, 10, maxW - 10);
+      for (const line of modTitleLines) {
+        page.drawText(line, { x: 55, y, size: 10, font: fontBold, color: DARK_TEXT });
+        y -= 14;
+      }
+
+      // Module content (HTML stripped)
+      if (mod.contenu) {
+        const plainContent = stripHtml(mod.contenu);
+        const contentParagraphs = plainContent.split("\n").filter(l => l.trim());
+        for (const para of contentParagraphs) {
+          const paraLines = wrapText(para, font, 8, maxW - 20);
+          for (const line of paraLines) {
+            ensurePage(80);
+            page.drawText(line, { x: 65, y, size: 8, font, color: DARK_TEXT });
+            y -= 11;
+          }
+        }
+      }
+      y -= 6;
+    }
+    y -= 5;
+  }
+
+  // ── Description (si présente) ──
+  if (data.description) {
+    ensurePage(100);
+    y = drawSection(page, fontBold, "Description", y);
+    const descPlain = stripHtml(data.description);
+    const descParagraphs = descPlain.split("\n").filter(l => l.trim());
+    for (const para of descParagraphs) {
+      const paraLines = wrapText(para, font, 9, maxW);
+      for (const line of paraLines) {
+        ensurePage(80);
+        page.drawText(line, { x: 50, y, size: 9, font, color: DARK_TEXT });
+        y -= 13;
+      }
+      y -= 4;
+    }
+    y -= 5;
+  }
+
+  // ── Date d'émission ──
+  ensurePage(100);
+  y -= 15;
+  page.drawText(`Document généré le ${data.dateEmission}`, {
+    x: 50, y, size: 8, font, color: GRAY_TEXT,
+  });
 
   drawFooter(page, font, opts);
 

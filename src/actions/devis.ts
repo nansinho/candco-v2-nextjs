@@ -8,8 +8,15 @@ import type { QueryFilter } from "@/lib/utils";
 import { logHistorique, logHistoriqueBatch } from "@/lib/historique";
 import { isDocumensoConfigured } from "@/lib/documenso";
 import { sendEmail } from "@/lib/emails/send-email";
-import { devisEnvoyeTemplate } from "@/lib/emails/templates";
+import { devisEnvoyeTemplate, emailLibreTemplate } from "@/lib/emails/templates";
 import { inheritProductPlanifications } from "@/actions/questionnaires";
+import {
+  generateDevisPdf,
+  generateProgrammePdf,
+  type PDFGeneratorOptions,
+  type DevisData,
+  type ProgrammeFormationData,
+} from "@/lib/pdf-generator";
 
 // ─── Schemas ─────────────────────────────────────────────
 
@@ -1280,4 +1287,286 @@ export async function searchEntreprisesForDevis(search: string = ""): Promise<En
 
   const { data } = await query;
   return (data ?? []) as EntrepriseSearchResult[];
+}
+
+// ─── Send devis email (modal-based — with attachments) ──
+
+export interface SendDevisEmailInput {
+  devisId: string;
+  recipients: string[];
+  cc: string[];
+  bcc: string[];
+  subject: string;
+  body: string;
+  attachDevisPdf: boolean;
+  attachProgrammePdf: boolean;
+}
+
+export async function sendDevisEmail(input: SendDevisEmailInput) {
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role, supabase, admin } = result;
+  requirePermission(role as UserRole, canManageFinances, "envoyer un devis par email");
+
+  // ── Validation ──
+  if (!input.recipients.length) return { error: "Au moins un destinataire est requis" };
+  if (!input.attachDevisPdf && !input.attachProgrammePdf) {
+    return { error: "Au moins un document doit être sélectionné (devis ou programme)" };
+  }
+  if (!input.subject.trim()) return { error: "L'objet de l'email est requis" };
+  if (!input.body.trim()) return { error: "Le corps du message est requis" };
+
+  // Validate email formats
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  for (const email of [...input.recipients, ...input.cc, ...input.bcc]) {
+    if (!emailRegex.test(email)) return { error: `Adresse email invalide : ${email}` };
+  }
+
+  // ── Fetch devis with full data ──
+  const { data: devis } = await admin
+    .from("devis")
+    .select(`
+      id, statut, date_emission, date_echeance, total_ht, total_tva, total_ttc,
+      numero_affichage, objet, conditions, mentions_legales,
+      entreprise_id, contact_client_id, produit_id,
+      particulier_nom, particulier_email, particulier_adresse,
+      entreprises(nom, siret, email, adresse_rue, adresse_cp, adresse_ville),
+      contacts_clients(prenom, nom, email),
+      devis_lignes(designation, description, quantite, prix_unitaire_ht, taux_tva, montant_ht, ordre)
+    `)
+    .eq("id", input.devisId)
+    .single();
+
+  if (!devis) return { error: "Devis introuvable" };
+  if (!devis.date_emission) return { error: "La date d'émission est requise avant l'envoi" };
+  if (!devis.devis_lignes || (devis.devis_lignes as unknown[]).length === 0) {
+    return { error: "Le devis doit contenir au moins une ligne" };
+  }
+
+  // ── Build attachments ──
+  // Get org options for PDF generation
+  const { data: org } = await admin
+    .from("organisations")
+    .select("nom, siret, nda, email, telephone, adresse_rue, adresse_cp, adresse_ville")
+    .eq("id", organisationId)
+    .single();
+
+  const adresseParts = [org?.adresse_rue, org?.adresse_cp, org?.adresse_ville].filter(Boolean);
+  const orgOpts: PDFGeneratorOptions = {
+    orgName: org?.nom || "C&CO Formation",
+    orgSiret: org?.siret || undefined,
+    orgNda: org?.nda || undefined,
+    orgAdresse: adresseParts.join(", ") || undefined,
+    orgEmail: org?.email || undefined,
+    orgTelephone: org?.telephone || undefined,
+  };
+
+  const attachments: Array<{ filename: string; content: Buffer }> = [];
+  const attachedDocNames: string[] = [];
+
+  // ── Generate Devis PDF ──
+  if (input.attachDevisPdf) {
+    const entrepriseRaw = devis.entreprises;
+    const entreprise = (Array.isArray(entrepriseRaw) ? entrepriseRaw[0] : entrepriseRaw) as { nom: string; siret: string; adresse_rue: string; adresse_cp: string; adresse_ville: string } | null;
+    const contactRaw = devis.contacts_clients;
+    const contact = (Array.isArray(contactRaw) ? contactRaw[0] : contactRaw) as { prenom: string; nom: string } | null;
+    const lignes = ((devis.devis_lignes || []) as Record<string, unknown>[])
+      .sort((a, b) => ((a.ordre as number) || 0) - ((b.ordre as number) || 0));
+    const entAdresse = [entreprise?.adresse_rue, entreprise?.adresse_cp, entreprise?.adresse_ville].filter(Boolean);
+
+    const formatDate = (d: string) => {
+      try { return new Date(d).toLocaleDateString("fr-FR"); } catch { return d; }
+    };
+
+    const devisData: DevisData = {
+      devisNumero: (devis.numero_affichage as string) || input.devisId.slice(0, 8),
+      dateEmission: formatDate(devis.date_emission as string),
+      dateEcheance: devis.date_echeance ? formatDate(devis.date_echeance as string) : undefined,
+      objet: (devis.objet as string) || undefined,
+      entrepriseNom: entreprise?.nom || undefined,
+      entrepriseSiret: entreprise?.siret || undefined,
+      entrepriseAdresse: entAdresse.join(", ") || undefined,
+      contactNom: contact ? `${contact.prenom} ${contact.nom}` : undefined,
+      particulierNom: (devis.particulier_nom as string) || undefined,
+      particulierEmail: (devis.particulier_email as string) || undefined,
+      particulierAdresse: (devis.particulier_adresse as string) || undefined,
+      lignes: lignes.map((l) => ({
+        designation: l.designation as string,
+        description: (l.description as string) || undefined,
+        quantite: Number(l.quantite) || 1,
+        prixUnitaireHt: Number(l.prix_unitaire_ht) || 0,
+        tauxTva: Number(l.taux_tva) || 0,
+        montantHt: Number(l.montant_ht) || 0,
+      })),
+      totalHt: Number(devis.total_ht) || 0,
+      totalTva: Number(devis.total_tva) || 0,
+      totalTtc: Number(devis.total_ttc) || 0,
+      conditions: (devis.conditions as string) || undefined,
+      mentionsLegales: (devis.mentions_legales as string) || undefined,
+    };
+
+    const devisPdfBytes = await generateDevisPdf(orgOpts, devisData);
+    attachments.push({
+      filename: `Devis_${devis.numero_affichage || "draft"}.pdf`,
+      content: Buffer.from(devisPdfBytes),
+    });
+    attachedDocNames.push("Devis PDF");
+  }
+
+  // ── Generate Programme PDF ──
+  if (input.attachProgrammePdf && devis.produit_id) {
+    const { data: produit } = await admin
+      .from("produits_formation")
+      .select("intitule, sous_titre, description, duree_heures, duree_jours, modalite")
+      .eq("id", devis.produit_id as string)
+      .single();
+
+    const { data: objectifs } = await admin
+      .from("produit_objectifs")
+      .select("objectif")
+      .eq("produit_id", devis.produit_id as string)
+      .order("ordre", { ascending: true });
+
+    const { data: programme } = await admin
+      .from("produit_programme")
+      .select("titre, contenu, duree")
+      .eq("produit_id", devis.produit_id as string)
+      .order("ordre", { ascending: true });
+
+    const { data: prerequis } = await admin
+      .from("produit_prerequis")
+      .select("prerequis")
+      .eq("produit_id", devis.produit_id as string)
+      .order("ordre", { ascending: true });
+
+    const { data: publicVise } = await admin
+      .from("produit_public_vise")
+      .select("public")
+      .eq("produit_id", devis.produit_id as string)
+      .order("ordre", { ascending: true });
+
+    const { data: competences } = await admin
+      .from("produit_competences")
+      .select("competence")
+      .eq("produit_id", devis.produit_id as string)
+      .order("ordre", { ascending: true });
+
+    if (produit) {
+      const programmeData: ProgrammeFormationData = {
+        intitule: produit.intitule || "Programme de formation",
+        sousTitle: produit.sous_titre || undefined,
+        description: produit.description || undefined,
+        dureeHeures: produit.duree_heures ? Number(produit.duree_heures) : undefined,
+        dureeJours: produit.duree_jours ? Number(produit.duree_jours) : undefined,
+        modalite: produit.modalite || undefined,
+        objectifs: objectifs?.map(o => o.objectif as string) || [],
+        programme: (programme || []).map(p => ({
+          titre: p.titre as string,
+          contenu: (p.contenu as string) || undefined,
+          duree: (p.duree as string) || undefined,
+        })),
+        prerequis: prerequis?.map(p => p.prerequis as string) || [],
+        publicVise: publicVise?.map(p => p.public as string) || [],
+        competences: competences?.map(c => c.competence as string) || [],
+        dateEmission: new Date().toLocaleDateString("fr-FR"),
+      };
+
+      const programmePdfBytes = await generateProgrammePdf(orgOpts, programmeData);
+      attachments.push({
+        filename: `Programme_${produit.intitule?.replace(/[^a-zA-Z0-9àâäéèêëïîôùûüÿçÀÂÄÉÈÊËÏÎÔÙÛÜŸÇ\s-]/g, "").replace(/\s+/g, "_").slice(0, 50) || "formation"}.pdf`,
+        content: Buffer.from(programmePdfBytes),
+      });
+      attachedDocNames.push("Programme de formation PDF");
+    }
+  }
+
+  if (attachments.length === 0) {
+    return { error: "Aucun document n'a pu être généré" };
+  }
+
+  // ── Build HTML email ──
+  const html = emailLibreTemplate({
+    body: input.body,
+    orgName: org?.nom || "C&CO Formation",
+  });
+
+  // ── Send email ──
+  const emailResult = await sendEmail({
+    organisationId,
+    to: input.recipients,
+    subject: input.subject,
+    html,
+    cc: input.cc.length > 0 ? input.cc : undefined,
+    bcc: input.bcc.length > 0 ? input.bcc : undefined,
+    attachments,
+    entiteType: "devis",
+    entiteId: input.devisId,
+    template: "devis_email_modal",
+    metadata: {
+      recipients: input.recipients,
+      cc: input.cc,
+      bcc: input.bcc,
+      documents_envoyes: attachedDocNames,
+      devis_numero: devis.numero_affichage,
+    },
+  });
+
+  if (!emailResult.success) {
+    return { error: `Erreur d'envoi : ${emailResult.error || "Impossible d'envoyer l'email"}` };
+  }
+
+  // ── Update devis status (brouillon → envoye only) ──
+  const wasBrouillon = devis.statut === "brouillon";
+  if (wasBrouillon) {
+    await supabase
+      .from("devis")
+      .update({
+        statut: "envoye",
+        envoye_le: new Date().toISOString(),
+      })
+      .eq("id", input.devisId);
+  }
+
+  // ── Traceability: historique ──
+  const recipientsList = [...input.recipients, ...(input.cc.length ? input.cc.map(e => `(Cc) ${e}`) : [])].join(", ");
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole: role,
+    module: "devis",
+    action: "sent",
+    entiteType: "devis",
+    entiteId: input.devisId,
+    entiteLabel: devis.numero_affichage as string,
+    description: `Devis ${devis.numero_affichage} envoyé par email à ${recipientsList} — Documents : ${attachedDocNames.join(", ")}`,
+    objetHref: `/devis/${input.devisId}`,
+    metadata: {
+      recipients: input.recipients,
+      cc: input.cc,
+      bcc: input.bcc,
+      documents: attachedDocNames,
+      statut_avant: devis.statut,
+      statut_apres: wasBrouillon ? "envoye" : devis.statut,
+    },
+  });
+
+  // Also log on the enterprise if applicable
+  if (devis.entreprise_id) {
+    await logHistorique({
+      organisationId,
+      userId,
+      userRole: role,
+      module: "entreprise",
+      action: "sent",
+      entiteType: "entreprise",
+      entiteId: devis.entreprise_id as string,
+      description: `Devis ${devis.numero_affichage} envoyé par email — Documents : ${attachedDocNames.join(", ")}`,
+      objetHref: `/devis/${input.devisId}`,
+      entrepriseId: devis.entreprise_id as string,
+    });
+  }
+
+  revalidatePath("/devis");
+  revalidatePath(`/devis/${input.devisId}`);
+  return { success: true, statusChanged: wasBrouillon };
 }

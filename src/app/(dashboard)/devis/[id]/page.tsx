@@ -56,6 +56,7 @@ import { formatDatesDisplay } from "@/lib/devis-helpers";
 import { MultiDatePicker } from "@/components/ui/multi-date-picker";
 import { ProduitSearchCombobox } from "@/components/shared/produit-search-combobox";
 import { EntrepriseSearchCombobox } from "@/components/shared/entreprise-search-combobox";
+import { SendDevisEmailModal } from "@/components/shared/send-devis-email-modal";
 
 export default function DevisDetailPage() {
   const router = useRouter();
@@ -70,6 +71,7 @@ export default function DevisDetailPage() {
   const [converting, setConverting] = React.useState(false);
   const [duplicating, setDuplicating] = React.useState(false);
   const [sending, setSending] = React.useState(false);
+  const [showSendModal, setShowSendModal] = React.useState(false);
   const [checkingSignature, setCheckingSignature] = React.useState(false);
   const [refusing, setRefusing] = React.useState(false);
   const [documensoStatus, setDocumensoStatus] = React.useState<string | null>(null);
@@ -750,15 +752,14 @@ export default function DevisDetailPage() {
 
                 <Button
                   size="sm"
-                  onClick={handleSendDevis}
-                  disabled={sending}
+                  onClick={async () => {
+                    await handleSave();
+                    setShowSendModal(true);
+                  }}
+                  disabled={saving}
                   className="h-8 text-xs bg-[#F97316] hover:bg-[#EA580C] text-white"
                 >
-                  {sending ? (
-                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                  ) : (
-                    <Send className="mr-1 h-3 w-3" />
-                  )}
+                  <Send className="mr-1 h-3 w-3" />
                   <span className="hidden sm:inline">Envoyer le devis</span>
                   <span className="sm:hidden">Envoyer</span>
                 </Button>
@@ -796,9 +797,19 @@ export default function DevisDetailPage() {
               </>
             )}
 
-            {/* ENVOYÉ: Check signature + Duplicate + Convert + Mark refused */}
+            {/* ENVOYÉ: Resend + Check signature + Duplicate + Convert + Mark refused */}
             {statut === "envoye" && (
               <>
+                <Button
+                  size="sm"
+                  onClick={() => setShowSendModal(true)}
+                  className="h-8 text-xs bg-[#F97316] hover:bg-[#EA580C] text-white"
+                >
+                  <Send className="mr-1 h-3 w-3" />
+                  <span className="hidden sm:inline">Renvoyer par email</span>
+                  <span className="sm:hidden">Renvoyer</span>
+                </Button>
+
                 {documensoStatus === "pending" && (
                   <Button
                     variant="outline"
@@ -865,13 +876,24 @@ export default function DevisDetailPage() {
               </>
             )}
 
-            {/* SIGNÉ: Convert to facture (primary) + Duplicate */}
+            {/* SIGNÉ: Resend + Convert to facture (primary) + Duplicate */}
             {statut === "signe" && (
               <>
                 <span className="flex items-center gap-1 text-xs text-emerald-400 mr-1">
                   <CheckCircle2 className="h-3.5 w-3.5" />
                   Signé
                 </span>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowSendModal(true)}
+                  className="h-8 text-xs border-border/60"
+                >
+                  <Send className="mr-1 h-3 w-3" />
+                  <span className="hidden sm:inline">Renvoyer par email</span>
+                  <span className="sm:hidden">Renvoyer</span>
+                </Button>
 
                 <Button
                   size="sm"
@@ -1668,6 +1690,44 @@ export default function DevisDetailPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* ── Send Devis Email Modal ── */}
+      <SendDevisEmailModal
+        open={showSendModal}
+        onOpenChange={setShowSendModal}
+        devisId={devisId}
+        devisNumero={(devis?.numero_affichage as string) || ""}
+        contactEmail={
+          devis?.contacts_clients
+            ? (devis.contacts_clients as { email?: string }).email || null
+            : null
+        }
+        contactNom={
+          devis?.contacts_clients
+            ? `${(devis.contacts_clients as { prenom: string }).prenom} ${(devis.contacts_clients as { nom: string }).nom}`
+            : null
+        }
+        entrepriseEmail={
+          devis?.entreprises
+            ? (devis.entreprises as { email?: string }).email || null
+            : null
+        }
+        particulierEmail={particulierEmail || null}
+        formationIntitule={selectedProduit?.intitule || objet || null}
+        formationDates={datesFormation || null}
+        formationLieu={lieuFormation || null}
+        formationDuree={dureeFormation || null}
+        formationModalite={modalitePedagogique || null}
+        montantTtc={lignes.reduce((sum, l) => {
+          const ht = l.quantite * l.prix_unitaire_ht;
+          return sum + ht + ht * (l.taux_tva / 100);
+        }, 0)}
+        orgName={orgInfo?.nom || "C&CO Formation"}
+        hasProduit={!!selectedProduit || !!devis?.produit_id}
+        onSendSuccess={(statusChanged) => {
+          if (statusChanged) setStatut("envoye");
+        }}
+      />
     </div>
   );
 }
