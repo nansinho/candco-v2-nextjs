@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Loader2, Send, Copy, ArrowRight, PenLine, Link2, Unlink, Plus, ExternalLink, XCircle, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Loader2, Send, Copy, ArrowRight, PenLine, Link2, Unlink, Plus, ExternalLink, XCircle, CheckCircle2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,6 +23,7 @@ import {
   convertDevisToFacture,
   getEntreprisesForSelect,
   getContactsForSelect,
+  getEntrepriseSiegeContacts,
   sendDevis,
   markDevisRefused,
   getSessionsForDevisSelect,
@@ -30,6 +31,7 @@ import {
   unlinkDevisFromSession,
   convertDevisToSession,
   type UpdateDevisInput,
+  type SiegeContact,
 } from "@/actions/devis";
 import { getOrganisationBillingInfo } from "@/actions/factures";
 import { checkDevisSignatureStatus } from "@/actions/signatures";
@@ -96,6 +98,13 @@ export default function DevisDetailPage() {
   const [contacts, setContacts] = React.useState<
     Array<{ id: string; prenom: string; nom: string; numero_affichage?: string }>
   >([]);
+
+  // Siege contact auto-selection
+  const [siegeContacts, setSiegeContacts] = React.useState<SiegeContact[]>([]);
+  const [contactAutoSelected, setContactAutoSelected] = React.useState(false);
+  const [showAllContacts, setShowAllContacts] = React.useState(false);
+  const [siegeLoading, setSiegeLoading] = React.useState(false);
+  const [noSiegeMembers, setNoSiegeMembers] = React.useState(false);
 
   // Organisation billing info
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -223,6 +232,39 @@ export default function DevisDetailPage() {
 
   // ─── Handlers ──────────────────────────────────────────────
 
+  // Auto-fill contact from siege social when enterprise changes
+  const handleEntrepriseChangeDetail = async (newEntrepriseId: string) => {
+    setEntrepriseId(newEntrepriseId);
+    setContactAutoSelected(false);
+    setShowAllContacts(false);
+    setNoSiegeMembers(false);
+    setSiegeContacts([]);
+
+    if (!newEntrepriseId) {
+      setContactClientId("");
+      return;
+    }
+
+    setSiegeLoading(true);
+    try {
+      const result = await getEntrepriseSiegeContacts(newEntrepriseId);
+      if (result.error || result.contacts.length === 0) {
+        setNoSiegeMembers(true);
+        // Don't clear existing contactClientId on detail page
+        return;
+      }
+      setSiegeContacts(result.contacts);
+      if (result.contacts.length === 1) {
+        setContactClientId(result.contacts[0].contact_client_id);
+        setContactAutoSelected(true);
+      }
+    } catch {
+      setNoSiegeMembers(true);
+    } finally {
+      setSiegeLoading(false);
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -243,6 +285,7 @@ export default function DevisDetailPage() {
         session_id: sessionId || "",
         commanditaire_id: commanditaireId || "",
         lignes,
+        contact_auto_selected: contactAutoSelected,
       };
 
       const result = await updateDevis(devisId, input);
@@ -778,7 +821,7 @@ export default function DevisDetailPage() {
                     <Label htmlFor="entreprise" className="text-xs mb-1.5 block">
                       Entreprise
                     </Label>
-                    <Select value={entrepriseId} onValueChange={setEntrepriseId} disabled={isReadOnly}>
+                    <Select value={entrepriseId} onValueChange={handleEntrepriseChangeDetail} disabled={isReadOnly}>
                       <SelectTrigger
                         id="entreprise"
                         className="h-9 text-sm border-border/60"
@@ -797,26 +840,95 @@ export default function DevisDetailPage() {
                   </div>
 
                   <div>
-                    <Label htmlFor="contact" className="text-xs mb-1.5 block">
-                      Contact client (optionnel)
-                    </Label>
-                    <Select value={contactClientId} onValueChange={setContactClientId} disabled={isReadOnly}>
-                      <SelectTrigger
-                        id="contact"
-                        className="h-9 text-sm border-border/60"
-                      >
-                        <SelectValue placeholder="Sélectionner un contact" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">Aucun</SelectItem>
-                        {contacts.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.numero_affichage ? `${c.numero_affichage} — ` : ""}
-                            {c.prenom} {c.nom}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <Label htmlFor="contact" className="text-xs">
+                        Contact client (optionnel)
+                      </Label>
+                      {contactAutoSelected && (
+                        <span className="inline-flex items-center rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-400 ring-1 ring-inset ring-blue-500/20">
+                          Auto — Siège social
+                        </span>
+                      )}
+                    </div>
+
+                    {siegeLoading ? (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Chargement des contacts siège...
+                      </div>
+                    ) : (
+                      <>
+                        <Select
+                          value={contactClientId}
+                          onValueChange={(val) => {
+                            setContactClientId(val);
+                            setContactAutoSelected(false);
+                          }}
+                          disabled={isReadOnly}
+                        >
+                          <SelectTrigger
+                            id="contact"
+                            className="h-9 text-sm border-border/60"
+                          >
+                            <SelectValue placeholder="Sélectionner un contact" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">Aucun</SelectItem>
+                            {(!showAllContacts && siegeContacts.length > 0)
+                              ? siegeContacts.map((c) => (
+                                  <SelectItem key={c.contact_client_id} value={c.contact_client_id}>
+                                    {c.numero_affichage ? `${c.numero_affichage} — ` : ""}
+                                    {c.prenom} {c.nom}
+                                    {c.fonction ? ` — ${c.fonction}` : ""}
+                                  </SelectItem>
+                                ))
+                              : contacts.map((c) => (
+                                  <SelectItem key={c.id} value={c.id}>
+                                    {c.numero_affichage ? `${c.numero_affichage} — ` : ""}
+                                    {c.prenom} {c.nom}
+                                  </SelectItem>
+                                ))
+                            }
+                          </SelectContent>
+                        </Select>
+
+                        {noSiegeMembers && entrepriseId && (
+                          <div className="flex items-start gap-2 text-xs text-amber-400 mt-1">
+                            <AlertTriangle className="h-3 w-3 shrink-0 mt-0.5" />
+                            <span>
+                              Aucun membre rattaché au siège social.{" "}
+                              <a
+                                href={`/entreprises/${entrepriseId}`}
+                                className="underline hover:text-amber-300"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                Configurer l&apos;organisation
+                              </a>
+                            </span>
+                          </div>
+                        )}
+
+                        {siegeContacts.length > 0 && !showAllContacts && (
+                          <button
+                            type="button"
+                            onClick={() => setShowAllContacts(true)}
+                            className="text-xs text-muted-foreground hover:text-foreground underline mt-1"
+                          >
+                            Voir tous les contacts
+                          </button>
+                        )}
+                        {showAllContacts && siegeContacts.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setShowAllContacts(false)}
+                            className="text-xs text-muted-foreground hover:text-foreground underline mt-1"
+                          >
+                            Voir uniquement les contacts siège
+                          </button>
+                        )}
+                      </>
+                    )}
                   </div>
                 </div>
               ) : (

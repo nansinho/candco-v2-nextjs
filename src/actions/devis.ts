@@ -41,6 +41,7 @@ const CreateDevisSchema = z.object({
   session_id: z.string().uuid().optional().or(z.literal("")),
   commanditaire_id: z.string().uuid().optional().or(z.literal("")),
   lignes: z.array(DevisLigneSchema).default([]),
+  contact_auto_selected: z.boolean().optional().default(false),
 });
 
 export type CreateDevisInput = z.infer<typeof CreateDevisSchema>;
@@ -129,6 +130,11 @@ export async function createDevis(input: CreateDevisInput) {
     }
   }
 
+  const descParts = [`Devis ${data.numero_affichage} créé (${totals.total_ttc.toFixed(2)} € TTC)`];
+  if (parsed.data.contact_auto_selected) {
+    descParts.push("— contact client auto-sélectionné depuis siège social");
+  }
+
   await logHistorique({
     organisationId,
     userId,
@@ -138,7 +144,7 @@ export async function createDevis(input: CreateDevisInput) {
     entiteType: "devis",
     entiteId: data.id,
     entiteLabel: `${data.numero_affichage} — ${parsed.data.objet || "Sans objet"}`,
-    description: `Devis ${data.numero_affichage} créé (${totals.total_ttc.toFixed(2)} € TTC)`,
+    description: descParts.join(" "),
     objetHref: `/devis/${data.id}`,
   });
 
@@ -283,6 +289,11 @@ export async function updateDevis(id: string, input: UpdateDevisInput) {
     }
   }
 
+  const updateDescParts = [`Devis ${data.numero_affichage} mis à jour`];
+  if (parsed.data.contact_auto_selected) {
+    updateDescParts.push("— contact client auto-sélectionné depuis siège social");
+  }
+
   await logHistorique({
     organisationId,
     userId,
@@ -292,7 +303,7 @@ export async function updateDevis(id: string, input: UpdateDevisInput) {
     entiteType: "devis",
     entiteId: id,
     entiteLabel: `${data.numero_affichage}`,
-    description: `Devis ${data.numero_affichage} mis à jour`,
+    description: updateDescParts.join(" "),
     objetHref: `/devis/${id}`,
   });
 
@@ -511,6 +522,57 @@ export async function getContactsForSelect() {
     .order("nom");
 
   return data ?? [];
+}
+
+// ─── Siege social contacts for auto-selection ────────────
+
+export interface SiegeContact {
+  contact_client_id: string;
+  prenom: string;
+  nom: string;
+  email: string | null;
+  telephone: string | null;
+  fonction: string | null;
+  numero_affichage: string | null;
+  roles: string[];
+}
+
+export async function getEntrepriseSiegeContacts(entrepriseId: string): Promise<{
+  contacts: SiegeContact[];
+  error?: string;
+}> {
+  if (!entrepriseId) return { contacts: [] };
+
+  const result = await getOrganisationId();
+  if ("error" in result) return { contacts: [], error: result.error };
+  const { admin } = result;
+
+  const { data, error } = await admin
+    .from("entreprise_membres")
+    .select("contact_client_id, roles, fonction, contacts_clients(id, prenom, nom, email, telephone, fonction, numero_affichage)")
+    .eq("entreprise_id", entrepriseId)
+    .eq("rattache_siege", true)
+    .not("contact_client_id", "is", null);
+
+  if (error) return { contacts: [], error: error.message };
+
+  const contacts: SiegeContact[] = (data ?? [])
+    .filter((m: Record<string, unknown>) => m.contacts_clients)
+    .map((m: Record<string, unknown>) => {
+      const cc = m.contacts_clients as { id: string; prenom: string; nom: string; email: string | null; telephone: string | null; fonction: string | null; numero_affichage: string | null };
+      return {
+        contact_client_id: cc.id,
+        prenom: cc.prenom,
+        nom: cc.nom,
+        email: cc.email,
+        telephone: cc.telephone,
+        fonction: (m.fonction as string | null) || cc.fonction,
+        numero_affichage: cc.numero_affichage,
+        roles: (m.roles as string[]) ?? [],
+      };
+    });
+
+  return { contacts };
 }
 
 // ─── Send devis (validates + sends via Documenso or email fallback) ─
