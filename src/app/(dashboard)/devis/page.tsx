@@ -27,10 +27,13 @@ import {
   getSessionsForDevisSelect,
   type CreateDevisInput,
 } from "@/actions/devis";
+import { searchProduitsForDevis, getProduitTarifsForDevis, type ProduitSearchResult, type ProduitTarifOption } from "@/actions/produits";
 import { getSessionCommanditaires } from "@/actions/sessions";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { DatePicker } from "@/components/ui/date-picker";
 import { LignesEditor, type LigneItem } from "@/components/shared/lignes-editor";
+import { ProduitSearchCombobox } from "@/components/shared/produit-search-combobox";
+import { EntrepriseSearchCombobox } from "@/components/shared/entreprise-search-combobox";
 import {
   DevisStatusBadge,
   DEVIS_STATUT_OPTIONS,
@@ -53,6 +56,7 @@ interface DevisRow {
   created_at: string;
   entreprises: { nom: string } | null;
   contacts_clients: { prenom: string; nom: string } | null;
+  produits_formation: { intitule: string } | null;
 }
 
 // ─── Columns ─────────────────────────────────────────────
@@ -81,22 +85,26 @@ const columns: Column<DevisRow>[] = [
   },
   {
     key: "objet",
-    label: "Objet",
+    label: "Programme / Objet",
     sortable: true,
     filterType: "text",
     minWidth: 250,
-    render: (item) => (
-      <div className="flex items-center gap-2">
-        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-orange-500/10">
-          <FileText className="h-3.5 w-3.5 text-orange-400" />
+    render: (item) => {
+      const displayText = item.produits_formation?.intitule || item.objet;
+      return (
+        <div className="flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-orange-500/10">
+            <FileText className="h-3.5 w-3.5 text-orange-400" />
+          </div>
+          <div className="min-w-0">
+            <span className="block truncate font-medium">
+              {displayText || <span className="text-muted-foreground/40">Sans programme</span>}
+            </span>
+          </div>
         </div>
-        <div className="min-w-0">
-          <span className="block truncate font-medium">
-            {item.objet || <span className="text-muted-foreground/40">Sans objet</span>}
-          </span>
-        </div>
-      </div>
-    ),
+      );
+    },
+    exportValue: (item: DevisRow) => item.produits_formation?.intitule || item.objet || "",
   },
   {
     key: "destinataire",
@@ -310,6 +318,16 @@ function CreateDevisForm({
   const [sessions, setSessions] = React.useState<SessionOption[]>([]);
   const [commanditaires, setCommanditaires] = React.useState<CommanditaireOption[]>([]);
   const [isParticulier, setIsParticulier] = React.useState(false);
+
+  // Product catalog selection
+  const [selectedProduit, setSelectedProduit] = React.useState<ProduitSearchResult | null>(null);
+  const [produitTarifs, setProduitTarifs] = React.useState<ProduitTarifOption[]>([]);
+  const [selectedTarifId, setSelectedTarifId] = React.useState("");
+  const [lieuFormation, setLieuFormation] = React.useState("");
+  const [datesFormation, setDatesFormation] = React.useState("");
+  const [nombreParticipants, setNombreParticipants] = React.useState<string>("");
+  const [entrepriseDisplayName, setEntrepriseDisplayName] = React.useState("");
+
   const [form, setForm] = React.useState<CreateDevisInput>({
     entreprise_id: "",
     contact_client_id: "",
@@ -326,6 +344,12 @@ function CreateDevisForm({
     opportunite_id: "",
     session_id: "",
     commanditaire_id: "",
+    produit_id: "",
+    lieu_formation: "",
+    dates_formation: "",
+    nombre_participants: undefined,
+    modalite_pedagogique: "",
+    duree_formation: "",
     lignes: [],
   });
 
@@ -363,6 +387,7 @@ function CreateDevisForm({
     const cmd = commanditaires.find((c) => c.id === cmdId);
     if (!cmd) return;
     setIsParticulier(false);
+    if (cmd.entreprises?.nom) setEntrepriseDisplayName(cmd.entreprises.nom);
     setForm((prev) => ({
       ...prev,
       commanditaire_id: cmdId,
@@ -370,6 +395,91 @@ function CreateDevisForm({
       contact_client_id: cmd.contacts_clients?.id || prev.contact_client_id,
     }));
   };
+
+  // Product selection handler
+  const handleProduitChange = async (product: ProduitSearchResult | null) => {
+    setSelectedProduit(product);
+    if (!product) {
+      setProduitTarifs([]);
+      setSelectedTarifId("");
+      setForm((prev) => ({
+        ...prev,
+        produit_id: "",
+        objet: "",
+        modalite_pedagogique: "",
+        duree_formation: "",
+        lignes: prev.lignes.length > 1 ? prev.lignes.slice(1) : [],
+      }));
+      return;
+    }
+
+    // Set product fields
+    const modalite = product.modalite || "";
+    const duree = product.duree_heures
+      ? `${product.duree_heures}h${product.duree_jours ? ` (${product.duree_jours}j)` : ""}`
+      : "";
+    const objet = `Formation : ${product.intitule}`;
+
+    setForm((prev) => ({
+      ...prev,
+      produit_id: product.id,
+      objet,
+      modalite_pedagogique: modalite,
+      duree_formation: duree,
+    }));
+
+    // Load tariffs
+    const tarifs = await getProduitTarifsForDevis(product.id);
+    setProduitTarifs(tarifs);
+    const defaultTarif = tarifs.find((t) => t.is_default) || tarifs[0];
+    if (defaultTarif) {
+      setSelectedTarifId(defaultTarif.id);
+    }
+  };
+
+  // Build structured designation line from product + metadata
+  const buildStructuredLine = React.useCallback((): LigneItem => {
+    const parts: string[] = [];
+    if (selectedProduit) parts.push(`Formation : ${selectedProduit.intitule}`);
+    if (lieuFormation) parts.push(`Lieu : ${lieuFormation}`);
+    if (datesFormation) parts.push(`Date(s) : ${datesFormation}`);
+    if (nombreParticipants) parts.push(`${nombreParticipants} participant(s)`);
+    if (form.modalite_pedagogique) {
+      const labels: Record<string, string> = { presentiel: "Présentiel", distanciel: "Distanciel", mixte: "Mixte", afest: "AFEST" };
+      parts.push(`Modalité : ${labels[form.modalite_pedagogique] || form.modalite_pedagogique}`);
+    }
+    if (form.duree_formation) parts.push(`Durée : ${form.duree_formation}`);
+
+    const tarif = produitTarifs.find((t) => t.id === selectedTarifId);
+    return {
+      designation: parts.join("\n"),
+      description: "",
+      quantite: Number(nombreParticipants) || 1,
+      prix_unitaire_ht: tarif?.prix_ht || 0,
+      taux_tva: tarif?.taux_tva || 0,
+      ordre: 0,
+    };
+  }, [selectedProduit, lieuFormation, datesFormation, nombreParticipants, form.modalite_pedagogique, form.duree_formation, produitTarifs, selectedTarifId]);
+
+  // Auto-update first line when product or metadata changes
+  React.useEffect(() => {
+    if (!selectedProduit) return;
+    const structuredLine = buildStructuredLine();
+    setForm((prev) => {
+      const otherLines = prev.lignes.filter((_, i) => i > 0);
+      return { ...prev, lignes: [structuredLine, ...otherLines] };
+    });
+  }, [selectedProduit, buildStructuredLine]);
+
+  // Update form metadata fields when local state changes
+  React.useEffect(() => {
+    setForm((prev) => ({
+      ...prev,
+      lieu_formation: lieuFormation,
+      dates_formation: datesFormation,
+      nombre_participants: nombreParticipants ? Number(nombreParticipants) : undefined,
+    }));
+  }, [lieuFormation, datesFormation, nombreParticipants]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -455,21 +565,91 @@ function CreateDevisForm({
         </div>
       )}
 
+      {/* Programme (depuis le catalogue) */}
       <div className="space-y-2">
-        <Label htmlFor="objet" className="text-sm">
-          Objet
+        <Label className="text-sm">
+          Programme (depuis le catalogue) <span className="text-destructive">*</span>
         </Label>
-        <Input
-          id="objet"
-          value={form.objet}
-          onChange={(e) => updateField("objet", e.target.value)}
-          placeholder="Ex: Formation React avancé"
-          className="h-9 text-sm border-border/60"
+        <ProduitSearchCombobox
+          value={selectedProduit}
+          onChange={handleProduitChange}
         />
-        {errors.objet && (
-          <p className="text-xs text-destructive">{errors.objet[0]}</p>
+        {errors.produit_id && (
+          <p className="text-xs text-destructive">{errors.produit_id[0]}</p>
         )}
       </div>
+
+      {/* Structured designation fields */}
+      {selectedProduit && (
+        <div className="space-y-3 rounded-lg border border-border/40 bg-muted/20 p-3">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Détails de la formation</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Lieu de formation</Label>
+              <Input
+                value={lieuFormation}
+                onChange={(e) => setLieuFormation(e.target.value)}
+                placeholder="Ex: Paris, à distance..."
+                className="h-8 text-xs border-border/60"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Date(s) de formation</Label>
+              <Input
+                value={datesFormation}
+                onChange={(e) => setDatesFormation(e.target.value)}
+                placeholder="Ex: 15-17 mars 2026"
+                className="h-8 text-xs border-border/60"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Nombre de participants</Label>
+              <Input
+                type="number"
+                min={1}
+                value={nombreParticipants}
+                onChange={(e) => setNombreParticipants(e.target.value)}
+                placeholder="Ex: 8"
+                className="h-8 text-xs border-border/60"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Modalité</Label>
+              <Input
+                value={form.modalite_pedagogique || ""}
+                onChange={(e) => setForm((prev) => ({ ...prev, modalite_pedagogique: e.target.value }))}
+                placeholder="Présentiel, distanciel..."
+                className="h-8 text-xs border-border/60"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Durée</Label>
+              <Input
+                value={form.duree_formation || ""}
+                onChange={(e) => setForm((prev) => ({ ...prev, duree_formation: e.target.value }))}
+                placeholder="Ex: 21h (3j)"
+                className="h-8 text-xs border-border/60"
+              />
+            </div>
+            {produitTarifs.length > 1 && (
+              <div className="space-y-1">
+                <Label className="text-xs">Tarif applicable</Label>
+                <select
+                  value={selectedTarifId}
+                  onChange={(e) => setSelectedTarifId(e.target.value)}
+                  className="h-8 w-full rounded-md border border-input bg-muted px-2 py-1 text-xs text-foreground"
+                >
+                  {produitTarifs.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.nom || "Tarif standard"} — {formatCurrency(t.prix_ht)} HT / {t.unite || "forfait"} (TVA {t.taux_tva}%)
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="space-y-2">
         <div className="flex items-center gap-2">
@@ -492,19 +672,14 @@ function CreateDevisForm({
             <Label htmlFor="entreprise_id" className="text-sm">
               Entreprise
             </Label>
-            <select
-              id="entreprise_id"
-              value={form.entreprise_id}
-              onChange={(e) => updateField("entreprise_id", e.target.value)}
-              className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
-            >
-              <option value="">-- Sélectionner une entreprise --</option>
-              {entreprises.map((e) => (
-                <option key={e.id} value={e.id}>
-                  {e.nom}
-                </option>
-              ))}
-            </select>
+            <EntrepriseSearchCombobox
+              value={form.entreprise_id || ""}
+              displayName={entrepriseDisplayName}
+              onChange={(id, ent) => {
+                updateField("entreprise_id", id);
+                setEntrepriseDisplayName(ent?.nom || "");
+              }}
+            />
           </div>
 
           <div className="space-y-2">

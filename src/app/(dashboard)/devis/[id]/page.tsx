@@ -31,12 +31,15 @@ import {
   convertDevisToSession,
   type UpdateDevisInput,
 } from "@/actions/devis";
+import { getProduitTarifsForDevis, type ProduitSearchResult, type ProduitTarifOption } from "@/actions/produits";
 import { getOrganisationBillingInfo } from "@/actions/factures";
 import { checkDevisSignatureStatus } from "@/actions/signatures";
 import { getSessionCommanditaires } from "@/actions/sessions";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatCurrency } from "@/lib/utils";
 import { DevisStatusBadge } from "@/components/shared/status-badges";
 import { LignesEditor, DocumentPreview, type LigneItem } from "@/components/shared/lignes-editor";
+import { ProduitSearchCombobox } from "@/components/shared/produit-search-combobox";
+import { EntrepriseSearchCombobox } from "@/components/shared/entreprise-search-combobox";
 
 export default function DevisDetailPage() {
   const router = useRouter();
@@ -88,6 +91,18 @@ export default function DevisDetailPage() {
   // Commanditaire linking
   const [commanditaireId, setCommanditaireId] = React.useState<string>("");
   const [commanditaires, setCommanditaires] = React.useState<Array<{ id: string; entreprises: { id: string; nom: string } | null; financeurs: { id: string; nom: string } | null; budget: number }>>([]);
+
+  // Product catalog selection
+  const [selectedProduit, setSelectedProduit] = React.useState<ProduitSearchResult | null>(null);
+  const [produitTarifs, setProduitTarifs] = React.useState<ProduitTarifOption[]>([]);
+  const [selectedTarifId, setSelectedTarifId] = React.useState("");
+  const [lieuFormation, setLieuFormation] = React.useState("");
+  const [datesFormation, setDatesFormation] = React.useState("");
+  const [nombreParticipants, setNombreParticipants] = React.useState<string>("");
+  const [modalitePedagogique, setModalitePedagogique] = React.useState("");
+  const [dureeFormation, setDureeFormation] = React.useState("");
+  const [entrepriseDisplayName, setEntrepriseDisplayName] = React.useState("");
+  const isLegacyDevis = !selectedProduit && !!objet && !devis?.produit_id;
 
   // Selects data
   const [entreprises, setEntreprises] = React.useState<
@@ -149,6 +164,47 @@ export default function DevisDetailPage() {
         setDocumensoStatus((devisData.documenso_status as string) || null);
         setSessionId(devisData.session_id || null);
         setCommanditaireId((devisData.commanditaire_id as string) || "");
+
+        // Product catalog fields
+        setLieuFormation((devisData.lieu_formation as string) || "");
+        setDatesFormation((devisData.dates_formation as string) || "");
+        setNombreParticipants(devisData.nombre_participants ? String(devisData.nombre_participants) : "");
+        setModalitePedagogique((devisData.modalite_pedagogique as string) || "");
+        setDureeFormation((devisData.duree_formation as string) || "");
+
+        // Hydrate product from join
+        if (devisData.produit_id && devisData.produits_formation) {
+          const pf = devisData.produits_formation as unknown as {
+            id: string; intitule: string; identifiant_interne: string | null;
+            domaine: string | null; modalite: string | null; formule: string | null;
+            duree_heures: number | null; duree_jours: number | null;
+          };
+          setSelectedProduit({
+            id: pf.id,
+            intitule: pf.intitule,
+            numero_affichage: null,
+            identifiant_interne: pf.identifiant_interne,
+            domaine: pf.domaine,
+            categorie: null,
+            modalite: pf.modalite,
+            formule: pf.formule,
+            duree_heures: pf.duree_heures,
+            duree_jours: pf.duree_jours,
+            image_url: null,
+          });
+          const tarifs = await getProduitTarifsForDevis(pf.id);
+          setProduitTarifs(tarifs);
+          if (tarifs.length > 0) {
+            const defaultTarif = tarifs.find((t) => t.is_default) || tarifs[0];
+            setSelectedTarifId(defaultTarif.id);
+          }
+        }
+
+        // Enterprise display name
+        if (devisData.entreprises) {
+          const ent = devisData.entreprises as unknown as { nom: string };
+          setEntrepriseDisplayName(ent.nom || "");
+        }
 
         // Lines
         const devisLignes = (devisData.devis_lignes as unknown[]) || [];
@@ -242,6 +298,12 @@ export default function DevisDetailPage() {
         opportunite_id: "",
         session_id: sessionId || "",
         commanditaire_id: commanditaireId || "",
+        produit_id: selectedProduit?.id || "",
+        lieu_formation: lieuFormation,
+        dates_formation: datesFormation,
+        nombre_participants: nombreParticipants ? Number(nombreParticipants) : undefined,
+        modalite_pedagogique: modalitePedagogique,
+        duree_formation: dureeFormation,
         lignes,
       };
 
@@ -771,22 +833,15 @@ export default function DevisDetailPage() {
                     <Label htmlFor="entreprise" className="text-xs mb-1.5 block">
                       Entreprise
                     </Label>
-                    <Select value={entrepriseId} onValueChange={setEntrepriseId} disabled={isReadOnly}>
-                      <SelectTrigger
-                        id="entreprise"
-                        className="h-9 text-sm border-border/60"
-                      >
-                        <SelectValue placeholder="Sélectionner une entreprise" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {entreprises.map((e) => (
-                          <SelectItem key={e.id} value={e.id}>
-                            {e.numero_affichage ? `${e.numero_affichage} — ` : ""}
-                            {e.nom}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <EntrepriseSearchCombobox
+                      value={entrepriseId}
+                      displayName={entrepriseDisplayName}
+                      onChange={(id, ent) => {
+                        setEntrepriseId(id);
+                        setEntrepriseDisplayName(ent?.nom || "");
+                      }}
+                      disabled={isReadOnly}
+                    />
                   </div>
 
                   <div>
@@ -904,19 +959,124 @@ export default function DevisDetailPage() {
               </div>
             </div>
 
-            {/* Objet */}
+            {/* Programme (depuis le catalogue) / Legacy Objet */}
             <div className="rounded-lg border border-border/40 bg-card p-4">
-              <Label htmlFor="objet" className="text-xs mb-1.5 block">
-                Objet
-              </Label>
-              <Input
-                id="objet"
-                value={objet}
-                onChange={(e) => setObjet(e.target.value)}
-                placeholder="Objet du devis"
-                className="h-9 text-sm border-border/60"
-                disabled={isReadOnly}
-              />
+              {isLegacyDevis ? (
+                <>
+                  <Label className="text-xs text-muted-foreground mb-1.5 block">
+                    Objet (ancien format)
+                  </Label>
+                  <p className="text-sm text-foreground">{objet}</p>
+                </>
+              ) : (
+                <>
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 block">
+                    Programme (depuis le catalogue)
+                  </Label>
+                  <ProduitSearchCombobox
+                    value={selectedProduit}
+                    onChange={async (product) => {
+                      setSelectedProduit(product);
+                      if (!product) {
+                        setProduitTarifs([]);
+                        setSelectedTarifId("");
+                        setObjet("");
+                        setModalitePedagogique("");
+                        setDureeFormation("");
+                        return;
+                      }
+                      setObjet(`Formation : ${product.intitule}`);
+                      setModalitePedagogique(product.modalite || "");
+                      const duree = product.duree_heures
+                        ? `${product.duree_heures}h${product.duree_jours ? ` (${product.duree_jours}j)` : ""}`
+                        : "";
+                      setDureeFormation(duree);
+                      const tarifs = await getProduitTarifsForDevis(product.id);
+                      setProduitTarifs(tarifs);
+                      const defaultTarif = tarifs.find((t) => t.is_default) || tarifs[0];
+                      if (defaultTarif) setSelectedTarifId(defaultTarif.id);
+                    }}
+                    disabled={isReadOnly}
+                  />
+
+                  {selectedProduit && (
+                    <div className="mt-3 space-y-3">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Détails de la formation</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Lieu</Label>
+                          <Input
+                            value={lieuFormation}
+                            onChange={(e) => setLieuFormation(e.target.value)}
+                            placeholder="Ex: Paris, à distance..."
+                            className="h-8 text-xs border-border/60"
+                            disabled={isReadOnly}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Date(s)</Label>
+                          <Input
+                            value={datesFormation}
+                            onChange={(e) => setDatesFormation(e.target.value)}
+                            placeholder="Ex: 15-17 mars 2026"
+                            className="h-8 text-xs border-border/60"
+                            disabled={isReadOnly}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Participants</Label>
+                          <Input
+                            type="number"
+                            min={1}
+                            value={nombreParticipants}
+                            onChange={(e) => setNombreParticipants(e.target.value)}
+                            placeholder="Ex: 8"
+                            className="h-8 text-xs border-border/60"
+                            disabled={isReadOnly}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Modalité</Label>
+                          <Input
+                            value={modalitePedagogique}
+                            onChange={(e) => setModalitePedagogique(e.target.value)}
+                            placeholder="Présentiel, distanciel..."
+                            className="h-8 text-xs border-border/60"
+                            disabled={isReadOnly}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Durée</Label>
+                          <Input
+                            value={dureeFormation}
+                            onChange={(e) => setDureeFormation(e.target.value)}
+                            placeholder="Ex: 21h (3j)"
+                            className="h-8 text-xs border-border/60"
+                            disabled={isReadOnly}
+                          />
+                        </div>
+                        {produitTarifs.length > 1 && (
+                          <div className="space-y-1">
+                            <Label className="text-xs">Tarif</Label>
+                            <select
+                              value={selectedTarifId}
+                              onChange={(e) => setSelectedTarifId(e.target.value)}
+                              className="h-8 w-full rounded-md border border-input bg-muted px-2 py-1 text-xs text-foreground"
+                              disabled={isReadOnly}
+                            >
+                              {produitTarifs.map((t) => (
+                                <option key={t.id} value={t.id}>
+                                  {t.nom || "Standard"} — {formatCurrency(t.prix_ht)} HT / {t.unite || "forfait"}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
 
             {/* Session liée */}

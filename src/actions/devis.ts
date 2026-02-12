@@ -40,6 +40,12 @@ const CreateDevisSchema = z.object({
   opportunite_id: z.string().uuid().optional().or(z.literal("")),
   session_id: z.string().uuid().optional().or(z.literal("")),
   commanditaire_id: z.string().uuid().optional().or(z.literal("")),
+  produit_id: z.string().uuid().optional().or(z.literal("")),
+  lieu_formation: z.string().optional().or(z.literal("")),
+  dates_formation: z.string().optional().or(z.literal("")),
+  nombre_participants: z.coerce.number().int().nonnegative().optional(),
+  modalite_pedagogique: z.string().optional().or(z.literal("")),
+  duree_formation: z.string().optional().or(z.literal("")),
   lignes: z.array(DevisLigneSchema).default([]),
 });
 
@@ -102,6 +108,12 @@ export async function createDevis(input: CreateDevisInput) {
       opportunite_id: parsed.data.opportunite_id || null,
       session_id: parsed.data.session_id || null,
       commanditaire_id: parsed.data.commanditaire_id || null,
+      produit_id: parsed.data.produit_id || null,
+      lieu_formation: parsed.data.lieu_formation || null,
+      dates_formation: parsed.data.dates_formation || null,
+      nombre_participants: parsed.data.nombre_participants || null,
+      modalite_pedagogique: parsed.data.modalite_pedagogique || null,
+      duree_formation: parsed.data.duree_formation || null,
       ...totals,
     })
     .select()
@@ -160,7 +172,7 @@ export async function getDevisList(
   let query = supabase
     .from("devis")
     .select(
-      "*, entreprises(nom), contacts_clients(prenom, nom)",
+      "*, entreprises(nom), contacts_clients(prenom, nom), produits_formation(intitule)",
       { count: "exact" },
     );
 
@@ -201,6 +213,7 @@ export async function getDevis(id: string) {
        entreprises(id, nom, email, siret, adresse_rue, adresse_cp, adresse_ville, facturation_raison_sociale, facturation_rue, facturation_cp, facturation_ville),
        contacts_clients(id, prenom, nom, email, telephone),
        opportunites(id, nom),
+       produits_formation(id, intitule, identifiant_interne, domaine, modalite, formule, duree_heures, duree_jours),
        devis_lignes(id, designation, description, quantite, prix_unitaire_ht, taux_tva, montant_ht, ordre)`,
     )
     .eq("id", id)
@@ -244,6 +257,12 @@ export async function updateDevis(id: string, input: UpdateDevisInput) {
       opportunite_id: parsed.data.opportunite_id || null,
       session_id: parsed.data.session_id || null,
       commanditaire_id: parsed.data.commanditaire_id || null,
+      produit_id: parsed.data.produit_id || null,
+      lieu_formation: parsed.data.lieu_formation || null,
+      dates_formation: parsed.data.dates_formation || null,
+      nombre_participants: parsed.data.nombre_participants || null,
+      modalite_pedagogique: parsed.data.modalite_pedagogique || null,
+      duree_formation: parsed.data.duree_formation || null,
       ...totals,
     })
     .eq("id", id)
@@ -386,6 +405,12 @@ export async function duplicateDevis(id: string) {
     statut: "brouillon",
     opportunite_id: original.opportunite_id ?? "",
     session_id: "",
+    produit_id: original.produit_id ?? "",
+    lieu_formation: original.lieu_formation ?? "",
+    dates_formation: original.dates_formation ?? "",
+    nombre_participants: original.nombre_participants ?? undefined,
+    modalite_pedagogique: original.modalite_pedagogique ?? "",
+    duree_formation: original.duree_formation ?? "",
     lignes,
   });
 }
@@ -758,15 +783,18 @@ export async function convertDevisToSession(devisId: string) {
     p_entite: "SES",
   });
 
-  // Create session
+  // Create session — use produit_id from devis if available
+  const produitIntitule = devisData.produits_formation
+    ? (devisData.produits_formation as unknown as { intitule: string }).intitule
+    : null;
   const { data: session, error } = await supabase
     .from("sessions")
     .insert({
       organisation_id: organisationId,
       numero_affichage: numero,
-      nom: devisData.objet || `Session depuis ${devisData.numero_affichage}`,
+      nom: produitIntitule || devisData.objet || `Session depuis ${devisData.numero_affichage}`,
       statut: "en_projet",
-      produit_id: null,
+      produit_id: devisData.produit_id || null,
     })
     .select()
     .single();
@@ -863,6 +891,7 @@ export async function createDevisFromCommanditaire(sessionId: string, commandita
       statut: "brouillon",
       session_id: sessionId,
       commanditaire_id: commanditaireId,
+      produit_id: session?.produit_id || null,
       total_ht: budget,
       total_tva: 0,
       total_ttc: budget,
@@ -901,4 +930,36 @@ export async function createDevisFromCommanditaire(sessionId: string, commandita
   revalidatePath(`/sessions/${sessionId}`);
   revalidatePath("/devis");
   return { data: devis };
+}
+
+// ─── Enterprise search for devis ────────────────────────
+
+export interface EntrepriseSearchResult {
+  id: string;
+  nom: string;
+  numero_affichage: string | null;
+  siret: string | null;
+  adresse_ville: string | null;
+}
+
+export async function searchEntreprisesForDevis(search: string = ""): Promise<EntrepriseSearchResult[]> {
+  const result = await getOrganisationId();
+  if ("error" in result) return [];
+  const { supabase } = result;
+
+  let query = supabase
+    .from("entreprises")
+    .select("id, nom, numero_affichage, siret, adresse_ville")
+    .is("archived_at", null)
+    .order("nom", { ascending: true })
+    .limit(20);
+
+  if (search) {
+    query = query.or(
+      `nom.ilike.%${search}%,siret.ilike.%${search}%,numero_affichage.ilike.%${search}%`
+    );
+  }
+
+  const { data } = await query;
+  return (data ?? []) as EntrepriseSearchResult[];
 }
