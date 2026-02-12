@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { FileText, Loader2, Sparkles } from "lucide-react";
+import { FileText, Loader2, Sparkles, AlertTriangle } from "lucide-react";
 import { DataTable, type Column, type ActiveFilter } from "@/components/data-table/DataTable";
 import {
   Dialog,
@@ -25,7 +25,9 @@ import {
   getEntreprisesForSelect,
   getContactsForSelect,
   getSessionsForDevisSelect,
+  getEntrepriseSiegeContacts,
   type CreateDevisInput,
+  type SiegeContact,
 } from "@/actions/devis";
 import { searchProduitsForDevis, getProduitTarifsForDevis, type ProduitSearchResult, type ProduitTarifOption } from "@/actions/produits";
 import { getSessionCommanditaires } from "@/actions/sessions";
@@ -347,6 +349,11 @@ function CreateDevisForm({
   const [sessions, setSessions] = React.useState<SessionOption[]>([]);
   const [commanditaires, setCommanditaires] = React.useState<CommanditaireOption[]>([]);
   const [isParticulier, setIsParticulier] = React.useState(false);
+  const [siegeContacts, setSiegeContacts] = React.useState<SiegeContact[]>([]);
+  const [contactAutoSelected, setContactAutoSelected] = React.useState(false);
+  const [showAllContacts, setShowAllContacts] = React.useState(false);
+  const [siegeLoading, setSiegeLoading] = React.useState(false);
+  const [noSiegeMembers, setNoSiegeMembers] = React.useState(false);
 
   // Product catalog selection
   const [selectedProduit, setSelectedProduit] = React.useState<ProduitSearchResult | null>(null);
@@ -356,7 +363,6 @@ function CreateDevisForm({
   const [datesFormation, setDatesFormation] = React.useState("");
   const [nombreParticipants, setNombreParticipants] = React.useState<string>("");
   const [entrepriseDisplayName, setEntrepriseDisplayName] = React.useState("");
-
   const [form, setForm] = React.useState<CreateDevisInput>({
     entreprise_id: "",
     contact_client_id: "",
@@ -380,6 +386,7 @@ function CreateDevisForm({
     modalite_pedagogique: "",
     duree_formation: "",
     lignes: [],
+    contact_auto_selected: false,
   });
 
   React.useEffect(() => {
@@ -409,6 +416,40 @@ function CreateDevisForm({
     loadCmd();
   }, [form.session_id]);
 
+  // Auto-fill contact from siege social when enterprise changes
+  const handleEntrepriseChange = async (newEntrepriseId: string) => {
+    updateField("entreprise_id", newEntrepriseId);
+    setContactAutoSelected(false);
+    setShowAllContacts(false);
+    setNoSiegeMembers(false);
+    setSiegeContacts([]);
+    setForm((prev) => ({ ...prev, contact_client_id: "", contact_auto_selected: false }));
+
+    if (!newEntrepriseId) return;
+
+    setSiegeLoading(true);
+    try {
+      const result = await getEntrepriseSiegeContacts(newEntrepriseId);
+      if (result.error || result.contacts.length === 0) {
+        setNoSiegeMembers(true);
+        return;
+      }
+      setSiegeContacts(result.contacts);
+      if (result.contacts.length === 1) {
+        setForm((prev) => ({
+          ...prev,
+          contact_client_id: result.contacts[0].contact_client_id,
+          contact_auto_selected: true,
+        }));
+        setContactAutoSelected(true);
+      }
+    } catch {
+      setNoSiegeMembers(true);
+    } finally {
+      setSiegeLoading(false);
+    }
+  };
+
   // Auto-fill entreprise/contact when commanditaire is selected
   const handleCommanditaireChange = (cmdId: string) => {
     setForm((prev) => ({ ...prev, commanditaire_id: cmdId }));
@@ -416,12 +457,17 @@ function CreateDevisForm({
     const cmd = commanditaires.find((c) => c.id === cmdId);
     if (!cmd) return;
     setIsParticulier(false);
+    setContactAutoSelected(false);
+    setShowAllContacts(false);
+    setNoSiegeMembers(false);
+    setSiegeContacts([]);
     if (cmd.entreprises?.nom) setEntrepriseDisplayName(cmd.entreprises.nom);
     setForm((prev) => ({
       ...prev,
       commanditaire_id: cmdId,
       entreprise_id: cmd.entreprises?.id || prev.entreprise_id,
       contact_client_id: cmd.contacts_clients?.id || prev.contact_client_id,
+      contact_auto_selected: false,
     }));
   };
 
@@ -709,29 +755,95 @@ function CreateDevisForm({
               value={form.entreprise_id || ""}
               displayName={entrepriseDisplayName}
               onChange={(id, ent) => {
-                updateField("entreprise_id", id);
                 setEntrepriseDisplayName(ent?.nom || "");
+                handleEntrepriseChange(id);
               }}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="contact_client_id" className="text-sm">
-              Contact client
-            </Label>
-            <select
-              id="contact_client_id"
-              value={form.contact_client_id}
-              onChange={(e) => updateField("contact_client_id", e.target.value)}
-              className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
-            >
-              <option value="">-- Sélectionner un contact --</option>
-              {contacts.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.prenom} {c.nom}
-                </option>
-              ))}
-            </select>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="contact_client_id" className="text-sm">
+                Contact client
+              </Label>
+              {contactAutoSelected && (
+                <span className="inline-flex items-center rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-400 ring-1 ring-inset ring-blue-500/20">
+                  Auto — Siège social
+                </span>
+              )}
+            </div>
+
+            {siegeLoading ? (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Chargement des contacts siège...
+              </div>
+            ) : (
+              <>
+                <select
+                  id="contact_client_id"
+                  value={form.contact_client_id}
+                  onChange={(e) => {
+                    updateField("contact_client_id", e.target.value);
+                    setContactAutoSelected(false);
+                    setForm((prev) => ({ ...prev, contact_auto_selected: false }));
+                  }}
+                  className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
+                >
+                  <option value="">-- Sélectionner un contact --</option>
+                  {(!showAllContacts && siegeContacts.length > 0)
+                    ? siegeContacts.map((c) => (
+                        <option key={c.contact_client_id} value={c.contact_client_id}>
+                          {c.prenom} {c.nom}
+                          {c.fonction ? ` — ${c.fonction}` : ""}
+                          {c.roles.length > 0 ? ` (${c.roles.join(", ")})` : ""}
+                        </option>
+                      ))
+                    : contacts.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.prenom} {c.nom}
+                        </option>
+                      ))
+                  }
+                </select>
+
+                {noSiegeMembers && form.entreprise_id && (
+                  <div className="flex items-start gap-2 text-xs text-amber-400 mt-1">
+                    <AlertTriangle className="h-3 w-3 shrink-0 mt-0.5" />
+                    <span>
+                      Aucun membre rattaché au siège social.{" "}
+                      <a
+                        href={`/entreprises/${form.entreprise_id}`}
+                        className="underline hover:text-amber-300"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Configurer l&apos;organisation
+                      </a>
+                    </span>
+                  </div>
+                )}
+
+                {siegeContacts.length > 0 && !showAllContacts && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllContacts(true)}
+                    className="text-xs text-muted-foreground hover:text-foreground underline"
+                  >
+                    Voir tous les contacts
+                  </button>
+                )}
+                {showAllContacts && siegeContacts.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllContacts(false)}
+                    className="text-xs text-muted-foreground hover:text-foreground underline"
+                  >
+                    Voir uniquement les contacts siège
+                  </button>
+                )}
+              </>
+            )}
           </div>
         </>
       ) : (
