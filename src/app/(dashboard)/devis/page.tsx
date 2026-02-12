@@ -23,11 +23,10 @@ import {
   unarchiveDevis,
   deleteDevisBulk,
   getEntreprisesForSelect,
-  getContactsForSelect,
   getSessionsForDevisSelect,
-  getEntrepriseSiegeContacts,
+  getEntrepriseInterlocuteurs,
   type CreateDevisInput,
-  type SiegeContact,
+  type InterlocuteurContact,
 } from "@/actions/devis";
 import { searchProduitsForDevis, getProduitTarifsForDevis, type ProduitSearchResult, type ProduitTarifOption } from "@/actions/produits";
 import { getOrganisationBillingInfo } from "@/actions/factures";
@@ -350,15 +349,13 @@ function CreateDevisForm({
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string[] | undefined>>({});
   const [entreprises, setEntreprises] = React.useState<{ id: string; nom: string }[]>([]);
-  const [contacts, setContacts] = React.useState<{ id: string; prenom: string; nom: string }[]>([]);
   const [sessions, setSessions] = React.useState<SessionOption[]>([]);
   const [commanditaires, setCommanditaires] = React.useState<CommanditaireOption[]>([]);
   const [isParticulier, setIsParticulier] = React.useState(false);
-  const [siegeContacts, setSiegeContacts] = React.useState<SiegeContact[]>([]);
+  const [interlocuteurs, setInterlocuteurs] = React.useState<InterlocuteurContact[]>([]);
   const [contactAutoSelected, setContactAutoSelected] = React.useState(false);
-  const [showAllContacts, setShowAllContacts] = React.useState(false);
-  const [siegeLoading, setSiegeLoading] = React.useState(false);
-  const [noSiegeMembers, setNoSiegeMembers] = React.useState(false);
+  const [interlocuteurLoading, setInterlocuteurLoading] = React.useState(false);
+  const [noInterlocuteurs, setNoInterlocuteurs] = React.useState(false);
 
   // Exoneration TVA
   const [exonerationTva, setExonerationTva] = React.useState(false);
@@ -404,14 +401,12 @@ function CreateDevisForm({
 
   React.useEffect(() => {
     async function load() {
-      const [ent, cont, sess, orgData] = await Promise.all([
+      const [ent, sess, orgData] = await Promise.all([
         getEntreprisesForSelect(),
-        getContactsForSelect(),
         getSessionsForDevisSelect(),
         getOrganisationBillingInfo(),
       ]);
       setEntreprises(ent);
-      setContacts(cont);
       setSessions(sess as SessionOption[]);
       if (orgData?.tva_defaut != null) setOrgTvaDefaut(orgData.tva_defaut);
     }
@@ -431,25 +426,24 @@ function CreateDevisForm({
     loadCmd();
   }, [form.session_id]);
 
-  // Auto-fill contact from siege social when enterprise changes
+  // Auto-fill interlocuteur (Direction / Resp. formation) when enterprise changes
   const handleEntrepriseChange = async (newEntrepriseId: string) => {
     updateField("entreprise_id", newEntrepriseId);
     setContactAutoSelected(false);
-    setShowAllContacts(false);
-    setNoSiegeMembers(false);
-    setSiegeContacts([]);
+    setNoInterlocuteurs(false);
+    setInterlocuteurs([]);
     setForm((prev) => ({ ...prev, contact_client_id: "", contact_membre_id: "", contact_auto_selected: false }));
 
     if (!newEntrepriseId) return;
 
-    setSiegeLoading(true);
+    setInterlocuteurLoading(true);
     try {
-      const result = await getEntrepriseSiegeContacts(newEntrepriseId);
+      const result = await getEntrepriseInterlocuteurs(newEntrepriseId);
       if (result.error || result.contacts.length === 0) {
-        setNoSiegeMembers(true);
+        setNoInterlocuteurs(true);
         return;
       }
-      setSiegeContacts(result.contacts);
+      setInterlocuteurs(result.contacts);
       if (result.contacts.length === 1) {
         const c = result.contacts[0];
         setForm((prev) => ({
@@ -461,9 +455,9 @@ function CreateDevisForm({
         setContactAutoSelected(true);
       }
     } catch {
-      setNoSiegeMembers(true);
+      setNoInterlocuteurs(true);
     } finally {
-      setSiegeLoading(false);
+      setInterlocuteurLoading(false);
     }
   };
 
@@ -475,9 +469,8 @@ function CreateDevisForm({
     if (!cmd) return;
     setIsParticulier(false);
     setContactAutoSelected(false);
-    setShowAllContacts(false);
-    setNoSiegeMembers(false);
-    setSiegeContacts([]);
+    setNoInterlocuteurs(false);
+    setInterlocuteurs([]);
     if (cmd.entreprises?.nom) setEntrepriseDisplayName(cmd.entreprises.nom);
     setForm((prev) => ({
       ...prev,
@@ -804,81 +797,60 @@ function CreateDevisForm({
 
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <Label htmlFor="contact_client_id" className="text-sm">
-                Contact client
+              <Label htmlFor="interlocuteur" className="text-sm">
+                Interlocuteur entreprise
               </Label>
               {contactAutoSelected && (
                 <span className="inline-flex items-center rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-400 ring-1 ring-inset ring-blue-500/20">
-                  Auto — Siège social
+                  Auto
                 </span>
               )}
             </div>
 
-            {siegeLoading ? (
+            {interlocuteurLoading ? (
               <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
                 <Loader2 className="h-3 w-3 animate-spin" />
-                Chargement des contacts siège...
+                Chargement des interlocuteurs...
               </div>
+            ) : interlocuteurs.length > 0 ? (
+              <select
+                id="interlocuteur"
+                value={form.contact_membre_id}
+                onChange={(e) => {
+                  const selectedMembreId = e.target.value;
+                  const selected = interlocuteurs.find(c => c.membre_id === selectedMembreId);
+                  setForm((prev) => ({
+                    ...prev,
+                    contact_client_id: selected?.contact_client_id || "",
+                    contact_membre_id: selectedMembreId,
+                    contact_auto_selected: false,
+                  }));
+                  setContactAutoSelected(false);
+                }}
+                className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
+              >
+                <option value="">-- Sélectionner un interlocuteur --</option>
+                {interlocuteurs.map((c) => (
+                  <option key={c.membre_id} value={c.membre_id}>
+                    {c.prenom} {c.nom.toUpperCase()}
+                    {" — "}
+                    {c.roles
+                      .filter(r => r === "direction" || r === "responsable_formation")
+                      .map(r => r === "direction" ? "Direction" : "Resp. formation")
+                      .join(", ")}
+                    {c.email ? ` (${c.email})` : ""}
+                  </option>
+                ))}
+              </select>
             ) : (
               <>
-                {(!showAllContacts && siegeContacts.length > 0) ? (
-                  <select
-                    id="contact_client_id"
-                    value={form.contact_membre_id}
-                    onChange={(e) => {
-                      const selectedMembreId = e.target.value;
-                      const selected = siegeContacts.find(c => c.membre_id === selectedMembreId);
-                      setForm((prev) => ({
-                        ...prev,
-                        contact_client_id: selected?.contact_client_id || "",
-                        contact_membre_id: selectedMembreId,
-                        contact_auto_selected: false,
-                      }));
-                      setContactAutoSelected(false);
-                    }}
-                    className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
-                  >
-                    <option value="">-- Sélectionner un contact --</option>
-                    {siegeContacts.map((c) => (
-                      <option key={c.membre_id} value={c.membre_id}>
-                        {c.prenom} {c.nom}
-                        {c.fonction ? ` — ${c.fonction}` : ""}
-                        {c.roles.length > 0 ? ` (${c.roles.join(", ")})` : ""}
-                        {c.source_type === "apprenant" ? " [Apprenant]" : ""}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <select
-                    id="contact_client_id"
-                    value={form.contact_client_id}
-                    onChange={(e) => {
-                      setForm((prev) => ({
-                        ...prev,
-                        contact_client_id: e.target.value,
-                        contact_membre_id: "",
-                        contact_auto_selected: false,
-                      }));
-                      setContactAutoSelected(false);
-                    }}
-                    className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
-                  >
-                    <option value="">-- Sélectionner un contact --</option>
-                    {contacts.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.prenom} {c.nom}
-                      </option>
-                    ))}
-                  </select>
-                )}
-
-                {noSiegeMembers && form.entreprise_id && (
+                {noInterlocuteurs && form.entreprise_id && (
                   <div className="flex items-start gap-2 text-xs text-amber-400 mt-1">
                     <AlertTriangle className="h-3 w-3 shrink-0 mt-0.5" />
                     <span>
-                      Aucun membre rattaché au siège social.{" "}
+                      Aucun membre &laquo;&nbsp;Direction&nbsp;&raquo; ou &laquo;&nbsp;Responsable de formation&nbsp;&raquo; n&apos;est rattach&eacute; &agrave; cette entreprise.{" "}
                       <a
-                        href={`/entreprises/${form.entreprise_id}`}
+                        href={`/entreprises/${form.entreprise_id}?tab=organisation`}
                         className="underline hover:text-amber-300"
                         target="_blank"
                         rel="noopener noreferrer"
@@ -887,25 +859,6 @@ function CreateDevisForm({
                       </a>
                     </span>
                   </div>
-                )}
-
-                {siegeContacts.length > 0 && !showAllContacts && (
-                  <button
-                    type="button"
-                    onClick={() => setShowAllContacts(true)}
-                    className="text-xs text-muted-foreground hover:text-foreground underline"
-                  >
-                    Voir tous les contacts
-                  </button>
-                )}
-                {showAllContacts && siegeContacts.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setShowAllContacts(false)}
-                    className="text-xs text-muted-foreground hover:text-foreground underline"
-                  >
-                    Voir uniquement les contacts siège
-                  </button>
                 )}
               </>
             )}

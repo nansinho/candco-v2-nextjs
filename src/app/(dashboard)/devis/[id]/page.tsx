@@ -22,8 +22,7 @@ import {
   duplicateDevis,
   convertDevisToFacture,
   getEntreprisesForSelect,
-  getContactsForSelect,
-  getEntrepriseSiegeContacts,
+  getEntrepriseInterlocuteurs,
   sendDevis,
   markDevisRefused,
   getSessionsForDevisSelect,
@@ -32,7 +31,7 @@ import {
   convertDevisToSession,
   getDevisPreviewForTransform,
   type UpdateDevisInput,
-  type SiegeContact,
+  type InterlocuteurContact,
   type TransformPreviewData,
 } from "@/actions/devis";
 import {
@@ -131,16 +130,11 @@ export default function DevisDetailPage() {
   const [entreprises, setEntreprises] = React.useState<
     Array<{ id: string; nom: string; numero_affichage?: string }>
   >([]);
-  const [contacts, setContacts] = React.useState<
-    Array<{ id: string; prenom: string; nom: string; numero_affichage?: string }>
-  >([]);
-
-  // Siege contact auto-selection
-  const [siegeContacts, setSiegeContacts] = React.useState<SiegeContact[]>([]);
+  // Interlocuteur (Direction / Resp. formation) selection
+  const [interlocuteurs, setInterlocuteurs] = React.useState<InterlocuteurContact[]>([]);
   const [contactAutoSelected, setContactAutoSelected] = React.useState(false);
-  const [showAllContacts, setShowAllContacts] = React.useState(false);
-  const [siegeLoading, setSiegeLoading] = React.useState(false);
-  const [noSiegeMembers, setNoSiegeMembers] = React.useState(false);
+  const [interlocuteurLoading, setInterlocuteurLoading] = React.useState(false);
+  const [noInterlocuteurs, setNoInterlocuteurs] = React.useState(false);
   const [contactMembreId, setContactMembreId] = React.useState("");
 
   // Organisation billing info
@@ -178,10 +172,9 @@ export default function DevisDetailPage() {
     async function loadData() {
       setLoading(true);
       try {
-        const [devisData, entreprisesData, contactsData, orgData] = await Promise.all([
+        const [devisData, entreprisesData, orgData] = await Promise.all([
           getDevis(devisId),
           getEntreprisesForSelect(),
-          getContactsForSelect(),
           getOrganisationBillingInfo(),
         ]);
 
@@ -193,7 +186,6 @@ export default function DevisDetailPage() {
 
         setDevis(devisData);
         setEntreprises(entreprisesData);
-        setContacts(contactsData);
         setOrgInfo(orgData);
 
         // Determine type
@@ -281,18 +273,18 @@ export default function DevisDetailPage() {
           }),
         );
 
-        // Load siege contacts if enterprise is set
+        // Load interlocuteurs (Direction / Resp. formation) if enterprise is set
         if (devisData.entreprise_id) {
-          const siegeResult = await getEntrepriseSiegeContacts(devisData.entreprise_id);
-          if (!siegeResult.error && siegeResult.contacts.length > 0) {
-            setSiegeContacts(siegeResult.contacts);
+          const interResult = await getEntrepriseInterlocuteurs(devisData.entreprise_id);
+          if (!interResult.error && interResult.contacts.length > 0) {
+            setInterlocuteurs(interResult.contacts);
             // If this devis has a contact_membre_id, mark as auto-selected
             if (devisData.contact_membre_id) {
-              const match = siegeResult.contacts.find(c => c.membre_id === (devisData.contact_membre_id as string));
+              const match = interResult.contacts.find(c => c.membre_id === (devisData.contact_membre_id as string));
               if (match) setContactAutoSelected(true);
             }
           } else {
-            setNoSiegeMembers(true);
+            setNoInterlocuteurs(true);
           }
         }
       } catch (error) {
@@ -407,13 +399,12 @@ export default function DevisDetailPage() {
 
   // ─── Handlers ──────────────────────────────────────────────
 
-  // Auto-fill contact from siege social when enterprise changes
+  // Auto-fill interlocuteur (Direction / Resp. formation) when enterprise changes
   const handleEntrepriseChangeDetail = async (newEntrepriseId: string) => {
     setEntrepriseId(newEntrepriseId);
     setContactAutoSelected(false);
-    setShowAllContacts(false);
-    setNoSiegeMembers(false);
-    setSiegeContacts([]);
+    setNoInterlocuteurs(false);
+    setInterlocuteurs([]);
 
     if (!newEntrepriseId) {
       setContactClientId("");
@@ -421,15 +412,15 @@ export default function DevisDetailPage() {
       return;
     }
 
-    setSiegeLoading(true);
+    setInterlocuteurLoading(true);
     try {
-      const result = await getEntrepriseSiegeContacts(newEntrepriseId);
+      const result = await getEntrepriseInterlocuteurs(newEntrepriseId);
       if (result.error || result.contacts.length === 0) {
-        setNoSiegeMembers(true);
+        setNoInterlocuteurs(true);
         // Don't clear existing contactClientId on detail page
         return;
       }
-      setSiegeContacts(result.contacts);
+      setInterlocuteurs(result.contacts);
       if (result.contacts.length === 1) {
         const c = result.contacts[0];
         setContactClientId(c.contact_client_id || "");
@@ -437,9 +428,9 @@ export default function DevisDetailPage() {
         setContactAutoSelected(true);
       }
     } catch {
-      setNoSiegeMembers(true);
+      setNoInterlocuteurs(true);
     } finally {
-      setSiegeLoading(false);
+      setInterlocuteurLoading(false);
     }
   };
 
@@ -1101,87 +1092,71 @@ export default function DevisDetailPage() {
 
                   <div>
                     <div className="flex items-center gap-2 mb-1.5">
-                      <Label htmlFor="contact" className="text-xs">
-                        Contact client (optionnel)
+                      <Label htmlFor="interlocuteur" className="text-xs">
+                        Interlocuteur entreprise
                       </Label>
                       {contactAutoSelected && (
                         <span className="inline-flex items-center rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-400 ring-1 ring-inset ring-blue-500/20">
-                          Auto — Siège social
+                          Auto
                         </span>
                       )}
                     </div>
 
-                    {siegeLoading ? (
+                    {interlocuteurLoading ? (
                       <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
                         <Loader2 className="h-3 w-3 animate-spin" />
-                        Chargement des contacts siège...
+                        Chargement des interlocuteurs...
                       </div>
+                    ) : interlocuteurs.length > 0 ? (
+                      <Select
+                        value={contactMembreId}
+                        onValueChange={(val) => {
+                          const selected = interlocuteurs.find(c => c.membre_id === val);
+                          setContactClientId(selected?.contact_client_id || "");
+                          setContactMembreId(val);
+                          setContactAutoSelected(false);
+                        }}
+                        disabled={isReadOnly}
+                      >
+                        <SelectTrigger
+                          id="interlocuteur"
+                          className="h-9 text-sm border-border/60"
+                        >
+                          <SelectValue placeholder="Sélectionner un interlocuteur" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Aucun</SelectItem>
+                          {interlocuteurs.map((c) => (
+                            <SelectItem key={c.membre_id} value={c.membre_id}>
+                              <span className="flex items-center gap-2">
+                                <span>{c.prenom} {c.nom.toUpperCase()}</span>
+                                {c.roles.filter(r => r === "direction" || r === "responsable_formation").map(r => (
+                                  <span
+                                    key={r}
+                                    className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ring-1 ring-inset ${
+                                      r === "direction"
+                                        ? "bg-amber-500/10 text-amber-400 ring-amber-500/20"
+                                        : "bg-purple-500/10 text-purple-400 ring-purple-500/20"
+                                    }`}
+                                  >
+                                    {r === "direction" ? "Direction" : "Resp. formation"}
+                                  </span>
+                                ))}
+                                {c.email && <span className="text-muted-foreground text-[10px]">{c.email}</span>}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     ) : (
                       <>
-                        {(!showAllContacts && siegeContacts.length > 0) ? (
-                          <Select
-                            value={contactMembreId}
-                            onValueChange={(val) => {
-                              const selected = siegeContacts.find(c => c.membre_id === val);
-                              setContactClientId(selected?.contact_client_id || "");
-                              setContactMembreId(val);
-                              setContactAutoSelected(false);
-                            }}
-                            disabled={isReadOnly}
-                          >
-                            <SelectTrigger
-                              id="contact"
-                              className="h-9 text-sm border-border/60"
-                            >
-                              <SelectValue placeholder="Sélectionner un contact" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="">Aucun</SelectItem>
-                              {siegeContacts.map((c) => (
-                                <SelectItem key={c.membre_id} value={c.membre_id}>
-                                  {c.numero_affichage ? `${c.numero_affichage} — ` : ""}
-                                  {c.prenom} {c.nom}
-                                  {c.fonction ? ` — ${c.fonction}` : ""}
-                                  {c.source_type === "apprenant" ? " [Apprenant]" : ""}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <Select
-                            value={contactClientId}
-                            onValueChange={(val) => {
-                              setContactClientId(val);
-                              setContactMembreId("");
-                              setContactAutoSelected(false);
-                            }}
-                            disabled={isReadOnly}
-                          >
-                            <SelectTrigger
-                              id="contact"
-                              className="h-9 text-sm border-border/60"
-                            >
-                              <SelectValue placeholder="Sélectionner un contact" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="">Aucun</SelectItem>
-                              {contacts.map((c) => (
-                                <SelectItem key={c.id} value={c.id}>
-                                  {c.numero_affichage ? `${c.numero_affichage} — ` : ""}
-                                  {c.prenom} {c.nom}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        )}
-
-                        {noSiegeMembers && entrepriseId && (
+                        {noInterlocuteurs && entrepriseId && (
                           <div className="flex items-start gap-2 text-xs text-amber-400 mt-1">
                             <AlertTriangle className="h-3 w-3 shrink-0 mt-0.5" />
                             <span>
-                              Aucun membre rattaché au siège social.{" "}
+                              Aucun membre &laquo;&nbsp;Direction&nbsp;&raquo; ou &laquo;&nbsp;Responsable de formation&nbsp;&raquo; n&apos;est rattach&eacute; &agrave; cette entreprise.{" "}
                               <a
-                                href={`/entreprises/${entrepriseId}`}
+                                href={`/entreprises/${entrepriseId}?tab=organisation`}
                                 className="underline hover:text-amber-300"
                                 target="_blank"
                                 rel="noopener noreferrer"
@@ -1190,25 +1165,6 @@ export default function DevisDetailPage() {
                               </a>
                             </span>
                           </div>
-                        )}
-
-                        {siegeContacts.length > 0 && !showAllContacts && (
-                          <button
-                            type="button"
-                            onClick={() => setShowAllContacts(true)}
-                            className="text-xs text-muted-foreground hover:text-foreground underline mt-1"
-                          >
-                            Voir tous les contacts
-                          </button>
-                        )}
-                        {showAllContacts && siegeContacts.length > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => setShowAllContacts(false)}
-                            className="text-xs text-muted-foreground hover:text-foreground underline mt-1"
-                          >
-                            Voir uniquement les contacts siège
-                          </button>
                         )}
                       </>
                     )}
