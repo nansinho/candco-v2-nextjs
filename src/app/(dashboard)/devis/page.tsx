@@ -36,6 +36,8 @@ import { AIDocumentDialog } from "@/components/shared/ai-document-dialog";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { DatePicker } from "@/components/ui/date-picker";
 import { LignesEditor, type LigneItem } from "@/components/shared/lignes-editor";
+import { computeQuantiteFromTarif, formatDatesDisplay } from "@/lib/devis-helpers";
+import { MultiDatePicker } from "@/components/ui/multi-date-picker";
 import { ProduitSearchCombobox } from "@/components/shared/produit-search-combobox";
 import { EntrepriseSearchCombobox } from "@/components/shared/entreprise-search-combobox";
 import {
@@ -367,7 +369,8 @@ function CreateDevisForm({
   const [produitTarifs, setProduitTarifs] = React.useState<ProduitTarifOption[]>([]);
   const [selectedTarifId, setSelectedTarifId] = React.useState("");
   const [lieuFormation, setLieuFormation] = React.useState("");
-  const [datesFormation, setDatesFormation] = React.useState("");
+  const [datesFormationJours, setDatesFormationJours] = React.useState<Date[]>([]);
+  const datesFormation = React.useMemo(() => formatDatesDisplay(datesFormationJours), [datesFormationJours]);
   const [nombreParticipants, setNombreParticipants] = React.useState<string>("");
   const [entrepriseDisplayName, setEntrepriseDisplayName] = React.useState("");
   const [form, setForm] = React.useState<CreateDevisInput>({
@@ -390,6 +393,7 @@ function CreateDevisForm({
     produit_id: "",
     lieu_formation: "",
     dates_formation: "",
+    dates_formation_jours: [],
     nombre_participants: undefined,
     modalite_pedagogique: "",
     duree_formation: "",
@@ -543,7 +547,12 @@ function CreateDevisForm({
     return {
       designation: parts.join("\n"),
       description: "",
-      quantite: Number(nombreParticipants) || 1,
+      quantite: computeQuantiteFromTarif(
+        tarif?.unite,
+        Number(nombreParticipants) || undefined,
+        selectedProduit?.duree_jours,
+        selectedProduit?.duree_heures,
+      ),
       prix_unitaire_ht: tarif?.prix_ht || 0,
       taux_tva: tarif?.taux_tva || 0,
       ordre: 0,
@@ -566,9 +575,10 @@ function CreateDevisForm({
       ...prev,
       lieu_formation: lieuFormation,
       dates_formation: datesFormation,
+      dates_formation_jours: datesFormationJours.map((d) => d.toISOString().split("T")[0]),
       nombre_participants: nombreParticipants ? Number(nombreParticipants) : undefined,
     }));
-  }, [lieuFormation, datesFormation, nombreParticipants]);
+  }, [lieuFormation, datesFormation, datesFormationJours, nombreParticipants]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -696,11 +706,10 @@ function CreateDevisForm({
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Date(s) de formation</Label>
-              <Input
-                value={datesFormation}
-                onChange={(e) => setDatesFormation(e.target.value)}
-                placeholder="Ex: 15-17 mars 2026"
-                className="h-8 text-xs border-border/60"
+              <MultiDatePicker
+                value={datesFormationJours}
+                onChange={setDatesFormationJours}
+                placeholder="Sélectionner les dates..."
               />
             </div>
             <div className="space-y-1">

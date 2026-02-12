@@ -45,6 +45,7 @@ const CreateDevisSchema = z.object({
   produit_id: z.string().uuid().optional().or(z.literal("")),
   lieu_formation: z.string().optional().or(z.literal("")),
   dates_formation: z.string().optional().or(z.literal("")),
+  dates_formation_jours: z.array(z.string()).optional().default([]),
   nombre_participants: z.coerce.number().int().nonnegative().optional(),
   modalite_pedagogique: z.string().optional().or(z.literal("")),
   duree_formation: z.string().optional().or(z.literal("")),
@@ -116,6 +117,7 @@ export async function createDevis(input: CreateDevisInput) {
       produit_id: parsed.data.produit_id || null,
       lieu_formation: parsed.data.lieu_formation || null,
       dates_formation: parsed.data.dates_formation || null,
+      dates_formation_jours: parsed.data.dates_formation_jours?.length ? parsed.data.dates_formation_jours : null,
       nombre_participants: parsed.data.nombre_participants || null,
       modalite_pedagogique: parsed.data.modalite_pedagogique || null,
       duree_formation: parsed.data.duree_formation || null,
@@ -278,6 +280,7 @@ export async function updateDevis(id: string, input: UpdateDevisInput) {
       produit_id: parsed.data.produit_id || null,
       lieu_formation: parsed.data.lieu_formation || null,
       dates_formation: parsed.data.dates_formation || null,
+      dates_formation_jours: parsed.data.dates_formation_jours?.length ? parsed.data.dates_formation_jours : null,
       nombre_participants: parsed.data.nombre_participants || null,
       modalite_pedagogique: parsed.data.modalite_pedagogique || null,
       duree_formation: parsed.data.duree_formation || null,
@@ -447,6 +450,7 @@ export async function duplicateDevis(id: string) {
     produit_id: original.produit_id ?? "",
     lieu_formation: original.lieu_formation ?? "",
     dates_formation: original.dates_formation ?? "",
+    dates_formation_jours: (original.dates_formation_jours as string[] | null) ?? [],
     nombre_participants: original.nombre_participants ?? undefined,
     modalite_pedagogique: original.modalite_pedagogique ?? "",
     duree_formation: original.duree_formation ?? "",
@@ -999,6 +1003,12 @@ export async function convertDevisToSession(devisId: string) {
     p_entite: "SES",
   });
 
+  // ── Compute session dates from individual days ──
+  const jours = (devisData.dates_formation_jours as string[] | null) || [];
+  const sortedJours = [...jours].sort();
+  const dateDebut = sortedJours[0] || null;
+  const dateFin = sortedJours.length > 0 ? sortedJours[sortedJours.length - 1] : null;
+
   // ── Create session with all available data ──
   const { data: session, error } = await supabase
     .from("sessions")
@@ -1011,11 +1021,26 @@ export async function convertDevisToSession(devisId: string) {
       lieu_adresse: (devisData.lieu_formation as string) || null,
       lieu_type: lieuType,
       places_max: (devisData.nombre_participants as number) || null,
+      date_debut: dateDebut,
+      date_fin: dateFin,
     })
     .select()
     .single();
 
   if (error) return { error: error.message };
+
+  // ── Create time slots for each selected formation day ──
+  if (sortedJours.length > 0) {
+    const creneaux = sortedJours.map((dateStr) => ({
+      session_id: session.id,
+      date: dateStr,
+      heure_debut: "09:00",
+      heure_fin: "17:00",
+      duree_minutes: 420,
+      type: lieuType || "presentiel",
+    }));
+    await supabase.from("session_creneaux").insert(creneaux);
+  }
 
   // ── Create commanditaire if entreprise exists ──
   if (devisData.entreprise_id) {

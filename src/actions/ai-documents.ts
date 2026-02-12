@@ -339,6 +339,7 @@ async function createDevisFromAI(
     commanditaire_id: "",
     exoneration_tva: false,
     contact_auto_selected: false,
+    dates_formation_jours: [],
     lignes: rawLignes.map((l, i) => ({
       designation: (l.designation as string) || "Ligne",
       description: (l.description as string) || "",

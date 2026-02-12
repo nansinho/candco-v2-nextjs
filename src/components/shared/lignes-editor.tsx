@@ -1,14 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { Plus, Trash2, Search, Bookmark, Library } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { useToast } from "@/components/ui/toast";
 import { formatCurrency } from "@/lib/utils";
-import { searchArticles, saveLineAsArticle, type ArticleSearchResult } from "@/actions/articles-catalogue";
 
 export interface LigneItem {
   id?: string;
@@ -28,117 +24,9 @@ interface LignesEditorProps {
   tvaLocked?: boolean;
 }
 
-// ─── Article Search Popover ─────────────────────────────
-
-function ArticleSearchPopover({
-  onSelect,
-}: {
-  onSelect: (article: ArticleSearchResult) => void;
-}) {
-  const [open, setOpen] = React.useState(false);
-  const [query, setQuery] = React.useState("");
-  const [results, setResults] = React.useState<ArticleSearchResult[]>([]);
-  const [loading, setLoading] = React.useState(false);
-  const debounceRef = React.useRef<ReturnType<typeof setTimeout>>(null);
-
-  const doSearch = React.useCallback(async (q: string) => {
-    setLoading(true);
-    try {
-      const data = await searchArticles(q);
-      setResults(data);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // Load initial list when popover opens
-  React.useEffect(() => {
-    if (open) {
-      doSearch("");
-    }
-  }, [open, doSearch]);
-
-  const handleQueryChange = (value: string) => {
-    setQuery(value);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => doSearch(value), 300);
-  };
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="h-8 text-xs border-dashed border-border/60"
-        >
-          <Library className="mr-1 h-3 w-3" />
-          Depuis le catalogue
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[400px] p-0" align="start">
-        <div className="p-2 border-b border-border/40">
-          <div className="relative">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              value={query}
-              onChange={(e) => handleQueryChange(e.target.value)}
-              placeholder="Rechercher un article..."
-              className="h-8 pl-7 text-sm"
-              autoFocus
-            />
-          </div>
-        </div>
-        <div className="max-h-[280px] overflow-y-auto">
-          {loading && results.length === 0 && (
-            <div className="p-4 text-center text-xs text-muted-foreground">Chargement...</div>
-          )}
-          {!loading && results.length === 0 && (
-            <div className="p-4 text-center text-xs text-muted-foreground">Aucun article trouvé</div>
-          )}
-          {results.map((article) => (
-            <button
-              key={article.id}
-              type="button"
-              onClick={() => {
-                onSelect(article);
-                setOpen(false);
-                setQuery("");
-              }}
-              className="w-full text-left px-3 py-2 hover:bg-accent/50 transition-colors border-b border-border/20 last:border-0"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    {article.reference && (
-                      <span className="text-xs font-mono text-muted-foreground shrink-0">
-                        {article.reference}
-                      </span>
-                    )}
-                    <span className="text-sm font-medium truncate">{article.designation}</span>
-                  </div>
-                  {article.categorie && (
-                    <span className="text-xs text-muted-foreground">{article.categorie}</span>
-                  )}
-                </div>
-                <span className="text-xs font-mono text-muted-foreground shrink-0">
-                  {formatCurrency(article.prix_unitaire_ht)}
-                </span>
-              </div>
-            </button>
-          ))}
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-}
-
 // ─── Main LignesEditor ──────────────────────────────────
 
 export function LignesEditor({ lignes, onChange, readOnly = false, tvaLocked = false }: LignesEditorProps) {
-  const { toast } = useToast();
-
   const addLigne = () => {
     onChange([
       ...lignes,
@@ -148,20 +36,6 @@ export function LignesEditor({ lignes, onChange, readOnly = false, tvaLocked = f
         quantite: 1,
         prix_unitaire_ht: 0,
         taux_tva: 0,
-        ordre: lignes.length,
-      },
-    ]);
-  };
-
-  const addFromArticle = (article: ArticleSearchResult) => {
-    onChange([
-      ...lignes,
-      {
-        designation: article.designation,
-        description: article.description || "",
-        quantite: 1,
-        prix_unitaire_ht: article.prix_unitaire_ht,
-        taux_tva: tvaLocked ? 0 : article.taux_tva,
         ordre: lignes.length,
       },
     ]);
@@ -177,27 +51,6 @@ export function LignesEditor({ lignes, onChange, readOnly = false, tvaLocked = f
     onChange(lignes.filter((_, i) => i !== index));
   };
 
-  const handleSaveAsArticle = async (ligne: LigneItem) => {
-    const result = await saveLineAsArticle({
-      designation: ligne.designation,
-      description: ligne.description || "",
-      prix_unitaire_ht: ligne.prix_unitaire_ht,
-      taux_tva: ligne.taux_tva,
-      unite: "",
-    });
-    if ("error" in result && result.error) {
-      const err = result.error;
-      const errMsg = typeof err === "object" && "_form" in err
-        ? (err._form as string[]).join(", ")
-        : typeof err === "object"
-          ? Object.values(err).flat().join(", ") || "Impossible de sauvegarder l'article"
-          : "Impossible de sauvegarder l'article";
-      toast({ title: "Erreur", description: errMsg, variant: "destructive" });
-    } else {
-      toast({ title: "Article sauvegardé", description: `"${ligne.designation}" ajouté au catalogue`, variant: "success" });
-    }
-  };
-
   const totalHT = lignes.reduce((sum, l) => sum + l.quantite * l.prix_unitaire_ht, 0);
   const totalTVA = lignes.reduce(
     (sum, l) => sum + l.quantite * l.prix_unitaire_ht * (l.taux_tva / 100),
@@ -208,7 +61,7 @@ export function LignesEditor({ lignes, onChange, readOnly = false, tvaLocked = f
   return (
     <div className="space-y-3">
       {/* Header — desktop only */}
-      <div className="hidden md:grid grid-cols-[1fr_80px_100px_70px_100px_64px] gap-2 text-xs font-medium text-muted-foreground uppercase tracking-wide px-1">
+      <div className="hidden md:grid grid-cols-[1fr_80px_100px_70px_100px_36px] gap-2 text-xs font-medium text-muted-foreground uppercase tracking-wide px-1">
         <span>Désignation</span>
         <span className="text-right">Qté</span>
         <span className="text-right">P.U. HT</span>
@@ -223,7 +76,7 @@ export function LignesEditor({ lignes, onChange, readOnly = false, tvaLocked = f
         return (
           <div key={index}>
             {/* Desktop layout */}
-            <div className="hidden md:grid grid-cols-[1fr_80px_100px_70px_100px_64px] gap-2 items-start">
+            <div className="hidden md:grid grid-cols-[1fr_80px_100px_70px_100px_36px] gap-2 items-start">
               <div className="space-y-1">
                 <Input
                   value={ligne.designation}
@@ -272,29 +125,15 @@ export function LignesEditor({ lignes, onChange, readOnly = false, tvaLocked = f
                 {formatCurrency(ligneHT)}
               </div>
               {!readOnly && (
-                <div className="flex items-center gap-0.5">
-                  {ligne.designation.trim() && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleSaveAsArticle(ligne)}
-                      className="h-8 w-8 p-0 text-muted-foreground hover:text-orange-500"
-                      title="Sauvegarder comme article"
-                    >
-                      <Bookmark className="h-3.5 w-3.5" />
-                    </Button>
-                  )}
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeLigne(index)}
-                    className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeLigne(index)}
+                  className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
               )}
             </div>
 
@@ -305,29 +144,15 @@ export function LignesEditor({ lignes, onChange, readOnly = false, tvaLocked = f
                   Ligne {index + 1}
                 </span>
                 {!readOnly && (
-                  <div className="flex items-center gap-0.5">
-                    {ligne.designation.trim() && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleSaveAsArticle(ligne)}
-                        className="h-7 w-7 p-0 text-muted-foreground hover:text-orange-500"
-                        title="Sauvegarder comme article"
-                      >
-                        <Bookmark className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeLigne(index)}
-                      className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeLigne(index)}
+                    className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
                 )}
               </div>
               <Input
@@ -392,21 +217,18 @@ export function LignesEditor({ lignes, onChange, readOnly = false, tvaLocked = f
         );
       })}
 
-      {/* Add buttons */}
+      {/* Add button */}
       {!readOnly && (
-        <div className="flex flex-wrap gap-2">
-          <ArticleSearchPopover onSelect={addFromArticle} />
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={addLigne}
-            className="h-8 text-xs border-dashed border-border/60"
-          >
-            <Plus className="mr-1 h-3 w-3" />
-            Ligne libre
-          </Button>
-        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={addLigne}
+          className="h-8 text-xs border-dashed border-border/60"
+        >
+          <Plus className="mr-1 h-3 w-3" />
+          Ligne libre
+        </Button>
       )}
 
       {/* Totals */}
