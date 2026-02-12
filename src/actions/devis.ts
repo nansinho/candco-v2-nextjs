@@ -28,6 +28,7 @@ export type DevisLigneInput = z.infer<typeof DevisLigneSchema>;
 const CreateDevisSchema = z.object({
   entreprise_id: z.string().uuid().optional().or(z.literal("")),
   contact_client_id: z.string().uuid().optional().or(z.literal("")),
+  contact_membre_id: z.string().uuid().optional().or(z.literal("")),
   particulier_nom: z.string().optional().or(z.literal("")),
   particulier_email: z.string().optional().or(z.literal("")),
   particulier_telephone: z.string().optional().or(z.literal("")),
@@ -98,6 +99,7 @@ export async function createDevis(input: CreateDevisInput) {
       numero_affichage: numero,
       entreprise_id: parsed.data.entreprise_id || null,
       contact_client_id: parsed.data.contact_client_id || null,
+      contact_membre_id: parsed.data.contact_membre_id || null,
       particulier_nom: parsed.data.particulier_nom || null,
       particulier_email: parsed.data.particulier_email || null,
       particulier_telephone: parsed.data.particulier_telephone || null,
@@ -186,7 +188,7 @@ export async function getDevisList(
   let query = supabase
     .from("devis")
     .select(
-      "*, entreprises(nom), contacts_clients(prenom, nom), produits_formation(intitule)",
+      "*, entreprises(nom), contacts_clients(prenom, nom), produits_formation(intitule), entreprise_membres!contact_membre_id(apprenants(prenom, nom))",
       { count: "exact" },
     );
 
@@ -226,6 +228,7 @@ export async function getDevis(id: string) {
       `*,
        entreprises(id, nom, email, siret, adresse_rue, adresse_cp, adresse_ville, facturation_raison_sociale, facturation_rue, facturation_cp, facturation_ville),
        contacts_clients(id, prenom, nom, email, telephone),
+       entreprise_membres!contact_membre_id(id, apprenant_id, contact_client_id, fonction, roles, apprenants(id, prenom, nom, email, telephone, numero_affichage)),
        opportunites(id, nom),
        produits_formation(id, intitule, identifiant_interne, domaine, modalite, formule, duree_heures, duree_jours),
        devis_lignes(id, designation, description, quantite, prix_unitaire_ht, taux_tva, montant_ht, ordre)`,
@@ -258,6 +261,7 @@ export async function updateDevis(id: string, input: UpdateDevisInput) {
     .update({
       entreprise_id: parsed.data.entreprise_id || null,
       contact_client_id: parsed.data.contact_client_id || null,
+      contact_membre_id: parsed.data.contact_membre_id || null,
       particulier_nom: parsed.data.particulier_nom || null,
       particulier_email: parsed.data.particulier_email || null,
       particulier_telephone: parsed.data.particulier_telephone || null,
@@ -426,6 +430,7 @@ export async function duplicateDevis(id: string) {
   return createDevis({
     entreprise_id: original.entreprise_id ?? "",
     contact_client_id: original.contact_client_id ?? "",
+    contact_membre_id: original.contact_membre_id ?? "",
     particulier_nom: original.particulier_nom ?? "",
     particulier_email: original.particulier_email ?? "",
     particulier_telephone: original.particulier_telephone ?? "",
@@ -562,7 +567,14 @@ export async function getContactsForSelect() {
 // ─── Siege social contacts for auto-selection ────────────
 
 export interface SiegeContact {
-  contact_client_id: string;
+  /** ID of the entreprise_membres record — used as dropdown key */
+  membre_id: string;
+  /** If this member is a contact_client, its ID. Null for apprenant-only members. */
+  contact_client_id: string | null;
+  /** If this member is an apprenant, its ID. Null for contact_client members. */
+  apprenant_id: string | null;
+  /** Whether the contact info comes from contacts_clients or apprenants */
+  source_type: "contact_client" | "apprenant";
   prenom: string;
   nom: string;
   email: string | null;
@@ -582,29 +594,65 @@ export async function getEntrepriseSiegeContacts(entrepriseId: string): Promise<
   if ("error" in result) return { contacts: [], error: result.error };
   const { admin } = result;
 
+  // Query ALL siege members — both contact_client and apprenant based
   const { data, error } = await admin
     .from("entreprise_membres")
-    .select("contact_client_id, roles, fonction, contacts_clients(id, prenom, nom, email, telephone, fonction, numero_affichage)")
+    .select(`
+      id, contact_client_id, apprenant_id, roles, fonction,
+      contacts_clients(id, prenom, nom, email, telephone, fonction, numero_affichage),
+      apprenants(id, prenom, nom, email, telephone, fonction, numero_affichage)
+    `)
     .eq("entreprise_id", entrepriseId)
-    .eq("rattache_siege", true)
-    .not("contact_client_id", "is", null);
+    .eq("rattache_siege", true);
 
   if (error) return { contacts: [], error: error.message };
 
-  const contacts: SiegeContact[] = (data ?? [])
-    .filter((m: Record<string, unknown>) => m.contacts_clients)
-    .map((m: Record<string, unknown>) => {
-      const cc = m.contacts_clients as { id: string; prenom: string; nom: string; email: string | null; telephone: string | null; fonction: string | null; numero_affichage: string | null };
-      return {
-        contact_client_id: cc.id,
-        prenom: cc.prenom,
-        nom: cc.nom,
-        email: cc.email,
-        telephone: cc.telephone,
-        fonction: (m.fonction as string | null) || cc.fonction,
-        numero_affichage: cc.numero_affichage,
-        roles: (m.roles as string[]) ?? [],
-      };
+  type PersonInfo = { id: string; prenom: string; nom: string; email: string | null; telephone: string | null; fonction: string | null; numero_affichage: string | null };
+  type JoinedRow = {
+    id: string;
+    contact_client_id: string | null;
+    apprenant_id: string | null;
+    roles: string[] | null;
+    fonction: string | null;
+    contacts_clients: PersonInfo | null;
+    apprenants: PersonInfo | null;
+  };
+
+  const contacts: SiegeContact[] = ((data as JoinedRow[]) ?? [])
+    .filter((m) => m.contacts_clients || m.apprenants)
+    .map((m) => {
+      const cc = m.contacts_clients;
+      const app = m.apprenants;
+
+      if (cc) {
+        return {
+          membre_id: m.id,
+          contact_client_id: cc.id,
+          apprenant_id: null,
+          source_type: "contact_client" as const,
+          prenom: cc.prenom,
+          nom: cc.nom,
+          email: cc.email,
+          telephone: cc.telephone,
+          fonction: m.fonction || cc.fonction,
+          numero_affichage: cc.numero_affichage,
+          roles: m.roles ?? [],
+        };
+      } else {
+        return {
+          membre_id: m.id,
+          contact_client_id: null,
+          apprenant_id: app!.id,
+          source_type: "apprenant" as const,
+          prenom: app!.prenom,
+          nom: app!.nom,
+          email: app!.email,
+          telephone: app!.telephone,
+          fonction: m.fonction || app!.fonction,
+          numero_affichage: app!.numero_affichage,
+          roles: m.roles ?? [],
+        };
+      }
     });
 
   return { contacts };
@@ -623,9 +671,10 @@ export async function sendDevis(devisId: string) {
     .from("devis")
     .select(`
       id, statut, date_emission, total_ttc, numero_affichage, objet,
-      entreprise_id, contact_client_id, particulier_nom, particulier_email,
+      entreprise_id, contact_client_id, contact_membre_id, particulier_nom, particulier_email,
       entreprises(nom, email),
       contacts_clients(prenom, nom, email),
+      entreprise_membres!contact_membre_id(apprenants(prenom, nom, email)),
       devis_lignes(id)
     `)
     .eq("id", devisId)
@@ -638,12 +687,14 @@ export async function sendDevis(devisId: string) {
     return { error: "Le devis doit contenir au moins une ligne" };
   }
 
-  // Determine recipient email
+  // Determine recipient email — check contact_client, then membre/apprenant, then entreprise, then particulier
   const contactRaw = devis.contacts_clients;
   const contact = (Array.isArray(contactRaw) ? contactRaw[0] : contactRaw) as { prenom: string; nom: string; email: string } | null;
+  const membreRaw = devis.entreprise_membres as { apprenants: { prenom: string; nom: string; email: string | null } | null } | null;
+  const apprenantContact = membreRaw?.apprenants ?? null;
   const entrepriseRaw = devis.entreprises;
   const entreprise = (Array.isArray(entrepriseRaw) ? entrepriseRaw[0] : entrepriseRaw) as { nom: string; email: string } | null;
-  const recipientEmail = contact?.email || entreprise?.email || devis.particulier_email;
+  const recipientEmail = contact?.email || apprenantContact?.email || entreprise?.email || devis.particulier_email;
 
   if (!recipientEmail) {
     return { error: "Aucune adresse email trouvée pour le destinataire. Renseignez l'email du contact, de l'entreprise ou du particulier." };
@@ -670,7 +721,9 @@ export async function sendDevis(devisId: string) {
   const pdfUrl = "url" in pdfResult ? pdfResult.url : undefined;
   const recipientName = contact
     ? `${contact.prenom} ${contact.nom}`
-    : devis.particulier_nom || entreprise?.nom || "Client";
+    : apprenantContact
+      ? `${apprenantContact.prenom} ${apprenantContact.nom}`
+      : devis.particulier_nom || entreprise?.nom || "Client";
 
   // Fetch org name for email
   const { data: org } = await admin
@@ -887,13 +940,15 @@ export async function getDevisPreviewForTransform(devisId: string): Promise<{ er
   const produit = devisData.produits_formation as unknown as { intitule: string } | null;
   const entreprise = devisData.entreprises as unknown as { nom: string } | null;
   const contact = devisData.contacts_clients as unknown as { prenom: string; nom: string } | null;
+  const membreData = devisData.entreprise_membres as { apprenants: { prenom: string; nom: string } | null } | null;
+  const apprenantForPreview = membreData?.apprenants ?? null;
 
   return {
     data: {
       sessionName: produit?.intitule || devisData.objet || `Session depuis ${devisData.numero_affichage}`,
       produitIntitule: produit?.intitule || null,
       entrepriseNom: entreprise?.nom || (devisData.particulier_nom as string) || null,
-      contactNom: contact ? `${contact.prenom} ${contact.nom}` : null,
+      contactNom: contact ? `${contact.prenom} ${contact.nom}` : apprenantForPreview ? `${apprenantForPreview.prenom} ${apprenantForPreview.nom}` : null,
       lieuFormation: (devisData.lieu_formation as string) || null,
       datesFormation: (devisData.dates_formation as string) || null,
       nombreParticipants: (devisData.nombre_participants as number) || null,

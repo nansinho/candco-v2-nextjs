@@ -136,6 +136,7 @@ export default function DevisDetailPage() {
   const [showAllContacts, setShowAllContacts] = React.useState(false);
   const [siegeLoading, setSiegeLoading] = React.useState(false);
   const [noSiegeMembers, setNoSiegeMembers] = React.useState(false);
+  const [contactMembreId, setContactMembreId] = React.useState("");
 
   // Organisation billing info
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -198,6 +199,7 @@ export default function DevisDetailPage() {
         // Fill form
         setEntrepriseId(devisData.entreprise_id || "");
         setContactClientId(devisData.contact_client_id || "");
+        setContactMembreId((devisData.contact_membre_id as string) || "");
         setParticulierNom(devisData.particulier_nom || "");
         setParticulierEmail(devisData.particulier_email || "");
         setParticulierTelephone(devisData.particulier_telephone || "");
@@ -270,6 +272,21 @@ export default function DevisDetailPage() {
             };
           }),
         );
+
+        // Load siege contacts if enterprise is set
+        if (devisData.entreprise_id) {
+          const siegeResult = await getEntrepriseSiegeContacts(devisData.entreprise_id);
+          if (!siegeResult.error && siegeResult.contacts.length > 0) {
+            setSiegeContacts(siegeResult.contacts);
+            // If this devis has a contact_membre_id, mark as auto-selected
+            if (devisData.contact_membre_id) {
+              const match = siegeResult.contacts.find(c => c.membre_id === (devisData.contact_membre_id as string));
+              if (match) setContactAutoSelected(true);
+            }
+          } else {
+            setNoSiegeMembers(true);
+          }
+        }
       } catch (error) {
         console.error("Erreur chargement devis:", error);
         toast({ title: "Erreur", description: "Impossible de charger le devis", variant: "destructive" });
@@ -337,6 +354,7 @@ export default function DevisDetailPage() {
 
     if (!newEntrepriseId) {
       setContactClientId("");
+      setContactMembreId("");
       return;
     }
 
@@ -350,7 +368,9 @@ export default function DevisDetailPage() {
       }
       setSiegeContacts(result.contacts);
       if (result.contacts.length === 1) {
-        setContactClientId(result.contacts[0].contact_client_id);
+        const c = result.contacts[0];
+        setContactClientId(c.contact_client_id || "");
+        setContactMembreId(c.membre_id);
         setContactAutoSelected(true);
       }
     } catch {
@@ -366,6 +386,7 @@ export default function DevisDetailPage() {
       const input: UpdateDevisInput = {
         entreprise_id: destinataireType === "entreprise" ? entrepriseId : "",
         contact_client_id: contactClientId,
+        contact_membre_id: contactMembreId,
         particulier_nom: destinataireType === "particulier" ? particulierNom : "",
         particulier_email: destinataireType === "particulier" ? particulierEmail : "",
         particulier_telephone: destinataireType === "particulier" ? particulierTelephone : "",
@@ -1013,39 +1034,62 @@ export default function DevisDetailPage() {
                       </div>
                     ) : (
                       <>
-                        <Select
-                          value={contactClientId}
-                          onValueChange={(val) => {
-                            setContactClientId(val);
-                            setContactAutoSelected(false);
-                          }}
-                          disabled={isReadOnly}
-                        >
-                          <SelectTrigger
-                            id="contact"
-                            className="h-9 text-sm border-border/60"
+                        {(!showAllContacts && siegeContacts.length > 0) ? (
+                          <Select
+                            value={contactMembreId}
+                            onValueChange={(val) => {
+                              const selected = siegeContacts.find(c => c.membre_id === val);
+                              setContactClientId(selected?.contact_client_id || "");
+                              setContactMembreId(val);
+                              setContactAutoSelected(false);
+                            }}
+                            disabled={isReadOnly}
                           >
-                            <SelectValue placeholder="Sélectionner un contact" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="">Aucun</SelectItem>
-                            {(!showAllContacts && siegeContacts.length > 0)
-                              ? siegeContacts.map((c) => (
-                                  <SelectItem key={c.contact_client_id} value={c.contact_client_id}>
-                                    {c.numero_affichage ? `${c.numero_affichage} — ` : ""}
-                                    {c.prenom} {c.nom}
-                                    {c.fonction ? ` — ${c.fonction}` : ""}
-                                  </SelectItem>
-                                ))
-                              : contacts.map((c) => (
-                                  <SelectItem key={c.id} value={c.id}>
-                                    {c.numero_affichage ? `${c.numero_affichage} — ` : ""}
-                                    {c.prenom} {c.nom}
-                                  </SelectItem>
-                                ))
-                            }
-                          </SelectContent>
-                        </Select>
+                            <SelectTrigger
+                              id="contact"
+                              className="h-9 text-sm border-border/60"
+                            >
+                              <SelectValue placeholder="Sélectionner un contact" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="">Aucun</SelectItem>
+                              {siegeContacts.map((c) => (
+                                <SelectItem key={c.membre_id} value={c.membre_id}>
+                                  {c.numero_affichage ? `${c.numero_affichage} — ` : ""}
+                                  {c.prenom} {c.nom}
+                                  {c.fonction ? ` — ${c.fonction}` : ""}
+                                  {c.source_type === "apprenant" ? " [Apprenant]" : ""}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Select
+                            value={contactClientId}
+                            onValueChange={(val) => {
+                              setContactClientId(val);
+                              setContactMembreId("");
+                              setContactAutoSelected(false);
+                            }}
+                            disabled={isReadOnly}
+                          >
+                            <SelectTrigger
+                              id="contact"
+                              className="h-9 text-sm border-border/60"
+                            >
+                              <SelectValue placeholder="Sélectionner un contact" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="">Aucun</SelectItem>
+                              {contacts.map((c) => (
+                                <SelectItem key={c.id} value={c.id}>
+                                  {c.numero_affichage ? `${c.numero_affichage} — ` : ""}
+                                  {c.prenom} {c.nom}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
 
                         {noSiegeMembers && entrepriseId && (
                           <div className="flex items-start gap-2 text-xs text-amber-400 mt-1">
