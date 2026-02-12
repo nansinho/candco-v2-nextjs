@@ -5,10 +5,11 @@ import { requirePermission, canManageFinances, canDelete, canArchive, type UserR
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { QueryFilter } from "@/lib/utils";
-import { logHistorique } from "@/lib/historique";
+import { logHistorique, logHistoriqueBatch } from "@/lib/historique";
 import { isDocumensoConfigured } from "@/lib/documenso";
 import { sendEmail } from "@/lib/emails/send-email";
 import { devisEnvoyeTemplate } from "@/lib/emails/templates";
+import { inheritProductPlanifications } from "@/actions/questionnaires";
 
 // ─── Schemas ─────────────────────────────────────────────
 
@@ -36,7 +37,7 @@ const CreateDevisSchema = z.object({
   objet: z.string().optional().or(z.literal("")),
   conditions: z.string().optional().or(z.literal("")),
   mentions_legales: z.string().optional().or(z.literal("")),
-  statut: z.enum(["brouillon", "envoye", "signe", "refuse", "expire"]).default("brouillon"),
+  statut: z.enum(["brouillon", "envoye", "signe", "refuse", "expire", "transforme"]).default("brouillon"),
   opportunite_id: z.string().uuid().optional().or(z.literal("")),
   session_id: z.string().uuid().optional().or(z.literal("")),
   commanditaire_id: z.string().uuid().optional().or(z.literal("")),
@@ -857,6 +858,64 @@ export async function unlinkDevisFromSession(devisId: string) {
   return { success: true };
 }
 
+// ─── Preview data for transform confirmation dialog ─────
+
+export interface TransformPreviewData {
+  sessionName: string;
+  produitIntitule: string | null;
+  entrepriseNom: string | null;
+  contactNom: string | null;
+  lieuFormation: string | null;
+  datesFormation: string | null;
+  nombreParticipants: number | null;
+  modalite: string | null;
+  dureeFormation: string | null;
+  budget: number;
+  devisNumero: string;
+}
+
+export async function getDevisPreviewForTransform(devisId: string): Promise<{ error?: string; data?: TransformPreviewData }> {
+  const devisData = await getDevis(devisId);
+  if (!devisData) return { error: "Devis introuvable" };
+
+  if (devisData.session_id) return { error: "Ce devis est déjà lié à une session" };
+  if (!devisData.produit_id) return { error: "Un produit de formation doit être sélectionné avant de transformer en session" };
+  if (!devisData.entreprise_id && !devisData.particulier_nom) {
+    return { error: "Un destinataire (entreprise ou particulier) doit être renseigné avant de transformer en session" };
+  }
+
+  const produit = devisData.produits_formation as unknown as { intitule: string } | null;
+  const entreprise = devisData.entreprises as unknown as { nom: string } | null;
+  const contact = devisData.contacts_clients as unknown as { prenom: string; nom: string } | null;
+
+  return {
+    data: {
+      sessionName: produit?.intitule || devisData.objet || `Session depuis ${devisData.numero_affichage}`,
+      produitIntitule: produit?.intitule || null,
+      entrepriseNom: entreprise?.nom || (devisData.particulier_nom as string) || null,
+      contactNom: contact ? `${contact.prenom} ${contact.nom}` : null,
+      lieuFormation: (devisData.lieu_formation as string) || null,
+      datesFormation: (devisData.dates_formation as string) || null,
+      nombreParticipants: (devisData.nombre_participants as number) || null,
+      modalite: (devisData.modalite_pedagogique as string) || null,
+      dureeFormation: (devisData.duree_formation as string) || null,
+      budget: Number(devisData.total_ttc) || 0,
+      devisNumero: devisData.numero_affichage as string,
+    },
+  };
+}
+
+// ─── Convert devis → session (enhanced) ─────────────────
+
+function mapModaliteToLieuType(modalite: string | null | undefined): "presentiel" | "distanciel" | "mixte" | null {
+  if (!modalite) return null;
+  const lower = modalite.toLowerCase().trim();
+  if (lower.includes("présentiel") || lower.includes("presentiel")) return "presentiel";
+  if (lower.includes("distanciel")) return "distanciel";
+  if (lower.includes("mixte") || lower.includes("hybride")) return "mixte";
+  return null;
+}
+
 export async function convertDevisToSession(devisId: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
@@ -866,31 +925,44 @@ export async function convertDevisToSession(devisId: string) {
   const devisData = await getDevis(devisId);
   if (!devisData) return { error: "Devis introuvable" };
 
+  // ── Validations ──
+  if (devisData.session_id) return { error: "Ce devis est déjà lié à une session" };
+  if (!devisData.produit_id) return { error: "Un produit de formation doit être sélectionné avant de transformer en session" };
+  if (!devisData.entreprise_id && !devisData.particulier_nom) {
+    return { error: "Un destinataire (entreprise ou particulier) doit être renseigné" };
+  }
+
+  // ── Prepare session data from devis ──
+  const produitIntitule = devisData.produits_formation
+    ? (devisData.produits_formation as unknown as { intitule: string }).intitule
+    : null;
+  const lieuType = mapModaliteToLieuType(devisData.modalite_pedagogique as string);
+
   // Generate session number
   const { data: numero } = await supabase.rpc("next_numero", {
     p_organisation_id: organisationId,
     p_entite: "SES",
   });
 
-  // Create session — use produit_id from devis if available
-  const produitIntitule = devisData.produits_formation
-    ? (devisData.produits_formation as unknown as { intitule: string }).intitule
-    : null;
+  // ── Create session with all available data ──
   const { data: session, error } = await supabase
     .from("sessions")
     .insert({
       organisation_id: organisationId,
       numero_affichage: numero,
       nom: produitIntitule || devisData.objet || `Session depuis ${devisData.numero_affichage}`,
-      statut: "en_projet",
+      statut: "en_creation",
       produit_id: devisData.produit_id || null,
+      lieu_adresse: (devisData.lieu_formation as string) || null,
+      lieu_type: lieuType,
+      places_max: (devisData.nombre_participants as number) || null,
     })
     .select()
     .single();
 
   if (error) return { error: error.message };
 
-  // Create commanditaire if entreprise exists
+  // ── Create commanditaire if entreprise exists ──
   if (devisData.entreprise_id) {
     await supabase.from("session_commanditaires").insert({
       session_id: session.id,
@@ -901,29 +973,101 @@ export async function convertDevisToSession(devisId: string) {
     });
   }
 
-  // Link devis to session
+  // ── Inherit product questionnaire planifications ──
+  if (devisData.produit_id) {
+    try {
+      await inheritProductPlanifications(session.id, devisData.produit_id as string);
+    } catch {
+      // Non-blocking — session creation should succeed even if planification fails
+      console.error("[convertDevisToSession] Failed to inherit product planifications for session", session.id);
+    }
+  }
+
+  // ── Link devis to session + update statut to "transforme" ──
+  const previousStatut = devisData.statut;
   await supabase
     .from("devis")
-    .update({ session_id: session.id })
+    .update({
+      session_id: session.id,
+      statut: "transforme",
+      transforme_le: new Date().toISOString(),
+    })
     .eq("id", devisId);
 
-  await logHistorique({
-    organisationId,
-    userId,
-    userRole: role,
-    module: "session",
-    action: "created",
-    entiteType: "session",
-    entiteId: session.id,
-    entiteLabel: session.numero_affichage,
-    description: `Session ${session.numero_affichage} créée depuis devis ${devisData.numero_affichage}`,
-    objetHref: `/sessions/${session.id}`,
-  });
+  // ── Traceability: 3 history events ──
+  await logHistoriqueBatch([
+    // 1. On the session
+    {
+      organisationId,
+      userId,
+      userRole: role,
+      module: "session",
+      action: "created",
+      entiteType: "session",
+      entiteId: session.id,
+      entiteLabel: session.numero_affichage,
+      description: `Session ${session.numero_affichage} créée depuis devis ${devisData.numero_affichage}`,
+      objetHref: `/sessions/${session.id}`,
+      metadata: { source_devis_id: devisId, source_devis_numero: devisData.numero_affichage },
+    },
+    // 2. On the devis
+    {
+      organisationId,
+      userId,
+      userRole: role,
+      module: "devis",
+      action: "status_changed",
+      entiteType: "devis",
+      entiteId: devisId,
+      entiteLabel: devisData.numero_affichage as string,
+      description: `Devis ${devisData.numero_affichage} transformé en session ${session.numero_affichage}`,
+      objetHref: `/devis/${devisId}`,
+      metadata: {
+        target_session_id: session.id,
+        target_session_numero: session.numero_affichage,
+        ancien_statut: previousStatut,
+        nouveau_statut: "transforme",
+      },
+    },
+    // 3. On the enterprise (if applicable)
+    ...(devisData.entreprise_id
+      ? [{
+          organisationId,
+          userId,
+          userRole: role,
+          module: "entreprise" as const,
+          action: "linked" as const,
+          entiteType: "entreprise" as const,
+          entiteId: devisData.entreprise_id as string,
+          description: `Session ${session.numero_affichage} créée depuis devis ${devisData.numero_affichage}`,
+          objetHref: `/sessions/${session.id}`,
+          entrepriseId: devisData.entreprise_id as string,
+        }]
+      : []),
+  ]);
 
   revalidatePath("/devis");
   revalidatePath(`/devis/${devisId}`);
   revalidatePath("/sessions");
+  revalidatePath(`/sessions/${session.id}`);
   return { data: { id: session.id, numero_affichage: session.numero_affichage } };
+}
+
+// ─── Get devis linked to a session (bidirectional link) ──
+
+export async function getLinkedDevisForSession(sessionId: string) {
+  const result = await getOrganisationId();
+  if ("error" in result) return [];
+  const { supabase } = result;
+
+  const { data } = await supabase
+    .from("devis")
+    .select("id, numero_affichage, statut, total_ttc, date_emission, objet")
+    .eq("session_id", sessionId)
+    .is("archived_at", null)
+    .order("created_at", { ascending: false });
+
+  return data ?? [];
 }
 
 // ─── Create devis from commanditaire ────────────────────

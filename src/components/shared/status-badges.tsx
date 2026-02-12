@@ -93,6 +93,11 @@ export const DEVIS_STATUT_CONFIG: Record<
     className: "bg-muted/50 text-muted-foreground/60 border-border/40",
     order: 5,
   },
+  transforme: {
+    label: "Transformé",
+    className: "bg-violet-500/10 text-violet-400 border-violet-500/20",
+    order: 6,
+  },
 };
 
 export const DEVIS_STATUT_OPTIONS = Object.entries(DEVIS_STATUT_CONFIG)

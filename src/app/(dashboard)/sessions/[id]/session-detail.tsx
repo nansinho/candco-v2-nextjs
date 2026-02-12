@@ -31,6 +31,7 @@ import {
   ChevronDown,
   ChevronRight,
   Pencil,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +48,7 @@ import {
   getNextStatuses,
 } from "@/components/shared/session-status-badge";
 import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
+import { DevisStatusBadge } from "@/components/shared/status-badges";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { formatDuration } from "@/components/planning/calendar-utils";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -324,6 +326,7 @@ export function SessionDetail({
   allApprenants,
   allContacts,
   allFinanceurs,
+  linkedDevis,
 }: {
   session: Session;
   formateurs: SessionFormateur[];
@@ -342,6 +345,7 @@ export function SessionDetail({
   allApprenants: ApprenantOption[];
   allContacts: ContactOption[];
   allFinanceurs: FinanceurOption[];
+  linkedDevis: { id: string; numero_affichage: string; statut: string; total_ttc: number; date_emission: string; objet: string | null }[];
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -587,6 +591,36 @@ export function SessionDetail({
                     </div>
                   </div>
                 </fieldset>
+
+                {/* Devis d'origine (bidirectional link) */}
+                {linkedDevis.length > 0 && (
+                  <fieldset className="space-y-3">
+                    <legend className="text-sm font-semibold text-muted-foreground/80 uppercase tracking-wider">
+                      Devis d&apos;origine
+                    </legend>
+                    {linkedDevis.map((d) => (
+                      <div key={d.id} className="flex items-center justify-between rounded-md border border-border/40 bg-muted/20 px-3 py-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FileText className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
+                          <span className="text-sm font-medium">{d.numero_affichage}</span>
+                          <DevisStatusBadge statut={d.statut} className="text-[10px]" />
+                          {d.total_ttc > 0 && (
+                            <span className="text-xs text-muted-foreground">{formatCurrency(d.total_ttc)}</span>
+                          )}
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => router.push(`/devis/${d.id}`)}
+                          className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </fieldset>
+                )}
 
                 <fieldset className="space-y-4">
                   <legend className="text-sm font-semibold text-muted-foreground/80 uppercase tracking-wider">Lieu</legend>
