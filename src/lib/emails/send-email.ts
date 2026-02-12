@@ -5,16 +5,20 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 interface SendEmailParams {
   organisationId: string;
-  to: string;
+  to: string | string[];
   toName?: string;
   subject: string;
   html: string;
   from?: string;
   replyTo?: string;
+  cc?: string[];
+  bcc?: string[];
+  attachments?: Array<{ filename: string; content: Buffer }>;
   // Traçabilité
   entiteType?: string;
   entiteId?: string;
   template?: string;
+  metadata?: Record<string, unknown>;
 }
 
 interface SendEmailResult {
@@ -51,6 +55,9 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
         subject: params.subject,
         html: params.html,
         replyTo: params.replyTo || undefined,
+        ...(params.cc?.length ? { cc: params.cc } : {}),
+        ...(params.bcc?.length ? { bcc: params.bcc } : {}),
+        ...(params.attachments?.length ? { attachments: params.attachments } : {}),
       });
 
       if (result.error) {
@@ -66,9 +73,18 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
   }
 
   // Log dans emails_envoyes
+  const primaryEmail = Array.isArray(params.to) ? params.to[0] : params.to;
+  const emailMetadata: Record<string, unknown> = {
+    ...(params.metadata || {}),
+    ...(Array.isArray(params.to) && params.to.length > 1 ? { all_recipients: params.to } : {}),
+    ...(params.cc?.length ? { cc: params.cc } : {}),
+    ...(params.bcc?.length ? { bcc: params.bcc } : {}),
+    ...(params.attachments?.length ? { attachment_filenames: params.attachments.map(a => a.filename) } : {}),
+  };
+
   await admin.from("emails_envoyes").insert({
     organisation_id: params.organisationId,
-    destinataire_email: params.to,
+    destinataire_email: primaryEmail,
     destinataire_nom: params.toName || null,
     sujet: params.subject,
     contenu_html: params.html,
@@ -78,6 +94,7 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
     entite_id: params.entiteId || null,
     template: params.template || null,
     erreur: erreur || null,
+    ...(Object.keys(emailMetadata).length > 0 ? { metadata: emailMetadata } : {}),
   });
 
   if (statut === "erreur") {
