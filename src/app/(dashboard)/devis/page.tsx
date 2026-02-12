@@ -60,6 +60,7 @@ interface DevisRow {
   created_at: string;
   entreprises: { nom: string } | null;
   contacts_clients: { prenom: string; nom: string } | null;
+  entreprise_membres: { apprenants: { prenom: string; nom: string } | null } | null;
   produits_formation: { intitule: string } | null;
 }
 
@@ -372,6 +373,7 @@ function CreateDevisForm({
   const [form, setForm] = React.useState<CreateDevisInput>({
     entreprise_id: "",
     contact_client_id: "",
+    contact_membre_id: "",
     particulier_nom: "",
     particulier_email: "",
     particulier_telephone: "",
@@ -432,7 +434,7 @@ function CreateDevisForm({
     setShowAllContacts(false);
     setNoSiegeMembers(false);
     setSiegeContacts([]);
-    setForm((prev) => ({ ...prev, contact_client_id: "", contact_auto_selected: false }));
+    setForm((prev) => ({ ...prev, contact_client_id: "", contact_membre_id: "", contact_auto_selected: false }));
 
     if (!newEntrepriseId) return;
 
@@ -445,9 +447,11 @@ function CreateDevisForm({
       }
       setSiegeContacts(result.contacts);
       if (result.contacts.length === 1) {
+        const c = result.contacts[0];
         setForm((prev) => ({
           ...prev,
-          contact_client_id: result.contacts[0].contact_client_id,
+          contact_client_id: c.contact_client_id || "",
+          contact_membre_id: c.membre_id,
           contact_auto_selected: true,
         }));
         setContactAutoSelected(true);
@@ -476,6 +480,7 @@ function CreateDevisForm({
       commanditaire_id: cmdId,
       entreprise_id: cmd.entreprises?.id || prev.entreprise_id,
       contact_client_id: cmd.contacts_clients?.id || prev.contact_client_id,
+      contact_membre_id: "",
       contact_auto_selected: false,
     }));
   };
@@ -797,32 +802,56 @@ function CreateDevisForm({
               </div>
             ) : (
               <>
-                <select
-                  id="contact_client_id"
-                  value={form.contact_client_id}
-                  onChange={(e) => {
-                    updateField("contact_client_id", e.target.value);
-                    setContactAutoSelected(false);
-                    setForm((prev) => ({ ...prev, contact_auto_selected: false }));
-                  }}
-                  className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
-                >
-                  <option value="">-- Sélectionner un contact --</option>
-                  {(!showAllContacts && siegeContacts.length > 0)
-                    ? siegeContacts.map((c) => (
-                        <option key={c.contact_client_id} value={c.contact_client_id}>
-                          {c.prenom} {c.nom}
-                          {c.fonction ? ` — ${c.fonction}` : ""}
-                          {c.roles.length > 0 ? ` (${c.roles.join(", ")})` : ""}
-                        </option>
-                      ))
-                    : contacts.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.prenom} {c.nom}
-                        </option>
-                      ))
-                  }
-                </select>
+                {(!showAllContacts && siegeContacts.length > 0) ? (
+                  <select
+                    id="contact_client_id"
+                    value={form.contact_membre_id}
+                    onChange={(e) => {
+                      const selectedMembreId = e.target.value;
+                      const selected = siegeContacts.find(c => c.membre_id === selectedMembreId);
+                      setForm((prev) => ({
+                        ...prev,
+                        contact_client_id: selected?.contact_client_id || "",
+                        contact_membre_id: selectedMembreId,
+                        contact_auto_selected: false,
+                      }));
+                      setContactAutoSelected(false);
+                    }}
+                    className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
+                  >
+                    <option value="">-- Sélectionner un contact --</option>
+                    {siegeContacts.map((c) => (
+                      <option key={c.membre_id} value={c.membre_id}>
+                        {c.prenom} {c.nom}
+                        {c.fonction ? ` — ${c.fonction}` : ""}
+                        {c.roles.length > 0 ? ` (${c.roles.join(", ")})` : ""}
+                        {c.source_type === "apprenant" ? " [Apprenant]" : ""}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <select
+                    id="contact_client_id"
+                    value={form.contact_client_id}
+                    onChange={(e) => {
+                      setForm((prev) => ({
+                        ...prev,
+                        contact_client_id: e.target.value,
+                        contact_membre_id: "",
+                        contact_auto_selected: false,
+                      }));
+                      setContactAutoSelected(false);
+                    }}
+                    className="h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground"
+                  >
+                    <option value="">-- Sélectionner un contact --</option>
+                    {contacts.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.prenom} {c.nom}
+                      </option>
+                    ))}
+                  </select>
+                )}
 
                 {noSiegeMembers && form.entreprise_id && (
                   <div className="flex items-start gap-2 text-xs text-amber-400 mt-1">
