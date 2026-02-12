@@ -1000,6 +1000,64 @@ const CreneauSchema = z.object({
 
 export type CreneauInput = z.infer<typeof CreneauSchema>;
 
+export async function addCreneauxBatch(sessionId: string, inputs: CreneauInput[]) {
+  if (inputs.length === 0) return { error: { _form: ["Aucun créneau à ajouter"] } };
+
+  const parsedInputs = inputs.map((input) => CreneauSchema.safeParse(input));
+  const firstError = parsedInputs.find((p) => !p.success);
+  if (firstError && !firstError.success) return { error: firstError.error.flatten().fieldErrors };
+
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: { _form: [result.error] } };
+  const { organisationId, userId, role, supabase, admin } = result;
+  requirePermission(role as UserRole, canManageSessions, "gérer les créneaux");
+
+  const rows = parsedInputs.map((p) => {
+    const d = (p as { success: true; data: CreneauInput }).data;
+    return {
+      session_id: sessionId,
+      date: d.date,
+      heure_debut: d.heure_debut,
+      heure_fin: d.heure_fin,
+      formateur_id: d.formateur_id || null,
+      salle_id: d.salle_id || null,
+      type: d.type,
+    };
+  });
+
+  const { data, error } = await supabase
+    .from("session_creneaux")
+    .insert(rows)
+    .select();
+
+  if (error) return { error: { _form: [error.message] } };
+
+  const { data: session } = await admin
+    .from("sessions")
+    .select("nom, numero_affichage")
+    .eq("id", sessionId)
+    .single();
+
+  for (const creneau of data) {
+    await logHistorique({
+      organisationId,
+      userId,
+      userRole: role,
+      module: "session",
+      action: "created",
+      entiteType: "session_creneau",
+      entiteId: creneau.id,
+      entiteLabel: `${creneau.date} ${creneau.heure_debut}-${creneau.heure_fin}`,
+      description: `Créneau du ${creneau.date} (${creneau.heure_debut}-${creneau.heure_fin}) ajouté à la session "${session?.nom ?? sessionId}"`,
+      objetHref: `/sessions/${sessionId}`,
+      metadata: { session_id: sessionId, date: creneau.date, heure_debut: creneau.heure_debut, heure_fin: creneau.heure_fin, type: creneau.type },
+    });
+  }
+
+  revalidatePath(`/sessions/${sessionId}`);
+  return { data };
+}
+
 export async function addCreneau(sessionId: string, input: CreneauInput) {
   const parsed = CreneauSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.flatten().fieldErrors };

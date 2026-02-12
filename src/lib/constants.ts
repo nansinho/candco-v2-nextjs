@@ -129,5 +129,14 @@ export const ADMIN_NAV = [
   { label: "Activité", href: "/admin/activite", icon: "Activity" },
 ] as const;
 
+// ─── Créneaux presets ─────────────────────────────────
+
+export type CreneauMode = "matin" | "apres_midi" | "journee" | "personnalise";
+
+export const CRENEAU_PRESETS = {
+  matin: { heure_debut: "09:00", heure_fin: "12:30" },
+  apres_midi: { heure_debut: "13:30", heure_fin: "17:00" },
+} as const;
+
 // Pagination
 export const ITEMS_PER_PAGE = 25;
