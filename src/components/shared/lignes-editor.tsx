@@ -25,6 +25,7 @@ interface LignesEditorProps {
   lignes: LigneItem[];
   onChange: (lignes: LigneItem[]) => void;
   readOnly?: boolean;
+  tvaLocked?: boolean;
 }
 
 // ─── Article Search Popover ─────────────────────────────
@@ -135,7 +136,7 @@ function ArticleSearchPopover({
 
 // ─── Main LignesEditor ──────────────────────────────────
 
-export function LignesEditor({ lignes, onChange, readOnly = false }: LignesEditorProps) {
+export function LignesEditor({ lignes, onChange, readOnly = false, tvaLocked = false }: LignesEditorProps) {
   const { toast } = useToast();
 
   const addLigne = () => {
@@ -160,7 +161,7 @@ export function LignesEditor({ lignes, onChange, readOnly = false }: LignesEdito
         description: article.description || "",
         quantite: 1,
         prix_unitaire_ht: article.prix_unitaire_ht,
-        taux_tva: article.taux_tva,
+        taux_tva: tvaLocked ? 0 : article.taux_tva,
         ordre: lignes.length,
       },
     ]);
@@ -261,10 +262,11 @@ export function LignesEditor({ lignes, onChange, readOnly = false }: LignesEdito
                 type="number"
                 value={ligne.taux_tva}
                 onChange={(e) => updateLigne(index, "taux_tva", Number(e.target.value))}
-                className="h-8 text-sm text-right border-border/60"
+                className={`h-8 text-sm text-right border-border/60${tvaLocked ? " opacity-50 cursor-not-allowed" : ""}`}
                 min="0"
                 step="0.01"
                 readOnly={readOnly}
+                disabled={tvaLocked}
               />
               <div className="flex h-8 items-center justify-end font-mono text-sm">
                 {formatCurrency(ligneHT)}
@@ -373,10 +375,11 @@ export function LignesEditor({ lignes, onChange, readOnly = false }: LignesEdito
                     type="number"
                     value={ligne.taux_tva}
                     onChange={(e) => updateLigne(index, "taux_tva", Number(e.target.value))}
-                    className="h-8 text-sm text-right border-border/60"
+                    className={`h-8 text-sm text-right border-border/60${tvaLocked ? " opacity-50 cursor-not-allowed" : ""}`}
                     min="0"
                     step="0.01"
                     readOnly={readOnly}
+                    disabled={tvaLocked}
                   />
                 </div>
               </div>
@@ -456,6 +459,7 @@ interface DocumentPreviewProps {
   conditions?: string;
   mentionsLegales?: string;
   coordonneesBancaires?: string;
+  exonerationTva?: boolean;
 }
 
 export function DocumentPreview({
@@ -473,6 +477,7 @@ export function DocumentPreview({
   conditions,
   mentionsLegales,
   coordonneesBancaires,
+  exonerationTva,
 }: DocumentPreviewProps) {
   const title = type === "devis" ? "DEVIS" : type === "facture" ? "FACTURE" : "AVOIR";
 
@@ -579,7 +584,11 @@ export function DocumentPreview({
           </div>
           <div className="flex justify-between">
             <span className="text-gray-600">TVA</span>
-            <span>{formatCurrency(totalTVA)}</span>
+            {exonerationTva ? (
+              <span className="text-[10px] text-gray-500 italic">Exonéré (art. 261-4-4a CGI)</span>
+            ) : (
+              <span>{formatCurrency(totalTVA)}</span>
+            )}
           </div>
           <div className="flex justify-between border-t border-gray-300 pt-1 font-bold">
             <span>Total TTC</span>

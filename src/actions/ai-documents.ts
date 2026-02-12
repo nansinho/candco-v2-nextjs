@@ -337,6 +337,8 @@ async function createDevisFromAI(
     opportunite_id: "",
     session_id: (aiData.session_id as string) || "",
     commanditaire_id: "",
+    exoneration_tva: false,
+    contact_auto_selected: false,
     lignes: rawLignes.map((l, i) => ({
       designation: (l.designation as string) || "Ligne",
       description: (l.description as string) || "",

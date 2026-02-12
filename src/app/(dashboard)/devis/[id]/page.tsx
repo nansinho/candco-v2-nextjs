@@ -80,6 +80,7 @@ export default function DevisDetailPage() {
   const [mentionsLegales, setMentionsLegales] = React.useState("");
   const [statut, setStatut] = React.useState<"brouillon" | "envoye" | "signe" | "refuse" | "expire">("brouillon");
   const [lignes, setLignes] = React.useState<LigneItem[]>([]);
+  const [exonerationTva, setExonerationTva] = React.useState(false);
 
   // Session linking
   const [sessionId, setSessionId] = React.useState<string | null>(null);
@@ -128,6 +129,28 @@ export default function DevisDetailPage() {
   // Read-only mode: form is not editable when devis is not brouillon
   const isReadOnly = statut !== "brouillon";
 
+  // ─── Exonération TVA ────────────────────────────────────────
+
+  const EXONERATION_MENTION = "Prestations de formation en exonération de TVA, article 261-4-4a du CGI.";
+
+  const handleExonerationToggle = (checked: boolean) => {
+    setExonerationTva(checked);
+    if (checked) {
+      setLignes((prev) => prev.map((l) => ({ ...l, taux_tva: 0 })));
+      if (!mentionsLegales.includes("261-4-4a")) {
+        setMentionsLegales((prev) =>
+          prev ? `${prev}\n${EXONERATION_MENTION}` : EXONERATION_MENTION
+        );
+      }
+    } else {
+      const defaultTva = orgInfo?.tva_defaut ?? 20;
+      setLignes((prev) => prev.map((l) => ({ ...l, taux_tva: defaultTva })));
+      setMentionsLegales((prev) =>
+        prev.replace(EXONERATION_MENTION, "").replace(/\n{2,}/g, "\n").trim()
+      );
+    }
+  };
+
   // ─── Load initial data ─────────────────────────────────────
 
   React.useEffect(() => {
@@ -171,6 +194,7 @@ export default function DevisDetailPage() {
         setMentionsLegales(devisData.mentions_legales || orgData?.mentions_legales || "");
         setStatut((devisData.statut || "brouillon") as typeof statut);
         setDocumensoStatus((devisData.documenso_status as string) || null);
+        setExonerationTva(devisData.exoneration_tva ?? false);
         setSessionId(devisData.session_id || null);
         setCommanditaireId((devisData.commanditaire_id as string) || "");
 
@@ -348,6 +372,7 @@ export default function DevisDetailPage() {
         duree_formation: dureeFormation,
         lignes,
         contact_auto_selected: contactAutoSelected,
+        exoneration_tva: exonerationTva,
       };
 
       const result = await updateDevis(devisId, input);
@@ -1340,7 +1365,20 @@ export default function DevisDetailPage() {
               <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 block">
                 Lignes du devis
               </Label>
-              <LignesEditor lignes={lignes} onChange={setLignes} readOnly={isReadOnly} />
+              <div className="flex items-center gap-2 mb-3 pb-3 border-b border-border/30">
+                <input
+                  type="checkbox"
+                  id="exoneration_tva"
+                  checked={exonerationTva}
+                  onChange={(e) => handleExonerationToggle(e.target.checked)}
+                  className="h-4 w-4 rounded border-border accent-orange-500"
+                  disabled={isReadOnly}
+                />
+                <label htmlFor="exoneration_tva" className="text-xs cursor-pointer select-none">
+                  Exonération de TVA (art. 261-4-4a du CGI — formation professionnelle)
+                </label>
+              </div>
+              <LignesEditor lignes={lignes} onChange={setLignes} readOnly={isReadOnly} tvaLocked={exonerationTva} />
             </div>
 
             {/* Conditions */}
@@ -1401,6 +1439,7 @@ export default function DevisDetailPage() {
                 conditions={conditions || undefined}
                 mentionsLegales={mentionsLegales || undefined}
                 coordonneesBancaires={orgInfo?.coordonnees_bancaires || undefined}
+                exonerationTva={exonerationTva}
               />
             </div>
           </div>
