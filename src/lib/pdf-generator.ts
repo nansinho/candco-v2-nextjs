@@ -1234,3 +1234,269 @@ export async function generateProgrammePdf(
 
   return doc.save();
 }
+
+// ─── Facture PDF ────────────────────────────────────────
+
+export interface FactureData {
+  factureNumero: string;
+  dateEmission: string;
+  dateEcheance?: string;
+  objet?: string;
+  // Destinataire
+  entrepriseNom?: string;
+  entrepriseSiret?: string;
+  entrepriseAdresse?: string;
+  contactNom?: string;
+  // Formation metadata
+  formationNom?: string;
+  lieuFormation?: string;
+  datesFormation?: string;
+  modalitePedagogique?: string;
+  dureeFormation?: string;
+  nombreParticipantsPrevus?: number;
+  // Participants presents
+  participantsPresents?: Array<{
+    prenom: string;
+    nom: string;
+    dates_presence: string[];
+  }>;
+  // Lignes
+  lignes: {
+    designation: string;
+    description?: string;
+    quantite: number;
+    prixUnitaireHt: number;
+    tauxTva: number;
+    montantHt: number;
+  }[];
+  // Totaux
+  totalHt: number;
+  totalTva: number;
+  totalTtc: number;
+  // Conditions
+  conditions?: string;
+  mentionsLegales?: string;
+  coordonneesBancaires?: string;
+  exonerationTva?: boolean;
+}
+
+export async function generateFacturePdf(
+  opts: PDFGeneratorOptions,
+  data: FactureData,
+): Promise<Uint8Array> {
+  const doc = await PDFDocument.create();
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
+
+  let page = doc.addPage([595.28, 841.89]); // A4
+  const { width } = page.getSize();
+  let y = drawHeader(page, font, fontBold, opts, `FACTURE ${data.factureNumero}`);
+
+  // Helper: ensure enough space, add new page if needed
+  function ensurePageFact(minSpace: number) {
+    if (y < minSpace) {
+      drawFooter(page, font, opts);
+      page = doc.addPage([595.28, 841.89]);
+      y = 780;
+    }
+  }
+
+  // Dates
+  y = drawLabelValue(page, font, fontBold, "Date d'émission", data.dateEmission, y);
+  if (data.dateEcheance) {
+    y = drawLabelValue(page, font, fontBold, "Échéance", data.dateEcheance, y);
+  }
+  y -= 10;
+
+  // Destinataire
+  y = drawSection(page, fontBold, "Destinataire", y);
+  if (data.entrepriseNom) {
+    y = drawLabelValue(page, font, fontBold, "Entreprise", data.entrepriseNom, y);
+    if (data.entrepriseSiret) y = drawLabelValue(page, font, fontBold, "SIRET", data.entrepriseSiret, y);
+    if (data.entrepriseAdresse) y = drawLabelValue(page, font, fontBold, "Adresse", data.entrepriseAdresse, y);
+    if (data.contactNom) y = drawLabelValue(page, font, fontBold, "Contact", data.contactNom, y);
+  }
+  y -= 10;
+
+  // Objet
+  if (data.objet) {
+    y = drawSection(page, fontBold, "Objet", y);
+    const objetLines = wrapText(data.objet, font, 9, width - 100);
+    for (const line of objetLines) {
+      page.drawText(line, { x: 50, y, size: 9, font, color: DARK_TEXT });
+      y -= 13;
+    }
+    y -= 10;
+  }
+
+  // Formation info section
+  if (data.datesFormation || data.lieuFormation || data.modalitePedagogique || data.dureeFormation) {
+    ensurePageFact(150);
+    y = drawSection(page, fontBold, "Formation", y);
+    if (data.datesFormation) {
+      y = drawLabelValue(page, font, fontBold, "Dates", data.datesFormation, y);
+    }
+    if (data.lieuFormation) {
+      y = drawLabelValue(page, font, fontBold, "Lieu", data.lieuFormation, y);
+    }
+    if (data.modalitePedagogique) {
+      y = drawLabelValue(page, font, fontBold, "Modalité", data.modalitePedagogique, y);
+    }
+    if (data.dureeFormation) {
+      y = drawLabelValue(page, font, fontBold, "Durée", data.dureeFormation, y);
+    }
+    if (data.nombreParticipantsPrevus != null) {
+      y = drawLabelValue(page, font, fontBold, "Participants prévus", String(data.nombreParticipantsPrevus), y);
+    }
+    y -= 10;
+  }
+
+  // Participants presents section
+  if (data.participantsPresents && data.participantsPresents.length > 0) {
+    ensurePageFact(80 + data.participantsPresents.length * 13);
+    y = drawSection(page, fontBold, `Participants présents (${data.participantsPresents.length})`, y);
+
+    for (const p of data.participantsPresents) {
+      ensurePageFact(80);
+      const presenceDates = p.dates_presence.map((d) => {
+        const parts = d.split("-");
+        return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : d;
+      }).join(", ");
+      const line = `${p.nom.toUpperCase()} ${p.prenom}${presenceDates ? ` — ${presenceDates}` : ""}`;
+      page.drawText(`• ${line}`, { x: 60, y, size: 8, font, color: DARK_TEXT });
+      y -= 13;
+    }
+    y -= 10;
+  }
+
+  // Lignes — Table header
+  ensurePageFact(120);
+  y = drawSection(page, fontBold, "Détail", y);
+  const colX = { designation: 50, qte: 320, pu: 370, tva: 430, ht: 490 };
+  const colHeaders = [
+    { label: "Désignation", x: colX.designation },
+    { label: "Qté", x: colX.qte },
+    { label: "P.U. HT", x: colX.pu },
+    { label: "TVA", x: colX.tva },
+    { label: "Montant HT", x: colX.ht },
+  ];
+
+  // Table header bg
+  page.drawRectangle({
+    x: 50, y: y - 15, width: width - 100, height: 18,
+    color: rgb(240 / 255, 240 / 255, 240 / 255),
+  });
+  for (const col of colHeaders) {
+    page.drawText(col.label, { x: col.x, y: y - 11, size: 7, font: fontBold, color: DARK_TEXT });
+  }
+  y -= 22;
+
+  // Table rows
+  for (const ligne of data.lignes) {
+    if (y < 120) {
+      drawFooter(page, font, opts);
+      page = doc.addPage([595.28, 841.89]);
+      y = 780;
+    }
+
+    const desigLines = wrapText(ligne.designation, font, 8, 260);
+    for (let i = 0; i < desigLines.length; i++) {
+      page.drawText(desigLines[i], { x: colX.designation, y: y - i * 11, size: 8, font, color: DARK_TEXT });
+    }
+    page.drawText(String(ligne.quantite), { x: colX.qte, y, size: 8, font, color: DARK_TEXT });
+    page.drawText(`${ligne.prixUnitaireHt.toFixed(2)} €`, { x: colX.pu, y, size: 8, font, color: DARK_TEXT });
+    page.drawText(`${ligne.tauxTva}%`, { x: colX.tva, y, size: 8, font, color: DARK_TEXT });
+    page.drawText(`${ligne.montantHt.toFixed(2)} €`, { x: colX.ht, y, size: 8, font, color: DARK_TEXT });
+
+    if (ligne.description) {
+      const descLines = wrapText(ligne.description, font, 7, 260);
+      const descStartY = y - Math.max(desigLines.length, 1) * 11;
+      for (let i = 0; i < Math.min(descLines.length, 2); i++) {
+        page.drawText(descLines[i], { x: colX.designation, y: descStartY - i * 10, size: 7, font, color: GRAY_TEXT });
+      }
+      y = descStartY - Math.min(descLines.length, 2) * 10 - 6;
+    } else {
+      y -= Math.max(desigLines.length, 1) * 11 + 6;
+    }
+
+    // Separator line
+    page.drawLine({
+      start: { x: 50, y },
+      end: { x: width - 50, y },
+      thickness: 0.3,
+      color: LIGHT_GRAY,
+    });
+    y -= 6;
+  }
+
+  // Totaux
+  y -= 10;
+  const totalsX = 400;
+  page.drawText("Total HT :", { x: totalsX, y, size: 9, font: fontBold, color: DARK_TEXT });
+  page.drawText(`${data.totalHt.toFixed(2)} €`, { x: totalsX + 80, y, size: 9, font, color: DARK_TEXT });
+  y -= 15;
+  if (data.exonerationTva || data.totalTva === 0) {
+    page.drawText("TVA :", { x: totalsX, y, size: 9, font: fontBold, color: DARK_TEXT });
+    page.drawText("Exonéré (art. 261-4-4°a CGI)", { x: totalsX + 80, y, size: 8, font, color: GRAY_TEXT });
+  } else {
+    page.drawText("TVA :", { x: totalsX, y, size: 9, font: fontBold, color: DARK_TEXT });
+    page.drawText(`${data.totalTva.toFixed(2)} €`, { x: totalsX + 80, y, size: 9, font, color: DARK_TEXT });
+  }
+  y -= 18;
+  // TTC box
+  page.drawRectangle({
+    x: totalsX - 5, y: y - 5, width: 155, height: 22,
+    color: rgb(252 / 255, 237 / 255, 220 / 255),
+    borderColor: ORANGE,
+    borderWidth: 0.5,
+  });
+  page.drawText("Total TTC :", { x: totalsX, y, size: 10, font: fontBold, color: ORANGE });
+  page.drawText(`${data.totalTtc.toFixed(2)} €`, { x: totalsX + 80, y, size: 10, font: fontBold, color: ORANGE });
+  y -= 30;
+
+  // Conditions
+  if (data.conditions) {
+    if (y < 150) {
+      drawFooter(page, font, opts);
+      page = doc.addPage([595.28, 841.89]);
+      y = 780;
+    }
+    y = drawSection(page, fontBold, "Conditions de paiement", y);
+    const condLines = wrapText(data.conditions, font, 8, width - 100);
+    for (const line of condLines) {
+      page.drawText(line, { x: 50, y, size: 8, font, color: DARK_TEXT });
+      y -= 12;
+    }
+    y -= 10;
+  }
+
+  // Coordonnées bancaires
+  if (data.coordonneesBancaires) {
+    ensurePageFact(120);
+    y = drawSection(page, fontBold, "Coordonnées bancaires", y);
+    const bankLines = wrapText(data.coordonneesBancaires, font, 8, width - 100);
+    for (const line of bankLines) {
+      page.drawText(line, { x: 50, y, size: 8, font, color: DARK_TEXT });
+      y -= 12;
+    }
+    y -= 10;
+  }
+
+  // Mentions légales
+  if (data.mentionsLegales) {
+    if (y < 120) {
+      drawFooter(page, font, opts);
+      page = doc.addPage([595.28, 841.89]);
+      y = 780;
+    }
+    const mentionsLines = wrapText(data.mentionsLegales, font, 7, width - 100);
+    for (const line of mentionsLines) {
+      page.drawText(line, { x: 50, y, size: 7, font, color: GRAY_TEXT });
+      y -= 10;
+    }
+  }
+
+  drawFooter(page, font, opts);
+
+  return doc.save();
+}

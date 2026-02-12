@@ -282,6 +282,19 @@ interface DocumentPreviewProps {
   mentionsLegales?: string;
   coordonneesBancaires?: string;
   exonerationTva?: boolean;
+  formationInfo?: {
+    nom?: string;
+    dates?: string;
+    lieu?: string;
+    modalite?: string;
+    duree?: string;
+    participantsPrevus?: number;
+  };
+  participantsPresents?: Array<{
+    prenom: string;
+    nom: string;
+    dates_presence: string[];
+  }>;
 }
 
 export function DocumentPreview({
@@ -300,6 +313,8 @@ export function DocumentPreview({
   mentionsLegales,
   coordonneesBancaires,
   exonerationTva,
+  formationInfo,
+  participantsPresents,
 }: DocumentPreviewProps) {
   const title = type === "devis" ? "DEVIS" : type === "facture" ? "FACTURE" : "AVOIR";
 
@@ -356,6 +371,55 @@ export function DocumentPreview({
       {objet && (
         <div className="mb-4">
           <p className="font-semibold">Objet : {objet}</p>
+        </div>
+      )}
+
+      {/* Formation info */}
+      {formationInfo && (
+        <div className="mb-4 p-3 bg-gray-50 rounded">
+          <p className="text-xs text-gray-400 uppercase font-semibold mb-2">Formation</p>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+            {formationInfo.dates && (
+              <p><span className="text-gray-500">Dates :</span> {formationInfo.dates}</p>
+            )}
+            {formationInfo.lieu && (
+              <p><span className="text-gray-500">Lieu :</span> {formationInfo.lieu}</p>
+            )}
+            {formationInfo.modalite && (
+              <p><span className="text-gray-500">Modalité :</span> <span className="capitalize">{formationInfo.modalite}</span></p>
+            )}
+            {formationInfo.duree && (
+              <p><span className="text-gray-500">Durée :</span> {formationInfo.duree}</p>
+            )}
+            {formationInfo.participantsPrevus != null && (
+              <p><span className="text-gray-500">Participants prévus :</span> {formationInfo.participantsPrevus}</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Participants presents */}
+      {participantsPresents && participantsPresents.length > 0 && (
+        <div className="mb-4">
+          <p className="text-xs text-gray-400 uppercase font-semibold mb-1">
+            Participants présents ({participantsPresents.length})
+          </p>
+          <div className="text-xs space-y-0.5">
+            {participantsPresents.map((p, i) => (
+              <p key={i}>
+                <span className="text-gray-500 inline-block w-5">{i + 1}.</span>
+                <span className="font-medium">{p.nom.toUpperCase()} {p.prenom}</span>
+                {p.dates_presence.length > 0 && (
+                  <span className="text-gray-500 ml-2">
+                    ({p.dates_presence.map((d) => {
+                      const parts = d.split("-");
+                      return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : d;
+                    }).join(", ")})
+                  </span>
+                )}
+              </p>
+            ))}
+          </div>
         </div>
       )}
 
