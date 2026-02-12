@@ -1,9 +1,8 @@
-import { getSession, getSessionFormateurs, getSessionCommanditaires, getInscriptions, getCreneaux, getSessionFinancials, getSessionEmargements, getSessionDocuments } from "@/actions/sessions";
+import { getSession, getSessionFormateurs, getSessionCommanditaires, getInscriptions, getCreneaux, getSessionFinancials, getSessionEmargements, getSessionDocuments, getApprenantsForSession } from "@/actions/sessions";
 import { getSessionEvaluations, getAllQuestionnaires, getSessionPlanifications } from "@/actions/questionnaires";
 import { getAllSalles } from "@/actions/salles";
 import { getAllFormateurs } from "@/actions/formateurs";
 import { getAllEntreprises } from "@/actions/entreprises";
-import { getAllApprenants } from "@/actions/apprenants";
 import { getAllContactsClients } from "@/actions/contacts-clients";
 import { getAllFinanceurs } from "@/actions/financeurs";
 import { getLinkedDevisForSession } from "@/actions/devis";
@@ -32,7 +31,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
     sallesResult,
     allFormateursResult,
     allEntreprisesResult,
-    allApprenantsResult,
+    sessionApprenantsResult,
     allContactsResult,
     allFinanceursResult,
     linkedDevisResult,
@@ -51,7 +50,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
     getAllSalles(),
     getAllFormateurs(),
     getAllEntreprises(),
-    getAllApprenants(),
+    getApprenantsForSession(id),
     getAllContactsClients(),
     getAllFinanceurs(),
     getLinkedDevisForSession(id),
@@ -77,7 +76,8 @@ export default async function SessionDetailPage({ params }: PageProps) {
       salles={sallesResult.data}
       allFormateurs={allFormateursResult.data}
       allEntreprises={allEntreprisesResult.data}
-      allApprenants={allApprenantsResult.data}
+      sessionApprenants={sessionApprenantsResult.data}
+      noCommanditaireApprenants={sessionApprenantsResult.noCommanditaires}
       allContacts={allContactsResult.data}
       allFinanceurs={allFinanceursResult.data}
       linkedDevis={linkedDevisResult}

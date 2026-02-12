@@ -32,6 +32,8 @@ import {
   ChevronRight,
   Pencil,
   ExternalLink,
+  Search,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -76,6 +78,7 @@ import {
   type UpdateSessionInput,
   type CommanditaireInput,
   type CreneauInput,
+  type SessionApprenantOption,
 } from "@/actions/sessions";
 import { createFormateur } from "@/actions/formateurs";
 import { createApprenant } from "@/actions/apprenants";
@@ -276,14 +279,6 @@ interface EntrepriseOption {
   siret: string | null;
 }
 
-interface ApprenantOption {
-  id: string;
-  prenom: string;
-  nom: string;
-  email: string | null;
-  numero_affichage: string;
-}
-
 interface ContactOption {
   id: string;
   prenom: string;
@@ -323,7 +318,8 @@ export function SessionDetail({
   salles,
   allFormateurs,
   allEntreprises,
-  allApprenants,
+  sessionApprenants,
+  noCommanditaireApprenants,
   allContacts,
   allFinanceurs,
   linkedDevis,
@@ -342,7 +338,8 @@ export function SessionDetail({
   salles: SalleOption[];
   allFormateurs: FormateurOption[];
   allEntreprises: EntrepriseOption[];
-  allApprenants: ApprenantOption[];
+  sessionApprenants: SessionApprenantOption[];
+  noCommanditaireApprenants: boolean;
   allContacts: ContactOption[];
   allFinanceurs: FinanceurOption[];
   linkedDevis: { id: string; numero_affichage: string; statut: string; total_ttc: number; date_emission: string; objet: string | null }[];
@@ -411,8 +408,8 @@ export function SessionDetail({
     (f) => !formateurs.some((sf) => sf.formateur_id === f.id)
   );
 
-  // Filter out already-inscribed apprenants
-  const availableApprenants = allApprenants.filter(
+  // Filter out already-inscribed apprenants from session-filtered list
+  const availableApprenants = sessionApprenants.filter(
     (a) => !inscriptions.some((insc) => insc.apprenants?.id === a.id)
   );
 
@@ -945,7 +942,6 @@ export function SessionDetail({
                 size="sm"
                 className="h-7 text-xs border-border/60"
                 onClick={() => setShowAddApprenant(true)}
-                disabled={availableApprenants.length === 0}
               >
                 <UserPlus className="mr-1 h-3 w-3" />
                 Inscrire
@@ -957,6 +953,7 @@ export function SessionDetail({
                 sessionId={session.id}
                 apprenants={availableApprenants}
                 commanditaires={commanditaires}
+                noCommanditaires={noCommanditaireApprenants}
                 onClose={() => setShowAddApprenant(false)}
                 onSuccess={() => {
                   setShowAddApprenant(false);
@@ -1739,12 +1736,14 @@ function AddApprenantInline({
   sessionId,
   apprenants,
   commanditaires,
+  noCommanditaires,
   onClose,
   onSuccess,
 }: {
   sessionId: string;
-  apprenants: ApprenantOption[];
+  apprenants: SessionApprenantOption[];
   commanditaires: SessionCommanditaire[];
+  noCommanditaires: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }) {
@@ -1752,7 +1751,48 @@ function AddApprenantInline({
   const [apprenantId, setApprenantId] = React.useState("");
   const [commanditaireId, setCommanditaireId] = React.useState("");
   const [loading, setLoading] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState("");
   const { toast } = useToast();
+
+  // Filter by commanditaire (optional additional filter within the union)
+  const [commanditaireFilter, setCommanditaireFilter] = React.useState("");
+
+  // Filtered list: search + optional commanditaire filter
+  const filteredApprenants = React.useMemo(() => {
+    let list = apprenants;
+
+    // Filter by selected commanditaire
+    if (commanditaireFilter) {
+      const cmd = commanditaires.find((c) => c.id === commanditaireFilter);
+      const entId = cmd?.entreprises?.id;
+      if (entId) {
+        list = list.filter((a) => a.entreprise_id === entId);
+      }
+    }
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter(
+        (a) =>
+          a.nom.toLowerCase().includes(q) ||
+          a.prenom.toLowerCase().includes(q) ||
+          (a.email?.toLowerCase().includes(q) ?? false) ||
+          a.numero_affichage.toLowerCase().includes(q) ||
+          a.agence_label.toLowerCase().includes(q),
+      );
+    }
+
+    return list;
+  }, [apprenants, searchQuery, commanditaireFilter, commanditaires]);
+
+  // Abbreviate civilite
+  const fmtCiv = (c: string | null) => {
+    if (!c) return "";
+    if (c === "Monsieur") return "M.";
+    if (c === "Madame") return "Mme";
+    return c;
+  };
 
   // Create form state
   const [newForm, setNewForm] = React.useState({
@@ -1771,7 +1811,16 @@ function AddApprenantInline({
   const handleAddExisting = async () => {
     if (!apprenantId) return;
     setLoading(true);
-    const res = await addInscription(sessionId, apprenantId, commanditaireId || undefined);
+    // Resolve commanditaire: use filter if set, otherwise pick the commanditaire matching the selected apprenant's enterprise
+    let resolvedCommanditaireId = commanditaireId;
+    if (!resolvedCommanditaireId) {
+      const selectedApprenant = apprenants.find((a) => a.id === apprenantId);
+      if (selectedApprenant) {
+        const matchingCmd = commanditaires.find((c) => c.entreprises?.id === selectedApprenant.entreprise_id);
+        if (matchingCmd) resolvedCommanditaireId = matchingCmd.id;
+      }
+    }
+    const res = await addInscription(sessionId, apprenantId, resolvedCommanditaireId || undefined);
     setLoading(false);
     if (res.error) {
       toast({ title: "Erreur", description: String(res.error), variant: "destructive" });
@@ -1839,30 +1888,104 @@ function AddApprenantInline({
 
       {mode === "select" ? (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2">
-            <select value={apprenantId} onChange={(e) => setApprenantId(e.target.value)} className={selectClass}>
-              <option value="">-- Sélectionner un apprenant --</option>
-              {apprenants.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.prenom} {a.nom} ({a.numero_affichage})
-                </option>
-              ))}
-            </select>
-            {commanditaires.length > 0 && (
-              <select value={commanditaireId} onChange={(e) => setCommanditaireId(e.target.value)} className={selectClass}>
-                <option value="">-- Commanditaire (optionnel) --</option>
-                {commanditaires.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.entreprises?.nom ?? "Commanditaire"}
-                  </option>
-                ))}
-              </select>
-            )}
-            <Button size="sm" className="h-8 text-xs" onClick={handleAddExisting} disabled={!apprenantId || loading}>
-              {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <UserPlus className="mr-1 h-3 w-3" />}
-              Inscrire
-            </Button>
-          </div>
+          {noCommanditaires ? (
+            <div className="flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+              <AlertTriangle className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
+              <p className="text-sm text-amber-400">
+                Veuillez d&apos;abord ajouter un commanditaire (entreprise) dans l&apos;onglet Commanditaires pour filtrer les apprenants.
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* Filters row: search + commanditaire filter */}
+              <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60" />
+                  <Input
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Rechercher par nom, prénom, email..."
+                    className="h-8 pl-8 text-sm border-border/60"
+                  />
+                </div>
+                {commanditaires.length > 1 && (
+                  <select
+                    value={commanditaireFilter}
+                    onChange={(e) => setCommanditaireFilter(e.target.value)}
+                    className={selectClass + " sm:w-[220px]"}
+                  >
+                    <option value="">Toutes les entreprises</option>
+                    {commanditaires.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.entreprises?.nom ?? "Commanditaire"}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              {/* Scrollable list of apprenants */}
+              <div className="rounded-md border border-border/60 bg-card overflow-hidden">
+                {filteredApprenants.length === 0 ? (
+                  <div className="flex flex-col items-center gap-2 py-8">
+                    <Users className="h-6 w-6 text-muted-foreground/30" />
+                    <p className="text-xs text-muted-foreground/60">
+                      {searchQuery.trim() ? "Aucun apprenant trouvé pour cette recherche." : "Aucun apprenant disponible pour les entreprises commanditaires."}
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Header */}
+                    <div className="grid grid-cols-[50px_1fr_1fr_1fr_1fr] gap-1 px-3 py-1.5 border-b border-border/60 bg-muted/30">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50">Civ.</span>
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50">Nom</span>
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50">Prénom</span>
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50">Email</span>
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50">Agence</span>
+                    </div>
+                    {/* Rows */}
+                    <div className="max-h-[240px] overflow-y-auto">
+                      {filteredApprenants.map((a) => (
+                        <button
+                          key={a.id}
+                          type="button"
+                          onClick={() => setApprenantId(a.id)}
+                          className={`w-full grid grid-cols-[50px_1fr_1fr_1fr_1fr] gap-1 px-3 py-2 text-left border-b border-border/30 last:border-b-0 transition-colors cursor-pointer ${
+                            apprenantId === a.id
+                              ? "bg-primary/10 border-primary/30"
+                              : "hover:bg-muted/30"
+                          }`}
+                        >
+                          <span className="text-xs text-muted-foreground truncate">{fmtCiv(a.civilite)}</span>
+                          <span className="text-xs font-medium truncate uppercase">{a.nom}</span>
+                          <span className="text-xs truncate">{a.prenom}</span>
+                          <span className="text-xs text-muted-foreground truncate">{a.email || "—"}</span>
+                          <span className="text-xs text-muted-foreground truncate">{a.agence_label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Count + action */}
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">
+                  {filteredApprenants.length} apprenant{filteredApprenants.length !== 1 ? "s" : ""} disponible{filteredApprenants.length !== 1 ? "s" : ""}
+                  {apprenantId && (
+                    <span className="ml-2 text-primary font-medium">
+                      — {(() => { const s = apprenants.find((a) => a.id === apprenantId); return s ? `${s.prenom} ${s.nom}` : ""; })()} sélectionné
+                    </span>
+                  )}
+                </span>
+                <Button size="sm" className="h-8 text-xs" onClick={handleAddExisting} disabled={!apprenantId || loading}>
+                  {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <UserPlus className="mr-1 h-3 w-3" />}
+                  Inscrire
+                </Button>
+              </div>
+            </>
+          )}
+
           <button
             type="button"
             onClick={() => setMode("create")}
