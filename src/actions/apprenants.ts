@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { QueryFilter } from "@/lib/utils";
 import { logHistorique, logHistoriqueBatch, computeChanges } from "@/lib/historique";
+import { syncContactFieldsFromApprenant } from "@/lib/sync-contact-direction";
 
 const APPRENANT_FIELD_LABELS: Record<string, string> = {
   civilite: "Civilité",
@@ -331,6 +332,19 @@ export async function updateApprenant(id: string, input: UpdateApprenantInput) {
     description: `Apprenant "${data.prenom} ${data.nom}" modifié${changedSummary}`,
     objetHref: `/apprenants/${id}`,
     metadata,
+  });
+
+  // Propagate field changes to synced contacts clients (direction role)
+  await syncContactFieldsFromApprenant({
+    admin,
+    apprenantId: id,
+    fields: {
+      prenom: cleanedData.prenom,
+      nom: cleanedData.nom,
+      email: cleanedData.email ?? null,
+      telephone: cleanedData.telephone ?? null,
+      civilite: cleanedData.civilite ?? null,
+    },
   });
 
   revalidatePath("/apprenants");

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Save, Archive, ArchiveRestore, Loader2, Building2, Mail, Phone } from "lucide-react";
+import { ArrowLeft, Save, Archive, ArchiveRestore, Loader2, Building2, Mail, Phone, RefreshCw, Lock, ExternalLink } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/alert-dialog";
 import {
@@ -34,6 +34,7 @@ interface ContactClientData {
   email: string | null;
   telephone: string | null;
   fonction: string | null;
+  sync_source_apprenant_id: string | null;
   created_at: string;
   updated_at: string | null;
 }
@@ -113,6 +114,7 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
   };
 
   const isArchived = !!(contact as unknown as { archived_at?: string }).archived_at;
+  const isSynced = !!contact.sync_source_apprenant_id;
 
   const handleUnarchive = async () => {
     await unarchiveContactClient(contact.id);
@@ -150,6 +152,12 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
               <Badge className="bg-purple-500/10 text-purple-400 border-purple-500/20 text-xs font-mono">
                 {contact.numero_affichage}
               </Badge>
+              {isSynced && (
+                <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-xs">
+                  <RefreshCw className="mr-1 h-2.5 w-2.5" />
+                  Synchronisé depuis Organisation
+                </Badge>
+              )}
             </div>
             {contact.fonction && (
               <p className="mt-0.5 text-xs text-muted-foreground">{contact.fonction}</p>
@@ -233,14 +241,36 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
               </div>
             )}
 
+            {isSynced && (
+              <div className="mb-5 flex items-start gap-2.5 rounded-md border border-blue-500/20 bg-blue-500/5 px-3 py-2.5">
+                <Lock className="mt-0.5 h-3.5 w-3.5 text-blue-400 shrink-0" />
+                <div>
+                  <p className="text-xs text-blue-300">
+                    Les champs ci-dessous sont synchronisés avec la fiche apprenant source (rôle Direction).
+                  </p>
+                  <button
+                    className="mt-1 inline-flex items-center gap-1 text-xs text-blue-400 hover:underline"
+                    onClick={() => router.push(`/apprenants/${contact.sync_source_apprenant_id}`)}
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    Voir la fiche apprenant
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="grid gap-5">
               {/* Civilité */}
               <div className="space-y-2">
-                <Label className="text-sm">Civilité</Label>
+                <Label className="text-sm flex items-center gap-1.5">
+                  Civilité
+                  {isSynced && <Lock className="h-3 w-3 text-blue-400/60" />}
+                </Label>
                 <select
                   value={form.civilite ?? ""}
                   onChange={(e) => updateField("civilite", e.target.value)}
-                  className="h-9 w-full max-w-xs rounded-md border border-border/60 bg-muted px-3 py-1 text-sm text-foreground"
+                  disabled={isSynced}
+                  className="h-9 w-full max-w-xs rounded-md border border-border/60 bg-muted px-3 py-1 text-sm text-foreground disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   <option value="">-- Aucune --</option>
                   <option value="Monsieur">Monsieur</option>
@@ -251,26 +281,30 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
               {/* Prénom / Nom */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label className="text-sm">
+                  <Label className="text-sm flex items-center gap-1.5">
                     Prénom <span className="text-destructive">*</span>
+                    {isSynced && <Lock className="h-3 w-3 text-blue-400/60" />}
                   </Label>
                   <Input
                     value={form.prenom ?? ""}
                     onChange={(e) => updateField("prenom", e.target.value)}
-                    className="h-9 text-sm border-border/60"
+                    disabled={isSynced}
+                    className="h-9 text-sm border-border/60 disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                   {errors.prenom && (
                     <p className="text-xs text-destructive">{errors.prenom[0]}</p>
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm">
+                  <Label className="text-sm flex items-center gap-1.5">
                     Nom <span className="text-destructive">*</span>
+                    {isSynced && <Lock className="h-3 w-3 text-blue-400/60" />}
                   </Label>
                   <Input
                     value={form.nom ?? ""}
                     onChange={(e) => updateField("nom", e.target.value)}
-                    className="h-9 text-sm border-border/60"
+                    disabled={isSynced}
+                    className="h-9 text-sm border-border/60 disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                   {errors.nom && (
                     <p className="text-xs text-destructive">{errors.nom[0]}</p>
@@ -280,13 +314,17 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
 
               {/* Email */}
               <div className="space-y-2">
-                <Label className="text-sm">Email</Label>
+                <Label className="text-sm flex items-center gap-1.5">
+                  Email
+                  {isSynced && <Lock className="h-3 w-3 text-blue-400/60" />}
+                </Label>
                 <div className="flex items-center gap-2">
                   <Input
                     type="email"
                     value={form.email ?? ""}
                     onChange={(e) => updateField("email", e.target.value)}
-                    className="h-9 text-sm border-border/60"
+                    disabled={isSynced}
+                    className="h-9 text-sm border-border/60 disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                   {form.email && (
                     <Button
@@ -309,12 +347,16 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
 
               {/* Téléphone */}
               <div className="space-y-2">
-                <Label className="text-sm">Téléphone</Label>
+                <Label className="text-sm flex items-center gap-1.5">
+                  Téléphone
+                  {isSynced && <Lock className="h-3 w-3 text-blue-400/60" />}
+                </Label>
                 <div className="flex items-center gap-2">
                   <Input
                     value={form.telephone ?? ""}
                     onChange={(e) => updateField("telephone", e.target.value)}
-                    className="h-9 text-sm border-border/60"
+                    disabled={isSynced}
+                    className="h-9 text-sm border-border/60 disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                   {form.telephone && (
                     <Button
@@ -334,12 +376,16 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
 
               {/* Fonction */}
               <div className="space-y-2">
-                <Label className="text-sm">Fonction</Label>
+                <Label className="text-sm flex items-center gap-1.5">
+                  Fonction
+                  {isSynced && <Lock className="h-3 w-3 text-blue-400/60" />}
+                </Label>
                 <Input
                   value={form.fonction ?? ""}
                   onChange={(e) => updateField("fonction", e.target.value)}
+                  disabled={isSynced}
                   placeholder="Ex: Responsable formation, DRH, Directeur..."
-                  className="h-9 text-sm border-border/60"
+                  className="h-9 text-sm border-border/60 disabled:opacity-60 disabled:cursor-not-allowed"
                 />
               </div>
             </div>
@@ -440,6 +486,29 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
 
         {/* Side panel */}
         <div className="hidden w-[280px] shrink-0 space-y-4 lg:block">
+          {isSynced && (
+            <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <RefreshCw className="h-3.5 w-3.5 text-blue-400" />
+                <h3 className="text-xs font-semibold text-blue-300">Contact synchronisé</h3>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Ce contact est synchronisé automatiquement avec un apprenant ayant le rôle &quot;Direction&quot; dans l&apos;organisation d&apos;une entreprise.
+              </p>
+              <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
+                Les modifications doivent être effectuées sur la fiche apprenant source.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3 h-7 w-full text-xs border-blue-500/20 text-blue-400 hover:bg-blue-500/10"
+                onClick={() => router.push(`/apprenants/${contact.sync_source_apprenant_id}`)}
+              >
+                <ExternalLink className="mr-1.5 h-3 w-3" />
+                Fiche apprenant
+              </Button>
+            </div>
+          )}
           <ExtranetAccessPanel
             entiteType="contact_client"
             entiteId={contact.id}
