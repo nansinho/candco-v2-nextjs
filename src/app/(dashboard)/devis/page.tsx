@@ -211,7 +211,7 @@ export default function DevisPage() {
     fetchData();
   }, [fetchData]);
 
-  const handleCreateSuccess = () => {
+  const handleCreateSuccess = (devisId: string) => {
     setDialogOpen(false);
     fetchData();
     toast({
@@ -219,6 +219,7 @@ export default function DevisPage() {
       description: "Le devis a été créé avec succès.",
       variant: "success",
     });
+    router.push(`/devis/${devisId}`);
   };
 
   const handleSortChange = (key: string, dir: "asc" | "desc") => {
@@ -339,7 +340,7 @@ function CreateDevisForm({
   onSuccess,
   onCancel,
 }: {
-  onSuccess: () => void;
+  onSuccess: (devisId: string) => void;
   onCancel: () => void;
 }) {
   const { toast } = useToast();
@@ -569,24 +570,32 @@ function CreateDevisForm({
     setIsSubmitting(true);
     setErrors({});
 
-    const result = await createDevis(form);
+    try {
+      const result = await createDevis(form);
 
-    if (result.error) {
-      if (typeof result.error === "object" && "_form" in result.error) {
-        setErrors({ _form: result.error._form as string[] });
-      } else {
-        setErrors(result.error as Record<string, string[]>);
+      if (result.error) {
+        if (typeof result.error === "object" && "_form" in result.error) {
+          setErrors({ _form: result.error._form as string[] });
+        } else {
+          setErrors(result.error as Record<string, string[]>);
+        }
+        return;
       }
+
+      if ("warning" in result && result.warning) {
+        toast({ title: "Attention", description: result.warning, variant: "destructive" });
+      }
+
+      onSuccess((result as { data: { id: string } }).data.id);
+    } catch {
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de la création du devis.",
+        variant: "destructive",
+      });
+    } finally {
       setIsSubmitting(false);
-      return;
     }
-
-    if ("warning" in result && result.warning) {
-      toast({ title: "Attention", description: result.warning, variant: "destructive" });
-    }
-
-    setIsSubmitting(false);
-    onSuccess();
   };
 
   const updateField = (field: keyof CreateDevisInput, value: string | LigneItem[]) => {
