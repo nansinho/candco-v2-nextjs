@@ -52,6 +52,8 @@ import { getSessionCommanditaires } from "@/actions/sessions";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { DevisStatusBadge } from "@/components/shared/status-badges";
 import { LignesEditor, DocumentPreview, type LigneItem } from "@/components/shared/lignes-editor";
+import { formatDatesDisplay } from "@/lib/devis-helpers";
+import { MultiDatePicker } from "@/components/ui/multi-date-picker";
 import { ProduitSearchCombobox } from "@/components/shared/produit-search-combobox";
 import { EntrepriseSearchCombobox } from "@/components/shared/entreprise-search-combobox";
 
@@ -115,7 +117,8 @@ export default function DevisDetailPage() {
   const [produitTarifs, setProduitTarifs] = React.useState<ProduitTarifOption[]>([]);
   const [selectedTarifId, setSelectedTarifId] = React.useState("");
   const [lieuFormation, setLieuFormation] = React.useState("");
-  const [datesFormation, setDatesFormation] = React.useState("");
+  const [datesFormationJours, setDatesFormationJours] = React.useState<Date[]>([]);
+  const datesFormation = React.useMemo(() => formatDatesDisplay(datesFormationJours), [datesFormationJours]);
   const [nombreParticipants, setNombreParticipants] = React.useState<string>("");
   const [modalitePedagogique, setModalitePedagogique] = React.useState("");
   const [dureeFormation, setDureeFormation] = React.useState("");
@@ -215,7 +218,10 @@ export default function DevisDetailPage() {
 
         // Product catalog fields
         setLieuFormation((devisData.lieu_formation as string) || "");
-        setDatesFormation((devisData.dates_formation as string) || "");
+        const storedJours = (devisData.dates_formation_jours as string[] | null) || [];
+        if (storedJours.length > 0) {
+          setDatesFormationJours(storedJours.map((d) => new Date(d + "T00:00:00")));
+        }
         setNombreParticipants(devisData.nombre_participants ? String(devisData.nombre_participants) : "");
         setModalitePedagogique((devisData.modalite_pedagogique as string) || "");
         setDureeFormation((devisData.duree_formation as string) || "");
@@ -382,6 +388,7 @@ export default function DevisDetailPage() {
         produit_id: selectedProduit?.id || "",
         lieu_formation: lieuFormation,
         dates_formation: datesFormation,
+        dates_formation_jours: datesFormationJours.map((d) => d.toISOString().split("T")[0]),
         nombre_participants: nombreParticipants ? Number(nombreParticipants) : undefined,
         modalite_pedagogique: modalitePedagogique,
         duree_formation: dureeFormation,
@@ -1234,11 +1241,10 @@ export default function DevisDetailPage() {
                         </div>
                         <div className="space-y-1">
                           <Label className="text-xs">Date(s)</Label>
-                          <Input
-                            value={datesFormation}
-                            onChange={(e) => setDatesFormation(e.target.value)}
-                            placeholder="Ex: 15-17 mars 2026"
-                            className="h-8 text-xs border-border/60"
+                          <MultiDatePicker
+                            value={datesFormationJours}
+                            onChange={setDatesFormationJours}
+                            placeholder="Sélectionner les dates..."
                             disabled={isReadOnly}
                           />
                         </div>
