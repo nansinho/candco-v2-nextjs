@@ -48,6 +48,7 @@ const CreateDevisSchema = z.object({
   duree_formation: z.string().optional().or(z.literal("")),
   lignes: z.array(DevisLigneSchema).default([]),
   contact_auto_selected: z.boolean().optional().default(false),
+  exoneration_tva: z.boolean().optional().default(false),
 });
 
 export type CreateDevisInput = z.infer<typeof CreateDevisSchema>;
@@ -115,6 +116,7 @@ export async function createDevis(input: CreateDevisInput) {
       nombre_participants: parsed.data.nombre_participants || null,
       modalite_pedagogique: parsed.data.modalite_pedagogique || null,
       duree_formation: parsed.data.duree_formation || null,
+      exoneration_tva: parsed.data.exoneration_tva ?? false,
       ...totals,
     })
     .select()
@@ -274,6 +276,7 @@ export async function updateDevis(id: string, input: UpdateDevisInput) {
       nombre_participants: parsed.data.nombre_participants || null,
       modalite_pedagogique: parsed.data.modalite_pedagogique || null,
       duree_formation: parsed.data.duree_formation || null,
+      exoneration_tva: parsed.data.exoneration_tva ?? false,
       ...totals,
     })
     .eq("id", id)
@@ -311,6 +314,9 @@ export async function updateDevis(id: string, input: UpdateDevisInput) {
   const updateDescParts = [`Devis ${data.numero_affichage} mis à jour`];
   if (parsed.data.contact_auto_selected) {
     updateDescParts.push("— contact client auto-sélectionné depuis siège social");
+  }
+  if (parsed.data.exoneration_tva) {
+    updateDescParts.push("— exonération TVA activée");
   }
 
   await logHistorique({
@@ -428,6 +434,7 @@ export async function duplicateDevis(id: string) {
     objet: original.objet ? `${original.objet} (copie)` : "",
     conditions: original.conditions ?? "",
     mentions_legales: original.mentions_legales ?? "",
+    exoneration_tva: original.exoneration_tva ?? false,
     statut: "brouillon",
     opportunite_id: original.opportunite_id ?? "",
     session_id: "",
@@ -438,6 +445,7 @@ export async function duplicateDevis(id: string) {
     modalite_pedagogique: original.modalite_pedagogique ?? "",
     duree_formation: original.duree_formation ?? "",
     lignes,
+    contact_auto_selected: false,
   });
 }
 
@@ -477,6 +485,7 @@ export async function convertDevisToFacture(devisId: string) {
       devis_id: devisId,
       session_id: devisData.session_id,
       commanditaire_id: devisData.commanditaire_id || null,
+      exoneration_tva: devisData.exoneration_tva ?? false,
     })
     .select()
     .single();

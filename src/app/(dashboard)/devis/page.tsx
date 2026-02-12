@@ -30,6 +30,7 @@ import {
   type SiegeContact,
 } from "@/actions/devis";
 import { searchProduitsForDevis, getProduitTarifsForDevis, type ProduitSearchResult, type ProduitTarifOption } from "@/actions/produits";
+import { getOrganisationBillingInfo } from "@/actions/factures";
 import { getSessionCommanditaires } from "@/actions/sessions";
 import { AIDocumentDialog } from "@/components/shared/ai-document-dialog";
 import { formatDate, formatCurrency } from "@/lib/utils";
@@ -355,6 +356,10 @@ function CreateDevisForm({
   const [siegeLoading, setSiegeLoading] = React.useState(false);
   const [noSiegeMembers, setNoSiegeMembers] = React.useState(false);
 
+  // Exoneration TVA
+  const [exonerationTva, setExonerationTva] = React.useState(false);
+  const [orgTvaDefaut, setOrgTvaDefaut] = React.useState<number>(20);
+
   // Product catalog selection
   const [selectedProduit, setSelectedProduit] = React.useState<ProduitSearchResult | null>(null);
   const [produitTarifs, setProduitTarifs] = React.useState<ProduitTarifOption[]>([]);
@@ -387,18 +392,21 @@ function CreateDevisForm({
     duree_formation: "",
     lignes: [],
     contact_auto_selected: false,
+    exoneration_tva: false,
   });
 
   React.useEffect(() => {
     async function load() {
-      const [ent, cont, sess] = await Promise.all([
+      const [ent, cont, sess, orgData] = await Promise.all([
         getEntreprisesForSelect(),
         getContactsForSelect(),
         getSessionsForDevisSelect(),
+        getOrganisationBillingInfo(),
       ]);
       setEntreprises(ent);
       setContacts(cont);
       setSessions(sess as SessionOption[]);
+      if (orgData?.tva_defaut != null) setOrgTvaDefaut(orgData.tva_defaut);
     }
     load();
   }, []);
@@ -933,9 +941,33 @@ function CreateDevisForm({
 
       <div className="space-y-2">
         <Label className="text-sm">Lignes du devis</Label>
+        <div className="flex items-center gap-2 mb-2">
+          <input
+            type="checkbox"
+            id="exoneration_tva_create"
+            checked={exonerationTva}
+            onChange={(e) => {
+              const checked = e.target.checked;
+              setExonerationTva(checked);
+              setForm((prev) => ({
+                ...prev,
+                exoneration_tva: checked,
+                lignes: prev.lignes.map((l) => ({
+                  ...l,
+                  taux_tva: checked ? 0 : orgTvaDefaut,
+                })),
+              }));
+            }}
+            className="h-4 w-4 rounded border-border accent-orange-500"
+          />
+          <label htmlFor="exoneration_tva_create" className="text-xs cursor-pointer select-none">
+            Exonération de TVA (art. 261-4-4a du CGI — formation professionnelle)
+          </label>
+        </div>
         <LignesEditor
           lignes={form.lignes}
           onChange={(lignes) => updateField("lignes", lignes)}
+          tvaLocked={exonerationTva}
         />
       </div>
 
