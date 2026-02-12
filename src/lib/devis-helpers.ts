@@ -34,6 +34,20 @@ export function computeQuantiteFromTarif(
 }
 
 /**
+ * Returns a user-facing hint about how QTE is computed for the given tariff unit.
+ */
+export function getQuantiteHint(unite: string | null | undefined): string | null {
+  const u = (unite || "").toLowerCase().trim();
+  if (u === "stagiaire" || u === "participant") {
+    return "Inter-entreprise : QTÉ = nombre de participants";
+  }
+  if (u === "groupe" || u === "forfait") {
+    return "Intra-entreprise : QTÉ fixe (par groupe)";
+  }
+  return null;
+}
+
+/**
  * Format an array of dates into a human-readable French string.
  * Groups consecutive dates into ranges.
  *

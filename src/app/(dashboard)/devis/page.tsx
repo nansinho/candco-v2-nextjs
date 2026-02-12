@@ -36,7 +36,7 @@ import { AIDocumentDialog } from "@/components/shared/ai-document-dialog";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { DatePicker } from "@/components/ui/date-picker";
 import { LignesEditor, type LigneItem } from "@/components/shared/lignes-editor";
-import { computeQuantiteFromTarif, formatDatesDisplay } from "@/lib/devis-helpers";
+import { computeQuantiteFromTarif, formatDatesDisplay, getQuantiteHint } from "@/lib/devis-helpers";
 import { MultiDatePicker } from "@/components/ui/multi-date-picker";
 import { ProduitSearchCombobox } from "@/components/shared/produit-search-combobox";
 import { EntrepriseSearchCombobox } from "@/components/shared/entreprise-search-combobox";
@@ -722,6 +722,11 @@ function CreateDevisForm({
                 placeholder="Ex: 8"
                 className="h-8 text-xs border-border/60"
               />
+              {(() => {
+                const tarif = produitTarifs.find((t) => t.id === selectedTarifId);
+                const hint = getQuantiteHint(tarif?.unite);
+                return hint ? <p className="text-[10px] text-muted-foreground/70 leading-tight mt-0.5">{hint}</p> : null;
+              })()}
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Modalité</Label>
@@ -755,6 +760,11 @@ function CreateDevisForm({
                     </option>
                   ))}
                 </select>
+                {(() => {
+                  const tarif = produitTarifs.find((t) => t.id === selectedTarifId);
+                  const hint = getQuantiteHint(tarif?.unite);
+                  return hint ? <p className="text-[10px] text-muted-foreground/70 leading-tight mt-0.5">{hint}</p> : null;
+                })()}
               </div>
             )}
           </div>
