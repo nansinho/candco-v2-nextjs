@@ -2446,3 +2446,66 @@ export async function removeProduitQuestionnaire(id: string, produitId: string) 
   revalidatePath(`/produits/${produitId}`);
   return { success: true };
 }
+
+// ─── Devis Integration: Product Search & Tariffs ────────
+
+export interface ProduitSearchResult {
+  id: string;
+  intitule: string;
+  numero_affichage: string | null;
+  identifiant_interne: string | null;
+  domaine: string | null;
+  categorie: string | null;
+  modalite: string | null;
+  formule: string | null;
+  duree_heures: number | null;
+  duree_jours: number | null;
+  image_url: string | null;
+}
+
+export async function searchProduitsForDevis(search: string = ""): Promise<ProduitSearchResult[]> {
+  const result = await getOrganisationId();
+  if ("error" in result) return [];
+  const { organisationId, admin } = result;
+
+  let query = admin
+    .from("produits_formation")
+    .select("id, intitule, numero_affichage, identifiant_interne, domaine, categorie, modalite, formule, duree_heures, duree_jours, image_url")
+    .eq("organisation_id", organisationId)
+    .is("archived_at", null)
+    .order("intitule", { ascending: true })
+    .limit(20);
+
+  if (search) {
+    query = query.or(
+      `intitule.ilike.%${search}%,identifiant_interne.ilike.%${search}%,domaine.ilike.%${search}%,categorie.ilike.%${search}%`
+    );
+  }
+
+  const { data } = await query;
+  return (data ?? []) as ProduitSearchResult[];
+}
+
+export interface ProduitTarifOption {
+  id: string;
+  nom: string | null;
+  prix_ht: number;
+  taux_tva: number;
+  unite: string | null;
+  is_default: boolean;
+}
+
+export async function getProduitTarifsForDevis(produitId: string): Promise<ProduitTarifOption[]> {
+  const result = await getOrganisationId();
+  if ("error" in result) return [];
+  const { admin } = result;
+
+  const { data } = await admin
+    .from("produit_tarifs")
+    .select("id, nom, prix_ht, taux_tva, unite, is_default")
+    .eq("produit_id", produitId)
+    .order("is_default", { ascending: false })
+    .order("created_at", { ascending: true });
+
+  return (data ?? []) as ProduitTarifOption[];
+}
