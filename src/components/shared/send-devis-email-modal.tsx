@@ -177,27 +177,37 @@ export function SendDevisEmailModal({
       attachProgrammePdf: attachProgramme,
     };
 
-    const result = await sendDevisEmail(input);
+    try {
+      const result = await sendDevisEmail(input);
 
-    setIsSending(false);
+      if ("error" in result && result.error) {
+        toast({
+          title: "Erreur d'envoi",
+          description: result.error,
+          variant: "destructive",
+        });
+        setIsSending(false);
+        return;
+      }
 
-    if ("error" in result && result.error) {
       toast({
-        title: "Erreur d'envoi",
-        description: result.error,
+        title: "Email envoyé avec succès",
+        description: `Le devis ${devisNumero} a été envoyé à ${recipients.join(", ")}`,
+        variant: "success",
+      });
+
+      onOpenChange(false);
+      onSendSuccess("statusChanged" in result && !!result.statusChanged);
+    } catch (err) {
+      console.error("Erreur envoi devis email:", err);
+      toast({
+        title: "Erreur",
+        description: "Une erreur inattendue est survenue lors de l'envoi",
         variant: "destructive",
       });
-      return;
+    } finally {
+      setIsSending(false);
     }
-
-    toast({
-      title: "Email envoyé avec succès",
-      description: `Le devis ${devisNumero} a été envoyé à ${recipients.join(", ")}`,
-      variant: "success",
-    });
-
-    onOpenChange(false);
-    onSendSuccess("statusChanged" in result && !!result.statusChanged);
   }
 
   return (

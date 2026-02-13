@@ -1418,78 +1418,91 @@ export async function sendDevisEmail(input: SendDevisEmailInput) {
       mentionsLegales: (devis.mentions_legales as string) || undefined,
     };
 
-    const devisPdfBytes = await generateDevisPdf(orgOpts, devisData);
-    attachments.push({
-      filename: `Devis_${devis.numero_affichage || "draft"}.pdf`,
-      content: Buffer.from(devisPdfBytes),
-    });
-    attachedDocNames.push("Devis PDF");
+    try {
+      const devisPdfBytes = await generateDevisPdf(orgOpts, devisData);
+      attachments.push({
+        filename: `Devis_${devis.numero_affichage || "draft"}.pdf`,
+        content: Buffer.from(devisPdfBytes),
+      });
+      attachedDocNames.push("Devis PDF");
+    } catch (pdfErr) {
+      console.error("Erreur génération PDF devis:", pdfErr);
+      return { error: `Erreur lors de la génération du PDF devis : ${pdfErr instanceof Error ? pdfErr.message : "erreur inconnue"}` };
+    }
   }
 
   // ── Generate Programme PDF ──
   if (input.attachProgrammePdf && devis.produit_id) {
-    const { data: produit } = await admin
-      .from("produits_formation")
-      .select("intitule, sous_titre, description, duree_heures, duree_jours, modalite")
-      .eq("id", devis.produit_id as string)
-      .single();
+    try {
+      const { data: produit } = await admin
+        .from("produits_formation")
+        .select("intitule, sous_titre, description, duree_heures, duree_jours, modalite")
+        .eq("id", devis.produit_id as string)
+        .single();
 
-    const { data: objectifs } = await admin
-      .from("produit_objectifs")
-      .select("objectif")
-      .eq("produit_id", devis.produit_id as string)
-      .order("ordre", { ascending: true });
+      const { data: objectifs } = await admin
+        .from("produit_objectifs")
+        .select("objectif")
+        .eq("produit_id", devis.produit_id as string)
+        .order("ordre", { ascending: true });
 
-    const { data: programme } = await admin
-      .from("produit_programme")
-      .select("titre, contenu, duree")
-      .eq("produit_id", devis.produit_id as string)
-      .order("ordre", { ascending: true });
+      const { data: programme } = await admin
+        .from("produit_programme")
+        .select("titre, contenu, duree")
+        .eq("produit_id", devis.produit_id as string)
+        .order("ordre", { ascending: true });
 
-    const { data: prerequis } = await admin
-      .from("produit_prerequis")
-      .select("prerequis")
-      .eq("produit_id", devis.produit_id as string)
-      .order("ordre", { ascending: true });
+      const { data: prerequis } = await admin
+        .from("produit_prerequis")
+        .select("texte")
+        .eq("produit_id", devis.produit_id as string)
+        .order("ordre", { ascending: true });
 
-    const { data: publicVise } = await admin
-      .from("produit_public_vise")
-      .select("public")
-      .eq("produit_id", devis.produit_id as string)
-      .order("ordre", { ascending: true });
+      const { data: publicVise } = await admin
+        .from("produit_public_vise")
+        .select("texte")
+        .eq("produit_id", devis.produit_id as string)
+        .order("ordre", { ascending: true });
 
-    const { data: competences } = await admin
-      .from("produit_competences")
-      .select("competence")
-      .eq("produit_id", devis.produit_id as string)
-      .order("ordre", { ascending: true });
+      const { data: competences } = await admin
+        .from("produit_competences")
+        .select("texte")
+        .eq("produit_id", devis.produit_id as string)
+        .order("ordre", { ascending: true });
 
-    if (produit) {
-      const programmeData: ProgrammeFormationData = {
-        intitule: produit.intitule || "Programme de formation",
-        sousTitle: produit.sous_titre || undefined,
-        description: produit.description || undefined,
-        dureeHeures: produit.duree_heures ? Number(produit.duree_heures) : undefined,
-        dureeJours: produit.duree_jours ? Number(produit.duree_jours) : undefined,
-        modalite: produit.modalite || undefined,
-        objectifs: objectifs?.map(o => o.objectif as string) || [],
-        programme: (programme || []).map(p => ({
-          titre: p.titre as string,
-          contenu: (p.contenu as string) || undefined,
-          duree: (p.duree as string) || undefined,
-        })),
-        prerequis: prerequis?.map(p => p.prerequis as string) || [],
-        publicVise: publicVise?.map(p => p.public as string) || [],
-        competences: competences?.map(c => c.competence as string) || [],
-        dateEmission: new Date().toLocaleDateString("fr-FR"),
-      };
+      if (produit) {
+        const programmeData: ProgrammeFormationData = {
+          intitule: produit.intitule || "Programme de formation",
+          sousTitle: produit.sous_titre || undefined,
+          description: produit.description || undefined,
+          dureeHeures: produit.duree_heures ? Number(produit.duree_heures) : undefined,
+          dureeJours: produit.duree_jours ? Number(produit.duree_jours) : undefined,
+          modalite: produit.modalite || undefined,
+          objectifs: objectifs?.map(o => o.objectif as string) || [],
+          programme: (programme || []).map(p => ({
+            titre: p.titre as string,
+            contenu: (p.contenu as string) || undefined,
+            duree: (p.duree as string) || undefined,
+          })),
+          prerequis: prerequis?.map(p => p.texte as string) || [],
+          publicVise: publicVise?.map(p => p.texte as string) || [],
+          competences: competences?.map(c => c.texte as string) || [],
+          dateEmission: new Date().toLocaleDateString("fr-FR"),
+        };
 
-      const programmePdfBytes = await generateProgrammePdf(orgOpts, programmeData);
-      attachments.push({
-        filename: `Programme_${produit.intitule?.replace(/[^a-zA-Z0-9àâäéèêëïîôùûüÿçÀÂÄÉÈÊËÏÎÔÙÛÜŸÇ\s-]/g, "").replace(/\s+/g, "_").slice(0, 50) || "formation"}.pdf`,
-        content: Buffer.from(programmePdfBytes),
-      });
-      attachedDocNames.push("Programme de formation PDF");
+        const programmePdfBytes = await generateProgrammePdf(orgOpts, programmeData);
+        attachments.push({
+          filename: `Programme_${produit.intitule?.replace(/[^a-zA-Z0-9àâäéèêëïîôùûüÿçÀÂÄÉÈÊËÏÎÔÙÛÜŸÇ\s-]/g, "").replace(/\s+/g, "_").slice(0, 50) || "formation"}.pdf`,
+          content: Buffer.from(programmePdfBytes),
+        });
+        attachedDocNames.push("Programme de formation PDF");
+      }
+    } catch (progErr) {
+      console.error("Erreur génération PDF programme:", progErr);
+      // Continue without the programme PDF if devis PDF is already attached
+      if (attachments.length === 0) {
+        return { error: `Erreur lors de la génération du PDF programme : ${progErr instanceof Error ? progErr.message : "erreur inconnue"}` };
+      }
     }
   }
 
@@ -1504,28 +1517,33 @@ export async function sendDevisEmail(input: SendDevisEmailInput) {
   });
 
   // ── Send email ──
-  const emailResult = await sendEmail({
-    organisationId,
-    to: input.recipients,
-    subject: input.subject,
-    html,
-    cc: input.cc.length > 0 ? input.cc : undefined,
-    bcc: input.bcc.length > 0 ? input.bcc : undefined,
-    attachments,
-    entiteType: "devis",
-    entiteId: input.devisId,
-    template: "devis_email_modal",
-    metadata: {
-      recipients: input.recipients,
-      cc: input.cc,
-      bcc: input.bcc,
-      documents_envoyes: attachedDocNames,
-      devis_numero: devis.numero_affichage,
-    },
-  });
+  try {
+    const emailResult = await sendEmail({
+      organisationId,
+      to: input.recipients,
+      subject: input.subject,
+      html,
+      cc: input.cc.length > 0 ? input.cc : undefined,
+      bcc: input.bcc.length > 0 ? input.bcc : undefined,
+      attachments,
+      entiteType: "devis",
+      entiteId: input.devisId,
+      template: "devis_email_modal",
+      metadata: {
+        recipients: input.recipients,
+        cc: input.cc,
+        bcc: input.bcc,
+        documents_envoyes: attachedDocNames,
+        devis_numero: devis.numero_affichage,
+      },
+    });
 
-  if (!emailResult.success) {
-    return { error: `Erreur d'envoi : ${emailResult.error || "Impossible d'envoyer l'email"}` };
+    if (!emailResult.success) {
+      return { error: `Erreur d'envoi : ${emailResult.error || "Impossible d'envoyer l'email"}` };
+    }
+  } catch (emailErr) {
+    console.error("Erreur envoi email devis:", emailErr);
+    return { error: `Erreur lors de l'envoi de l'email : ${emailErr instanceof Error ? emailErr.message : "erreur inconnue"}` };
   }
 
   // ── Update devis status (brouillon → envoye only) ──
