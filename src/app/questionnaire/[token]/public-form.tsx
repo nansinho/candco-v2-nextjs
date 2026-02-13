@@ -98,7 +98,7 @@ export function PublicQuestionnaireForm({
       {questions.map((q, i) => (
         <div key={q.id} className="rounded-lg border border-border/60 bg-card p-5">
           <div className="flex items-start gap-3">
-            <span className="text-xs font-mono text-muted-foreground/50 pt-0.5">{i + 1}.</span>
+            <span className="text-xs font-mono text-muted-foreground-subtle pt-0.5">{i + 1}.</span>
             <div className="flex-1 space-y-3">
               <p className="text-[14px] font-medium">
                 {q.texte}

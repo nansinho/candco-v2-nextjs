@@ -136,7 +136,7 @@ function getColumns(isSuperAdmin: boolean): Column<TicketRow>[] {
         item.categorie ? (
           <span className="text-sm">{CATEGORIE_LABELS[item.categorie] || item.categorie}</span>
         ) : (
-          <span className="text-muted-foreground/40">--</span>
+          <span className="text-muted-foreground-subtle">--</span>
         ),
     },
   ];
@@ -154,7 +154,7 @@ function getColumns(isSuperAdmin: boolean): Column<TicketRow>[] {
             <span className="text-sm">{item.organisation_nom}</span>
           </div>
         ) : (
-          <span className="text-muted-foreground/40">--</span>
+          <span className="text-muted-foreground-subtle">--</span>
         ),
     });
   }
@@ -168,7 +168,7 @@ function getColumns(isSuperAdmin: boolean): Column<TicketRow>[] {
         item.entreprise?.nom ? (
           <span className="text-sm">{item.entreprise.nom}</span>
         ) : (
-          <span className="text-muted-foreground/40">--</span>
+          <span className="text-muted-foreground-subtle">--</span>
         ),
     },
     {
@@ -193,7 +193,7 @@ function getColumns(isSuperAdmin: boolean): Column<TicketRow>[] {
         item.assignee ? (
           <span className="text-sm">{item.assignee.prenom} {item.assignee.nom}</span>
         ) : (
-          <span className="text-muted-foreground/40 text-sm">Non assigné</span>
+          <span className="text-muted-foreground-subtle text-sm">Non assigné</span>
         ),
     },
     {

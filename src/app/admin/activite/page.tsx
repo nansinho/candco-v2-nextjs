@@ -95,7 +95,7 @@ const columns: Column<AdminActivityRow>[] = [
           <span className="text-sm">{item.agence_nom}</span>
         </div>
       ) : (
-        <span className="text-muted-foreground/40">—</span>
+        <span className="text-muted-foreground-subtle">—</span>
       ),
   },
   {

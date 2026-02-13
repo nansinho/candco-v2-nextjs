@@ -808,8 +808,8 @@ function DescriptionBubble({
         {!isGrouped && (
           <div className={`flex items-center gap-1.5 mb-1 ${isOwn ? "flex-row-reverse" : ""}`}>
             <span className="text-xs font-medium">{auteurNom || "Inconnu"}</span>
-            <span className="text-xs text-muted-foreground/50">{AUTEUR_TYPE_LABELS[auteurType] || auteurType}</span>
-            <span className="text-xs text-muted-foreground/40">{formatTime(createdAt)}</span>
+            <span className="text-xs text-muted-foreground-subtle">{AUTEUR_TYPE_LABELS[auteurType] || auteurType}</span>
+            <span className="text-xs text-muted-foreground-subtle">{formatTime(createdAt)}</span>
           </div>
         )}
 
@@ -851,7 +851,7 @@ function ChatBubble({
             <Lock className="h-3 w-3 text-amber-500/70" />
             <span className="text-xs font-medium text-amber-500/80">{message.auteur_nom || "Inconnu"}</span>
             <span className="text-xs text-amber-500/40">Note interne</span>
-            <span className="text-xs text-muted-foreground/40">{formatTime(message.created_at)}</span>
+            <span className="text-xs text-muted-foreground-subtle">{formatTime(message.created_at)}</span>
           </div>
         )}
         <div className="rounded-lg px-3 py-2 text-sm bg-amber-500/5 border border-amber-500/20">
@@ -880,10 +880,10 @@ function ChatBubble({
         {!isGrouped && (
           <div className={`flex items-center gap-1.5 mb-1 ${isOwn ? "flex-row-reverse" : ""}`}>
             <span className="text-xs font-medium">{message.auteur_nom || "Inconnu"}</span>
-            <span className="text-xs text-muted-foreground/50">
+            <span className="text-xs text-muted-foreground-subtle">
               {AUTEUR_TYPE_LABELS[message.auteur_type] || message.auteur_type}
             </span>
-            <span className="text-xs text-muted-foreground/40">{formatTime(message.created_at)}</span>
+            <span className="text-xs text-muted-foreground-subtle">{formatTime(message.created_at)}</span>
           </div>
         )}
 
@@ -949,7 +949,7 @@ function HistoriqueEntry({ entry }: { entry: TicketHistoriqueEntry }) {
         {!entry.ancien_valeur && entry.nouveau_valeur && (
           <span className="text-foreground"> : {entry.nouveau_valeur}</span>
         )}
-        <div className="text-muted-foreground/50 mt-0.5">
+        <div className="text-muted-foreground-subtle mt-0.5">
           {entry.auteur_nom || "Système"} · {formatTime(entry.created_at)}
         </div>
       </div>

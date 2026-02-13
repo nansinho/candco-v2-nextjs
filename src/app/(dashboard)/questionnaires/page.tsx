@@ -88,7 +88,7 @@ const columns: Column<Questionnaire>[] = [
         <div className="min-w-0">
           <span className="font-medium truncate block">{item.nom}</span>
           {item.produits_formation && (
-            <span className="text-xs text-muted-foreground/50 truncate block">
+            <span className="text-xs text-muted-foreground-subtle truncate block">
               {item.produits_formation.intitule}
             </span>
           )}
@@ -115,7 +115,7 @@ const columns: Column<Questionnaire>[] = [
       item.public_cible ? (
         <span className="text-sm">{PUBLIC_LABELS[item.public_cible] ?? item.public_cible}</span>
       ) : (
-        <span className="text-muted-foreground/40">--</span>
+        <span className="text-muted-foreground-subtle">--</span>
       ),
   },
   {
@@ -427,7 +427,7 @@ function CreateQuestionnaireForm({
           name="introduction"
           rows={3}
           placeholder="Merci de prendre quelques minutes pour répondre à ce questionnaire..."
-          className="w-full rounded-md border border-input bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 resize-none"
+          className="w-full rounded-md border border-input bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground-subtle resize-none"
         />
       </div>
 
@@ -565,7 +565,7 @@ function PDFImportForm({
           </>
         ) : (
           <>
-            <Upload className="h-8 w-8 text-muted-foreground/40 mb-2" />
+            <Upload className="h-8 w-8 text-muted-foreground-subtle mb-2" />
             <p className="text-sm text-muted-foreground">
               Cliquez pour sélectionner un PDF
             </p>
@@ -675,7 +675,7 @@ function PromptGenerateForm({
           onChange={(e) => setPrompt(e.target.value)}
           rows={4}
           placeholder={`Ex: Créer un questionnaire de satisfaction à chaud pour une formation en management de 2 jours, 10 questions variées couvrant la pédagogie, le contenu, le formateur et la logistique`}
-          className="w-full rounded-md border border-input bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 resize-none"
+          className="w-full rounded-md border border-input bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground-subtle resize-none"
           disabled={isLoading}
         />
         <p className="text-xs text-muted-foreground/60">

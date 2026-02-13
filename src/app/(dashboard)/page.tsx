@@ -120,7 +120,7 @@ async function WelcomeHeader() {
       <h1 className="text-lg font-medium">
         {getGreeting()}, {prenom}
       </h1>
-      <p className="text-xs text-muted-foreground/50 mt-0.5">
+      <p className="text-xs text-muted-foreground-subtle mt-0.5">
         {new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" }).format(new Date())}
       </p>
     </div>
@@ -194,7 +194,7 @@ export default function DashboardPage() {
         </Suspense>
         <Link
           href="/indicateurs"
-          className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+          className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground-subtle hover:text-muted-foreground transition-colors"
         >
           <TrendingUp className="h-3 w-3" />
           Indicateurs

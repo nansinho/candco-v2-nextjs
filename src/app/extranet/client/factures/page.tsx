@@ -13,7 +13,7 @@ export default async function ClientFacturesPage() {
         <p className="mt-1 text-sm text-muted-foreground">Consultez et telechargez vos factures</p>
       </div>
       <div className="rounded-lg border border-border/60 bg-card p-12 text-center">
-        <Receipt className="mx-auto h-10 w-10 text-muted-foreground/20" />
+        <Receipt className="mx-auto h-10 w-10 text-muted-foreground-faint" />
         <p className="mt-3 text-sm font-medium text-muted-foreground/60">Aucune facture disponible</p>
       </div>
     </div>

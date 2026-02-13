@@ -40,7 +40,7 @@ export function AdminStatsWidget({ stats }: { stats: AdminDashboardStats }) {
             <item.icon className={`h-4 w-4 ${item.color} shrink-0`} />
             <div className="min-w-0">
               <p className="text-lg font-bold leading-none">{item.value}</p>
-              <p className="text-xs text-muted-foreground/50 truncate mt-0.5">{item.label}</p>
+              <p className="text-xs text-muted-foreground-subtle truncate mt-0.5">{item.label}</p>
             </div>
           </div>
         );
@@ -114,7 +114,7 @@ export function AdminTicketsWidget({
               >
                 <div className={`h-1.5 w-1.5 rounded-full ${dot} shrink-0`} />
                 <span className="text-sm truncate flex-1">{ticket.titre}</span>
-                <span className="text-xs text-muted-foreground/40 shrink-0">
+                <span className="text-xs text-muted-foreground-subtle shrink-0">
                   {ticket.organisation_nom}
                 </span>
               </div>
@@ -122,7 +122,7 @@ export function AdminTicketsWidget({
           })}
           <Link
             href="/admin/tickets"
-            className="flex items-center justify-center gap-1 text-xs text-muted-foreground/30 hover:text-primary transition-colors pt-1"
+            className="flex items-center justify-center gap-1 text-xs text-muted-foreground-faint hover:text-primary transition-colors pt-1"
           >
             Tout voir <ArrowRight className="h-3 w-3" />
           </Link>
@@ -130,7 +130,7 @@ export function AdminTicketsWidget({
       )}
 
       {recentTickets.length === 0 && ticketsOuverts === 0 && (
-        <p className="text-xs text-muted-foreground/40">Aucun ticket ouvert</p>
+        <p className="text-xs text-muted-foreground-subtle">Aucun ticket ouvert</p>
       )}
     </div>
   );
@@ -157,7 +157,7 @@ const actionColors: Record<string, string> = {
 
 export function AdminActivityWidget({ activity }: { activity: AdminActivityRow[] }) {
   if (activity.length === 0) {
-    return <p className="text-xs text-muted-foreground/40">Aucune activité récente</p>;
+    return <p className="text-xs text-muted-foreground-subtle">Aucune activité récente</p>;
   }
 
   return (
@@ -176,9 +176,9 @@ export function AdminActivityWidget({ activity }: { activity: AdminActivityRow[]
                 <span className="text-muted-foreground/80">{event.description || `${event.action} ${event.module}`}</span>
               </p>
               <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-xs text-muted-foreground/40">{event.user_nom || "Système"}</span>
+                <span className="text-xs text-muted-foreground-subtle">{event.user_nom || "Système"}</span>
                 {event.agence_nom && (
-                  <span className="text-xs text-muted-foreground/30">{event.agence_nom}</span>
+                  <span className="text-xs text-muted-foreground-faint">{event.agence_nom}</span>
                 )}
                 <span className="text-xs text-muted-foreground/25">
                   {formatDistanceToNow(new Date(event.created_at), { addSuffix: true, locale: fr })}
@@ -190,7 +190,7 @@ export function AdminActivityWidget({ activity }: { activity: AdminActivityRow[]
       })}
       <Link
         href="/admin/activite"
-        className="flex items-center justify-center gap-1 text-xs text-muted-foreground/30 hover:text-primary transition-colors pt-1"
+        className="flex items-center justify-center gap-1 text-xs text-muted-foreground-faint hover:text-primary transition-colors pt-1"
       >
         Voir tout <ArrowRight className="h-3 w-3" />
       </Link>
@@ -209,7 +209,7 @@ interface RecentOrg {
 
 export function AdminOrgsRecentesWidget({ orgs }: { orgs: RecentOrg[] }) {
   if (orgs.length === 0) {
-    return <p className="text-xs text-muted-foreground/40">Aucune organisation</p>;
+    return <p className="text-xs text-muted-foreground-subtle">Aucune organisation</p>;
   }
 
   return (
@@ -225,7 +225,7 @@ export function AdminOrgsRecentesWidget({ orgs }: { orgs: RecentOrg[] }) {
             <p className="text-sm truncate group-hover:text-primary transition-colors">
               {org.nom}
             </p>
-            <p className="text-xs text-muted-foreground/40">
+            <p className="text-xs text-muted-foreground-subtle">
               {org.users_count} utilisateur{org.users_count > 1 ? "s" : ""} &middot;{" "}
               {formatDistanceToNow(new Date(org.created_at), { addSuffix: true, locale: fr })}
             </p>
@@ -234,7 +234,7 @@ export function AdminOrgsRecentesWidget({ orgs }: { orgs: RecentOrg[] }) {
       ))}
       <Link
         href="/admin/organisations"
-        className="flex items-center justify-center gap-1 text-xs text-muted-foreground/30 hover:text-primary transition-colors pt-1"
+        className="flex items-center justify-center gap-1 text-xs text-muted-foreground-faint hover:text-primary transition-colors pt-1"
       >
         Tout voir <ArrowRight className="h-3 w-3" />
       </Link>
@@ -253,7 +253,7 @@ interface OrgUsage {
 
 export function AdminOrgsUsageWidget({ orgs }: { orgs: OrgUsage[] }) {
   if (orgs.length === 0) {
-    return <p className="text-xs text-muted-foreground/40">Aucune donnée</p>;
+    return <p className="text-xs text-muted-foreground-subtle">Aucune donnée</p>;
   }
 
   const maxTotal = Math.max(...orgs.map((o) => o.sessions_count + o.apprenants_count), 1);
@@ -273,7 +273,7 @@ export function AdminOrgsUsageWidget({ orgs }: { orgs: OrgUsage[] }) {
               <span className="text-xs truncate group-hover:text-primary transition-colors">
                 {org.nom}
               </span>
-              <span className="text-xs text-muted-foreground/40 shrink-0 ml-2">
+              <span className="text-xs text-muted-foreground-subtle shrink-0 ml-2">
                 {org.sessions_count} ses. &middot; {org.apprenants_count} app.
               </span>
             </div>

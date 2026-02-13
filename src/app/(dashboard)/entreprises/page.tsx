@@ -86,7 +86,7 @@ const columns: Column<Entreprise>[] = [
     filterType: "text",
     minWidth: 150,
     render: (item) =>
-      item.siret || <span className="text-muted-foreground/40">--</span>,
+      item.siret || <span className="text-muted-foreground-subtle">--</span>,
   },
   {
     key: "email",
@@ -95,14 +95,14 @@ const columns: Column<Entreprise>[] = [
     filterType: "text",
     minWidth: 200,
     render: (item) =>
-      item.email || <span className="text-muted-foreground/40">--</span>,
+      item.email || <span className="text-muted-foreground-subtle">--</span>,
   },
   {
     key: "telephone",
     label: "Téléphone",
     minWidth: 140,
     render: (item) =>
-      item.telephone || <span className="text-muted-foreground/40">--</span>,
+      item.telephone || <span className="text-muted-foreground-subtle">--</span>,
   },
   {
     key: "adresse_ville",
@@ -111,7 +111,7 @@ const columns: Column<Entreprise>[] = [
     filterType: "text",
     minWidth: 130,
     render: (item) =>
-      item.adresse_ville || <span className="text-muted-foreground/40">--</span>,
+      item.adresse_ville || <span className="text-muted-foreground-subtle">--</span>,
   },
   {
     key: "bpf",
@@ -123,7 +123,7 @@ const columns: Column<Entreprise>[] = [
           {item.bpf_categories_entreprise.code}
         </span>
       ) : (
-        <span className="text-muted-foreground/40">--</span>
+        <span className="text-muted-foreground-subtle">--</span>
       ),
     exportValue: (item) => item.bpf_categories_entreprise?.code ?? "",
   },

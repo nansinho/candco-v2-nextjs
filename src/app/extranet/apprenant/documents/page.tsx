@@ -36,11 +36,11 @@ export default async function ApprenantDocumentsPage() {
 
       {documents.length === 0 ? (
         <div className="rounded-lg border border-border/60 bg-card p-12 text-center">
-          <FileText className="mx-auto h-10 w-10 text-muted-foreground/20" />
+          <FileText className="mx-auto h-10 w-10 text-muted-foreground-faint" />
           <p className="mt-3 text-sm font-medium text-muted-foreground/60">
             Aucun document disponible
           </p>
-          <p className="mt-1 text-xs text-muted-foreground/40">
+          <p className="mt-1 text-xs text-muted-foreground-subtle">
             Vos conventions, attestations et certificats apparaitront ici.
           </p>
         </div>
@@ -52,7 +52,7 @@ export default async function ApprenantDocumentsPage() {
               className="flex items-center gap-3 rounded-lg border border-border/60 bg-card px-4 py-3 hover:bg-accent/30 transition-colors"
             >
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted/30 shrink-0">
-                <FileText className="h-5 w-5 text-muted-foreground/50" />
+                <FileText className="h-5 w-5 text-muted-foreground-subtle" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{doc.nom}</p>
@@ -63,17 +63,17 @@ export default async function ApprenantDocumentsPage() {
                     </Badge>
                   )}
                   {doc.session_nom && (
-                    <span className="flex items-center gap-1 text-xs text-muted-foreground/50">
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground-subtle">
                       <Layers className="h-3 w-3" />
                       {doc.session_nom}
                     </span>
                   )}
                   {doc.taille_octets && (
-                    <span className="text-xs text-muted-foreground/40">
+                    <span className="text-xs text-muted-foreground-subtle">
                       {formatSize(doc.taille_octets)}
                     </span>
                   )}
-                  <span className="flex items-center gap-1 text-xs text-muted-foreground/40">
+                  <span className="flex items-center gap-1 text-xs text-muted-foreground-subtle">
                     <Calendar className="h-3 w-3" />
                     {new Date(doc.created_at).toLocaleDateString("fr-FR")}
                   </span>

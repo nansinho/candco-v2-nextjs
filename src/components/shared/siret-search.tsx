@@ -115,7 +115,7 @@ export function SiretSearch({ onSelect, className }: SiretSearchProps) {
   return (
     <div ref={containerRef} className={cn("relative", className)}>
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/50" />
+        <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground-subtle" />
         <Input
           value={query}
           onChange={handleChange}
@@ -127,7 +127,7 @@ export function SiretSearch({ onSelect, className }: SiretSearchProps) {
           className="h-9 pl-9 text-sm border-border/60"
         />
         {isSearching && (
-          <Loader2 className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-muted-foreground/50" />
+          <Loader2 className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-muted-foreground-subtle" />
         )}
       </div>
 

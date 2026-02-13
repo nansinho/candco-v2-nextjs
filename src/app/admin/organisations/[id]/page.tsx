@@ -203,19 +203,19 @@ export default function AdminOrgDetailPage() {
             <div className="space-y-3">
               {org.email && (
                 <div className="flex items-center gap-2 text-sm">
-                  <Mail className="h-4 w-4 text-muted-foreground/40" />
+                  <Mail className="h-4 w-4 text-muted-foreground-subtle" />
                   <span>{org.email}</span>
                 </div>
               )}
               {org.telephone && (
                 <div className="flex items-center gap-2 text-sm">
-                  <Phone className="h-4 w-4 text-muted-foreground/40" />
+                  <Phone className="h-4 w-4 text-muted-foreground-subtle" />
                   <span>{org.telephone}</span>
                 </div>
               )}
               {(org.adresse_rue || org.adresse_ville) && (
                 <div className="flex items-start gap-2 text-sm">
-                  <MapPin className="h-4 w-4 text-muted-foreground/40 mt-0.5" />
+                  <MapPin className="h-4 w-4 text-muted-foreground-subtle mt-0.5" />
                   <div>
                     {org.adresse_rue && <p>{org.adresse_rue}</p>}
                     {org.adresse_complement && <p>{org.adresse_complement}</p>}
@@ -248,7 +248,7 @@ export default function AdminOrgDetailPage() {
                   <stat.icon className={`h-4 w-4 ${stat.color}`} />
                   <div>
                     <p className="text-lg font-bold leading-none">{stat.value}</p>
-                    <p className="text-xs text-muted-foreground/50">{stat.label}</p>
+                    <p className="text-xs text-muted-foreground-subtle">{stat.label}</p>
                   </div>
                 </div>
               ))}
@@ -281,7 +281,7 @@ export default function AdminOrgDetailPage() {
                     {u.actif ? (
                       <span className="text-emerald-400 text-xs font-medium">Actif</span>
                     ) : (
-                      <span className="text-muted-foreground/40 text-xs">Inactif</span>
+                      <span className="text-muted-foreground-subtle text-xs">Inactif</span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{formatDate(u.created_at)}</td>
@@ -289,7 +289,7 @@ export default function AdminOrgDetailPage() {
               ))}
               {users.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground/40">
+                  <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground-subtle">
                     Aucun utilisateur
                   </td>
                 </tr>
@@ -325,7 +325,7 @@ export default function AdminOrgDetailPage() {
               ))}
               {sessions.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground/40">
+                  <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground-subtle">
                     Aucune session
                   </td>
                 </tr>
@@ -361,14 +361,14 @@ export default function AdminOrgDetailPage() {
               ))}
               {extranet.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground/40">
+                  <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground-subtle">
                     Aucun accès extranet
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
-          <div className="px-4 py-2 border-t border-border/20 text-xs text-muted-foreground/40">
+          <div className="px-4 py-2 border-t border-border/20 text-xs text-muted-foreground-subtle">
             {org.stats.extranet_acces} accès au total
           </div>
         </div>

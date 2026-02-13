@@ -89,14 +89,14 @@ const columns: Column<Formateur>[] = [
     filterType: "text",
     minWidth: 200,
     render: (item) =>
-      item.email || <span className="text-muted-foreground/40">--</span>,
+      item.email || <span className="text-muted-foreground-subtle">--</span>,
   },
   {
     key: "telephone",
     label: "Téléphone",
     minWidth: 140,
     render: (item) =>
-      item.telephone || <span className="text-muted-foreground/40">--</span>,
+      item.telephone || <span className="text-muted-foreground-subtle">--</span>,
   },
   {
     key: "statut_bpf",
@@ -127,7 +127,7 @@ const columns: Column<Formateur>[] = [
           {formatCurrency(item.tarif_journalier)}
         </span>
       ) : (
-        <span className="text-muted-foreground/40">--</span>
+        <span className="text-muted-foreground-subtle">--</span>
       ),
   },
   {

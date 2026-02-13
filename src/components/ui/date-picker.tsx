@@ -71,11 +71,11 @@ export function DatePicker({
             disabled={disabled}
             className={cn(
               "h-9 w-full justify-start border-border/60 bg-muted px-3 text-left text-sm font-normal",
-              !date && "text-muted-foreground/50",
+              !date && "text-muted-foreground-subtle",
               className
             )}
           >
-            <CalendarIcon className="mr-2 h-3.5 w-3.5 text-muted-foreground/50" />
+            <CalendarIcon className="mr-2 h-3.5 w-3.5 text-muted-foreground-subtle" />
             {date ? (
               <span className="flex-1">
                 {format(date, "dd MMMM yyyy", { locale: fr })}
@@ -85,7 +85,7 @@ export function DatePicker({
             )}
             {date && (
               <X
-                className="ml-auto h-3.5 w-3.5 text-muted-foreground/50 hover:text-foreground transition-colors"
+                className="ml-auto h-3.5 w-3.5 text-muted-foreground-subtle hover:text-foreground transition-colors"
                 onClick={handleClear}
               />
             )}

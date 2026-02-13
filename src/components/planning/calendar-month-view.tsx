@@ -117,13 +117,13 @@ export function CalendarMonthView({ currentDate, creneaux, onDayClick, onEditCre
                           ? "bg-primary text-primary-foreground"
                           : isCurrentMonth
                             ? "text-foreground"
-                            : "text-muted-foreground/40"
+                            : "text-muted-foreground-subtle"
                       )}
                     >
                       {format(day, "d")}
                     </span>
                     {dayCreneaux.length > 0 && (
-                      <span className="text-xs text-muted-foreground/40 font-mono mr-0.5">
+                      <span className="text-xs text-muted-foreground-subtle font-mono mr-0.5">
                         {dayCreneaux.length}
                       </span>
                     )}
@@ -146,7 +146,7 @@ export function CalendarMonthView({ currentDate, creneaux, onDayClick, onEditCre
                     {hasMore && (
                       <button
                         type="button"
-                        className="text-xs text-muted-foreground/50 hover:text-primary transition-colors pl-1 font-medium"
+                        className="text-xs text-muted-foreground-subtle hover:text-primary transition-colors pl-1 font-medium"
                         onClick={(e) => {
                           e.stopPropagation();
                           onDayClick?.(day);

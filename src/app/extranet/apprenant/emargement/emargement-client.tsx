@@ -106,7 +106,7 @@ function SignaturePad({
         />
         {!hasStrokes && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <p className="text-sm text-muted-foreground/30">Signez ici</p>
+            <p className="text-sm text-muted-foreground-faint">Signez ici</p>
           </div>
         )}
       </div>
@@ -207,7 +207,7 @@ function CreneauCard({
           ) : isOpen ? (
             <PenTool className="h-4 w-4 text-emerald-400" />
           ) : (
-            <Clock className="h-4 w-4 text-muted-foreground/40" />
+            <Clock className="h-4 w-4 text-muted-foreground-subtle" />
           )}
         </div>
 
@@ -228,7 +228,7 @@ function CreneauCard({
               <Clock className="h-3 w-3" />
               {formatTimeRange(creneau.heure_debut, creneau.heure_fin)}
               {creneau.duree_minutes && (
-                <span className="text-muted-foreground/40">
+                <span className="text-muted-foreground-subtle">
                   ({formatDuration(creneau.duree_minutes)})
                 </span>
               )}
@@ -249,7 +249,7 @@ function CreneauCard({
               Signe
             </Badge>
             {creneau.emargement?.heure_signature && (
-              <p className="text-xs text-muted-foreground/40 mt-0.5">
+              <p className="text-xs text-muted-foreground-subtle mt-0.5">
                 {new Date(creneau.emargement.heure_signature).toLocaleTimeString("fr-FR", {
                   hour: "2-digit",
                   minute: "2-digit",
@@ -267,7 +267,7 @@ function CreneauCard({
             Signer
           </Button>
         ) : (
-          <Badge variant="outline" className="text-xs border-border/40 text-muted-foreground/40 shrink-0">
+          <Badge variant="outline" className="text-xs border-border/40 text-muted-foreground-subtle shrink-0">
             Ferme
           </Badge>
         )}
@@ -386,11 +386,11 @@ export function EmargementClient({
       {/* Empty */}
       {creneaux.length === 0 && (
         <div className="rounded-lg border border-border/60 bg-card p-12 text-center">
-          <PenTool className="mx-auto h-10 w-10 text-muted-foreground/20" />
+          <PenTool className="mx-auto h-10 w-10 text-muted-foreground-faint" />
           <p className="mt-3 text-sm font-medium text-muted-foreground/60">
             Aucun creneau ouvert a l&apos;emargement
           </p>
-          <p className="mt-1 text-xs text-muted-foreground/40">
+          <p className="mt-1 text-xs text-muted-foreground-subtle">
             Quand un creneau sera ouvert par le formateur, vous pourrez signer votre presence ici.
           </p>
         </div>

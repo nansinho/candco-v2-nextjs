@@ -145,7 +145,7 @@ export function EntrepriseSearchCombobox({ value, displayName, onChange, disable
                     )}
                     {ent.siret && (
                       <>
-                        {ent.adresse_ville && <span className="text-[10px] text-muted-foreground/50">·</span>}
+                        {ent.adresse_ville && <span className="text-[10px] text-muted-foreground-subtle">·</span>}
                         <span className="text-[10px] text-muted-foreground font-mono">{ent.siret}</span>
                       </>
                     )}

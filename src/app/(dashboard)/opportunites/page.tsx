@@ -84,7 +84,7 @@ const columns: Column<OpportuniteRow>[] = [
       item.montant_estime != null ? (
         <span className="font-mono text-sm">{formatCurrency(item.montant_estime)}</span>
       ) : (
-        <span className="text-muted-foreground/40">--</span>
+        <span className="text-muted-foreground-subtle">--</span>
       ),
     exportValue: (item) => item.montant_estime?.toString() ?? "",
   },
@@ -95,11 +95,11 @@ const columns: Column<OpportuniteRow>[] = [
     render: (item) =>
       item.entreprises?.nom ? (
         <span className="flex items-center gap-1.5 text-sm">
-          <Building2 className="h-3 w-3 text-muted-foreground/50" />
+          <Building2 className="h-3 w-3 text-muted-foreground-subtle" />
           <span className="truncate">{item.entreprises.nom}</span>
         </span>
       ) : (
-        <span className="text-muted-foreground/40">--</span>
+        <span className="text-muted-foreground-subtle">--</span>
       ),
     exportValue: (item) => item.entreprises?.nom ?? "",
   },
@@ -113,7 +113,7 @@ const columns: Column<OpportuniteRow>[] = [
           {item.contacts_clients.prenom} {item.contacts_clients.nom}
         </span>
       ) : (
-        <span className="text-muted-foreground/40">--</span>
+        <span className="text-muted-foreground-subtle">--</span>
       ),
   },
   {
@@ -128,7 +128,7 @@ const columns: Column<OpportuniteRow>[] = [
           {formatDate(item.date_cloture_prevue)}
         </span>
       ) : (
-        <span className="text-muted-foreground/40">--</span>
+        <span className="text-muted-foreground-subtle">--</span>
       ),
   },
   {

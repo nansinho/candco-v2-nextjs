@@ -91,7 +91,7 @@ export function FormateurDashboard({
         <h2 className="mb-3 text-sm font-semibold">Prochaines sessions</h2>
         {upcoming.length === 0 ? (
           <div className="rounded-lg border border-border/60 bg-card p-8 text-center">
-            <Calendar className="mx-auto h-8 w-8 text-muted-foreground/30" />
+            <Calendar className="mx-auto h-8 w-8 text-muted-foreground-faint" />
             <p className="mt-2 text-sm text-muted-foreground/60">
               Aucune session a venir
             </p>
@@ -185,7 +185,7 @@ function StatCard({
   return (
     <div className="rounded-lg border border-border/60 bg-card p-4">
       <div className="flex items-center justify-between">
-        <Icon className="h-4 w-4 text-muted-foreground/40" />
+        <Icon className="h-4 w-4 text-muted-foreground-subtle" />
       </div>
       <p className={`mt-2 text-2xl font-semibold ${color ?? ""}`}>{value}</p>
       <p className="text-xs text-muted-foreground/60">{label}</p>

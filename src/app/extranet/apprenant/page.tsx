@@ -46,22 +46,22 @@ export default async function ExtranetApprenantPage() {
       {/* Stats */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-lg border border-border/60 bg-card p-4">
-          <GraduationCap className="h-4 w-4 text-muted-foreground/40" />
+          <GraduationCap className="h-4 w-4 text-muted-foreground-subtle" />
           <p className="mt-2 text-2xl font-semibold">{sessions.length}</p>
           <p className="text-xs text-muted-foreground/60">Sessions inscrites</p>
         </div>
         <div className="rounded-lg border border-border/60 bg-card p-4">
-          <Clock className="h-4 w-4 text-muted-foreground/40" />
+          <Clock className="h-4 w-4 text-muted-foreground-subtle" />
           <p className="mt-2 text-2xl font-semibold text-blue-400">{upcoming.length}</p>
           <p className="text-xs text-muted-foreground/60">A venir</p>
         </div>
         <div className="rounded-lg border border-border/60 bg-card p-4">
-          <FileText className="h-4 w-4 text-muted-foreground/40" />
+          <FileText className="h-4 w-4 text-muted-foreground-subtle" />
           <p className="mt-2 text-2xl font-semibold text-amber-400">--</p>
           <p className="text-xs text-muted-foreground/60">Documents</p>
         </div>
         <div className="rounded-lg border border-border/60 bg-card p-4">
-          <Calendar className="h-4 w-4 text-muted-foreground/40" />
+          <Calendar className="h-4 w-4 text-muted-foreground-subtle" />
           <p className="mt-2 text-2xl font-semibold text-emerald-400">--</p>
           <p className="text-xs text-muted-foreground/60">Emargements</p>
         </div>
@@ -203,7 +203,7 @@ export default async function ExtranetApprenantPage() {
         <h2 className="mb-3 text-sm font-semibold">Prochaines sessions</h2>
         {upcoming.length === 0 ? (
           <div className="rounded-lg border border-border/60 bg-card p-8 text-center">
-            <Calendar className="mx-auto h-8 w-8 text-muted-foreground/30" />
+            <Calendar className="mx-auto h-8 w-8 text-muted-foreground-faint" />
             <p className="mt-2 text-sm text-muted-foreground/60">
               Aucune session a venir
             </p>

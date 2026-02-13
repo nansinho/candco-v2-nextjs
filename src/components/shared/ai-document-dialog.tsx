@@ -128,7 +128,7 @@ export function AIDocumentDialog({
               onChange={(e) => setPrompt(e.target.value)}
               rows={4}
               placeholder={config.placeholder}
-              className="w-full rounded-md border border-input bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 resize-none"
+              className="w-full rounded-md border border-input bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground-subtle resize-none"
               disabled={isLoading}
             />
             <p className="text-xs text-muted-foreground/60">

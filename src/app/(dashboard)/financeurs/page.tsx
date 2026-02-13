@@ -114,7 +114,7 @@ const columns: Column<Financeur>[] = [
       item.type ? (
         <Badge className={typeBadgeClass(item.type)}>{item.type}</Badge>
       ) : (
-        <span className="text-muted-foreground/40">--</span>
+        <span className="text-muted-foreground-subtle">--</span>
       ),
   },
   {
@@ -122,7 +122,7 @@ const columns: Column<Financeur>[] = [
     label: "SIRET",
     minWidth: 160,
     render: (item) =>
-      item.siret || <span className="text-muted-foreground/40">--</span>,
+      item.siret || <span className="text-muted-foreground-subtle">--</span>,
   },
   {
     key: "email",
@@ -131,14 +131,14 @@ const columns: Column<Financeur>[] = [
     filterType: "text",
     minWidth: 200,
     render: (item) =>
-      item.email || <span className="text-muted-foreground/40">--</span>,
+      item.email || <span className="text-muted-foreground-subtle">--</span>,
   },
   {
     key: "telephone",
     label: "Téléphone",
     minWidth: 140,
     render: (item) =>
-      item.telephone || <span className="text-muted-foreground/40">--</span>,
+      item.telephone || <span className="text-muted-foreground-subtle">--</span>,
   },
   {
     key: "bpf",
@@ -150,7 +150,7 @@ const columns: Column<Financeur>[] = [
           {item.bpf_categories_entreprise.code}
         </span>
       ) : (
-        <span className="text-muted-foreground/40">--</span>
+        <span className="text-muted-foreground-subtle">--</span>
       ),
     exportValue: (item) => item.bpf_categories_entreprise?.code ?? "",
   },

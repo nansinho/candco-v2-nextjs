@@ -196,7 +196,7 @@ export default function ExportComptablePage() {
 
       {preview && preview.length === 0 && (
         <div className="flex flex-col items-center justify-center rounded-lg border border-border/60 bg-card py-16">
-          <FileSpreadsheet className="h-8 w-8 text-muted-foreground/40" />
+          <FileSpreadsheet className="h-8 w-8 text-muted-foreground-subtle" />
           <p className="mt-3 text-sm text-muted-foreground">
             Aucune écriture comptable pour la période sélectionnée
           </p>

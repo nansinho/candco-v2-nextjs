@@ -104,7 +104,7 @@ const columns: Column<DevisRow>[] = [
           </div>
           <div className="min-w-0">
             <span className="block truncate font-medium">
-              {displayText || <span className="text-muted-foreground/40">Sans programme</span>}
+              {displayText || <span className="text-muted-foreground-subtle">Sans programme</span>}
             </span>
           </div>
         </div>

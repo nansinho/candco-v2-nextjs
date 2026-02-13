@@ -28,7 +28,7 @@ export default async function AdminDashboardPage() {
         </p>
       </div>
 
-      <Suspense fallback={<div className="text-muted-foreground/40 text-sm">Chargement...</div>}>
+      <Suspense fallback={<div className="text-muted-foreground-subtle text-sm">Chargement...</div>}>
         <AdminDashboardContent
           stats={stats}
           activity={activity}

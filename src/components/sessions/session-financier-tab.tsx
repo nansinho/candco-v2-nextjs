@@ -207,8 +207,8 @@ function CommanditairePipelineCard({
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex items-center gap-2">
-          {expanded ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground/50" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50" />}
-          <Building2 className="h-4 w-4 text-muted-foreground/50" />
+          {expanded ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground-subtle" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground-subtle" />}
+          <Building2 className="h-4 w-4 text-muted-foreground-subtle" />
           <span className="text-sm font-medium">{cmd.entreprise_nom ?? "Commanditaire"}</span>
           {cmd.financeur_nom && (
             <Badge variant="outline" className="text-[10px] h-5">{cmd.financeur_nom}</Badge>
@@ -247,14 +247,14 @@ function CommanditairePipelineCard({
                 className="flex items-center justify-between px-3 py-2 rounded-md hover:bg-muted/20 transition-colors group"
               >
                 <div className="flex items-center gap-2">
-                  <FileText className="h-3.5 w-3.5 text-muted-foreground/40" />
+                  <FileText className="h-3.5 w-3.5 text-muted-foreground-subtle" />
                   <span className="text-xs font-mono text-muted-foreground">{d.numero_affichage}</span>
                   <DevisStatusBadge statut={d.statut} />
                   {d.objet && <span className="text-xs text-muted-foreground/60 truncate max-w-[200px]">{d.objet}</span>}
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-mono font-medium">{formatCurrency(d.total_ttc)}</span>
-                  <ExternalLink className="h-3 w-3 text-muted-foreground/30 opacity-0 group-hover:opacity-100" />
+                  <ExternalLink className="h-3 w-3 text-muted-foreground-faint opacity-0 group-hover:opacity-100" />
                 </div>
               </Link>
             ))}
@@ -268,7 +268,7 @@ function CommanditairePipelineCard({
                   ) : cmd.convention_statut === "envoyee" ? (
                     <Send className="h-3.5 w-3.5 text-amber-400" />
                   ) : (
-                    <Clock className="h-3.5 w-3.5 text-muted-foreground/40" />
+                    <Clock className="h-3.5 w-3.5 text-muted-foreground-subtle" />
                   )}
                   <span className="text-xs text-muted-foreground">Convention</span>
                   <Badge variant="outline" className={`text-[10px] h-5 ${CONVENTION_COLORS[cmd.convention_statut] ?? ""}`}>
@@ -291,7 +291,7 @@ function CommanditairePipelineCard({
                 className="flex items-center justify-between px-3 py-2 rounded-md hover:bg-muted/20 transition-colors group"
               >
                 <div className="flex items-center gap-2">
-                  <Receipt className="h-3.5 w-3.5 text-muted-foreground/40" />
+                  <Receipt className="h-3.5 w-3.5 text-muted-foreground-subtle" />
                   <span className="text-xs font-mono text-muted-foreground">{f.numero_affichage}</span>
                   <TypeFactureBadge type={f.type_facture} />
                   <FactureStatusBadge statut={f.statut} />
@@ -302,7 +302,7 @@ function CommanditairePipelineCard({
                   {f.montant_paye > 0 && f.montant_paye < f.total_ttc && (
                     <span className="text-[10px] text-amber-400">({formatCurrency(f.montant_paye)} paye)</span>
                   )}
-                  <ExternalLink className="h-3 w-3 text-muted-foreground/30 opacity-0 group-hover:opacity-100" />
+                  <ExternalLink className="h-3 w-3 text-muted-foreground-faint opacity-0 group-hover:opacity-100" />
                 </div>
               </Link>
             ))}
@@ -328,7 +328,7 @@ function CommanditairePipelineCard({
             {/* Empty state */}
             {pipeline.devis.length === 0 && pipeline.factures.length === 0 && cmd.convention_statut === "aucune" && (
               <div className="text-center py-4">
-                <p className="text-xs text-muted-foreground/40">Aucun document pour ce commanditaire</p>
+                <p className="text-xs text-muted-foreground-subtle">Aucun document pour ce commanditaire</p>
               </div>
             )}
           </div>
@@ -487,7 +487,7 @@ export function SessionFinancierTab({
         </div>
       ) : (
         <div className="flex flex-col items-center gap-3 rounded-lg border border-border/60 bg-card py-16">
-          <AlertCircle className="h-8 w-8 text-muted-foreground/30" />
+          <AlertCircle className="h-8 w-8 text-muted-foreground-faint" />
           <p className="text-sm text-muted-foreground/60">Ajoutez des commanditaires pour commencer la facturation</p>
         </div>
       )}

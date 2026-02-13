@@ -110,7 +110,7 @@ export function AddressAutocomplete({
   return (
     <div ref={containerRef} className={cn("relative", className)}>
       <div className="relative">
-        <MapPin className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/50" />
+        <MapPin className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground-subtle" />
         <Input
           id={id}
           name={name}
@@ -123,7 +123,7 @@ export function AddressAutocomplete({
           className="h-9 pl-9 text-sm border-border/60"
         />
         {isSearching && (
-          <Loader2 className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-muted-foreground/50" />
+          <Loader2 className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-muted-foreground-subtle" />
         )}
       </div>
 
@@ -142,7 +142,7 @@ export function AddressAutocomplete({
               }}
             >
               <div className="flex items-center gap-2">
-                <MapPin className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
+                <MapPin className="h-3.5 w-3.5 text-muted-foreground-subtle shrink-0" />
                 <p className="text-sm truncate">{r.label}</p>
               </div>
             </button>

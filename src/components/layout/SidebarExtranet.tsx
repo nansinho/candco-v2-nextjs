@@ -107,7 +107,7 @@ export function SidebarExtranet({ navItems, title, subtitle, accentColor = "bg-p
         <button
           type="button"
           onClick={() => setMobileOpen(false)}
-          className="ml-auto flex h-8 w-8 items-center justify-center rounded-md text-sidebar-foreground/40 hover:text-sidebar-foreground transition-colors lg:hidden cursor-pointer"
+          className="ml-auto flex h-8 w-8 items-center justify-center rounded-md text-sidebar-muted hover:text-sidebar-foreground transition-colors lg:hidden cursor-pointer"
         >
           <X className="h-4 w-4" />
         </button>
@@ -130,7 +130,7 @@ export function SidebarExtranet({ navItems, title, subtitle, accentColor = "bg-p
                     "group relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-all duration-150",
                     isActive
                       ? "bg-primary/10 text-primary font-medium"
-                      : "text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground/80"
+                      : "text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground/80"
                   )}
                   title={collapsed ? item.label : undefined}
                 >
@@ -142,7 +142,7 @@ export function SidebarExtranet({ navItems, title, subtitle, accentColor = "bg-p
                       "h-4 w-4 shrink-0 transition-colors",
                       isActive
                         ? "text-primary"
-                        : "text-sidebar-foreground/35 group-hover:text-sidebar-foreground/60"
+                        : "text-sidebar-muted group-hover:text-sidebar-foreground/60"
                     )}
                   />
                   {!collapsed && <span>{item.label}</span>}
@@ -163,7 +163,7 @@ export function SidebarExtranet({ navItems, title, subtitle, accentColor = "bg-p
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all",
+                  "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all",
                   collapsed && "justify-center"
                 )}
                 title={collapsed ? link.label : undefined}
@@ -182,7 +182,7 @@ export function SidebarExtranet({ navItems, title, subtitle, accentColor = "bg-p
           type="button"
           onClick={toggleTheme}
           className={cn(
-            "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all cursor-pointer",
+            "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all cursor-pointer",
             collapsed && "justify-center"
           )}
           title={theme === "dark" ? "Mode clair" : "Mode sombre"}
@@ -198,7 +198,7 @@ export function SidebarExtranet({ navItems, title, subtitle, accentColor = "bg-p
           type="button"
           onClick={handleLogout}
           className={cn(
-            "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-sidebar-foreground/40 hover:bg-destructive/10 hover:text-destructive transition-all cursor-pointer",
+            "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-sidebar-muted hover:bg-destructive/10 hover:text-destructive transition-all cursor-pointer",
             collapsed && "justify-center"
           )}
         >
@@ -208,7 +208,7 @@ export function SidebarExtranet({ navItems, title, subtitle, accentColor = "bg-p
         <button
           type="button"
           onClick={() => setCollapsed(!collapsed)}
-          className="hidden w-full items-center justify-center rounded-lg p-1.5 text-sidebar-foreground/20 hover:bg-sidebar-accent hover:text-sidebar-foreground/50 transition-all cursor-pointer lg:flex"
+          className="hidden w-full items-center justify-center rounded-lg p-1.5 text-muted-foreground-faint hover:bg-sidebar-accent hover:text-sidebar-muted transition-all cursor-pointer lg:flex"
         >
           {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
         </button>

@@ -99,7 +99,7 @@ const columns: Column<ContactClient>[] = [
     filterType: "text",
     minWidth: 200,
     render: (item) =>
-      item.email || <span className="text-muted-foreground/40">--</span>,
+      item.email || <span className="text-muted-foreground-subtle">--</span>,
   },
   {
     key: "fonction",
@@ -108,14 +108,14 @@ const columns: Column<ContactClient>[] = [
     filterType: "text",
     minWidth: 160,
     render: (item) =>
-      item.fonction || <span className="text-muted-foreground/40">--</span>,
+      item.fonction || <span className="text-muted-foreground-subtle">--</span>,
   },
   {
     key: "telephone",
     label: "Téléphone",
     minWidth: 140,
     render: (item) =>
-      item.telephone || <span className="text-muted-foreground/40">--</span>,
+      item.telephone || <span className="text-muted-foreground-subtle">--</span>,
   },
   {
     key: "entreprises",
@@ -125,10 +125,10 @@ const columns: Column<ContactClient>[] = [
       const entreprises = (item.contact_entreprises ?? [])
         .map((ce) => ce.entreprises?.nom)
         .filter(Boolean);
-      if (entreprises.length === 0) return <span className="text-muted-foreground/40">--</span>;
+      if (entreprises.length === 0) return <span className="text-muted-foreground-subtle">--</span>;
       return (
         <div className="flex items-center gap-1.5">
-          <Building2 className="h-3 w-3 text-muted-foreground/50 shrink-0" />
+          <Building2 className="h-3 w-3 text-muted-foreground-subtle shrink-0" />
           <span className="text-sm truncate max-w-[200px]">{entreprises.join(", ")}</span>
         </div>
       );

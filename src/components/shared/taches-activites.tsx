@@ -93,7 +93,7 @@ function statutIcon(statut: string) {
     case "en_cours":
       return <Clock className="h-4 w-4 text-blue-400" />;
     default:
-      return <Circle className="h-4 w-4 text-muted-foreground/40" />;
+      return <Circle className="h-4 w-4 text-muted-foreground-subtle" />;
   }
 }
 
@@ -319,8 +319,8 @@ export function TachesActivitesTab({ entiteType, entiteId }: TachesActivitesTabP
           </div>
         ) : taches.length === 0 ? (
           <div className="flex flex-col items-center py-8">
-            <CheckCircle2 className="h-8 w-8 text-muted-foreground/20" />
-            <p className="mt-2 text-sm text-muted-foreground/50">
+            <CheckCircle2 className="h-8 w-8 text-muted-foreground-faint" />
+            <p className="mt-2 text-sm text-muted-foreground-subtle">
               Aucune tâche pour le moment
             </p>
           </div>
@@ -340,7 +340,7 @@ export function TachesActivitesTab({ entiteType, entiteId }: TachesActivitesTabP
             {completedTaches.length > 0 && (
               <>
                 <div className="pt-2 pb-1">
-                  <p className="text-xs font-medium text-muted-foreground/40 uppercase tracking-wider">
+                  <p className="text-xs font-medium text-muted-foreground-subtle uppercase tracking-wider">
                     Terminées ({completedTaches.length})
                   </p>
                 </div>
@@ -403,8 +403,8 @@ export function TachesActivitesTab({ entiteType, entiteId }: TachesActivitesTabP
           </div>
         ) : activites.length === 0 ? (
           <div className="flex flex-col items-center py-8">
-            <MessageSquarePlus className="h-8 w-8 text-muted-foreground/20" />
-            <p className="mt-2 text-sm text-muted-foreground/50">
+            <MessageSquarePlus className="h-8 w-8 text-muted-foreground-faint" />
+            <p className="mt-2 text-sm text-muted-foreground-subtle">
               Aucune activité enregistrée
             </p>
           </div>
@@ -456,7 +456,7 @@ function TacheRow({
       <div className="min-w-0 flex-1">
         <p
           className={`text-sm ${
-            isCompleted ? "text-muted-foreground/40 line-through" : ""
+            isCompleted ? "text-muted-foreground-subtle line-through" : ""
           }`}
         >
           {tache.titre}
@@ -470,7 +470,7 @@ function TacheRow({
               className={`text-xs ${
                 isOverdue
                   ? "text-red-400"
-                  : "text-muted-foreground/50"
+                  : "text-muted-foreground-subtle"
               }`}
             >
               {isOverdue && <AlertCircle className="inline mr-0.5 h-3 w-3" />}
@@ -485,7 +485,7 @@ function TacheRow({
 
       <button
         onClick={onDelete}
-        className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground/40 hover:text-destructive"
+        className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground-subtle hover:text-destructive"
         title="Supprimer"
       >
         <Trash2 className="h-3.5 w-3.5" />
@@ -520,7 +520,7 @@ function ActiviteRow({
       {/* Content */}
       <div className="min-w-0 flex-1">
         <p className="text-sm">{activite.contenu}</p>
-        <p className="mt-0.5 text-xs text-muted-foreground/50">
+        <p className="mt-0.5 text-xs text-muted-foreground-subtle">
           {auteur} &middot;{" "}
           {new Date(activite.created_at).toLocaleDateString("fr-FR", {
             day: "2-digit",

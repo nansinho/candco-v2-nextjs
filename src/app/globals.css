@@ -23,6 +23,8 @@
 
   --color-muted: #141414;
   --color-muted-foreground: #A0A0A0;
+  --color-muted-foreground-subtle: #808080;
+  --color-muted-foreground-faint: #5A5A5A;
 
   --color-accent: #1A1A1A;
   --color-accent-foreground: #FAFAFA;
@@ -74,6 +76,8 @@ html.light {
 
   --color-muted: #F0F0F0;
   --color-muted-foreground: #737373;
+  --color-muted-foreground-subtle: #8B8B8B;
+  --color-muted-foreground-faint: #A0A0A0;
 
   --color-accent: #F0F0F0;
   --color-accent-foreground: #171717;

@@ -29,6 +29,9 @@ export interface OrganisationSettings {
   signature_email: string | null;
   // Style
   couleur_primaire: string | null;
+  // Themes
+  theme_dark_preset: string;
+  theme_light_preset: string;
   // Settings JSONB (AI credits, etc.)
   settings: Record<string, unknown> | null;
 }
@@ -70,6 +73,7 @@ const SETTINGS_FIELDS = `
   tva_defaut, numero_tva_intracommunautaire,
   email_expediteur, signature_email,
   couleur_primaire,
+  theme_dark_preset, theme_light_preset,
   settings
 `;
 
@@ -264,6 +268,47 @@ export async function removeOrganisationLogo() {
 }
 
 // ─── Get AI Credits ─────────────────────────────────────
+
+// ─── Update Theme Settings ──────────────────────────────
+
+const VALID_DARK_PRESETS = ["cursor", "midnight", "forest"] as const;
+const VALID_LIGHT_PRESETS = ["clean", "ocean", "warm"] as const;
+
+const ThemeSchema = z.object({
+  theme_dark_preset: z.enum(VALID_DARK_PRESETS),
+  theme_light_preset: z.enum(VALID_LIGHT_PRESETS),
+});
+
+export async function updateThemeSettings(
+  input: z.infer<typeof ThemeSchema>
+) {
+  const parsed = ThemeSchema.safeParse(input);
+  if (!parsed.success)
+    return { error: parsed.error.flatten().fieldErrors };
+
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: { _form: [result.error] } };
+
+  const { organisationId, admin } = result;
+  const d = parsed.data;
+
+  const { error } = await admin
+    .from("organisations")
+    .update({
+      theme_dark_preset: d.theme_dark_preset,
+      theme_light_preset: d.theme_light_preset,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", organisationId);
+
+  if (error) return { error: { _form: [error.message] } };
+
+  revalidatePath("/parametres");
+  revalidatePath("/", "layout");
+  return { success: true };
+}
+
+// ─── Get AI Credits ─────────────────────────────────
 
 export async function getAICredits(): Promise<{
   data: { monthly_limit: number; used: number; remaining: number } | null;

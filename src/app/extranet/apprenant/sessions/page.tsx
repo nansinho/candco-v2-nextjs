@@ -21,7 +21,7 @@ export default async function ApprenantSessionsPage() {
 
       {sessions.length === 0 ? (
         <div className="rounded-lg border border-border/60 bg-card p-12 text-center">
-          <Calendar className="mx-auto h-10 w-10 text-muted-foreground/20" />
+          <Calendar className="mx-auto h-10 w-10 text-muted-foreground-faint" />
           <p className="mt-3 text-sm text-muted-foreground/60">
             Aucune session pour le moment.
           </p>

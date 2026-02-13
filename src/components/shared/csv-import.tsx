@@ -459,11 +459,11 @@ export function CsvImport({
                 ) : (
                   <>
                     <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-muted/50">
-                      <Upload className="h-5 w-5 text-muted-foreground/40" />
+                      <Upload className="h-5 w-5 text-muted-foreground-subtle" />
                     </div>
                     <div className="text-center">
                       <p className="text-sm text-muted-foreground">Glissez ou cliquez pour choisir un fichier</p>
-                      <p className="mt-1 text-xs text-muted-foreground/40">
+                      <p className="mt-1 text-xs text-muted-foreground-subtle">
                         CSV, Excel, JSON{onPdfImport ? ", PDF" : ""}
                       </p>
                     </div>
@@ -472,7 +472,7 @@ export function CsvImport({
               </div>
             </button>
             <div className="flex w-full items-center justify-between px-1">
-              <p className="text-xs text-muted-foreground/40">
+              <p className="text-xs text-muted-foreground-subtle">
                 Colonnes SmartOF reconnues automatiquement
               </p>
               <button
@@ -547,7 +547,7 @@ export function CsvImport({
                           .filter((c) => matchedColumnsInfo.includes(c.label))
                           .map((c) => (
                             <td key={c.key} className="px-2 py-1 truncate max-w-[200px]">
-                              {row[c.key] || <span className="text-muted-foreground/30">--</span>}
+                              {row[c.key] || <span className="text-muted-foreground-faint">--</span>}
                             </td>
                           ))}
                       </tr>

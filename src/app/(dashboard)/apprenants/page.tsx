@@ -100,14 +100,14 @@ const columns: Column<Apprenant>[] = [
     minWidth: 200,
     filterType: "text",
     render: (item) =>
-      item.email || <span className="text-muted-foreground/40">--</span>,
+      item.email || <span className="text-muted-foreground-subtle">--</span>,
   },
   {
     key: "telephone",
     label: "Téléphone",
     minWidth: 140,
     render: (item) =>
-      item.telephone || <span className="text-muted-foreground/40">--</span>,
+      item.telephone || <span className="text-muted-foreground-subtle">--</span>,
   },
   {
     key: "entreprises",
@@ -117,10 +117,10 @@ const columns: Column<Apprenant>[] = [
       const entreprises = (item.apprenant_entreprises ?? [])
         .map((ae) => ae.entreprises?.nom)
         .filter(Boolean);
-      if (entreprises.length === 0) return <span className="text-muted-foreground/40">--</span>;
+      if (entreprises.length === 0) return <span className="text-muted-foreground-subtle">--</span>;
       return (
         <div className="flex items-center gap-1.5">
-          <Building2 className="h-3 w-3 text-muted-foreground/50 shrink-0" />
+          <Building2 className="h-3 w-3 text-muted-foreground-subtle shrink-0" />
           <span className="text-sm truncate max-w-[200px]">{entreprises.join(", ")}</span>
         </div>
       );
@@ -138,7 +138,7 @@ const columns: Column<Apprenant>[] = [
           {item.bpf_categories_apprenant.code}
         </span>
       ) : (
-        <span className="text-muted-foreground/40">--</span>
+        <span className="text-muted-foreground-subtle">--</span>
       ),
     exportValue: (item) => item.bpf_categories_apprenant?.code ?? "",
   },
@@ -529,7 +529,7 @@ function CreateApprenantForm({
         {!selectedEntreprise ? (
           <div className="space-y-2">
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/50" />
+              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground-subtle" />
               <Input
                 placeholder="Rechercher une entreprise..."
                 value={entSearch}
@@ -554,14 +554,14 @@ function CreateApprenantForm({
                     <Building2 className="h-3.5 w-3.5 text-orange-400 shrink-0" />
                     <span className="text-xs font-medium truncate">{ent.nom}</span>
                     {ent.adresse_ville && (
-                      <span className="text-xs text-muted-foreground/40 truncate">{ent.adresse_ville}</span>
+                      <span className="text-xs text-muted-foreground-subtle truncate">{ent.adresse_ville}</span>
                     )}
                   </button>
                 ))}
               </div>
             )}
             {entSearch.trim() && !entSearching && entResults.length === 0 && (
-              <p className="text-xs text-muted-foreground/50">Aucune entreprise trouvée</p>
+              <p className="text-xs text-muted-foreground-subtle">Aucune entreprise trouvée</p>
             )}
           </div>
         ) : (
@@ -572,12 +572,12 @@ function CreateApprenantForm({
                 <Building2 className="h-3.5 w-3.5 text-orange-400" />
                 <span className="text-xs font-medium">{selectedEntreprise.nom}</span>
                 {selectedEntreprise.adresse_ville && (
-                  <span className="text-xs text-muted-foreground/40">{selectedEntreprise.adresse_ville}</span>
+                  <span className="text-xs text-muted-foreground-subtle">{selectedEntreprise.adresse_ville}</span>
                 )}
               </div>
               <button
                 type="button"
-                className="p-0.5 rounded hover:bg-muted/50 text-muted-foreground/40 hover:text-foreground"
+                className="p-0.5 rounded hover:bg-muted/50 text-muted-foreground-subtle hover:text-foreground"
                 onClick={handleRemoveEntreprise}
               >
                 <X className="h-3.5 w-3.5" />
@@ -596,7 +596,7 @@ function CreateApprenantForm({
               <span className="text-xs">
                 Siège social
                 {selectedAgenceIds.length === 0 && (
-                  <span className="ml-1 text-xs text-muted-foreground/50">(par défaut si aucune agence)</span>
+                  <span className="ml-1 text-xs text-muted-foreground-subtle">(par défaut si aucune agence)</span>
                 )}
               </span>
             </label>
@@ -617,13 +617,13 @@ function CreateApprenantForm({
                         onChange={() => toggleAgence(ag.id)}
                         className="h-3.5 w-3.5 rounded border-border accent-primary"
                       />
-                      <MapPin className="h-3 w-3 text-muted-foreground/50 shrink-0" />
+                      <MapPin className="h-3 w-3 text-muted-foreground-subtle shrink-0" />
                       <span className="text-xs">{ag.nom}</span>
                       {ag.est_siege && (
                         <span className="text-xs font-medium text-orange-400/80 bg-orange-400/10 px-1 py-0.5 rounded">siège</span>
                       )}
                       {ag.adresse_ville && (
-                        <span className="text-xs text-muted-foreground/40">{ag.adresse_ville}</span>
+                        <span className="text-xs text-muted-foreground-subtle">{ag.adresse_ville}</span>
                       )}
                     </label>
                   ))}
@@ -631,7 +631,7 @@ function CreateApprenantForm({
               </div>
             )}
             {agences.length === 0 && (
-              <p className="text-xs text-muted-foreground/40 italic">
+              <p className="text-xs text-muted-foreground-subtle italic">
                 Aucune agence définie pour cette entreprise. L&apos;apprenant sera rattaché au siège social.
               </p>
             )}

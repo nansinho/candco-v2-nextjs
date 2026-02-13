@@ -39,7 +39,7 @@ const columns: Column<AdminOrgRow>[] = [
       item.nda ? (
         <span className="text-sm font-mono">{item.nda}</span>
       ) : (
-        <span className="text-muted-foreground/40">--</span>
+        <span className="text-muted-foreground-subtle">--</span>
       ),
   },
   {
@@ -50,7 +50,7 @@ const columns: Column<AdminOrgRow>[] = [
       item.email ? (
         <span className="text-sm">{item.email}</span>
       ) : (
-        <span className="text-muted-foreground/40">--</span>
+        <span className="text-muted-foreground-subtle">--</span>
       ),
   },
   {
@@ -100,7 +100,7 @@ const columns: Column<AdminOrgRow>[] = [
           Active
         </Badge>
       ) : (
-        <span className="text-muted-foreground/40 text-xs">Non</span>
+        <span className="text-muted-foreground-subtle text-xs">Non</span>
       ),
   },
   {

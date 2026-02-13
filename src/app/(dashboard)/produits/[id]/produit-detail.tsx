@@ -1386,7 +1386,7 @@ export function ProduitDetail({
                 </div>
               ) : (
                 <Button type="button" variant="outline" className="h-24 text-xs border-dashed border-border/60 w-full flex-col gap-2" onClick={() => imageInputRef.current?.click()} disabled={isUploadingImage}>
-                  {isUploadingImage ? <Loader2 className="h-5 w-5 animate-spin" /> : <ImageIcon className="h-5 w-5 text-muted-foreground/40" />}
+                  {isUploadingImage ? <Loader2 className="h-5 w-5 animate-spin" /> : <ImageIcon className="h-5 w-5 text-muted-foreground-subtle" />}
                   <span className="text-muted-foreground/60">{isUploadingImage ? "Upload en cours..." : "Uploader une image"}</span>
                 </Button>
               )}
@@ -1400,7 +1400,7 @@ export function ProduitDetail({
                   if (file) handleImageUpload(file);
                 }}
               />
-              <p className="text-xs text-muted-foreground/40">PNG, JPG ou WebP. Max 2 Mo.</p>
+              <p className="text-xs text-muted-foreground-subtle">PNG, JPG ou WebP. Max 2 Mo.</p>
             </div>
 
             {/* SEO */}
@@ -1424,11 +1424,11 @@ export function ProduitDetail({
 
             {/* Timestamps */}
             <div className="px-1 space-y-1">
-              <p className="text-xs text-muted-foreground/40">
+              <p className="text-xs text-muted-foreground-subtle">
                 Créé le {formatDate(produit.created_at)}
               </p>
               {produit.updated_at && (
-                <p className="text-xs text-muted-foreground/40">
+                <p className="text-xs text-muted-foreground-subtle">
                   Modifié le {formatDate(produit.updated_at)}
                 </p>
               )}
@@ -1889,7 +1889,7 @@ function OrganiseParSection({ produit }: { produit: Produit }) {
               {isUploadingLogo ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <Building className="h-4 w-4 text-muted-foreground/40" />
+                <Building className="h-4 w-4 text-muted-foreground-subtle" />
               )}
               <span className="text-muted-foreground/60 text-xs">
                 {isUploadingLogo ? "Upload..." : "Uploader un logo"}
@@ -1907,7 +1907,7 @@ function OrganiseParSection({ produit }: { produit: Produit }) {
             }}
           />
           <input type="hidden" name="organise_par_logo_url" defaultValue={currentLogoUrl ?? ""} />
-          <p className="text-xs text-muted-foreground/40">PNG ou SVG transparent recommandé. Max 1 Mo.</p>
+          <p className="text-xs text-muted-foreground-subtle">PNG ou SVG transparent recommandé. Max 1 Mo.</p>
         </div>
       </div>
     </div>
@@ -2073,7 +2073,7 @@ function TarifsSection({ produitId, tarifs }: { produitId: string; tarifs: Tarif
                 <div className="flex items-center gap-3">
                   <div>
                     <div className="flex items-center gap-1.5">
-                      <Wallet className="h-3 w-3 text-muted-foreground/50" />
+                      <Wallet className="h-3 w-3 text-muted-foreground-subtle" />
                       <span className="text-sm font-medium">{t.nom || "Sans nom"}</span>
                       {t.is_default && <Badge className="text-xs px-1 py-0" variant="outline">Défaut</Badge>}
                     </div>
@@ -2351,10 +2351,10 @@ function ProgrammeTab({
       {modules.length === 0 && !isAdding ? (
         <div className="flex flex-col items-center gap-3 rounded-lg border border-border/60 bg-card py-16">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50">
-            <GripVertical className="h-6 w-6 text-muted-foreground/30" />
+            <GripVertical className="h-6 w-6 text-muted-foreground-faint" />
           </div>
           <p className="text-sm text-muted-foreground/60">Aucun module de programme</p>
-          <p className="text-xs text-muted-foreground/40">
+          <p className="text-xs text-muted-foreground-subtle">
             Ajoutez des modules manuellement ou importez depuis un PDF.
           </p>
         </div>
@@ -2372,7 +2372,7 @@ function ProgrammeTab({
                   <div className="flex flex-col border-r border-border/40 shrink-0">
                     <button
                       type="button"
-                      className="flex h-6 w-7 items-center justify-center text-muted-foreground/40 hover:text-foreground hover:bg-muted/30 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                      className="flex h-6 w-7 items-center justify-center text-muted-foreground-subtle hover:text-foreground hover:bg-muted/30 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                       onClick={() => handleReorder(m.id, "up")}
                       disabled={idx === 0 || isReordering}
                       title="Monter"
@@ -2381,7 +2381,7 @@ function ProgrammeTab({
                     </button>
                     <button
                       type="button"
-                      className="flex h-6 w-7 items-center justify-center text-muted-foreground/40 hover:text-foreground hover:bg-muted/30 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                      className="flex h-6 w-7 items-center justify-center text-muted-foreground-subtle hover:text-foreground hover:bg-muted/30 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                       onClick={() => handleReorder(m.id, "down")}
                       disabled={idx === modules.length - 1 || isReordering}
                       title="Descendre"
@@ -2415,9 +2415,9 @@ function ProgrammeTab({
                       </div>
                     </div>
                     {isExpanded ? (
-                      <ChevronDown className="h-4 w-4 text-muted-foreground/40 shrink-0" />
+                      <ChevronDown className="h-4 w-4 text-muted-foreground-subtle shrink-0" />
                     ) : (
-                      <ChevronRight className="h-4 w-4 text-muted-foreground/40 shrink-0" />
+                      <ChevronRight className="h-4 w-4 text-muted-foreground-subtle shrink-0" />
                     )}
                   </button>
                 </div>
@@ -2471,7 +2471,7 @@ function ProgrammeTab({
                             {formatContenu(m.contenu)}
                           </p>
                         ) : (
-                          <p className="text-sm text-muted-foreground/40 italic pt-3">Aucun contenu détaillé</p>
+                          <p className="text-sm text-muted-foreground-subtle italic pt-3">Aucun contenu détaillé</p>
                         )}
                         <div className="mt-3 flex justify-end gap-1">
                           <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground hover:text-foreground" onClick={() => handleStartEdit(m)} type="button">
@@ -2582,7 +2582,7 @@ function ObjectifsTab({
         <div className="rounded-lg border border-border/60 divide-y divide-border/40">
           {objectifs.map((o, idx) => (
             <div key={o.id} className="flex items-center gap-3 px-4 py-2.5 group">
-              <span className="text-xs font-mono text-muted-foreground/40 w-5 shrink-0">{idx + 1}.</span>
+              <span className="text-xs font-mono text-muted-foreground-subtle w-5 shrink-0">{idx + 1}.</span>
               {editingId === o.id ? (
                 <>
                   <Input
@@ -2769,9 +2769,9 @@ function QuestionnairesTab({
 
         {items.length === 0 ? (
           <div className="py-10 text-center">
-            <ClipboardList className="mx-auto h-10 w-10 text-muted-foreground/20" />
+            <ClipboardList className="mx-auto h-10 w-10 text-muted-foreground-faint" />
             <p className="text-sm text-muted-foreground/60 mt-3">Aucun questionnaire rattaché</p>
-            <p className="text-xs text-muted-foreground/40 mt-1">
+            <p className="text-xs text-muted-foreground-subtle mt-1">
               Ajoutez des questionnaires pour qu&apos;ils soient automatiquement liés aux sessions.
             </p>
           </div>
@@ -3068,7 +3068,7 @@ function SchedulingConfigPanel({
                 className="h-9 text-sm border-border/60"
                 placeholder="0 = jour J"
               />
-              <p className="text-xs text-muted-foreground/50">
+              <p className="text-xs text-muted-foreground-subtle">
                 0 = le jour même
               </p>
             </div>
@@ -3437,9 +3437,9 @@ function BiblioTab({
 
         {sortedRefs.length === 0 && (
           <div className="rounded-lg border border-dashed border-border/40 p-8 text-center">
-            <BookMarked className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
+            <BookMarked className="h-8 w-8 text-muted-foreground-faint mx-auto mb-3" />
             <p className="text-sm text-muted-foreground/60">Aucune référence bibliographique</p>
-            <p className="text-xs text-muted-foreground/40 mt-1">Ajoutez des références pour renforcer la crédibilité académique de cette formation</p>
+            <p className="text-xs text-muted-foreground-subtle mt-1">Ajoutez des références pour renforcer la crédibilité académique de cette formation</p>
           </div>
         )}
 
@@ -3457,7 +3457,7 @@ function BiblioTab({
                   dangerouslySetInnerHTML={{ __html: formatAPA7(ref) }}
                 />
                 {ref.notes && (
-                  <p className="text-xs text-muted-foreground/50 mt-2 italic">{ref.notes}</p>
+                  <p className="text-xs text-muted-foreground-subtle mt-2 italic">{ref.notes}</p>
                 )}
               </div>
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
@@ -3842,7 +3842,7 @@ function BiblioTab({
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1">
                           <Label className="text-xs text-muted-foreground/60">Auteur(s)</Label>
-                          <p className="text-sm">{o.auteurs || <span className="text-muted-foreground/40 italic">—</span>}</p>
+                          <p className="text-sm">{o.auteurs || <span className="text-muted-foreground-subtle italic">—</span>}</p>
                         </div>
                         <div className="space-y-1">
                           <Label className="text-xs text-muted-foreground/60">Titre</Label>
@@ -3850,11 +3850,11 @@ function BiblioTab({
                         </div>
                         <div className="space-y-1">
                           <Label className="text-xs text-muted-foreground/60">Année</Label>
-                          <p className="text-sm">{o.annee || <span className="text-muted-foreground/40 italic">—</span>}</p>
+                          <p className="text-sm">{o.annee || <span className="text-muted-foreground-subtle italic">—</span>}</p>
                         </div>
                         <div className="space-y-1">
                           <Label className="text-xs text-muted-foreground/60">Source / Éditeur</Label>
-                          <p className="text-sm">{o.source_editeur || <span className="text-muted-foreground/40 italic">—</span>}</p>
+                          <p className="text-sm">{o.source_editeur || <span className="text-muted-foreground-subtle italic">—</span>}</p>
                         </div>
                       </div>
                     )}
@@ -3966,7 +3966,7 @@ function BiblioTab({
                         <div className="grid grid-cols-2 gap-3">
                           <div className="space-y-1">
                             <Label className="text-xs text-muted-foreground/60">Auteur(s)</Label>
-                            <p className="text-sm">{a.auteurs || <span className="text-muted-foreground/40 italic">—</span>}</p>
+                            <p className="text-sm">{a.auteurs || <span className="text-muted-foreground-subtle italic">—</span>}</p>
                           </div>
                           <div className="space-y-1">
                             <Label className="text-xs text-muted-foreground/60">Titre de l&apos;article</Label>
@@ -3976,11 +3976,11 @@ function BiblioTab({
                         <div className="grid grid-cols-3 gap-3">
                           <div className="space-y-1">
                             <Label className="text-xs text-muted-foreground/60">Source / Revue</Label>
-                            <p className="text-sm">{a.source_revue || <span className="text-muted-foreground/40 italic">—</span>}</p>
+                            <p className="text-sm">{a.source_revue || <span className="text-muted-foreground-subtle italic">—</span>}</p>
                           </div>
                           <div className="space-y-1">
                             <Label className="text-xs text-muted-foreground/60">Année</Label>
-                            <p className="text-sm">{a.annee || <span className="text-muted-foreground/40 italic">—</span>}</p>
+                            <p className="text-sm">{a.annee || <span className="text-muted-foreground-subtle italic">—</span>}</p>
                           </div>
                           <div className="space-y-1">
                             <Label className="text-xs text-muted-foreground/60">DOI</Label>
@@ -3990,7 +3990,7 @@ function BiblioTab({
                                 <ExternalLink className="h-3 w-3 shrink-0" />
                               </a>
                             ) : (
-                              <p className="text-sm text-muted-foreground/40 italic">—</p>
+                              <p className="text-sm text-muted-foreground-subtle italic">—</p>
                             )}
                           </div>
                         </div>

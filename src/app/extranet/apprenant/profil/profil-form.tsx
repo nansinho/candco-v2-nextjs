@@ -161,7 +161,7 @@ export function ApprenantProfilForm({ apprenant }: { apprenant: ApprenantData })
       )}
 
       <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground/40">
+        <p className="text-xs text-muted-foreground-subtle">
           Civilite, nom et email sont geres par l&apos;administrateur.
         </p>
         <Button

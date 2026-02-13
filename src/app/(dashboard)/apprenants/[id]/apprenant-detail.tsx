@@ -426,11 +426,11 @@ export function ApprenantDetail({
               {/* Footer / Save */}
               <div className="flex items-center justify-between border-t border-border/60 px-6 py-4">
                 <div className="flex items-center gap-4">
-                  <p className="text-xs text-muted-foreground/50">
+                  <p className="text-xs text-muted-foreground-subtle">
                     Créé le {formatDate(apprenant.created_at)}
                   </p>
                   {apprenant.updated_at && (
-                    <p className="text-xs text-muted-foreground/50">
+                    <p className="text-xs text-muted-foreground-subtle">
                       Modifié le {formatDate(apprenant.updated_at)}
                     </p>
                   )}
@@ -652,7 +652,7 @@ function EntreprisesTab({
           {!linkingEnt ? (
             <>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/50" />
+                <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground-subtle" />
                 <Input placeholder="Rechercher une entreprise par nom ou SIRET..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="h-8 pl-9 text-xs border-border/60" autoFocus />
               </div>
               {isSearching && <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" />Recherche...</div>}
@@ -663,8 +663,8 @@ function EntreprisesTab({
                       <div className="flex items-center gap-2">
                         <Building2 className="h-3.5 w-3.5 text-orange-400" />
                         <span className="text-sm font-medium">{ent.nom}</span>
-                        {ent.siret && <span className="text-xs text-muted-foreground/50">{ent.siret}</span>}
-                        {ent.adresse_ville && <span className="text-xs text-muted-foreground/40">{ent.adresse_ville}</span>}
+                        {ent.siret && <span className="text-xs text-muted-foreground-subtle">{ent.siret}</span>}
+                        {ent.adresse_ville && <span className="text-xs text-muted-foreground-subtle">{ent.adresse_ville}</span>}
                       </div>
                       <span className="text-xs text-primary font-medium flex items-center gap-0.5"><Plus className="h-3 w-3" />Rattacher</span>
                     </button>
@@ -672,7 +672,7 @@ function EntreprisesTab({
                 </div>
               )}
               {searchQuery.trim() && !isSearching && searchResults.length === 0 && (
-                <p className="mt-2 text-xs text-muted-foreground/50">Aucune entreprise trouvée pour &laquo; {searchQuery} &raquo;</p>
+                <p className="mt-2 text-xs text-muted-foreground-subtle">Aucune entreprise trouvée pour &laquo; {searchQuery} &raquo;</p>
               )}
             </>
           ) : (
@@ -717,7 +717,7 @@ function EntreprisesTab({
                 <span className="text-sm font-semibold">{editingEnt.nom}</span>
                 <span className="text-xs text-blue-400 font-medium">Modifier le rattachement</span>
               </div>
-              <button type="button" className="p-0.5 text-muted-foreground/40 hover:text-foreground" onClick={() => setEditingEnt(null)}>
+              <button type="button" className="p-0.5 text-muted-foreground-subtle hover:text-foreground" onClick={() => setEditingEnt(null)}>
                 <X className="h-3.5 w-3.5" />
               </button>
             </div>
@@ -744,11 +744,11 @@ function EntreprisesTab({
       {entreprises.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-16">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50">
-            <Building2 className="h-6 w-6 text-muted-foreground/30" />
+            <Building2 className="h-6 w-6 text-muted-foreground-faint" />
           </div>
           <div className="text-center">
             <p className="text-sm font-medium text-muted-foreground/60">Aucune entreprise associée</p>
-            <p className="mt-0.5 text-xs text-muted-foreground/40">Rattachez une entreprise existante à cet apprenant.</p>
+            <p className="mt-0.5 text-xs text-muted-foreground-subtle">Rattachez une entreprise existante à cet apprenant.</p>
           </div>
         </div>
       ) : (
@@ -763,7 +763,7 @@ function EntreprisesTab({
                   <div className="flex items-center gap-2">
                     <Building2 className="h-3.5 w-3.5 text-orange-400 shrink-0" />
                     <span className="text-sm font-medium">{ent.nom}</span>
-                    {ent.siret && <span className="text-xs text-muted-foreground/50">{ent.siret}</span>}
+                    {ent.siret && <span className="text-xs text-muted-foreground-subtle">{ent.siret}</span>}
                   </div>
                   {/* Headquarters / Agency badges */}
                   <div className="mt-1.5 flex flex-wrap items-center gap-1.5 ml-5">
@@ -779,20 +779,20 @@ function EntreprisesTab({
                       </Badge>
                     ))}
                     {!ent.est_siege && ent.agences.length === 0 && (
-                      <span className="text-xs text-muted-foreground/40 italic">Aucun rattachement défini</span>
+                      <span className="text-xs text-muted-foreground-subtle italic">Aucun rattachement défini</span>
                     )}
                   </div>
                 </div>
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                   <button
                     onClick={(e) => { e.stopPropagation(); setEditingEnt(ent); }}
-                    className="p-1 rounded hover:bg-muted/30 text-muted-foreground/40 hover:text-foreground"
+                    className="p-1 rounded hover:bg-muted/30 text-muted-foreground-subtle hover:text-foreground"
                     title="Modifier le rattachement"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
                   </button>
-                  <button onClick={(e) => { e.stopPropagation(); router.push(`/entreprises/${ent.id}`); }} className="p-1 rounded hover:bg-muted/30 text-muted-foreground/40 hover:text-foreground" title="Voir la fiche"><ExternalLink className="h-3.5 w-3.5" /></button>
-                  <button onClick={(e) => { e.stopPropagation(); handleUnlink(ent); }} className="p-1 rounded hover:bg-destructive/10 text-muted-foreground/40 hover:text-destructive" title="Retirer de l'apprenant"><Unlink className="h-3.5 w-3.5" /></button>
+                  <button onClick={(e) => { e.stopPropagation(); router.push(`/entreprises/${ent.id}`); }} className="p-1 rounded hover:bg-muted/30 text-muted-foreground-subtle hover:text-foreground" title="Voir la fiche"><ExternalLink className="h-3.5 w-3.5" /></button>
+                  <button onClick={(e) => { e.stopPropagation(); handleUnlink(ent); }} className="p-1 rounded hover:bg-destructive/10 text-muted-foreground-subtle hover:text-destructive" title="Retirer de l'apprenant"><Unlink className="h-3.5 w-3.5" /></button>
                 </div>
               </div>
             </div>
@@ -831,7 +831,7 @@ function SiegeAgencePicker({
         <span className="text-xs">
           Siège social
           {selectedAgenceIds.length === 0 && (
-            <span className="ml-1 text-xs text-muted-foreground/50">(par défaut si aucune agence)</span>
+            <span className="ml-1 text-xs text-muted-foreground-subtle">(par défaut si aucune agence)</span>
           )}
         </span>
       </label>
@@ -851,13 +851,13 @@ function SiegeAgencePicker({
                   onChange={() => onAgenceToggle(ag.id)}
                   className="h-3.5 w-3.5 rounded border-border accent-primary"
                 />
-                <MapPin className="h-3 w-3 text-muted-foreground/50 shrink-0" />
+                <MapPin className="h-3 w-3 text-muted-foreground-subtle shrink-0" />
                 <span className="text-xs">{ag.nom}</span>
                 {ag.est_siege && (
                   <span className="text-xs font-medium text-orange-400/80 bg-orange-400/10 px-1 py-0.5 rounded">siège</span>
                 )}
                 {ag.adresse_ville && (
-                  <span className="text-xs text-muted-foreground/40">{ag.adresse_ville}</span>
+                  <span className="text-xs text-muted-foreground-subtle">{ag.adresse_ville}</span>
                 )}
               </label>
             ))}
@@ -865,7 +865,7 @@ function SiegeAgencePicker({
         </div>
       )}
       {agences.length === 0 && (
-        <p className="text-xs text-muted-foreground/40 italic">
+        <p className="text-xs text-muted-foreground-subtle italic">
           Aucune agence définie pour cette entreprise. L&apos;apprenant sera rattaché au siège social.
         </p>
       )}

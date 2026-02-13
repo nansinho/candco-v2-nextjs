@@ -26,16 +26,26 @@ import {
   X,
   ChevronRight,
   ChevronDown,
+  Palette,
+  Info,
 } from "lucide-react";
 import type { OrganisationSettings } from "@/actions/parametres";
 import {
   updateGeneralSettings,
   updateFacturationSettings,
   updateEmailSettings,
+  updateThemeSettings,
   uploadOrganisationLogo,
   removeOrganisationLogo,
   getAICredits,
 } from "@/actions/parametres";
+import {
+  THEME_PRESETS,
+  getThemePresetsByMode,
+  type ThemePreset,
+  type PresetId,
+} from "@/lib/themes";
+import { useRouter } from "next/navigation";
 import { SiretSearch } from "@/components/shared/siret-search";
 import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
 import { AI_COSTS } from "@/lib/ai-providers";
@@ -84,6 +94,10 @@ export function ParametresClient({ settings, catalogueCategories = [] }: { setti
             <Bot className="h-3.5 w-3.5" />
             IA
           </TabsTrigger>
+          <TabsTrigger value="apparence" className="text-xs gap-1.5">
+            <Palette className="h-3.5 w-3.5" />
+            Apparence
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="general">
@@ -100,6 +114,9 @@ export function ParametresClient({ settings, catalogueCategories = [] }: { setti
         </TabsContent>
         <TabsContent value="ia">
           <AITab settings={settings} />
+        </TabsContent>
+        <TabsContent value="apparence">
+          <ApparenceTab settings={settings} />
         </TabsContent>
       </Tabs>
     </div>
@@ -285,7 +302,7 @@ function LogoSection({ logoUrl }: { logoUrl: string | null }) {
           {currentLogo ? (
             <img src={currentLogo} alt="Logo" className="h-full w-full object-contain" />
           ) : (
-            <ImageIcon className="h-8 w-8 text-muted-foreground/40" />
+            <ImageIcon className="h-8 w-8 text-muted-foreground-subtle" />
           )}
         </div>
 
@@ -761,7 +778,7 @@ function CatalogueTab({ initialCategories }: { initialCategories: CatalogueCateg
                   </Badge>
                 )}
                 <span className="text-sm truncate">{cat.nom}</span>
-                <Badge variant="outline" className="text-xs font-normal text-muted-foreground/50 px-1.5 py-0 shrink-0">
+                <Badge variant="outline" className="text-xs font-normal text-muted-foreground-subtle px-1.5 py-0 shrink-0">
                   {NIVEAU_LABELS[cat.niveau]}
                 </Badge>
               </div>
@@ -839,7 +856,7 @@ function CatalogueTab({ initialCategories }: { initialCategories: CatalogueCateg
         <div className="space-y-3">
           {poles.length === 0 && !isAddingRoot && (
             <div className="text-center py-8 text-muted-foreground">
-              <FolderTree className="h-8 w-8 mx-auto mb-2 text-muted-foreground/40" />
+              <FolderTree className="h-8 w-8 mx-auto mb-2 text-muted-foreground-subtle" />
               <p className="text-sm">Aucune catégorie définie</p>
               <p className="text-xs mt-1">Commencez par créer un pôle pour structurer votre catalogue</p>
             </div>
@@ -897,20 +914,180 @@ function CatalogueTab({ initialCategories }: { initialCategories: CatalogueCateg
           <div className="flex items-center gap-2">
             <Badge className="bg-primary/10 text-primary border-primary/20 text-xs">Niveau 1</Badge>
             <span>Pôle</span>
-            <span className="text-muted-foreground/50">— Domaine principal (ex: Santé, Management)</span>
+            <span className="text-muted-foreground-subtle">— Domaine principal (ex: Santé, Management)</span>
           </div>
           <div className="flex items-center gap-2 pl-4">
             <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20 text-xs">Niveau 2</Badge>
             <span>Catégorie</span>
-            <span className="text-muted-foreground/50">— Regroupement thématique (ex: Pratiques cliniques)</span>
+            <span className="text-muted-foreground-subtle">— Regroupement thématique (ex: Pratiques cliniques)</span>
           </div>
           <div className="flex items-center gap-2 pl-8">
             <Badge className="bg-violet-500/10 text-violet-500 border-violet-500/20 text-xs">Niveau 3</Badge>
             <span>Sous-catégorie</span>
-            <span className="text-muted-foreground/50">— Détail fin (ex: Soins infirmiers)</span>
+            <span className="text-muted-foreground-subtle">— Détail fin (ex: Soins infirmiers)</span>
           </div>
         </div>
       </SettingsCard>
+    </div>
+  );
+}
+
+// ─── Apparence Tab ──────────────────────────────────────
+
+function ThemePreviewCard({
+  preset,
+  selected,
+  onSelect,
+}: {
+  preset: ThemePreset;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const v = preset.vars;
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={`relative rounded-lg border-2 p-2 transition-all text-left ${
+        selected
+          ? "border-primary ring-2 ring-primary/20"
+          : "border-border/60 hover:border-border"
+      }`}
+    >
+      {/* Mini preview */}
+      <div
+        className="h-24 w-full rounded-md overflow-hidden flex"
+        style={{ backgroundColor: v["--color-background"] }}
+      >
+        {/* Sidebar stripe */}
+        <div
+          className="w-8 shrink-0 flex flex-col items-center pt-3 gap-1.5"
+          style={{ backgroundColor: v["--color-sidebar"], borderRight: `1px solid ${v["--color-sidebar-border"]}` }}
+        >
+          <div className="h-2 w-2 rounded-full" style={{ backgroundColor: v["--color-primary"] }} />
+          <div className="h-1.5 w-3 rounded-sm" style={{ backgroundColor: v["--color-sidebar-muted"], opacity: 0.4 }} />
+          <div className="h-1.5 w-3 rounded-sm" style={{ backgroundColor: v["--color-sidebar-muted"], opacity: 0.3 }} />
+          <div className="h-1.5 w-3 rounded-sm" style={{ backgroundColor: v["--color-sidebar-muted"], opacity: 0.3 }} />
+        </div>
+        {/* Content area */}
+        <div className="flex-1 p-2 space-y-1.5">
+          <div className="h-2 w-12 rounded-sm" style={{ backgroundColor: v["--color-foreground"], opacity: 0.6 }} />
+          <div
+            className="rounded p-1.5 space-y-1"
+            style={{ backgroundColor: v["--color-card"], border: `1px solid ${v["--color-border"]}` }}
+          >
+            <div className="h-1.5 w-16 rounded-sm" style={{ backgroundColor: v["--color-foreground"], opacity: 0.5 }} />
+            <div className="h-1.5 w-10 rounded-sm" style={{ backgroundColor: v["--color-muted-foreground"], opacity: 0.4 }} />
+            <div className="flex gap-1 mt-1">
+              <div className="h-2 w-6 rounded-sm" style={{ backgroundColor: v["--color-primary"] }} />
+              <div className="h-2 w-6 rounded-sm" style={{ backgroundColor: v["--color-border"] }} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Name + description */}
+      <div className="mt-2 px-0.5">
+        <p className="text-sm font-medium">{preset.name}</p>
+        <p className="text-xs text-muted-foreground">{preset.description}</p>
+      </div>
+
+      {/* Selected checkmark */}
+      {selected && (
+        <div className="absolute top-1.5 right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
+          <Check className="h-3 w-3" />
+        </div>
+      )}
+    </button>
+  );
+}
+
+function ApparenceTab({ settings }: { settings: OrganisationSettings }) {
+  const { toast } = useToast();
+  const router = useRouter();
+  const [saving, setSaving] = React.useState(false);
+
+  const [darkPreset, setDarkPreset] = React.useState<string>(
+    settings.theme_dark_preset || "cursor"
+  );
+  const [lightPreset, setLightPreset] = React.useState<string>(
+    settings.theme_light_preset || "clean"
+  );
+
+  const darkPresets = getThemePresetsByMode("dark");
+  const lightPresets = getThemePresetsByMode("light");
+
+  async function handleSave() {
+    setSaving(true);
+    const result = await updateThemeSettings({
+      theme_dark_preset: darkPreset as "cursor" | "midnight" | "forest",
+      theme_light_preset: lightPreset as "clean" | "ocean" | "warm",
+    });
+    setSaving(false);
+
+    if ("error" in result) {
+      toast({ title: "Erreur", description: "Impossible de sauvegarder", variant: "destructive" });
+    } else {
+      toast({ title: "Enregistré", description: "Le thème a été mis à jour. Rechargement...", variant: "success" });
+      // Force full page reload to re-run the root layout with new presets
+      setTimeout(() => window.location.reload(), 500);
+    }
+  }
+
+  return (
+    <div className="space-y-6 mt-4">
+      <SettingsCard
+        title="Thème sombre"
+        description="Choisissez le thème sombre par défaut pour votre organisation"
+      >
+        <div className="grid grid-cols-3 gap-3">
+          {darkPresets.map((preset) => (
+            <ThemePreviewCard
+              key={preset.id}
+              preset={preset}
+              selected={darkPreset === preset.id}
+              onSelect={() => setDarkPreset(preset.id)}
+            />
+          ))}
+        </div>
+      </SettingsCard>
+
+      <SettingsCard
+        title="Thème clair"
+        description="Choisissez le thème clair par défaut pour votre organisation"
+      >
+        <div className="grid grid-cols-3 gap-3">
+          {lightPresets.map((preset) => (
+            <ThemePreviewCard
+              key={preset.id}
+              preset={preset}
+              selected={lightPreset === preset.id}
+              onSelect={() => setLightPreset(preset.id)}
+            />
+          ))}
+        </div>
+      </SettingsCard>
+
+      <SettingsCard title="Informations" description="Comment fonctionnent les thèmes">
+        <div className="flex items-start gap-3 text-sm text-muted-foreground">
+          <Info className="h-4 w-4 mt-0.5 shrink-0 text-info" />
+          <div className="space-y-1">
+            <p>
+              Tous les thèmes respectent les normes d&apos;accessibilité <strong className="text-foreground">WCAG 2.1 AA</strong> pour garantir une bonne lisibilité.
+            </p>
+            <p>
+              Le thème choisi ici s&apos;applique à tous les utilisateurs de votre organisation. Chaque utilisateur peut basculer entre mode sombre et clair via le bouton dans la sidebar.
+            </p>
+          </div>
+        </div>
+      </SettingsCard>
+
+      <div className="flex justify-end">
+        <Button size="sm" disabled={saving} onClick={handleSave} className="h-8 text-xs gap-1.5">
+          {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+          Enregistrer
+        </Button>
+      </div>
     </div>
   );
 }
@@ -965,7 +1142,7 @@ function TextareaGroup({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         rows={rows}
-        className="w-full rounded-md border border-border/60 bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+        className="w-full rounded-md border border-border/60 bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground-subtle focus:outline-none focus:ring-1 focus:ring-ring resize-none"
       />
     </div>
   );

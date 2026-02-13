@@ -109,21 +109,21 @@ export default async function FormateurFacturationPage() {
         <div className="flex items-center gap-6">
           <div>
             <p className="text-lg font-semibold font-mono">{formatCurrency(tarifJour)}</p>
-            <p className="text-xs text-muted-foreground/50">par jour HT ({heuresParJour}h)</p>
+            <p className="text-xs text-muted-foreground-subtle">par jour HT ({heuresParJour}h)</p>
           </div>
           <div className="h-8 w-px bg-border/40" />
           <div>
             <p className="text-lg font-semibold font-mono">
               {formatCurrency(Math.round((tarifJour / heuresParJour) * 100) / 100)}
             </p>
-            <p className="text-xs text-muted-foreground/50">par heure HT</p>
+            <p className="text-xs text-muted-foreground-subtle">par heure HT</p>
           </div>
           {tauxTva > 0 && (
             <>
               <div className="h-8 w-px bg-border/40" />
               <div>
                 <p className="text-lg font-semibold font-mono">{tauxTva}%</p>
-                <p className="text-xs text-muted-foreground/50">TVA</p>
+                <p className="text-xs text-muted-foreground-subtle">TVA</p>
               </div>
             </>
           )}
@@ -164,11 +164,11 @@ export default async function FormateurFacturationPage() {
       {/* Sessions breakdown */}
       {sessionsWithTotals.length === 0 ? (
         <div className="rounded-lg border border-border/60 bg-card p-12 text-center">
-          <Receipt className="mx-auto h-10 w-10 text-muted-foreground/20" />
+          <Receipt className="mx-auto h-10 w-10 text-muted-foreground-faint" />
           <p className="mt-3 text-sm font-medium text-muted-foreground/60">
             Aucune session avec des creneaux
           </p>
-          <p className="mt-1 text-xs text-muted-foreground/40">
+          <p className="mt-1 text-xs text-muted-foreground-subtle">
             Les montants seront calcules automatiquement a partir de vos creneaux assignes.
           </p>
         </div>
@@ -183,7 +183,7 @@ export default async function FormateurFacturationPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground/50 font-mono">{s.numero_affichage}</span>
+                      <span className="text-xs text-muted-foreground-subtle font-mono">{s.numero_affichage}</span>
                       <span className={cn(
                         "text-xs px-1.5 py-0.5 rounded-full font-medium",
                         s.statut === "validee" && "bg-emerald-500/15 text-emerald-400",
@@ -196,7 +196,7 @@ export default async function FormateurFacturationPage() {
                     </div>
                     <p className="text-sm font-medium mt-0.5">{s.nom}</p>
                     {s.date_debut && (
-                      <p className="text-xs text-muted-foreground/50 mt-1">
+                      <p className="text-xs text-muted-foreground-subtle mt-1">
                         {new Date(s.date_debut).toLocaleDateString("fr-FR")}
                         {s.date_fin && ` — ${new Date(s.date_fin).toLocaleDateString("fr-FR")}`}
                       </p>
@@ -204,10 +204,10 @@ export default async function FormateurFacturationPage() {
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-sm font-semibold font-mono">{formatCurrency(s.montantHT)}</p>
-                    <p className="text-xs text-muted-foreground/50">HT</p>
+                    <p className="text-xs text-muted-foreground-subtle">HT</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border/30 text-xs text-muted-foreground/50">
+                <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border/30 text-xs text-muted-foreground-subtle">
                   <span>{s.creneauxCount} creneau{s.creneauxCount > 1 ? "x" : ""}</span>
                   <span>{s.totalHeures}h</span>
                   <span>{s.totalJours} jour{s.totalJours > 1 ? "s" : ""}</span>

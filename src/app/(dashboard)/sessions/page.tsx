@@ -106,7 +106,7 @@ const columns: Column<SessionRow>[] = [
     label: "Dates",
     minWidth: 160,
     render: (item) => {
-      if (!item.date_debut) return <span className="text-muted-foreground/40">--</span>;
+      if (!item.date_debut) return <span className="text-muted-foreground-subtle">--</span>;
       const debut = formatDate(item.date_debut);
       const fin = item.date_fin ? formatDate(item.date_fin) : "";
       return (
@@ -124,7 +124,7 @@ const columns: Column<SessionRow>[] = [
       const count = item.inscriptions?.length ?? 0;
       return (
         <span className="flex items-center gap-1.5 text-sm">
-          <Users className="h-3 w-3 text-muted-foreground/50" />
+          <Users className="h-3 w-3 text-muted-foreground-subtle" />
           {count}{item.places_max ? `/${item.places_max}` : ""}
         </span>
       );
@@ -140,7 +140,7 @@ const columns: Column<SessionRow>[] = [
       );
       return total > 0
         ? <span className="font-mono text-sm">{formatCurrency(total)}</span>
-        : <span className="text-muted-foreground/40">--</span>;
+        : <span className="text-muted-foreground-subtle">--</span>;
     },
     exportValue: (item) => {
       const total = (item.session_commanditaires ?? []).reduce(
@@ -157,7 +157,7 @@ const columns: Column<SessionRow>[] = [
       const noms = (item.session_commanditaires ?? [])
         .map((c) => c.entreprises?.nom)
         .filter(Boolean);
-      if (noms.length === 0) return <span className="text-muted-foreground/40">--</span>;
+      if (noms.length === 0) return <span className="text-muted-foreground-subtle">--</span>;
       return <span className="text-sm truncate max-w-[180px]">{noms.join(", ")}</span>;
     },
     exportValue: (item) =>

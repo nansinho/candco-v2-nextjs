@@ -190,7 +190,7 @@ function FilterSelect({
           <button
             type="button"
             onClick={() => onChange("")}
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded text-muted-foreground/40 hover:text-foreground transition-colors"
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded text-muted-foreground-subtle hover:text-foreground transition-colors"
           >
             <X className="h-3 w-3" />
           </button>

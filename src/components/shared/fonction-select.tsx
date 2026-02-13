@@ -137,11 +137,11 @@ export function FonctionSelect({
         }}
         className={cn(
           "flex h-9 w-full items-center justify-between rounded-md border border-border/60 bg-muted px-3 py-1 text-sm shadow-sm transition-colors hover:border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-          !value && "text-muted-foreground/50"
+          !value && "text-muted-foreground-subtle"
         )}
       >
         <span className="truncate">{value || placeholder}</span>
-        <ChevronDown className={cn("h-3.5 w-3.5 shrink-0 text-muted-foreground/50 transition-transform", open && "rotate-180")} />
+        <ChevronDown className={cn("h-3.5 w-3.5 shrink-0 text-muted-foreground-subtle transition-transform", open && "rotate-180")} />
       </button>
 
       {/* Dropdown */}
@@ -180,7 +180,7 @@ export function FonctionSelect({
             )}
 
             {filtered.length === 0 && !isAdding && (
-              <p className="px-2 py-3 text-center text-xs text-muted-foreground/50">
+              <p className="px-2 py-3 text-center text-xs text-muted-foreground-subtle">
                 Aucune fonction trouvée
               </p>
             )}
@@ -236,7 +236,7 @@ export function FonctionSelect({
                           setEditName(f.nom);
                           setError(null);
                         }}
-                        className="p-1 rounded hover:bg-muted/50 text-muted-foreground/40 hover:text-foreground"
+                        className="p-1 rounded hover:bg-muted/50 text-muted-foreground-subtle hover:text-foreground"
                       >
                         <Pencil className="h-2.5 w-2.5" />
                       </button>
@@ -246,7 +246,7 @@ export function FonctionSelect({
                           e.stopPropagation();
                           handleDelete(f.id);
                         }}
-                        className="p-1 rounded hover:bg-destructive/10 text-muted-foreground/40 hover:text-destructive"
+                        className="p-1 rounded hover:bg-destructive/10 text-muted-foreground-subtle hover:text-destructive"
                       >
                         <Trash2 className="h-2.5 w-2.5" />
                       </button>

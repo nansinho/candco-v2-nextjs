@@ -96,11 +96,11 @@ const columns: Column<AvoirRow>[] = [
     render: (item) =>
       item.factures?.numero_affichage ? (
         <span className="flex items-center gap-1.5 text-sm">
-          <Receipt className="h-3 w-3 text-muted-foreground/50" />
+          <Receipt className="h-3 w-3 text-muted-foreground-subtle" />
           {item.factures.numero_affichage}
         </span>
       ) : (
-        <span className="text-muted-foreground/40">--</span>
+        <span className="text-muted-foreground-subtle">--</span>
       ),
   },
   {
@@ -110,11 +110,11 @@ const columns: Column<AvoirRow>[] = [
     render: (item) =>
       item.entreprises?.nom ? (
         <span className="flex items-center gap-1.5 text-sm">
-          <Building2 className="h-3 w-3 text-muted-foreground/50" />
+          <Building2 className="h-3 w-3 text-muted-foreground-subtle" />
           <span className="truncate">{item.entreprises.nom}</span>
         </span>
       ) : (
-        <span className="text-muted-foreground/40">--</span>
+        <span className="text-muted-foreground-subtle">--</span>
       ),
     exportValue: (item) => item.entreprises?.nom ?? "",
   },

@@ -190,7 +190,7 @@ export function FormateurProfilForm({ formateur }: { formateur: FormateurData })
       )}
 
       <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground/40">
+        <p className="text-xs text-muted-foreground-subtle">
           Civilite, nom, email, NDA et SIRET sont geres par l&apos;administrateur.
         </p>
         <Button

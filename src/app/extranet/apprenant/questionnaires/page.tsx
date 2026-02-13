@@ -13,9 +13,9 @@ export default async function ApprenantQuestionnairesPage() {
         <p className="mt-1 text-sm text-muted-foreground">Enquetes de satisfaction et evaluations pedagogiques</p>
       </div>
       <div className="rounded-lg border border-border/60 bg-card p-12 text-center">
-        <ClipboardList className="mx-auto h-10 w-10 text-muted-foreground/20" />
+        <ClipboardList className="mx-auto h-10 w-10 text-muted-foreground-faint" />
         <p className="mt-3 text-sm font-medium text-muted-foreground/60">Aucun questionnaire a remplir</p>
-        <p className="mt-1 text-xs text-muted-foreground/40">Les questionnaires de satisfaction et evaluations apparaitront ici.</p>
+        <p className="mt-1 text-xs text-muted-foreground-subtle">Les questionnaires de satisfaction et evaluations apparaitront ici.</p>
       </div>
     </div>
   );

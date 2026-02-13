@@ -365,7 +365,7 @@ export function SendDevisEmailModal({
               value={body}
               onChange={(e) => setBody(e.target.value)}
               rows={10}
-              className="w-full rounded-md border border-border/60 bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+              className="w-full rounded-md border border-border/60 bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground-subtle focus:outline-none focus:ring-1 focus:ring-ring resize-none"
             />
           </div>
         </div>

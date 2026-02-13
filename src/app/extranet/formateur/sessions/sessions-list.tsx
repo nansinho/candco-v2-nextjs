@@ -20,7 +20,7 @@ const STATUT_BADGES: Record<string, { label: string; className: string }> = {
   validee: { label: "Validee", className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
   en_cours: { label: "En cours", className: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
   terminee: { label: "Terminee", className: "bg-muted text-muted-foreground border-border/60" },
-  archivee: { label: "Archivee", className: "bg-muted text-muted-foreground/50 border-border/40" },
+  archivee: { label: "Archivee", className: "bg-muted text-muted-foreground-subtle border-border/40" },
 };
 
 export function FormateurSessionsList({ sessions }: { sessions: Session[] }) {
@@ -35,7 +35,7 @@ export function FormateurSessionsList({ sessions }: { sessions: Session[] }) {
 
       {sessions.length === 0 ? (
         <div className="rounded-lg border border-border/60 bg-card p-12 text-center">
-          <Calendar className="mx-auto h-10 w-10 text-muted-foreground/20" />
+          <Calendar className="mx-auto h-10 w-10 text-muted-foreground-faint" />
           <p className="mt-3 text-sm text-muted-foreground/60">
             Aucune session assignee pour le moment.
           </p>

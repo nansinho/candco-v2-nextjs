@@ -419,7 +419,7 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
               setAdresseVille(r.adresse_ville || adresseVille);
             }}
           />
-          <p className="mt-2 text-xs text-muted-foreground/50">
+          <p className="mt-2 text-xs text-muted-foreground-subtle">
             Recherchez par SIRET, SIREN ou nom pour mettre à jour automatiquement les informations.
           </p>
         </section>
@@ -833,7 +833,7 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
         <div className="flex flex-col gap-3 px-5 py-3 border-b border-border/40">
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/40" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground-subtle" />
             <Input
               placeholder="Rechercher par nom, email, fonction..."
               value={searchQuery}
@@ -860,7 +860,7 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
               >
                 {opt.label}
                 <span className={`inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-xs ${
-                  filter === opt.value ? "bg-primary/20 text-primary" : "bg-muted/50 text-muted-foreground/50"
+                  filter === opt.value ? "bg-primary/20 text-primary" : "bg-muted/50 text-muted-foreground-subtle"
                 }`}>
                   {counts[opt.value]}
                 </span>
@@ -882,15 +882,15 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
         </div>
       ) : items.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-16">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50"><Users className="h-6 w-6 text-muted-foreground/30" /></div>
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50"><Users className="h-6 w-6 text-muted-foreground-faint" /></div>
           <div className="text-center">
             <p className="text-sm font-medium text-muted-foreground/60">Aucun contact ou membre rattaché</p>
-            <p className="mt-0.5 text-xs text-muted-foreground/40">Créez un contact ou ajoutez des membres via l&apos;onglet Organisation.</p>
+            <p className="mt-0.5 text-xs text-muted-foreground-subtle">Créez un contact ou ajoutez des membres via l&apos;onglet Organisation.</p>
           </div>
         </div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-12">
-          <Search className="h-5 w-5 text-muted-foreground/30" />
+          <Search className="h-5 w-5 text-muted-foreground-faint" />
           <p className="text-sm text-muted-foreground/60">Aucun résultat pour cette recherche.</p>
         </div>
       ) : (
@@ -923,7 +923,7 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
                     <div className="min-w-0">
                       <span className="text-sm font-medium">{item.prenom} {item.nom}</span>
                       {(item.numero_affichage_contact || item.numero_affichage_apprenant) && (
-                        <span className="ml-1.5 font-mono text-xs text-muted-foreground/50">
+                        <span className="ml-1.5 font-mono text-xs text-muted-foreground-subtle">
                           {item.numero_affichage_contact ?? item.numero_affichage_apprenant}
                         </span>
                       )}
@@ -945,7 +945,7 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
                 </td>
                 {/* Fonction */}
                 <td className="px-4 py-2.5 text-sm text-muted-foreground">
-                  {item.fonction ?? <span className="text-muted-foreground/40">--</span>}
+                  {item.fonction ?? <span className="text-muted-foreground-subtle">--</span>}
                 </td>
                 {/* Email */}
                 <td className="px-4 py-2.5">
@@ -954,7 +954,7 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
                       <Mail className="h-3 w-3 shrink-0" /><span className="truncate max-w-[180px]">{item.email}</span>
                     </a>
                   ) : (
-                    <span className="text-sm text-muted-foreground/40">--</span>
+                    <span className="text-sm text-muted-foreground-subtle">--</span>
                   )}
                 </td>
                 {/* Phone */}
@@ -964,7 +964,7 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
                       <Phone className="h-3 w-3 shrink-0" />{item.telephone}
                     </a>
                   ) : (
-                    <span className="text-sm text-muted-foreground/40">--</span>
+                    <span className="text-sm text-muted-foreground-subtle">--</span>
                   )}
                 </td>
                 {/* Actions */}
@@ -972,7 +972,7 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={(e) => { e.stopPropagation(); navigateTo(item); }}
-                      className="p-1 rounded hover:bg-muted/30 text-muted-foreground/40 hover:text-foreground"
+                      className="p-1 rounded hover:bg-muted/30 text-muted-foreground-subtle hover:text-foreground"
                       title="Voir la fiche"
                     >
                       <ExternalLink className="h-3.5 w-3.5" />
@@ -980,7 +980,7 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
                     {item.contact_client_id && (item.type === "contact" || item.type === "contact_membre") && (
                       <button
                         onClick={(e) => { e.stopPropagation(); handleUnlinkContact(item); }}
-                        className="p-1 rounded hover:bg-destructive/10 text-muted-foreground/40 hover:text-destructive"
+                        className="p-1 rounded hover:bg-destructive/10 text-muted-foreground-subtle hover:text-destructive"
                         title="Retirer le contact de l'entreprise"
                       >
                         <Unlink className="h-3.5 w-3.5" />
@@ -1092,7 +1092,7 @@ function ApprenantsTab({ entrepriseId }: { entrepriseId: string }) {
       {showSearch && (
         <div className="px-5 py-3 border-b border-border/40 bg-muted/10">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/50" />
+            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground-subtle" />
             <Input placeholder="Rechercher un apprenant par nom ou email..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="h-8 pl-9 text-xs border-border/60" autoFocus />
           </div>
           {isSearching && <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" />Recherche...</div>}
@@ -1103,7 +1103,7 @@ function ApprenantsTab({ entrepriseId }: { entrepriseId: string }) {
                   <div className="flex items-center gap-2">
                     <GraduationCap className="h-3.5 w-3.5 text-blue-400" />
                     <span className="text-sm font-medium">{a.prenom} {a.nom}</span>
-                    {a.email && <span className="text-xs text-muted-foreground/50">{a.email}</span>}
+                    {a.email && <span className="text-xs text-muted-foreground-subtle">{a.email}</span>}
                   </div>
                   <span className="text-xs text-primary font-medium flex items-center gap-0.5"><Plus className="h-3 w-3" />Rattacher</span>
                 </button>
@@ -1111,7 +1111,7 @@ function ApprenantsTab({ entrepriseId }: { entrepriseId: string }) {
             </div>
           )}
           {searchQuery.trim() && !isSearching && searchResults.length === 0 && (
-            <p className="mt-2 text-xs text-muted-foreground/50">Aucun apprenant trouvé pour &laquo; {searchQuery} &raquo;</p>
+            <p className="mt-2 text-xs text-muted-foreground-subtle">Aucun apprenant trouvé pour &laquo; {searchQuery} &raquo;</p>
           )}
         </div>
       )}
@@ -1127,10 +1127,10 @@ function ApprenantsTab({ entrepriseId }: { entrepriseId: string }) {
         </div>
       ) : apprenants.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-16">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50"><GraduationCap className="h-6 w-6 text-muted-foreground/30" /></div>
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50"><GraduationCap className="h-6 w-6 text-muted-foreground-faint" /></div>
           <div className="text-center">
             <p className="text-sm font-medium text-muted-foreground/60">Aucun apprenant rattaché</p>
-            <p className="mt-0.5 text-xs text-muted-foreground/40">Utilisez le bouton ci-dessus pour rattacher des apprenants.</p>
+            <p className="mt-0.5 text-xs text-muted-foreground-subtle">Utilisez le bouton ci-dessus pour rattacher des apprenants.</p>
           </div>
         </div>
       ) : (
@@ -1149,10 +1149,10 @@ function ApprenantsTab({ entrepriseId }: { entrepriseId: string }) {
               <tr key={a.id} className="border-b border-border/40 transition-colors hover:bg-muted/20 cursor-pointer group" onClick={() => router.push(`/apprenants/${a.id}`)}>
                 <td className="px-4 py-2.5"><span className="font-mono text-xs text-muted-foreground">{a.numero_affichage}</span></td>
                 <td className="px-4 py-2.5"><div className="flex items-center gap-2"><GraduationCap className="h-3.5 w-3.5 text-blue-400" /><span className="text-sm font-medium">{a.prenom} {a.nom}</span></div></td>
-                <td className="px-4 py-2.5 text-sm text-muted-foreground">{a.email ?? <span className="text-muted-foreground/40">--</span>}</td>
-                <td className="px-4 py-2.5 text-sm text-muted-foreground">{a.telephone ?? <span className="text-muted-foreground/40">--</span>}</td>
+                <td className="px-4 py-2.5 text-sm text-muted-foreground">{a.email ?? <span className="text-muted-foreground-subtle">--</span>}</td>
+                <td className="px-4 py-2.5 text-sm text-muted-foreground">{a.telephone ?? <span className="text-muted-foreground-subtle">--</span>}</td>
                 <td className="px-4 py-2.5" onClick={(e) => e.stopPropagation()}>
-                  <button onClick={() => handleUnlink(a.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground/40 hover:text-destructive" title="Retirer de l'entreprise">
+                  <button onClick={() => handleUnlink(a.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground-subtle hover:text-destructive" title="Retirer de l'entreprise">
                     <Unlink className="h-3.5 w-3.5" />
                   </button>
                 </td>

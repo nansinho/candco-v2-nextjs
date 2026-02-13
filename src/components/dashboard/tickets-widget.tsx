@@ -32,8 +32,8 @@ export function TicketsWidget({ stats }: { stats: TicketStatsData }) {
   if (total === 0 && stats.recents.length === 0) {
     return (
       <div className="flex items-center gap-3 py-1">
-        <LifeBuoy className="h-4 w-4 text-muted-foreground/20 shrink-0" />
-        <p className="text-xs text-muted-foreground/40">
+        <LifeBuoy className="h-4 w-4 text-muted-foreground-faint shrink-0" />
+        <p className="text-xs text-muted-foreground-subtle">
           Aucun ticket ouvert.{" "}
           <Link href="/tickets" className="text-primary hover:underline">
             Voir les tickets
@@ -109,7 +109,7 @@ export function TicketsWidget({ stats }: { stats: TicketStatsData }) {
           })}
           <Link
             href="/tickets"
-            className="flex items-center justify-center gap-1 text-xs text-muted-foreground/30 hover:text-primary transition-colors pt-1"
+            className="flex items-center justify-center gap-1 text-xs text-muted-foreground-faint hover:text-primary transition-colors pt-1"
           >
             Tout voir <ArrowRight className="h-3 w-3" />
           </Link>

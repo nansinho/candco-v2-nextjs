@@ -392,11 +392,11 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
 
             {/* Meta info */}
             <div className="mt-6 flex items-center gap-4 border-t border-border/40 pt-4">
-              <p className="text-xs text-muted-foreground/50">
+              <p className="text-xs text-muted-foreground-subtle">
                 Créé le {formatDate(contact.created_at)}
               </p>
               {contact.updated_at && (
-                <p className="text-xs text-muted-foreground/50">
+                <p className="text-xs text-muted-foreground-subtle">
                   Modifié le {formatDate(contact.updated_at)}
                 </p>
               )}
@@ -410,12 +410,12 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
             {entreprises.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50">
-                  <Building2 className="h-6 w-6 text-muted-foreground/30" />
+                  <Building2 className="h-6 w-6 text-muted-foreground-faint" />
                 </div>
                 <p className="mt-3 text-sm font-medium text-muted-foreground/60">
                   Aucune entreprise associée
                 </p>
-                <p className="mt-0.5 text-xs text-muted-foreground/40">
+                <p className="mt-0.5 text-xs text-muted-foreground-subtle">
                   Ce contact n&apos;est rattaché à aucune entreprise pour le moment.
                 </p>
               </div>
@@ -452,13 +452,13 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
                       </td>
                       <td className="px-4 py-2.5 text-sm font-medium">{ent.nom}</td>
                       <td className="px-4 py-2.5 text-sm text-muted-foreground">
-                        {ent.siret ?? <span className="text-muted-foreground/40">--</span>}
+                        {ent.siret ?? <span className="text-muted-foreground-subtle">--</span>}
                       </td>
                       <td className="px-4 py-2.5 text-sm text-muted-foreground">
-                        {ent.email ?? <span className="text-muted-foreground/40">--</span>}
+                        {ent.email ?? <span className="text-muted-foreground-subtle">--</span>}
                       </td>
                       <td className="px-4 py-2.5 text-sm text-muted-foreground">
-                        {ent.adresse_ville ?? <span className="text-muted-foreground/40">--</span>}
+                        {ent.adresse_ville ?? <span className="text-muted-foreground-subtle">--</span>}
                       </td>
                     </tr>
                   ))}

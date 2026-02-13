@@ -85,7 +85,7 @@ function FormateurWeekEvent({
           </p>
           {creneau.salle && (
             <div className="flex items-center gap-1 min-w-0 mt-auto">
-              <MapPin className="h-2.5 w-2.5 text-muted-foreground/40 shrink-0" />
+              <MapPin className="h-2.5 w-2.5 text-muted-foreground-subtle shrink-0" />
               <span className="text-xs text-muted-foreground/60 truncate">
                 {creneau.salle.nom}
               </span>
@@ -133,23 +133,23 @@ function FormateurEventDetail({
       </div>
       <div className="px-4 py-3 space-y-2.5">
         <div className="flex items-center gap-2">
-          <Clock className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
+          <Clock className="h-3.5 w-3.5 text-muted-foreground-subtle shrink-0" />
           <span className="text-sm">
             {formatTimeRange(creneau.heure_debut, creneau.heure_fin)}
           </span>
           {creneau.duree_minutes && (
-            <span className="text-xs text-muted-foreground/50">
+            <span className="text-xs text-muted-foreground-subtle">
               ({formatDuration(creneau.duree_minutes)})
             </span>
           )}
         </div>
         <div className="flex items-center gap-2">
-          <TypeIcon className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
+          <TypeIcon className="h-3.5 w-3.5 text-muted-foreground-subtle shrink-0" />
           <span className="text-sm capitalize">{typeConfig?.label ?? creneau.type}</span>
         </div>
         {creneau.salle && (
           <div className="flex items-center gap-2">
-            <MapPin className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
+            <MapPin className="h-3.5 w-3.5 text-muted-foreground-subtle shrink-0" />
             <span className="text-sm">{creneau.salle.nom}</span>
           </div>
         )}
@@ -321,7 +321,7 @@ export function FormateurPlanningClient({ formateurId }: FormateurPlanningClient
                   {HOURS.map((hour) => (
                     <div
                       key={hour}
-                      className="absolute right-2 -translate-y-1/2 text-xs text-muted-foreground/50 font-mono"
+                      className="absolute right-2 -translate-y-1/2 text-xs text-muted-foreground-subtle font-mono"
                       style={{ top: (hour - HOUR_START) * HOUR_HEIGHT_PX }}
                     >
                       {String(hour).padStart(2, "0")}:00
@@ -403,7 +403,7 @@ export function FormateurPlanningClient({ formateurId }: FormateurPlanningClient
       {/* Empty state */}
       {!loading && creneaux.length === 0 && (
         <div className="text-center py-8">
-          <CalendarDays className="mx-auto h-8 w-8 text-muted-foreground/20 mb-2" />
+          <CalendarDays className="mx-auto h-8 w-8 text-muted-foreground-faint mb-2" />
           <p className="text-sm text-muted-foreground/60">Aucun creneau cette semaine</p>
         </div>
       )}

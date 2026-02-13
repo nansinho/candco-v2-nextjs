@@ -102,7 +102,7 @@ const columns: Column<Produit>[] = [
           {TYPE_ACTION_LABELS[item.type_action] ?? item.type_action}
         </Badge>
       ) : (
-        <span className="text-muted-foreground/40">--</span>
+        <span className="text-muted-foreground-subtle">--</span>
       ),
   },
   {
@@ -117,7 +117,7 @@ const columns: Column<Produit>[] = [
           {MODALITE_LABELS[item.modalite] ?? item.modalite}
         </span>
       ) : (
-        <span className="text-muted-foreground/40">--</span>
+        <span className="text-muted-foreground-subtle">--</span>
       ),
   },
   {
@@ -130,7 +130,7 @@ const columns: Column<Produit>[] = [
           {FORMULE_LABELS[item.formule] ?? item.formule}
         </span>
       ) : (
-        <span className="text-muted-foreground/40">--</span>
+        <span className="text-muted-foreground-subtle">--</span>
       ),
   },
   {
@@ -145,7 +145,7 @@ const columns: Column<Produit>[] = [
           {item.categorie}
         </span>
       ) : (
-        <span className="text-muted-foreground/40">--</span>
+        <span className="text-muted-foreground-subtle">--</span>
       ),
   },
   {
@@ -161,7 +161,7 @@ const columns: Column<Produit>[] = [
           </span>
         );
       }
-      return <span className="text-muted-foreground/40">--</span>;
+      return <span className="text-muted-foreground-subtle">--</span>;
     },
   },
   {
@@ -194,7 +194,7 @@ const columns: Column<Produit>[] = [
           <span className="text-xs truncate max-w-[120px]">{item.organise_par_nom}</span>
         </div>
       ) : (
-        <span className="text-muted-foreground/40 text-xs">—</span>
+        <span className="text-muted-foreground-subtle text-xs">—</span>
       ),
   },
   {

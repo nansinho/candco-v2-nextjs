@@ -20,24 +20,24 @@ export default async function ExtranetClientPage() {
       {/* Stats */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-lg border border-border/60 bg-card p-4">
-          <Calendar className="h-4 w-4 text-muted-foreground/40" />
+          <Calendar className="h-4 w-4 text-muted-foreground-subtle" />
           <p className="mt-2 text-2xl font-semibold">--</p>
           <p className="text-xs text-muted-foreground/60">Sessions en cours</p>
         </div>
         <div className="rounded-lg border border-border/60 bg-card p-4">
-          <FileText className="h-4 w-4 text-muted-foreground/40" />
+          <FileText className="h-4 w-4 text-muted-foreground-subtle" />
           <p className="mt-2 text-2xl font-semibold text-amber-400">--</p>
           <p className="text-xs text-muted-foreground/60">Devis en attente</p>
         </div>
         <div className="rounded-lg border border-border/60 bg-card p-4">
-          <Receipt className="h-4 w-4 text-muted-foreground/40" />
+          <Receipt className="h-4 w-4 text-muted-foreground-subtle" />
           <p className="mt-2 text-2xl font-semibold text-blue-400">--</p>
           <p className="text-xs text-muted-foreground/60">Factures</p>
         </div>
       </div>
 
       <div className="rounded-lg border border-border/60 bg-card p-8 text-center">
-        <Calendar className="mx-auto h-8 w-8 text-muted-foreground/30" />
+        <Calendar className="mx-auto h-8 w-8 text-muted-foreground-faint" />
         <p className="mt-2 text-sm text-muted-foreground/60">
           Votre tableau de bord s&apos;enrichira au fur et a mesure de l&apos;avancement de vos formations.
         </p>
