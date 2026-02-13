@@ -242,8 +242,9 @@ export async function sendDevisForSignature(devisId: string) {
 
   // Generate PDF + Upload + Send to Documenso
   let pdfUrl: string;
+  let orgOpts: Awaited<ReturnType<typeof getOrgOptions>>;
   try {
-  const orgOpts = await getOrgOptions(admin, organisationId);
+  orgOpts = await getOrgOptions(admin, organisationId);
   const lignes = ((devis.devis_lignes || []) as Record<string, unknown>[])
     .sort((a, b) => ((a.ordre as number) || 0) - ((b.ordre as number) || 0));
 
