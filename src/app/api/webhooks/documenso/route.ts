@@ -71,13 +71,28 @@ export async function POST(request: NextRequest) {
 
   const recipient = data.recipients?.[0];
   const signedAt = recipient?.signedAt || new Date().toISOString();
+  const envelopeId = String(data.id); // Ensure string comparison
 
-  // Try to find the devis by documenso_envelope_id
-  const { data: devis } = await admin
+  console.log(`[Documenso Webhook] Received: event=${event}, envelopeId=${envelopeId}, externalId=${data.externalId}, status=${data.status}`);
+
+  // Try to find the devis by documenso_envelope_id (try both string and number)
+  let { data: devis } = await admin
     .from("devis")
     .select("id, numero_affichage, organisation_id")
-    .eq("documenso_envelope_id", data.id)
+    .eq("documenso_envelope_id", envelopeId)
     .maybeSingle();
+
+  // Fallback: try with original number type if string didn't match
+  if (!devis) {
+    const { data: devisFallback } = await admin
+      .from("devis")
+      .select("id, numero_affichage, organisation_id")
+      .eq("documenso_envelope_id", data.id)
+      .maybeSingle();
+    devis = devisFallback;
+  }
+
+  console.log(`[Documenso Webhook] Devis lookup: ${devis ? `found ${devis.id}` : "not found"}`);
 
   if (devis) {
     const updates: Record<string, unknown> = {
@@ -116,11 +131,22 @@ export async function POST(request: NextRequest) {
   }
 
   // Also update signature_requests table (handles all entity types)
-  const { data: sigReq } = await admin
+  let { data: sigReq } = await admin
     .from("signature_requests")
     .select("id, entite_type, entite_id, organisation_id")
-    .eq("documenso_envelope_id", data.id)
+    .eq("documenso_envelope_id", envelopeId)
     .maybeSingle();
+
+  if (!sigReq) {
+    const { data: sigReqFallback } = await admin
+      .from("signature_requests")
+      .select("id, entite_type, entite_id, organisation_id")
+      .eq("documenso_envelope_id", data.id)
+      .maybeSingle();
+    sigReq = sigReqFallback;
+  }
+
+  console.log(`[Documenso Webhook] SigReq lookup: ${sigReq ? `found ${sigReq.id}` : "not found"}`);
 
   if (sigReq) {
     await admin

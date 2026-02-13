@@ -319,188 +319,236 @@ export function DocumentPreview({
   const title = type === "devis" ? "DEVIS" : type === "facture" ? "FACTURE" : "AVOIR";
 
   return (
-    <div className="rounded-lg border border-border/40 bg-white text-black p-6 text-xs leading-relaxed shadow-sm min-h-[600px]">
-      {/* Header */}
-      <div className="flex justify-between mb-6">
-        <div>
-          {emetteur?.logo_url && (
-            <div className="mb-2">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={emetteur.logo_url}
-                alt={emetteur.nom || "Logo"}
-                className="h-12 max-w-[160px] object-contain"
-              />
+    <div className="bg-[#f0f0f0] rounded-xl p-4">
+      {/* A4 page container */}
+      <div className="bg-white shadow-xl mx-auto overflow-hidden" style={{ aspectRatio: "210 / 297", maxWidth: "520px" }}>
+        <div className="h-full flex flex-col text-[10px] leading-relaxed text-gray-800">
+          {/* Orange top bar */}
+          <div className="h-1.5 bg-[#F97316] shrink-0" />
+
+          {/* Content area with padding */}
+          <div className="flex-1 px-7 pt-5 pb-4 flex flex-col min-h-0">
+            {/* Header: emetteur left + doc type right */}
+            <div className="flex justify-between items-start mb-5">
+              <div className="max-w-[55%]">
+                {emetteur?.logo_url && (
+                  <div className="mb-1.5">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={emetteur.logo_url}
+                      alt={emetteur.nom || "Logo"}
+                      className="h-8 max-w-[120px] object-contain"
+                    />
+                  </div>
+                )}
+                {emetteur && (
+                  <div className="space-y-px">
+                    <p className="font-bold text-[11px] text-[#F97316]">{emetteur.nom}</p>
+                    {emetteur.siret && <p className="text-gray-500">SIRET : {emetteur.siret}</p>}
+                    {emetteur.nda && <p className="text-gray-500">NDA : {emetteur.nda}</p>}
+                    {emetteur.tva_intra && <p className="text-gray-500">TVA : {emetteur.tva_intra}</p>}
+                    {emetteur.adresse && <p className="text-gray-500">{emetteur.adresse}</p>}
+                    {(emetteur.email || emetteur.telephone) && (
+                      <p className="text-gray-500">{[emetteur.email, emetteur.telephone].filter(Boolean).join(" — ")}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div className="text-right">
+                <p className="font-bold text-[15px] text-[#F97316] tracking-tight">{title}</p>
+                <p className="text-gray-500 mt-0.5">N° {numero || "---"}</p>
+                <div className="mt-2 space-y-0.5">
+                  <p><span className="text-gray-400">Date :</span> {dateEmission || "---"}</p>
+                  {dateEcheance && (
+                    <p><span className="text-gray-400">Échéance :</span> {dateEcheance}</p>
+                  )}
+                </div>
+              </div>
             </div>
-          )}
-          {emetteur && (
-            <>
-              <p className="font-bold text-sm">{emetteur.nom}</p>
-              {emetteur.siret && <p className="text-gray-600">SIRET : {emetteur.siret}</p>}
-              {emetteur.nda && <p className="text-gray-600">NDA : {emetteur.nda}</p>}
-              {emetteur.tva_intra && <p className="text-gray-600">TVA : {emetteur.tva_intra}</p>}
-              {emetteur.adresse && <p className="text-gray-600">{emetteur.adresse}</p>}
-              {emetteur.email && <p className="text-gray-600">{emetteur.email}</p>}
-              {emetteur.telephone && <p className="text-gray-600">{emetteur.telephone}</p>}
-            </>
-          )}
-        </div>
-        <div className="text-right">
-          <p className="font-bold text-lg text-orange-600">{title}</p>
-          <p className="text-gray-600">N° {numero || "---"}</p>
-          <p className="text-gray-600">
-            Date : {dateEmission || "---"}
-          </p>
-          {dateEcheance && (
-            <p className="text-gray-600">Échéance : {dateEcheance}</p>
-          )}
+
+            {/* Destinataire */}
+            {destinataire && (
+              <div className="mb-4 border border-gray-200 rounded-md p-3 bg-gray-50/70">
+                <p className="text-[8px] text-gray-400 uppercase font-semibold tracking-wider mb-1">Destinataire</p>
+                <p className="font-semibold text-[11px]">{destinataire.nom}</p>
+                {destinataire.adresse && <p className="text-gray-600 mt-0.5">{destinataire.adresse}</p>}
+                {destinataire.siret && <p className="text-gray-500">SIRET : {destinataire.siret}</p>}
+                {destinataire.email && <p className="text-gray-500">{destinataire.email}</p>}
+              </div>
+            )}
+
+            {/* Objet */}
+            {objet && (
+              <div className="mb-3">
+                <p className="text-[8px] text-gray-400 uppercase font-semibold tracking-wider mb-0.5">Objet</p>
+                <p className="text-gray-700">{objet}</p>
+              </div>
+            )}
+
+            {/* Formation info */}
+            {formationInfo && (
+              <div className="mb-4 border border-orange-200/60 rounded-md p-3 bg-orange-50/30">
+                <p className="text-[8px] text-[#F97316] uppercase font-semibold tracking-wider mb-1.5">Formation</p>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
+                  {formationInfo.nom && (
+                    <p className="col-span-2 font-medium text-gray-800 mb-0.5">{formationInfo.nom}</p>
+                  )}
+                  {formationInfo.dates && (
+                    <p><span className="text-gray-400">Dates :</span> <span className="text-gray-700">{formationInfo.dates}</span></p>
+                  )}
+                  {formationInfo.lieu && (
+                    <p><span className="text-gray-400">Lieu :</span> <span className="text-gray-700">{formationInfo.lieu}</span></p>
+                  )}
+                  {formationInfo.modalite && (
+                    <p><span className="text-gray-400">Modalité :</span> <span className="text-gray-700 capitalize">{formationInfo.modalite}</span></p>
+                  )}
+                  {formationInfo.duree && (
+                    <p><span className="text-gray-400">Durée :</span> <span className="text-gray-700">{formationInfo.duree}</span></p>
+                  )}
+                  {formationInfo.participantsPrevus != null && (
+                    <p><span className="text-gray-400">Participants :</span> <span className="text-gray-700">{formationInfo.participantsPrevus}</span></p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Participants presents */}
+            {participantsPresents && participantsPresents.length > 0 && (
+              <div className="mb-3">
+                <p className="text-[8px] text-gray-400 uppercase font-semibold tracking-wider mb-1">
+                  Participants présents ({participantsPresents.length})
+                </p>
+                <div className="space-y-px">
+                  {participantsPresents.map((p, i) => (
+                    <p key={i}>
+                      <span className="text-gray-400 inline-block w-4">{i + 1}.</span>
+                      <span className="font-medium">{p.nom.toUpperCase()} {p.prenom}</span>
+                      {p.dates_presence.length > 0 && (
+                        <span className="text-gray-400 ml-1.5">
+                          ({p.dates_presence.map((d) => {
+                            const parts = d.split("-");
+                            return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : d;
+                          }).join(", ")})
+                        </span>
+                      )}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Detail table */}
+            <div className="mb-4">
+              <p className="text-[8px] text-gray-400 uppercase font-semibold tracking-wider mb-1.5">Détail</p>
+              <table className="w-full text-[9px]">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="text-left py-1.5 px-2 font-semibold text-gray-600 rounded-l">Désignation</th>
+                    <th className="text-right py-1.5 px-1.5 font-semibold text-gray-600 w-10">Qté</th>
+                    <th className="text-right py-1.5 px-1.5 font-semibold text-gray-600 w-16">P.U. HT</th>
+                    <th className="text-right py-1.5 px-1.5 font-semibold text-gray-600 w-10">TVA</th>
+                    <th className="text-right py-1.5 px-2 font-semibold text-gray-600 w-16 rounded-r">Total HT</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lignes.map((l, i) => (
+                    <tr key={i} className="border-b border-gray-100">
+                      <td className="py-1.5 px-2">
+                        <p className="font-medium text-gray-800 whitespace-pre-line">{l.designation || "..."}</p>
+                        {l.description && (
+                          <p className="text-gray-400 text-[8px] mt-0.5">{l.description}</p>
+                        )}
+                      </td>
+                      <td className="text-right py-1.5 px-1.5 text-gray-600">{l.quantite}</td>
+                      <td className="text-right py-1.5 px-1.5 text-gray-600">{formatCurrency(l.prix_unitaire_ht)}</td>
+                      <td className="text-right py-1.5 px-1.5 text-gray-500">{l.taux_tva}%</td>
+                      <td className="text-right py-1.5 px-2 font-medium text-gray-800">
+                        {formatCurrency(l.quantite * l.prix_unitaire_ht)}
+                      </td>
+                    </tr>
+                  ))}
+                  {lignes.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="text-center py-6 text-gray-300">
+                        Aucune ligne
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Totals */}
+            <div className="flex justify-end mb-5">
+              <div className="w-44 space-y-1">
+                <div className="flex justify-between text-gray-600">
+                  <span>Total HT</span>
+                  <span className="font-medium text-gray-800">{formatCurrency(totalHT)}</span>
+                </div>
+                <div className="flex justify-between text-gray-600">
+                  <span>TVA</span>
+                  {exonerationTva ? (
+                    <span className="text-[8px] text-gray-400 italic">Exonéré (art. 261-4-4°a CGI)</span>
+                  ) : (
+                    <span className="text-gray-800">{formatCurrency(totalTVA)}</span>
+                  )}
+                </div>
+                <div className="flex justify-between border border-[#F97316]/30 bg-orange-50 rounded px-2 py-1.5 font-bold text-[11px]">
+                  <span className="text-[#F97316]">Total TTC</span>
+                  <span className="text-[#F97316]">{formatCurrency(totalTTC)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Signature area (devis only) */}
+            {type === "devis" && (
+              <div className="mb-4">
+                <p className="text-[9px] font-semibold text-gray-700 mb-1">Bon pour accord — Date et signature du client :</p>
+                <div className="border border-dashed border-gray-300 rounded h-14 flex items-center justify-center">
+                  <span className="text-[8px] text-gray-300 italic">Signature</span>
+                </div>
+              </div>
+            )}
+
+            {/* Spacer to push footer down */}
+            <div className="flex-1" />
+
+            {/* Conditions & bank details */}
+            {(conditions || coordonneesBancaires) && (
+              <div className="mb-3 space-y-2">
+                {conditions && (
+                  <div>
+                    <p className="text-[8px] text-gray-400 uppercase font-semibold tracking-wider mb-0.5">Conditions</p>
+                    <p className="text-gray-500 whitespace-pre-line text-[9px]">{conditions}</p>
+                  </div>
+                )}
+                {coordonneesBancaires && (
+                  <div>
+                    <p className="text-[8px] text-gray-400 uppercase font-semibold tracking-wider mb-0.5">Coordonnées bancaires</p>
+                    <p className="text-gray-500 whitespace-pre-line text-[9px]">{coordonneesBancaires}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Mentions légales */}
+            {mentionsLegales && (
+              <div className="border-t border-gray-200 pt-2 mt-auto">
+                <p className="text-[8px] text-gray-400 whitespace-pre-line leading-tight">{mentionsLegales}</p>
+              </div>
+            )}
+
+            {/* Footer line */}
+            {emetteur && (
+              <div className="border-t border-gray-100 pt-1.5 mt-2 text-center">
+                <p className="text-[7px] text-gray-400">
+                  {[emetteur.nom, emetteur.nda ? `NDA : ${emetteur.nda}` : null, emetteur.siret ? `SIRET : ${emetteur.siret}` : null].filter(Boolean).join(" — ")}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-
-      {/* Destinataire */}
-      {destinataire && (
-        <div className="mb-4 p-3 bg-gray-50 rounded">
-          <p className="text-xs text-gray-400 uppercase font-semibold mb-1">Destinataire</p>
-          <p className="font-semibold">{destinataire.nom}</p>
-          {destinataire.adresse && <p>{destinataire.adresse}</p>}
-          {destinataire.siret && <p className="text-gray-600">SIRET : {destinataire.siret}</p>}
-          {destinataire.email && <p className="text-gray-600">{destinataire.email}</p>}
-        </div>
-      )}
-
-      {objet && (
-        <div className="mb-4">
-          <p className="font-semibold">Objet : {objet}</p>
-        </div>
-      )}
-
-      {/* Formation info */}
-      {formationInfo && (
-        <div className="mb-4 p-3 bg-gray-50 rounded">
-          <p className="text-xs text-gray-400 uppercase font-semibold mb-2">Formation</p>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-            {formationInfo.dates && (
-              <p><span className="text-gray-500">Dates :</span> {formationInfo.dates}</p>
-            )}
-            {formationInfo.lieu && (
-              <p><span className="text-gray-500">Lieu :</span> {formationInfo.lieu}</p>
-            )}
-            {formationInfo.modalite && (
-              <p><span className="text-gray-500">Modalité :</span> <span className="capitalize">{formationInfo.modalite}</span></p>
-            )}
-            {formationInfo.duree && (
-              <p><span className="text-gray-500">Durée :</span> {formationInfo.duree}</p>
-            )}
-            {formationInfo.participantsPrevus != null && (
-              <p><span className="text-gray-500">Participants prévus :</span> {formationInfo.participantsPrevus}</p>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Participants presents */}
-      {participantsPresents && participantsPresents.length > 0 && (
-        <div className="mb-4">
-          <p className="text-xs text-gray-400 uppercase font-semibold mb-1">
-            Participants présents ({participantsPresents.length})
-          </p>
-          <div className="text-xs space-y-0.5">
-            {participantsPresents.map((p, i) => (
-              <p key={i}>
-                <span className="text-gray-500 inline-block w-5">{i + 1}.</span>
-                <span className="font-medium">{p.nom.toUpperCase()} {p.prenom}</span>
-                {p.dates_presence.length > 0 && (
-                  <span className="text-gray-500 ml-2">
-                    ({p.dates_presence.map((d) => {
-                      const parts = d.split("-");
-                      return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : d;
-                    }).join(", ")})
-                  </span>
-                )}
-              </p>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Table */}
-      <table className="w-full mb-4 text-xs">
-        <thead>
-          <tr className="border-b border-gray-300">
-            <th className="text-left py-1.5 font-semibold">Désignation</th>
-            <th className="text-right py-1.5 font-semibold w-16">Qté</th>
-            <th className="text-right py-1.5 font-semibold w-20">P.U. HT</th>
-            <th className="text-right py-1.5 font-semibold w-14">TVA</th>
-            <th className="text-right py-1.5 font-semibold w-20">Total HT</th>
-          </tr>
-        </thead>
-        <tbody>
-          {lignes.map((l, i) => (
-            <tr key={i} className="border-b border-gray-100">
-              <td className="py-1.5">
-                <p className="font-medium">{l.designation || "..."}</p>
-                {l.description && (
-                  <p className="text-gray-500 text-xs">{l.description}</p>
-                )}
-              </td>
-              <td className="text-right py-1.5">{l.quantite}</td>
-              <td className="text-right py-1.5">{formatCurrency(l.prix_unitaire_ht)}</td>
-              <td className="text-right py-1.5">{l.taux_tva}%</td>
-              <td className="text-right py-1.5 font-medium">
-                {formatCurrency(l.quantite * l.prix_unitaire_ht)}
-              </td>
-            </tr>
-          ))}
-          {lignes.length === 0 && (
-            <tr>
-              <td colSpan={5} className="text-center py-8 text-gray-400">
-                Aucune ligne
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-
-      {/* Totals */}
-      <div className="flex justify-end mb-6">
-        <div className="w-48 space-y-1">
-          <div className="flex justify-between">
-            <span className="text-gray-600">Total HT</span>
-            <span className="font-medium">{formatCurrency(totalHT)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600">TVA</span>
-            {exonerationTva ? (
-              <span className="text-[10px] text-gray-500 italic">Exonéré (art. 261-4-4a CGI)</span>
-            ) : (
-              <span>{formatCurrency(totalTVA)}</span>
-            )}
-          </div>
-          <div className="flex justify-between border-t border-gray-300 pt-1 font-bold">
-            <span>Total TTC</span>
-            <span>{formatCurrency(totalTTC)}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Footer */}
-      {conditions && (
-        <div className="mb-3">
-          <p className="font-semibold text-xs text-gray-500 uppercase">Conditions</p>
-          <p className="text-gray-600 whitespace-pre-line">{conditions}</p>
-        </div>
-      )}
-      {coordonneesBancaires && (
-        <div className="mb-3">
-          <p className="font-semibold text-xs text-gray-500 uppercase">Coordonnées bancaires</p>
-          <p className="text-gray-600 whitespace-pre-line">{coordonneesBancaires}</p>
-        </div>
-      )}
-      {mentionsLegales && (
-        <div className="text-xs text-gray-400 border-t border-gray-200 pt-2 mt-4 whitespace-pre-line">
-          {mentionsLegales}
-        </div>
-      )}
     </div>
   );
 }

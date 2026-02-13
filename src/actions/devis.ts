@@ -870,6 +870,57 @@ export async function getSessionsForDevisSelect(search?: string) {
   return data ?? [];
 }
 
+export interface SessionDetailForDevis {
+  lieu: string;
+  lieu_type: string | null;
+  dates: string[];
+  modalite: string | null;
+}
+
+export async function getSessionDetailForDevis(sessionId: string): Promise<SessionDetailForDevis | null> {
+  const result = await getOrganisationId();
+  if ("error" in result) return null;
+  const { supabase } = result;
+
+  // Fetch session with salle join
+  const { data: session } = await supabase
+    .from("sessions")
+    .select("id, lieu_adresse, lieu_type, lieu_salle_id, salles(id, nom, adresse)")
+    .eq("id", sessionId)
+    .maybeSingle();
+
+  if (!session) return null;
+
+  // Fetch creneaux dates
+  const { data: creneaux } = await supabase
+    .from("session_creneaux")
+    .select("date")
+    .eq("session_id", sessionId)
+    .order("date", { ascending: true });
+
+  // Build lieu string
+  let lieu = "";
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const salle = session.salles as any;
+  if (salle?.nom) {
+    lieu = salle.adresse ? `${salle.nom}, ${salle.adresse}` : salle.nom;
+  } else if (session.lieu_adresse) {
+    lieu = session.lieu_adresse;
+  } else if (session.lieu_type === "distanciel") {
+    lieu = "À distance";
+  }
+
+  // Extract unique dates
+  const dates = [...new Set((creneaux ?? []).map((c: { date: string }) => c.date))];
+
+  return {
+    lieu,
+    lieu_type: session.lieu_type,
+    dates,
+    modalite: session.lieu_type,
+  };
+}
+
 export async function linkDevisToSession(devisId: string, sessionId: string) {
   const result = await getOrganisationId();
   if ("error" in result) return { error: result.error };
@@ -1422,6 +1473,11 @@ export async function sendDevisEmail(input: SendDevisEmailInput) {
       totalTtc: Number(devis.total_ttc) || 0,
       conditions: (devis.conditions as string) || undefined,
       mentionsLegales: (devis.mentions_legales as string) || undefined,
+      lieuFormation: (devis.lieu_formation as string) || undefined,
+      datesFormation: (devis.dates_formation as string) || undefined,
+      modalitePedagogique: (devis.modalite_pedagogique as string) || undefined,
+      dureeFormation: (devis.duree_formation as string) || undefined,
+      nombreParticipantsPrevus: devis.nombre_participants ? Number(devis.nombre_participants) : undefined,
     };
 
     try {

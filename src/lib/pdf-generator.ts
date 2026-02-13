@@ -95,6 +95,12 @@ export interface DevisData {
   particulierNom?: string;
   particulierEmail?: string;
   particulierAdresse?: string;
+  // Formation metadata
+  lieuFormation?: string;
+  datesFormation?: string;
+  modalitePedagogique?: string;
+  dureeFormation?: string;
+  nombreParticipantsPrevus?: number;
   // Lignes
   lignes: {
     designation: string;
@@ -719,14 +725,24 @@ export async function generateDevisPdf(
   const { width } = page.getSize();
   let y = drawHeader(page, font, fontBold, opts, `DEVIS ${data.devisNumero}`);
 
+  // Helper: ensure enough space, add new page if needed
+  function ensurePage(minSpace: number) {
+    if (y < minSpace) {
+      drawFooter(page, font, opts);
+      page = doc.addPage([595.28, 841.89]);
+      y = 780;
+    }
+  }
+
   // Dates
   y = drawLabelValue(page, font, fontBold, "Date d'émission", data.dateEmission, y);
   if (data.dateEcheance) {
     y = drawLabelValue(page, font, fontBold, "Échéance", data.dateEcheance, y);
   }
-  y -= 10;
+  y -= 15;
 
   // Destinataire
+  ensurePage(120);
   y = drawSection(page, fontBold, "Destinataire", y);
   if (data.entrepriseNom) {
     y = drawLabelValue(page, font, fontBold, "Entreprise", data.entrepriseNom, y);
@@ -738,68 +754,88 @@ export async function generateDevisPdf(
     if (data.particulierEmail) y = drawLabelValue(page, font, fontBold, "Email", data.particulierEmail, y);
     if (data.particulierAdresse) y = drawLabelValue(page, font, fontBold, "Adresse", data.particulierAdresse, y);
   }
-  y -= 10;
+  y -= 15;
 
   // Objet
   if (data.objet) {
+    ensurePage(100);
     y = drawSection(page, fontBold, "Objet", y);
     const objetLines = wrapText(data.objet, font, 9, width - 100);
     for (const line of objetLines) {
       page.drawText(line, { x: 50, y, size: 9, font, color: DARK_TEXT });
-      y -= 13;
+      y -= 14;
     }
-    y -= 10;
+    y -= 12;
+  }
+
+  // Formation info section
+  if (data.datesFormation || data.lieuFormation || data.modalitePedagogique || data.dureeFormation) {
+    ensurePage(130);
+    y = drawSection(page, fontBold, "Formation", y);
+    if (data.datesFormation) {
+      y = drawLabelValue(page, font, fontBold, "Dates", data.datesFormation, y);
+    }
+    if (data.lieuFormation) {
+      y = drawLabelValue(page, font, fontBold, "Lieu", data.lieuFormation, y);
+    }
+    if (data.modalitePedagogique) {
+      y = drawLabelValue(page, font, fontBold, "Modalité", data.modalitePedagogique, y);
+    }
+    if (data.dureeFormation) {
+      y = drawLabelValue(page, font, fontBold, "Durée", data.dureeFormation, y);
+    }
+    if (data.nombreParticipantsPrevus != null) {
+      y = drawLabelValue(page, font, fontBold, "Participants prévus", String(data.nombreParticipantsPrevus), y);
+    }
+    y -= 12;
   }
 
   // Lignes — Table header
+  ensurePage(120);
   y = drawSection(page, fontBold, "Détail", y);
-  const colX = { designation: 50, qte: 320, pu: 370, tva: 430, ht: 490 };
+  const colX = { designation: 50, qte: 340, pu: 385, tva: 445, ht: 495 };
   const colHeaders = [
     { label: "Désignation", x: colX.designation },
     { label: "Qté", x: colX.qte },
     { label: "P.U. HT", x: colX.pu },
     { label: "TVA", x: colX.tva },
-    { label: "Montant HT", x: colX.ht },
+    { label: "Total HT", x: colX.ht },
   ];
 
   // Table header bg
   page.drawRectangle({
-    x: 50, y: y - 15, width: width - 100, height: 18,
-    color: rgb(240 / 255, 240 / 255, 240 / 255),
+    x: 50, y: y - 16, width: width - 100, height: 20,
+    color: rgb(245 / 255, 245 / 255, 245 / 255),
   });
   for (const col of colHeaders) {
-    page.drawText(col.label, { x: col.x, y: y - 11, size: 7, font: fontBold, color: DARK_TEXT });
+    page.drawText(col.label, { x: col.x, y: y - 11, size: 7.5, font: fontBold, color: GRAY_TEXT });
   }
-  y -= 22;
+  y -= 26;
 
   // Table rows
   for (const ligne of data.lignes) {
-    if (y < 120) {
-      drawFooter(page, font, opts);
-      page = doc.addPage([595.28, 841.89]);
-      y = 780;
-    }
+    ensurePage(120);
 
     // Designation (may wrap)
-    const desigLines = wrapText(ligne.designation, font, 8, 260);
+    const desigLines = wrapText(ligne.designation, font, 8.5, 280);
     for (let i = 0; i < desigLines.length; i++) {
-      page.drawText(desigLines[i], { x: colX.designation, y: y - i * 11, size: 8, font, color: DARK_TEXT });
+      page.drawText(desigLines[i], { x: colX.designation, y: y - i * 12, size: 8.5, font, color: DARK_TEXT });
     }
-    page.drawText(String(ligne.quantite), { x: colX.qte, y, size: 8, font, color: DARK_TEXT });
-    page.drawText(`${ligne.prixUnitaireHt.toFixed(2)} €`, { x: colX.pu, y, size: 8, font, color: DARK_TEXT });
-    page.drawText(`${ligne.tauxTva}%`, { x: colX.tva, y, size: 8, font, color: DARK_TEXT });
-    page.drawText(`${ligne.montantHt.toFixed(2)} €`, { x: colX.ht, y, size: 8, font, color: DARK_TEXT });
+    page.drawText(String(ligne.quantite), { x: colX.qte, y, size: 8.5, font, color: DARK_TEXT });
+    page.drawText(`${ligne.prixUnitaireHt.toFixed(2)} €`, { x: colX.pu, y, size: 8.5, font, color: DARK_TEXT });
+    page.drawText(`${ligne.tauxTva}%`, { x: colX.tva, y, size: 8.5, font, color: GRAY_TEXT });
+    page.drawText(`${ligne.montantHt.toFixed(2)} €`, { x: colX.ht, y, size: 8.5, font: fontBold, color: DARK_TEXT });
 
     // Description (smaller, gray)
     if (ligne.description) {
-      const descLines = wrapText(ligne.description, font, 7, 260);
-      const descStartY = y - Math.max(desigLines.length, 1) * 11;
-      for (let i = 0; i < Math.min(descLines.length, 2); i++) {
+      const descLines = wrapText(ligne.description, font, 7, 280);
+      const descStartY = y - Math.max(desigLines.length, 1) * 12;
+      for (let i = 0; i < Math.min(descLines.length, 3); i++) {
         page.drawText(descLines[i], { x: colX.designation, y: descStartY - i * 10, size: 7, font, color: GRAY_TEXT });
       }
-      y = descStartY - Math.min(descLines.length, 2) * 10 - 6;
+      y = descStartY - Math.min(descLines.length, 3) * 10 - 8;
     } else {
-      y -= Math.max(desigLines.length, 1) * 11 + 6;
+      y -= Math.max(desigLines.length, 1) * 12 + 8;
     }
 
     // Separator line
@@ -809,80 +845,86 @@ export async function generateDevisPdf(
       thickness: 0.3,
       color: LIGHT_GRAY,
     });
-    y -= 6;
+    y -= 8;
   }
 
   // Totaux
-  y -= 10;
-  const totalsX = 400;
-  page.drawText("Total HT :", { x: totalsX, y, size: 9, font: fontBold, color: DARK_TEXT });
-  page.drawText(`${data.totalHt.toFixed(2)} €`, { x: totalsX + 80, y, size: 9, font, color: DARK_TEXT });
   y -= 15;
+  const totalsX = 395;
+  const totalsValX = totalsX + 85;
+  page.drawText("Total HT :", { x: totalsX, y, size: 9, font: fontBold, color: DARK_TEXT });
+  page.drawText(`${data.totalHt.toFixed(2)} €`, { x: totalsValX, y, size: 9, font, color: DARK_TEXT });
+  y -= 16;
   if (data.totalTva === 0) {
     page.drawText("TVA :", { x: totalsX, y, size: 9, font: fontBold, color: DARK_TEXT });
-    page.drawText("Exonéré (art. 261-4-4°a CGI)", { x: totalsX + 80, y, size: 8, font, color: GRAY_TEXT });
+    page.drawText("Exonéré (art. 261-4-4°a CGI)", { x: totalsValX, y, size: 8, font, color: GRAY_TEXT });
   } else {
     page.drawText("TVA :", { x: totalsX, y, size: 9, font: fontBold, color: DARK_TEXT });
-    page.drawText(`${data.totalTva.toFixed(2)} €`, { x: totalsX + 80, y, size: 9, font, color: DARK_TEXT });
+    page.drawText(`${data.totalTva.toFixed(2)} €`, { x: totalsValX, y, size: 9, font, color: DARK_TEXT });
   }
-  y -= 18;
+  y -= 20;
   // TTC box
   page.drawRectangle({
-    x: totalsX - 5, y: y - 5, width: 155, height: 22,
-    color: rgb(252 / 255, 237 / 255, 220 / 255),
+    x: totalsX - 8, y: y - 6, width: 160, height: 24,
+    color: rgb(254 / 255, 243 / 255, 230 / 255),
     borderColor: ORANGE,
     borderWidth: 0.5,
   });
   page.drawText("Total TTC :", { x: totalsX, y, size: 10, font: fontBold, color: ORANGE });
-  page.drawText(`${data.totalTtc.toFixed(2)} €`, { x: totalsX + 80, y, size: 10, font: fontBold, color: ORANGE });
-  y -= 30;
+  page.drawText(`${data.totalTtc.toFixed(2)} €`, { x: totalsValX, y, size: 10, font: fontBold, color: ORANGE });
+  y -= 35;
 
   // Conditions
   if (data.conditions) {
-    if (y < 150) {
-      drawFooter(page, font, opts);
-      page = doc.addPage([595.28, 841.89]);
-      y = 780;
-    }
+    ensurePage(130);
     y = drawSection(page, fontBold, "Conditions", y);
     const condLines = wrapText(data.conditions, font, 8, width - 100);
     for (const line of condLines) {
       page.drawText(line, { x: 50, y, size: 8, font, color: DARK_TEXT });
       y -= 12;
     }
-    y -= 10;
+    y -= 12;
   }
 
   // Mentions légales
   if (data.mentionsLegales) {
-    if (y < 120) {
-      drawFooter(page, font, opts);
-      page = doc.addPage([595.28, 841.89]);
-      y = 780;
-    }
+    ensurePage(100);
+    page.drawLine({
+      start: { x: 50, y: y + 5 },
+      end: { x: width - 50, y: y + 5 },
+      thickness: 0.3,
+      color: LIGHT_GRAY,
+    });
+    y -= 5;
     const mentionsLines = wrapText(data.mentionsLegales, font, 7, width - 100);
     for (const line of mentionsLines) {
       page.drawText(line, { x: 50, y, size: 7, font, color: GRAY_TEXT });
       y -= 10;
     }
-    y -= 10;
+    y -= 12;
   }
 
   // Signature area
-  if (y < 130) {
-    drawFooter(page, font, opts);
-    page = doc.addPage([595.28, 841.89]);
-    y = 780;
-  }
-  y -= 10;
+  ensurePage(120);
+  y -= 5;
   page.drawText("Bon pour accord — Date et signature du client :", {
     x: 50, y, size: 9, font: fontBold, color: DARK_TEXT,
   });
-  y -= 5;
+  y -= 8;
+  // Date line
+  page.drawText("Date :", { x: 55, y: y - 5, size: 8, font, color: GRAY_TEXT });
+  page.drawLine({
+    start: { x: 85, y: y - 5 },
+    end: { x: 200, y: y - 5 },
+    thickness: 0.3,
+    color: LIGHT_GRAY,
+  });
+  // Signature box
   page.drawRectangle({
-    x: 50, y: y - 60, width: 250, height: 60,
+    x: 50, y: y - 75, width: 280, height: 60,
     borderColor: LIGHT_GRAY, borderWidth: 0.5,
   });
+  page.drawText("Signature", { x: 160, y: y - 50, size: 7, font, color: LIGHT_GRAY });
 
   drawFooter(page, font, opts);
 

@@ -26,6 +26,7 @@ import {
   sendDevis,
   markDevisRefused,
   getSessionsForDevisSelect,
+  getSessionDetailForDevis,
   linkDevisToSession,
   unlinkDevisFromSession,
   convertDevisToSession,
@@ -56,6 +57,7 @@ import { MultiDatePicker } from "@/components/ui/multi-date-picker";
 import { ProduitSearchCombobox } from "@/components/shared/produit-search-combobox";
 import { EntrepriseSearchCombobox } from "@/components/shared/entreprise-search-combobox";
 import { SendDevisEmailModal } from "@/components/shared/send-devis-email-modal";
+import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
 
 export default function DevisDetailPage() {
   const router = useRouter();
@@ -90,6 +92,7 @@ export default function DevisDetailPage() {
   const [particulierAdresse, setParticulierAdresse] = React.useState("");
   const [dateEmission, setDateEmission] = React.useState("");
   const [dateEcheance, setDateEcheance] = React.useState("");
+  const echeanceManuallySet = React.useRef(false);
   const [objet, setObjet] = React.useState("");
   const [conditions, setConditions] = React.useState("");
   const [mentionsLegales, setMentionsLegales] = React.useState("");
@@ -203,6 +206,7 @@ export default function DevisDetailPage() {
         setParticulierAdresse(devisData.particulier_adresse || "");
         setDateEmission(devisData.date_emission || "");
         setDateEcheance(devisData.date_echeance || "");
+        if (devisData.date_echeance) echeanceManuallySet.current = true;
         setObjet(devisData.objet || "");
         setConditions(devisData.conditions || orgData?.conditions_paiement || "");
         setMentionsLegales(devisData.mentions_legales || orgData?.mentions_legales || "");
@@ -297,20 +301,48 @@ export default function DevisDetailPage() {
     loadData();
   }, [devisId, router, toast]);
 
-  // Load session info if linked
+  // Auto-calculate date d'échéance: emission + 30 days (French B2B standard)
+  React.useEffect(() => {
+    if (loading) return;
+    if (!dateEmission || echeanceManuallySet.current) return;
+    const emission = new Date(dateEmission + "T00:00:00");
+    if (isNaN(emission.getTime())) return;
+    const echeance = new Date(emission);
+    echeance.setDate(echeance.getDate() + 30);
+    setDateEcheance(echeance.toISOString().split("T")[0]);
+  }, [dateEmission, loading]);
+
+  // Load session info if linked + auto-populate lieu/dates
   React.useEffect(() => {
     if (!sessionId) {
       setSessionInfo(null);
       return;
     }
     async function loadSessionInfo() {
-      const data = await getSessionsForDevisSelect();
-      const found = data.find((s) => s.id === sessionId);
+      const [sessionsData, sessionDetail] = await Promise.all([
+        getSessionsForDevisSelect(),
+        getSessionDetailForDevis(sessionId!),
+      ]);
+      const found = sessionsData.find((s) => s.id === sessionId);
       if (found) {
         setSessionInfo({ id: found.id, nom: found.nom, numero_affichage: found.numero_affichage });
       }
+      // Auto-populate lieu/dates from session (only if fields are empty)
+      if (sessionDetail) {
+        if (!lieuFormation && sessionDetail.lieu) {
+          setLieuFormation(sessionDetail.lieu);
+        }
+        if (datesFormationJours.length === 0 && sessionDetail.dates.length > 0) {
+          setDatesFormationJours(sessionDetail.dates.map((d) => new Date(d + "T00:00:00")));
+        }
+        if (!modalitePedagogique && sessionDetail.modalite) {
+          const mMap: Record<string, string> = { presentiel: "Présentiel", distanciel: "Distanciel", mixte: "Mixte" };
+          setModalitePedagogique(mMap[sessionDetail.modalite] || sessionDetail.modalite);
+        }
+      }
     }
     loadSessionInfo();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
 
   // Load commanditaires when session is linked
@@ -341,6 +373,33 @@ export default function DevisDetailPage() {
     }
     loadSessions();
   }, [showSessionSelect, sessionSearch]);
+
+  // ─── Auto-poll signature status (every 30s when pending) ───
+  React.useEffect(() => {
+    const shouldPoll = statut === "envoye" && documensoStatus === "pending";
+    if (!shouldPoll) return;
+
+    const poll = async () => {
+      try {
+        const result = await checkDevisSignatureStatus(devisId);
+        if (result && "status" in result && result.status !== "pending") {
+          setDocumensoStatus(result.status as string);
+          if (result.status === "signed") {
+            setStatut("signe");
+            toast({ title: "Devis signé !", description: "Le devis a été signé par le client.", variant: "success" });
+          } else if (result.status === "rejected") {
+            setStatut("refuse");
+            toast({ title: "Devis refusé", description: "Le client a refusé le devis.", variant: "destructive" });
+          }
+        }
+      } catch {
+        // Silent fail for polling
+      }
+    };
+
+    const interval = setInterval(poll, 30_000);
+    return () => clearInterval(interval);
+  }, [statut, documensoStatus, devisId, toast]);
 
   // ─── Auto-sync first line (participants ↔ QTÉ based on tariff) ───
 
@@ -1261,8 +1320,11 @@ export default function DevisDetailPage() {
                   <DatePicker
                     id="date_echeance"
                     value={dateEcheance}
-                    onChange={setDateEcheance}
-                    placeholder="Optionnel"
+                    onChange={(val) => {
+                      echeanceManuallySet.current = !!val;
+                      setDateEcheance(val);
+                    }}
+                    placeholder="Auto: +30 jours"
                     disabled={isReadOnly}
                   />
                 </div>
@@ -1315,13 +1377,21 @@ export default function DevisDetailPage() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div className="space-y-1">
                           <Label className="text-xs">Lieu</Label>
-                          <Input
-                            value={lieuFormation}
-                            onChange={(e) => setLieuFormation(e.target.value)}
-                            placeholder="Ex: Paris, à distance..."
-                            className="h-8 text-xs border-border/60"
-                            disabled={isReadOnly}
-                          />
+                          {isReadOnly ? (
+                            <Input
+                              value={lieuFormation}
+                              className="h-8 text-xs border-border/60"
+                              disabled
+                            />
+                          ) : (
+                            <AddressAutocomplete
+                              value={lieuFormation}
+                              onChange={setLieuFormation}
+                              onSelect={(result) => setLieuFormation(result.label)}
+                              placeholder="Ex: Paris, à distance..."
+                              className="text-xs"
+                            />
+                          )}
                         </div>
                         <div className="space-y-1">
                           <Label className="text-xs">Date(s)</Label>
@@ -1622,6 +1692,14 @@ export default function DevisDetailPage() {
                 mentionsLegales={mentionsLegales || undefined}
                 coordonneesBancaires={orgInfo?.coordonnees_bancaires || undefined}
                 exonerationTva={exonerationTva}
+                formationInfo={(selectedProduit || datesFormation || lieuFormation) ? {
+                  nom: selectedProduit?.intitule || undefined,
+                  dates: datesFormation || undefined,
+                  lieu: lieuFormation || undefined,
+                  modalite: modalitePedagogique || undefined,
+                  duree: dureeFormation || undefined,
+                  participantsPrevus: nombreParticipants ? parseInt(nombreParticipants) : undefined,
+                } : undefined}
               />
             </div>
           </div>
