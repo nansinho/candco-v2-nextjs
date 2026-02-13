@@ -240,7 +240,9 @@ export async function sendDevisForSignature(devisId: string) {
     return { error: "Aucune adresse email trouvée pour le signataire. Renseignez l'email du contact ou de l'entreprise." };
   }
 
-  // Generate PDF
+  // Generate PDF + Upload + Send to Documenso
+  let pdfUrl: string;
+  try {
   const orgOpts = await getOrgOptions(admin, organisationId);
   const lignes = ((devis.devis_lignes || []) as Record<string, unknown>[])
     .sort((a, b) => ((a.ordre as number) || 0) - ((b.ordre as number) || 0));
@@ -278,7 +280,12 @@ export async function sendDevisForSignature(devisId: string) {
 
   // Upload PDF
   const filename = `devis/${organisationId}/${devisId}_devis_signature.pdf`;
-  const pdfUrl = await uploadPdfToStorage(admin, pdfBytes, filename);
+  pdfUrl = await uploadPdfToStorage(admin, pdfBytes, filename);
+  } catch (err) {
+    return {
+      error: `Erreur lors de la génération du PDF : ${err instanceof Error ? err.message : "Erreur inconnue"}`,
+    };
+  }
 
   // Send to Documenso
   const recipients: DocumensoRecipient[] = [
