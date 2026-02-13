@@ -8,7 +8,61 @@
 4. Configurer les variables d'environnement
 5. Deploy
 
-## 2. Variables d'environnement requises
+## 2. Docker Compose (Documenso + MinIO)
+
+MinIO est **obligatoire** pour l'API v1 de Documenso. Le code source de Documenso
+(`packages/api/v1/implementation.ts`) exige `NEXT_PUBLIC_UPLOAD_TRANSPORT=s3` pour
+les endpoints `createDocument`, `downloadSignedDocument` et `createTemplate`.
+Sans S3, l'API retourne : `"Create document is not available without S3 transport."`
+
+```yaml
+services:
+  documenso:
+    image: documenso/documenso:latest
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    depends_on:
+      - database
+      - minio
+
+  database:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: documenso
+      POSTGRES_PASSWORD: <mot_de_passe_fort>
+      POSTGRES_DB: documenso
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: documenso
+      MINIO_ROOT_PASSWORD: <mot_de_passe_minio>
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+volumes:
+  postgres_data:
+  minio_data:
+```
+
+## 3. Configurer MinIO
+
+Apres le premier deploiement :
+
+1. Acceder a la console MinIO : `http://<ip-serveur>:9001`
+2. Se connecter avec `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD`
+3. Creer un bucket nomme `documenso`
+4. (Optionnel) Creer un access key dedie dans **Identity → Service Accounts**
+
+## 4. Variables d'environnement requises
 
 ```env
 # ─── Securite ───────────────────────────────
@@ -21,10 +75,6 @@ NEXT_PUBLIC_WEBAPP_URL=https://documenso.candco.fr
 PORT=3000
 
 # ─── Base de donnees ────────────────────────
-# Option A : BDD dediee (recommande)
-POSTGRES_USER=documenso
-POSTGRES_PASSWORD=<mot de passe fort>
-POSTGRES_DB=documenso
 NEXT_PRIVATE_DATABASE_URL=postgresql://documenso:<password>@database:5432/documenso?schema=public&connection_limit=5
 NEXT_PRIVATE_DIRECT_DATABASE_URL=postgresql://documenso:<password>@database:5432/documenso?schema=public
 
@@ -39,23 +89,22 @@ NEXT_PRIVATE_SIGNING_TRANSPORT=local
 NEXT_PRIVATE_SIGNING_PASSPHRASE=<mot de passe certificat>
 NEXT_PRIVATE_SIGNING_LOCAL_FILE_PATH=/opt/documenso/cert.p12
 
-# ─── Stockage des documents (OBLIGATOIRE pour l'API) ──
-# Option A : Stockage en base de donnees (simple, recommande pour self-hosted)
-NEXT_PRIVATE_UPLOAD_TRANSPORT=database
-
-# Option B : Stockage S3/MinIO (meilleur pour la production)
-# NEXT_PRIVATE_UPLOAD_TRANSPORT=s3
-# NEXT_PRIVATE_UPLOAD_S3_ACCESS_KEY_ID=<access_key>
-# NEXT_PRIVATE_UPLOAD_S3_SECRET_ACCESS_KEY=<secret_key>
-# NEXT_PRIVATE_UPLOAD_S3_REGION=auto
-# NEXT_PRIVATE_UPLOAD_S3_BUCKET=documenso
-# NEXT_PRIVATE_UPLOAD_S3_ENDPOINT=<endpoint_url>
+# ─── Stockage S3/MinIO (OBLIGATOIRE pour l'API v1) ──
+# L'API Documenso v1 EXIGE S3. Le mode "database" ne fonctionne
+# que pour l'interface web, PAS pour les endpoints API.
+# Ref: packages/api/v1/implementation.ts → hard check sur cette variable
+NEXT_PUBLIC_UPLOAD_TRANSPORT=s3
+NEXT_PRIVATE_UPLOAD_S3_ACCESS_KEY_ID=documenso
+NEXT_PRIVATE_UPLOAD_S3_SECRET_ACCESS_KEY=<mot_de_passe_minio>
+NEXT_PRIVATE_UPLOAD_S3_REGION=us-east-1
+NEXT_PRIVATE_UPLOAD_S3_BUCKET=documenso
+NEXT_PRIVATE_UPLOAD_S3_ENDPOINT=http://minio:9000
 
 # ─── Desactiver inscription publique ────────
 NEXT_PUBLIC_DISABLE_SIGNUP=true
 ```
 
-## 3. Generer le certificat de signature
+## 5. Generer le certificat de signature
 
 Apres le premier deploiement, executer dans le container :
 
@@ -80,7 +129,7 @@ openssl pkcs12 -export \
 rm /tmp/key.pem /tmp/cert.pem
 ```
 
-## 4. Creer une API Key
+## 6. Creer une API Key
 
 1. Aller sur `https://documenso.candco.fr`
 2. Se connecter (premier utilisateur = admin)
@@ -90,9 +139,19 @@ rm /tmp/key.pem /tmp/cert.pem
    ```
    DOCUMENSO_API_URL=https://documenso.candco.fr
    DOCUMENSO_API_KEY=<cle API>
+   DOCUMENSO_WEBHOOK_SECRET=<secret partage pour les webhooks>
    ```
 
-## 5. Verifier le deploiement
+## 7. Configurer le webhook
+
+Dans l'interface Documenso (`https://documenso.candco.fr`) :
+
+1. Settings → Webhooks → Add Webhook
+2. URL : `https://app.candco.fr/api/webhooks/documenso`
+3. Events : `ENVELOPE_COMPLETED`, `ENVELOPE_REJECTED`
+4. Secret : doit correspondre a `DOCUMENSO_WEBHOOK_SECRET` dans le `.env` C&CO
+
+## 8. Verifier le deploiement
 
 ```bash
 curl https://documenso.candco.fr/api/health
@@ -101,3 +160,10 @@ curl https://documenso.candco.fr/api/health
 curl https://documenso.candco.fr/api/certificate-status
 # Doit retourner des infos sur le certificat
 ```
+
+## 9. Tester l'envoi d'un devis
+
+1. Creer un devis dans le dashboard C&CO
+2. Cliquer "Envoyer le devis"
+3. Le statut doit passer a "envoye"
+4. Le destinataire doit recevoir un email avec un lien de signature
