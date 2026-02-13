@@ -10,7 +10,78 @@
  * - Programme de formation
  */
 
-import { PDFDocument, StandardFonts, rgb, PDFFont, PDFPage } from "pdf-lib";
+import {
+  PDFDocument,
+  StandardFonts,
+  rgb,
+  PDFFont,
+  PDFPage,
+  PDFRawStream,
+  PDFName,
+} from "pdf-lib";
+import { deflateSync } from "node:zlib";
+
+// ─── PDF Compression ────────────────────────────────────
+
+/**
+ * Compress all uncompressed streams in a PDF.
+ *
+ * pdf-lib already compresses content streams it creates, but PDFs produced
+ * by external tools (e.g. Documenso after e-signature) may contain large
+ * uncompressed streams (signature images, certificate data, etc.).
+ *
+ * This function loads the PDF, iterates over every indirect object, and
+ * deflate-compresses any raw stream that doesn't already carry a /Filter.
+ */
+export async function compressPdf(
+  inputBytes: Uint8Array,
+): Promise<Uint8Array> {
+  const doc = await PDFDocument.load(inputBytes, { updateMetadata: false });
+  // Access pdf-lib's internal context (not in public TS types but stable at runtime)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const context = ((doc as unknown) as Record<string, unknown>).context as {
+    enumerateIndirectObjects(): [unknown, unknown][];
+    assign(ref: unknown, obj: unknown): void;
+  } | undefined;
+
+  if (!context?.enumerateIndirectObjects) {
+    // Fallback: if internal API is unavailable, return as-is
+    return inputBytes;
+  }
+
+  let didCompress = false;
+
+  for (const [ref, obj] of context.enumerateIndirectObjects()) {
+    if (!(obj instanceof PDFRawStream)) continue;
+
+    const dict = obj.dict;
+    const filter = dict.lookup(PDFName.of("Filter"));
+
+    // Skip streams that already have a filter (FlateDecode, DCTDecode, etc.)
+    if (filter) continue;
+
+    // Skip tiny streams — not worth compressing
+    if (obj.contents.length < 128) continue;
+
+    try {
+      const compressed = deflateSync(Buffer.from(obj.contents), { level: 9 });
+
+      // Only replace if we actually save space
+      if (compressed.length >= obj.contents.length) continue;
+
+      dict.set(PDFName.of("Filter"), PDFName.of("FlateDecode"));
+      const newStream = PDFRawStream.of(dict, new Uint8Array(compressed));
+      context.assign(ref, newStream);
+      didCompress = true;
+    } catch {
+      // If compression fails for a stream, skip it silently
+      continue;
+    }
+  }
+
+  if (!didCompress) return inputBytes;
+  return doc.save();
+}
 
 // ─── Types ──────────────────────────────────────────────
 

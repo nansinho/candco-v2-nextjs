@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { autoCreateFactureFromDevis } from "@/lib/devis-utils";
+import { downloadSignedDocument } from "@/lib/documenso";
+import { compressPdf } from "@/lib/pdf-generator";
 
 /**
  * Webhook Documenso — reçoit les notifications de signature.
@@ -213,6 +215,70 @@ export async function POST(request: NextRequest) {
         }
         await admin.from("session_commanditaires").update(convUpdates).eq("id", entityId);
       }
+    }
+  }
+
+  // ── Download, compress & store the signed PDF ──
+  if (newStatus === "signed") {
+    try {
+      const signedPdfBytes = await downloadSignedDocument(data.id);
+      if (signedPdfBytes) {
+        const originalSize = signedPdfBytes.length;
+        const compressedBytes = await compressPdf(signedPdfBytes);
+        const finalSize = compressedBytes.length;
+
+        console.log(
+          `[Documenso Webhook] Signed PDF: ${(originalSize / 1024).toFixed(0)}KB → ${(finalSize / 1024).toFixed(0)}KB (${((1 - finalSize / originalSize) * 100).toFixed(0)}% reduction)`,
+        );
+
+        // Determine the organisation_id and entity info for storage path
+        const orgId = devis?.organisation_id || sigReq?.organisation_id;
+        const entityType = sigReq?.entite_type || (devis ? "devis" : null);
+        const entityId = devis?.id || sigReq?.entite_id;
+
+        if (orgId && entityType && entityId) {
+          const filename = `signed/${orgId}/${entityType}_${entityId}_signed.pdf`;
+          const { error: uploadError } = await admin.storage
+            .from("documents")
+            .upload(filename, compressedBytes, {
+              contentType: "application/pdf",
+              upsert: true,
+            });
+
+          if (uploadError) {
+            console.error("[Documenso Webhook] Failed to upload compressed signed PDF:", uploadError.message);
+          } else {
+            const { data: urlData } = admin.storage
+              .from("documents")
+              .getPublicUrl(filename);
+            const signedPdfUrl = urlData.publicUrl;
+
+            // Update signature_requests with the signed PDF URL
+            if (sigReq) {
+              await admin
+                .from("signature_requests")
+                .update({ signed_document_url: signedPdfUrl })
+                .eq("id", sigReq.id);
+            }
+
+            // Store as a document record
+            await admin.from("documents").insert({
+              organisation_id: orgId,
+              nom: `${entityType === "devis" ? "Devis" : entityType === "convention" ? "Convention" : "Document"} signé`,
+              categorie: `${entityType}_signe`,
+              fichier_url: signedPdfUrl,
+              taille_octets: finalSize,
+              mime_type: "application/pdf",
+              genere: true,
+              entite_type: entityType,
+              entite_id: entityId,
+            });
+          }
+        }
+      }
+    } catch (err) {
+      // Non-blocking: don't fail the webhook if PDF compression fails
+      console.error("[Documenso Webhook] Error compressing signed PDF:", err);
     }
   }
 

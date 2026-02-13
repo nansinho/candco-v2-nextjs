@@ -352,3 +352,36 @@ export async function sendDocumentForSigning(params: {
     envelope,
   };
 }
+
+// ─── Download signed PDF from Documenso ──────────────────
+
+/**
+ * Download the final signed PDF for a completed document.
+ * Returns the raw PDF bytes or null if download fails.
+ */
+export async function downloadSignedDocument(
+  documentId: number,
+): Promise<Uint8Array | null> {
+  if (!DOCUMENSO_API_URL || !DOCUMENSO_API_KEY) return null;
+
+  try {
+    const url = `${DOCUMENSO_API_URL}/api/v1/documents/${documentId}/download`;
+    const response = await fetch(url, {
+      headers: getHeaders(),
+    });
+
+    if (!response.ok) {
+      console.error(
+        `[Documenso] Failed to download signed PDF (${response.status}):`,
+        await response.text(),
+      );
+      return null;
+    }
+
+    const buffer = await response.arrayBuffer();
+    return new Uint8Array(buffer);
+  } catch (err) {
+    console.error("[Documenso] Error downloading signed PDF:", err);
+    return null;
+  }
+}
