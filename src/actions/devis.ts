@@ -1399,6 +1399,7 @@ export async function sendDevisEmail(input: SendDevisEmailInput) {
       id, statut, date_emission, date_echeance, total_ht, total_tva, total_ttc,
       numero_affichage, objet, conditions, mentions_legales,
       entreprise_id, contact_client_id, produit_id,
+      lieu_formation, dates_formation, modalite_pedagogique, duree_formation, nombre_participants,
       particulier_nom, particulier_email, particulier_adresse,
       entreprises(nom, siret, email, adresse_rue, adresse_cp, adresse_ville),
       contacts_clients(prenom, nom, email),
