@@ -296,20 +296,29 @@ function drawLabelValue(
 }
 
 function wrapText(text: string, font: PDFFont, size: number, maxWidth: number): string[] {
-  const words = text.split(" ");
+  // Split by newlines first, then wrap each paragraph by words
+  const paragraphs = text.split(/\r?\n/);
   const lines: string[] = [];
-  let currentLine = "";
 
-  for (const word of words) {
-    const testLine = currentLine ? `${currentLine} ${word}` : word;
-    if (font.widthOfTextAtSize(testLine, size) <= maxWidth) {
-      currentLine = testLine;
-    } else {
-      if (currentLine) lines.push(currentLine);
-      currentLine = word;
+  for (const paragraph of paragraphs) {
+    if (paragraph.trim() === "") {
+      lines.push("");
+      continue;
     }
+    const words = paragraph.split(" ");
+    let currentLine = "";
+
+    for (const word of words) {
+      const testLine = currentLine ? `${currentLine} ${word}` : word;
+      if (font.widthOfTextAtSize(testLine, size) <= maxWidth) {
+        currentLine = testLine;
+      } else {
+        if (currentLine) lines.push(currentLine);
+        currentLine = word;
+      }
+    }
+    if (currentLine) lines.push(currentLine);
   }
-  if (currentLine) lines.push(currentLine);
   return lines;
 }
 
