@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Archive, ArchiveRestore, Save, Loader2, FileText, Send, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { ArrowLeft, Archive, ArchiveRestore, Save, Loader2, FileText, Send, Clock, CheckCircle2, XCircle, Upload, Download, Trash2, Eye, EyeOff, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,7 +28,7 @@ import { useBreadcrumb } from "@/components/layout/breadcrumb-context";
 import { QuickActionsBar } from "@/components/shared/quick-actions-bar";
 import { isDocumensoConfigured } from "@/lib/documenso";
 import { sendContratForSignature } from "@/actions/signatures";
-import { getFormateurSessions, getFormateurDocuments, getFormateurSignatureRequests } from "@/actions/formateurs";
+import { getFormateurSessions, getFormateurDocuments, getFormateurSignatureRequests, addFormateurDocument, removeFormateurDocument, toggleFormateurDocumentVisibility } from "@/actions/formateurs";
 
 interface FormateurData {
   id: string;
@@ -69,12 +69,18 @@ export default function FormateurDetailPage() {
   const [form, setForm] = React.useState<Partial<FormateurInput>>({});
 
   // Documents tab state
-  const [documents, setDocuments] = React.useState<{ id: string; nom: string; categorie: string; fichier_url: string; genere: boolean; created_at: string }[]>([]);
+  const [documents, setDocuments] = React.useState<{ id: string; nom: string; categorie: string; fichier_url: string; taille_octets: number | null; mime_type: string | null; genere: boolean; visible_extranet: boolean; created_at: string }[]>([]);
   const [sessions, setSessions] = React.useState<{ id: string; nom: string; numero_affichage: string; date_debut: string | null; date_fin: string | null; statut: string }[]>([]);
   const [sigRequests, setSigRequests] = React.useState<{ id: string; documenso_status: string; signed_at: string | null; created_at: string }[]>([]);
   const [selectedSessionId, setSelectedSessionId] = React.useState("");
   const [isSendingContrat, setIsSendingContrat] = React.useState(false);
   const documensoAvailable = React.useMemo(() => isDocumensoConfigured(), []);
+
+  // Document upload state
+  const [showDocUpload, setShowDocUpload] = React.useState(false);
+  const [docUploading, setDocUploading] = React.useState(false);
+  const [docCategorie, setDocCategorie] = React.useState("autre");
+  const docFileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Load formateur data
   React.useEffect(() => {
@@ -125,6 +131,125 @@ export default function FormateurDetailPage() {
   React.useEffect(() => {
     if (formateur) loadDocumentsData();
   }, [formateur, loadDocumentsData]);
+
+  // ─── Document management handlers ───────────────────────
+
+  const FORMATEUR_DOC_CATEGORIES = [
+    { value: "cv", label: "CV" },
+    { value: "diplome", label: "Diplôme" },
+    { value: "certification", label: "Certification" },
+    { value: "contrat_sous_traitance", label: "Contrat sous-traitance" },
+    { value: "attestation", label: "Attestation" },
+    { value: "piece_identite", label: "Pièce d'identité" },
+    { value: "autre", label: "Autre" },
+  ];
+
+  const formatDocSize = (bytes: number | null) => {
+    if (!bytes) return "--";
+    if (bytes < 1024) return `${bytes} o`;
+    if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} Ko`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
+  };
+
+  const handleDocUpload = async (file: File) => {
+    if (file.size > 20 * 1024 * 1024) {
+      toast({ title: "Erreur", description: "Le fichier ne doit pas dépasser 20 Mo.", variant: "destructive" });
+      return;
+    }
+
+    const allowedTypes = [
+      "application/pdf",
+      "image/png", "image/jpeg", "image/jpg",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ];
+    if (!allowedTypes.includes(file.type)) {
+      toast({ title: "Erreur", description: "Type de fichier non autorisé. PDF, PNG, JPEG, Word uniquement.", variant: "destructive" });
+      return;
+    }
+
+    setDocUploading(true);
+    try {
+      const { createClient } = await import("@/lib/supabase/client");
+      const supabase = createClient();
+
+      const ext = file.name.split(".").pop() ?? "bin";
+      const filename = `formateurs/${id}/${Date.now()}.${ext}`;
+
+      let publicUrl: string;
+      const { error: uploadError } = await supabase.storage
+        .from("documents")
+        .upload(filename, file, { contentType: file.type, upsert: false });
+
+      if (uploadError) {
+        const { error: fallbackError } = await supabase.storage
+          .from("images")
+          .upload(filename, file, { contentType: file.type, upsert: false });
+        if (fallbackError) throw fallbackError;
+        const { data: urlData } = supabase.storage.from("images").getPublicUrl(filename);
+        publicUrl = urlData.publicUrl;
+      } else {
+        const { data: urlData } = supabase.storage.from("documents").getPublicUrl(filename);
+        publicUrl = urlData.publicUrl;
+      }
+
+      const res = await addFormateurDocument({
+        formateurId: id,
+        nom: file.name,
+        categorie: docCategorie,
+        fichier_url: publicUrl,
+        taille_octets: file.size,
+        mime_type: file.type,
+      });
+
+      if ("error" in res && res.error) {
+        toast({ title: "Erreur", description: String(res.error), variant: "destructive" });
+      } else {
+        toast({ title: "Document ajouté", description: file.name, variant: "success" });
+        setShowDocUpload(false);
+        setDocCategorie("autre");
+        loadDocumentsData();
+      }
+    } catch {
+      toast({ title: "Erreur", description: "Impossible d'uploader le fichier.", variant: "destructive" });
+    } finally {
+      setDocUploading(false);
+      if (docFileInputRef.current) docFileInputRef.current.value = "";
+    }
+  };
+
+  const handleDocDelete = async (doc: typeof documents[0]) => {
+    if (!(await confirm({
+      title: "Supprimer ce document ?",
+      description: `Le document "${doc.nom}" sera supprimé définitivement.`,
+      confirmLabel: "Supprimer",
+      variant: "destructive",
+    }))) return;
+
+    const res = await removeFormateurDocument(doc.id, id);
+    if ("error" in res && res.error) {
+      toast({ title: "Erreur", description: String(res.error), variant: "destructive" });
+      return;
+    }
+    toast({ title: "Document supprimé", variant: "success" });
+    loadDocumentsData();
+  };
+
+  const handleToggleDocVisibility = async (doc: typeof documents[0]) => {
+    const newValue = !doc.visible_extranet;
+    setDocuments((prev) => prev.map((d) => d.id === doc.id ? { ...d, visible_extranet: newValue } : d));
+
+    const res = await toggleFormateurDocumentVisibility(doc.id, id, newValue);
+    if ("error" in res && res.error) {
+      setDocuments((prev) => prev.map((d) => d.id === doc.id ? { ...d, visible_extranet: !newValue } : d));
+      toast({ title: "Erreur", description: String(res.error), variant: "destructive" });
+      return;
+    }
+    toast({
+      title: newValue ? "Visible sur l'extranet" : "Masqué de l'extranet",
+      variant: "success",
+    });
+  };
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -763,36 +888,138 @@ export default function FormateurDetailPage() {
               </section>
             )}
 
-            {/* Documents list */}
+            {/* Documents list + upload */}
             <section className="rounded-lg border border-border/60 bg-card p-5">
-              <h3 className="mb-3 text-sm font-semibold">Documents ({documents.length})</h3>
-              {documents.length === 0 ? (
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold">Documents ({documents.length})</h3>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs border-border/60"
+                  onClick={() => setShowDocUpload(true)}
+                >
+                  <Upload className="mr-1 h-3 w-3" />
+                  Importer
+                </Button>
+              </div>
+
+              {/* Upload panel */}
+              {showDocUpload && (
+                <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3 mb-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium">Importer un document</p>
+                    <button type="button" onClick={() => setShowDocUpload(false)} className="text-muted-foreground hover:text-foreground">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Catégorie</Label>
+                    <select
+                      value={docCategorie}
+                      onChange={(e) => setDocCategorie(e.target.value)}
+                      className="h-8 w-full rounded-md border border-input bg-muted px-2 text-sm text-foreground sm:w-64"
+                    >
+                      {FORMATEUR_DOC_CATEGORIES.map((cat) => (
+                        <option key={cat.value} value={cat.value}>{cat.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <input
+                      ref={docFileInputRef}
+                      type="file"
+                      className="text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-primary-foreground hover:file:bg-primary/90"
+                      accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) handleDocUpload(f);
+                      }}
+                      disabled={docUploading}
+                    />
+                    {docUploading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                  </div>
+                  <p className="text-xs text-muted-foreground/60">PDF, PNG, JPEG, Word — max 20 Mo</p>
+                </div>
+              )}
+
+              {/* Documents table */}
+              {documents.length === 0 && !showDocUpload ? (
                 <div className="flex flex-col items-center gap-2 py-8">
                   <FileText className="h-8 w-8 text-muted-foreground/30" />
                   <p className="text-sm text-muted-foreground/60">Aucun document</p>
                 </div>
-              ) : (
-                <div className="space-y-2">
-                  {documents.map((doc) => (
-                    <div key={doc.id} className="flex items-center justify-between rounded-md border border-border/40 bg-muted/20 p-3">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-muted-foreground/50" />
-                        <div>
-                          <p className="text-xs font-medium">{doc.nom}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {doc.categorie} — {formatDate(doc.created_at)}
-                          </p>
-                        </div>
-                      </div>
-                      <a href={doc.fichier_url} target="_blank" rel="noopener noreferrer">
-                        <Button variant="ghost" size="sm" className="h-7 text-xs">
-                          Telecharger
-                        </Button>
-                      </a>
-                    </div>
-                  ))}
+              ) : documents.length > 0 ? (
+                <div className="rounded-lg border border-border/60 overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[600px]">
+                      <thead>
+                        <tr className="border-b border-border/60 bg-muted/30">
+                          <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">Document</th>
+                          <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">Catégorie</th>
+                          <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">Taille</th>
+                          <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">Date</th>
+                          <th className="px-4 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">Extranet</th>
+                          <th className="px-4 py-2.5 w-20" />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {documents.map((doc) => (
+                          <tr key={doc.id} className="border-b border-border/40 hover:bg-muted/20 group">
+                            <td className="px-4 py-2.5">
+                              <div className="flex items-center gap-2">
+                                <FileText className="h-4 w-4 text-muted-foreground/50 shrink-0" />
+                                <span className="text-sm font-medium truncate max-w-[200px]">{doc.nom}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-2.5">
+                              <Badge variant="outline" className="text-xs">
+                                {FORMATEUR_DOC_CATEGORIES.find((c) => c.value === doc.categorie)?.label ?? doc.categorie ?? "Autre"}
+                              </Badge>
+                            </td>
+                            <td className="px-4 py-2.5 text-sm text-muted-foreground">{formatDocSize(doc.taille_octets)}</td>
+                            <td className="px-4 py-2.5 text-sm text-muted-foreground">{formatDate(doc.created_at)}</td>
+                            <td className="px-4 py-2.5 text-center">
+                              <button
+                                type="button"
+                                onClick={() => handleToggleDocVisibility(doc)}
+                                className="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-muted transition-colors"
+                                title={doc.visible_extranet ? "Visible sur l'extranet — cliquez pour masquer" : "Masqué de l'extranet — cliquez pour rendre visible"}
+                              >
+                                {doc.visible_extranet ? (
+                                  <Eye className="h-4 w-4 text-orange-400" />
+                                ) : (
+                                  <EyeOff className="h-4 w-4 text-muted-foreground/40" />
+                                )}
+                              </button>
+                            </td>
+                            <td className="px-4 py-2.5">
+                              <div className="flex items-center gap-1">
+                                <a
+                                  href={doc.fichier_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
+                                  title="Télécharger"
+                                >
+                                  <Download className="h-3 w-3" />
+                                </a>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
+                                  onClick={() => handleDocDelete(doc)}
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              )}
+              ) : null}
             </section>
           </div>
         </TabsContent>

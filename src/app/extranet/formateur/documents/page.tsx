@@ -16,6 +16,7 @@ export default async function FormateurDocumentsPage() {
     .select("id, nom, categorie, fichier_url, taille_octets, mime_type, created_at")
     .eq("entite_type", "formateur")
     .eq("entite_id", ctx.entiteId)
+    .eq("visible_extranet", true)
     .order("created_at", { ascending: false });
 
   const docs = documents ?? [];
@@ -25,6 +26,10 @@ export default async function FormateurDocumentsPage() {
     convention: "Convention",
     attestation: "Attestation",
     programme: "Programme",
+    cv: "CV",
+    diplome: "Diplôme",
+    certification: "Certification",
+    piece_identite: "Pièce d'identité",
     autre: "Autre",
   };
 

@@ -559,13 +559,157 @@ export async function getFormateurDocuments(formateurId: string) {
 
   const { data, error } = await supabase
     .from("documents")
-    .select("id, nom, categorie, fichier_url, genere, created_at")
+    .select("id, nom, categorie, fichier_url, taille_octets, mime_type, genere, visible_extranet, created_at")
     .eq("entite_type", "formateur")
     .eq("entite_id", formateurId)
     .order("created_at", { ascending: false });
 
   if (error) return { data: [] };
   return { data: data ?? [] };
+}
+
+// ─── Formateur document management ──────────────────────
+
+export async function addFormateurDocument(input: {
+  formateurId: string;
+  nom: string;
+  categorie: string;
+  fichier_url: string;
+  taille_octets: number;
+  mime_type: string;
+}) {
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role: userRole, supabase, admin } = result;
+  requirePermission(userRole as UserRole, canEdit, "gérer les documents formateur");
+
+  const { data, error } = await supabase
+    .from("documents")
+    .insert({
+      organisation_id: organisationId,
+      nom: input.nom,
+      categorie: input.categorie,
+      fichier_url: input.fichier_url,
+      taille_octets: input.taille_octets,
+      mime_type: input.mime_type,
+      entite_type: "formateur",
+      entite_id: input.formateurId,
+      genere: false,
+      visible_extranet: false,
+    })
+    .select()
+    .single();
+
+  if (error) return { error: error.message };
+
+  const { data: formateur } = await admin
+    .from("formateurs")
+    .select("prenom, nom, numero_affichage")
+    .eq("id", input.formateurId)
+    .single();
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole,
+    module: "formateur",
+    action: "created",
+    entiteType: "document",
+    entiteId: data.id,
+    entiteLabel: input.nom,
+    description: `Document "${input.nom}" ajouté au formateur "${formateur?.prenom ?? ""} ${formateur?.nom ?? input.formateurId}"`,
+    objetHref: `/formateurs/${input.formateurId}`,
+    metadata: { formateur_id: input.formateurId, categorie: input.categorie },
+  });
+
+  revalidatePath(`/formateurs/${input.formateurId}`);
+  return { data };
+}
+
+export async function removeFormateurDocument(documentId: string, formateurId: string) {
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role: userRole, supabase, admin } = result;
+  requirePermission(userRole as UserRole, canDelete, "supprimer un document formateur");
+
+  const { data: doc } = await admin
+    .from("documents")
+    .select("nom, fichier_url")
+    .eq("id", documentId)
+    .single();
+
+  const { error } = await supabase
+    .from("documents")
+    .delete()
+    .eq("id", documentId);
+
+  if (error) return { error: error.message };
+
+  const { data: formateur } = await admin
+    .from("formateurs")
+    .select("prenom, nom")
+    .eq("id", formateurId)
+    .single();
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole,
+    module: "formateur",
+    action: "deleted",
+    entiteType: "document",
+    entiteId: documentId,
+    entiteLabel: doc?.nom ?? documentId,
+    description: `Document "${doc?.nom ?? "?"}" supprimé du formateur "${formateur?.prenom ?? ""} ${formateur?.nom ?? formateurId}"`,
+    objetHref: `/formateurs/${formateurId}`,
+    metadata: { formateur_id: formateurId },
+  });
+
+  revalidatePath(`/formateurs/${formateurId}`);
+  return { success: true };
+}
+
+export async function toggleFormateurDocumentVisibility(
+  documentId: string,
+  formateurId: string,
+  visible: boolean,
+) {
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+  const { organisationId, userId, role: userRole, supabase, admin } = result;
+  requirePermission(userRole as UserRole, canEdit, "modifier la visibilité des documents formateur");
+
+  const { error } = await supabase
+    .from("documents")
+    .update({ visible_extranet: visible })
+    .eq("id", documentId)
+    .eq("entite_type", "formateur")
+    .eq("entite_id", formateurId);
+
+  if (error) return { error: error.message };
+
+  const { data: doc } = await admin
+    .from("documents")
+    .select("nom")
+    .eq("id", documentId)
+    .single();
+
+  await logHistorique({
+    organisationId,
+    userId,
+    userRole,
+    module: "formateur",
+    action: "updated",
+    entiteType: "document",
+    entiteId: documentId,
+    entiteLabel: doc?.nom ?? documentId,
+    description: `Visibilité extranet du document "${doc?.nom ?? "?"}" ${visible ? "activée" : "désactivée"}`,
+    objetHref: `/formateurs/${formateurId}`,
+    metadata: { formateur_id: formateurId, visible_extranet: visible },
+  });
+
+  revalidatePath(`/formateurs/${formateurId}`);
+  return { success: true };
 }
 
 // ─── Formateur signature requests ───────────────────────
