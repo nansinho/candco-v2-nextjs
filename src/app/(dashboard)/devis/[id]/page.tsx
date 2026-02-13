@@ -798,14 +798,15 @@ export default function DevisDetailPage() {
 
                 <Button
                   size="sm"
-                  onClick={async () => {
-                    await handleSave();
-                    setShowSendModal(true);
-                  }}
-                  disabled={saving}
+                  onClick={handleSendDevis}
+                  disabled={saving || sending}
                   className="h-8 text-xs bg-[#F97316] hover:bg-[#EA580C] text-white"
                 >
-                  <Send className="mr-1 h-3 w-3" />
+                  {sending ? (
+                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                  ) : (
+                    <Send className="mr-1 h-3 w-3" />
+                  )}
                   <span className="hidden sm:inline">Envoyer le devis</span>
                   <span className="sm:hidden">Envoyer</span>
                 </Button>
