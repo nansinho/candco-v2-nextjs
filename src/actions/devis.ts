@@ -683,6 +683,7 @@ export async function sendDevis(devisId: string) {
   const { organisationId, userId, role, supabase, admin } = result;
   requirePermission(role as UserRole, canManageFinances, "envoyer un devis");
 
+  try {
   // Fetch devis to validate
   const { data: devis } = await admin
     .from("devis")
@@ -800,6 +801,11 @@ export async function sendDevis(devisId: string) {
   revalidatePath("/devis");
   revalidatePath(`/devis/${devisId}`);
   return { success: true, method: "email_only" as const };
+
+  } catch (err) {
+    console.error("sendDevis error:", err);
+    return { error: err instanceof Error ? err.message : "Erreur lors de l'envoi du devis" };
+  }
 }
 
 // ─── Mark devis as refused (manual admin override) ──────
