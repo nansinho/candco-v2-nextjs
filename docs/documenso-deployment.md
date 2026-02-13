@@ -57,10 +57,11 @@ volumes:
 
 Apres le premier deploiement :
 
-1. Acceder a la console MinIO : `http://<ip-serveur>:9001`
+1. Acceder a la console MinIO (ex: `https://console-k8co4ko4w4koccg4w0k4440s.45.133.178.50.sslip.io`)
 2. Se connecter avec `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD`
 3. Creer un bucket nomme `documenso`
-4. (Optionnel) Creer un access key dedie dans **Identity → Service Accounts**
+4. **IMPORTANT** : Mettre la access policy du bucket en **Public** (Object Browser → bucket → Manage → Access Policy → Public). Sans ca, les presigned URLs retournent 403 AllAccessDisabled.
+5. (Optionnel) Creer un access key dedie dans **Identity → Service Accounts**
 
 ## 4. Variables d'environnement requises
 
@@ -93,12 +94,16 @@ NEXT_PRIVATE_SIGNING_LOCAL_FILE_PATH=/opt/documenso/cert.p12
 # L'API Documenso v1 EXIGE S3. Le mode "database" ne fonctionne
 # que pour l'interface web, PAS pour les endpoints API.
 # Ref: packages/api/v1/implementation.ts → hard check sur cette variable
+#
+# ATTENTION : les variables sont SANS "_S3" dans le nom !
+# NEXT_PRIVATE_UPLOAD_ENDPOINT (pas NEXT_PRIVATE_UPLOAD_S3_ENDPOINT)
 NEXT_PUBLIC_UPLOAD_TRANSPORT=s3
-NEXT_PRIVATE_UPLOAD_S3_ACCESS_KEY_ID=documenso
-NEXT_PRIVATE_UPLOAD_S3_SECRET_ACCESS_KEY=<mot_de_passe_minio>
-NEXT_PRIVATE_UPLOAD_S3_REGION=us-east-1
-NEXT_PRIVATE_UPLOAD_S3_BUCKET=documenso
-NEXT_PRIVATE_UPLOAD_S3_ENDPOINT=http://minio:9000
+NEXT_PRIVATE_UPLOAD_ACCESS_KEY_ID=documenso
+NEXT_PRIVATE_UPLOAD_SECRET_ACCESS_KEY=<mot_de_passe_minio>
+NEXT_PRIVATE_UPLOAD_REGION=us-east-1
+NEXT_PRIVATE_UPLOAD_BUCKET=documenso
+NEXT_PRIVATE_UPLOAD_ENDPOINT=https://minio-k8co4ko4w4koccg4w0k4440s.45.133.178.50.sslip.io
+NEXT_PRIVATE_UPLOAD_FORCE_PATH_STYLE=true
 
 # ─── Desactiver inscription publique ────────
 NEXT_PUBLIC_DISABLE_SIGNUP=true
