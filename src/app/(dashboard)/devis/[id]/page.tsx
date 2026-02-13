@@ -1110,8 +1110,14 @@ export default function DevisDetailPage() {
                       </div>
                     ) : interlocuteurs.length > 0 ? (
                       <Select
-                        value={contactMembreId}
+                        value={contactMembreId || "__none__"}
                         onValueChange={(val) => {
+                          if (val === "__none__") {
+                            setContactClientId("");
+                            setContactMembreId("");
+                            setContactAutoSelected(false);
+                            return;
+                          }
                           const selected = interlocuteurs.find(c => c.membre_id === val);
                           setContactClientId(selected?.contact_client_id || "");
                           setContactMembreId(val);
@@ -1126,7 +1132,7 @@ export default function DevisDetailPage() {
                           <SelectValue placeholder="Sélectionner un interlocuteur" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Aucun</SelectItem>
+                          <SelectItem value="__none__">Aucun</SelectItem>
                           {interlocuteurs.map((c) => (
                             <SelectItem key={c.membre_id} value={c.membre_id}>
                               <span className="flex items-center gap-2">
