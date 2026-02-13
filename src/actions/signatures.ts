@@ -150,6 +150,11 @@ export async function generateDevisDocument(devisId: string) {
     totalTtc: Number(devis.total_ttc) || 0,
     conditions: devis.conditions || undefined,
     mentionsLegales: devis.mentions_legales || undefined,
+    lieuFormation: devis.lieu_formation || undefined,
+    datesFormation: devis.dates_formation || undefined,
+    modalitePedagogique: devis.modalite_pedagogique || undefined,
+    dureeFormation: devis.duree_formation || undefined,
+    nombreParticipantsPrevus: devis.nombre_participants ? Number(devis.nombre_participants) : undefined,
   };
 
   const pdfBytes = await generateDevisPdf(orgOpts, devisData);
@@ -275,6 +280,11 @@ export async function sendDevisForSignature(devisId: string) {
     totalTtc: Number(devis.total_ttc) || 0,
     conditions: devis.conditions || undefined,
     mentionsLegales: devis.mentions_legales || undefined,
+    lieuFormation: devis.lieu_formation || undefined,
+    datesFormation: devis.dates_formation || undefined,
+    modalitePedagogique: devis.modalite_pedagogique || undefined,
+    dureeFormation: devis.duree_formation || undefined,
+    nombreParticipantsPrevus: devis.nombre_participants ? Number(devis.nombre_participants) : undefined,
   };
 
   const pdfBytes = await generateDevisPdf(orgOpts, devisData);
