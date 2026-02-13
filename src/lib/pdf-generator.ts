@@ -23,63 +23,157 @@ import { deflateSync } from "node:zlib";
 
 // ─── PDF Compression ────────────────────────────────────
 
-/**
- * Compress all uncompressed streams in a PDF.
- *
- * pdf-lib already compresses content streams it creates, but PDFs produced
- * by external tools (e.g. Documenso after e-signature) may contain large
- * uncompressed streams (signature images, certificate data, etc.).
- *
- * This function loads the PDF, iterates over every indirect object, and
- * deflate-compresses any raw stream that doesn't already carry a /Filter.
- */
-export async function compressPdf(
-  inputBytes: Uint8Array,
-): Promise<Uint8Array> {
-  const doc = await PDFDocument.load(inputBytes, { updateMetadata: false });
-  // Access pdf-lib's internal context (not in public TS types but stable at runtime)
+type PdfLibContext = {
+  enumerateIndirectObjects(): [unknown, unknown][];
+  assign(ref: unknown, obj: unknown): void;
+};
+
+function getContext(doc: PDFDocument): PdfLibContext | null {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const context = ((doc as unknown) as Record<string, unknown>).context as {
-    enumerateIndirectObjects(): [unknown, unknown][];
-    assign(ref: unknown, obj: unknown): void;
-  } | undefined;
+  const ctx = (doc as any).context as PdfLibContext | undefined;
+  return ctx?.enumerateIndirectObjects ? ctx : null;
+}
 
-  if (!context?.enumerateIndirectObjects) {
-    // Fallback: if internal API is unavailable, return as-is
-    return inputBytes;
-  }
-
-  let didCompress = false;
-
+/**
+ * Deflate-compress every uncompressed raw stream in a PDFDocument context.
+ */
+function deflateStreams(context: PdfLibContext): boolean {
+  let did = false;
   for (const [ref, obj] of context.enumerateIndirectObjects()) {
     if (!(obj instanceof PDFRawStream)) continue;
-
     const dict = obj.dict;
-    const filter = dict.lookup(PDFName.of("Filter"));
-
-    // Skip streams that already have a filter (FlateDecode, DCTDecode, etc.)
-    if (filter) continue;
-
-    // Skip tiny streams — not worth compressing
-    if (obj.contents.length < 128) continue;
+    if (dict.lookup(PDFName.of("Filter"))) continue; // already compressed
+    if (obj.contents.length < 128) continue;         // tiny, skip
 
     try {
       const compressed = deflateSync(Buffer.from(obj.contents), { level: 9 });
-
-      // Only replace if we actually save space
       if (compressed.length >= obj.contents.length) continue;
-
       dict.set(PDFName.of("Filter"), PDFName.of("FlateDecode"));
-      const newStream = PDFRawStream.of(dict, new Uint8Array(compressed));
-      context.assign(ref, newStream);
-      didCompress = true;
+      context.assign(ref, PDFRawStream.of(dict, new Uint8Array(compressed)));
+      did = true;
     } catch {
-      // If compression fails for a stream, skip it silently
       continue;
     }
   }
+  return did;
+}
 
-  if (!didCompress) return inputBytes;
+/**
+ * Aggressively compress a PDF — targeting < 70 KB for signed documents.
+ *
+ * Strategy (in order):
+ *   1. Rebuild the PDF from scratch by copying only the visual pages into a
+ *      fresh PDFDocument.  This strips digital-signature objects (PKCS#7 /
+ *      X.509 certificate chains), AcroForm dictionaries, incremental-save
+ *      overhead, and extraneous metadata — all of which are the main source
+ *      of bloat after Documenso signs a document.
+ *   2. Deflate-compress any remaining uncompressed streams (images, content
+ *      streams added by the signing tool).
+ *   3. If the result is still above the target, attempt a second pass with
+ *      image-stream downsampling (strip large uncompressed images that can't
+ *      be deflated efficiently).
+ *
+ * IMPORTANT: Because we rebuild the file, **the cryptographic digital
+ * signature is removed**.  The legal proof of signature remains in Documenso;
+ * this compressed copy is for storage / download convenience only.
+ */
+export async function compressPdf(
+  inputBytes: Uint8Array,
+  targetBytes: number = 70 * 1024,
+): Promise<Uint8Array> {
+  // ── Step 1: Rebuild into a fresh document (strips all non-page data) ──
+  try {
+    const srcDoc = await PDFDocument.load(inputBytes, {
+      updateMetadata: false,
+      ignoreEncryption: true,
+    });
+
+    const newDoc = await PDFDocument.create();
+    const indices = srcDoc.getPageIndices();
+
+    if (indices.length > 0) {
+      const copiedPages = await newDoc.copyPages(srcDoc, indices);
+      for (const page of copiedPages) {
+        newDoc.addPage(page);
+      }
+    }
+
+    // ── Step 2: Deflate any uncompressed streams ──
+    const ctx = getContext(newDoc);
+    if (ctx) deflateStreams(ctx);
+
+    const result = await newDoc.save();
+
+    // If rebuild succeeded and is smaller, use it
+    if (result.length < inputBytes.length) {
+      // ── Step 3: If still above target, try stripping large image streams ──
+      if (result.length > targetBytes) {
+        return stripLargeImages(result, targetBytes);
+      }
+      return result;
+    }
+  } catch (err) {
+    console.warn("[compressPdf] copyPages rebuild failed, falling back to stream compression:", err);
+  }
+
+  // ── Fallback: just deflate-compress streams in the original ──
+  try {
+    const doc = await PDFDocument.load(inputBytes, { updateMetadata: false });
+    const ctx = getContext(doc);
+    if (ctx && deflateStreams(ctx)) {
+      return doc.save();
+    }
+  } catch {
+    // nothing more we can do
+  }
+
+  return inputBytes;
+}
+
+/**
+ * Last-resort size reduction: replace the contents of oversized image streams
+ * with a minimal compressed placeholder.  This removes visual signature images
+ * but keeps all text content and the PDF structure valid.
+ */
+async function stripLargeImages(
+  pdfBytes: Uint8Array,
+  targetBytes: number,
+): Promise<Uint8Array> {
+  const doc = await PDFDocument.load(pdfBytes, { updateMetadata: false });
+  const ctx = getContext(doc);
+  if (!ctx) return pdfBytes;
+
+  // Collect image streams sorted by size (largest first)
+  const imageStreams: { ref: unknown; obj: PDFRawStream; size: number }[] = [];
+  for (const [ref, obj] of ctx.enumerateIndirectObjects()) {
+    if (!(obj instanceof PDFRawStream)) continue;
+    const subtype = obj.dict.lookup(PDFName.of("Subtype"));
+    if (subtype?.toString() === "/Image" && obj.contents.length > 4096) {
+      imageStreams.push({ ref, obj, size: obj.contents.length });
+    }
+  }
+
+  if (imageStreams.length === 0) return pdfBytes;
+  imageStreams.sort((a, b) => b.size - a.size);
+
+  // Minimal 1-byte white pixel, deflate-compressed
+  const placeholder = deflateSync(Buffer.from([0xFF]));
+
+  let estimatedSize = pdfBytes.length;
+  for (const img of imageStreams) {
+    if (estimatedSize <= targetBytes) break;
+
+    // Replace image data with a tiny placeholder, keep the dict intact
+    const dict = img.obj.dict;
+    dict.set(PDFName.of("Filter"), PDFName.of("FlateDecode"));
+    // Remove mask references that could cause render issues
+    dict.delete(PDFName.of("SMask"));
+    dict.delete(PDFName.of("Mask"));
+
+    ctx.assign(img.ref, PDFRawStream.of(dict, new Uint8Array(placeholder)));
+    estimatedSize -= img.size - placeholder.length;
+  }
+
   return doc.save();
 }
 
