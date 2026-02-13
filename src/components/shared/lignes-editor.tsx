@@ -319,19 +319,19 @@ export function DocumentPreview({
   const title = type === "devis" ? "DEVIS" : type === "facture" ? "FACTURE" : "AVOIR";
 
   return (
-    <div className="bg-[#f0f0f0] rounded-xl p-4">
+    <div className="bg-[#e8e8e8] rounded-lg p-1.5">
       {/* A4 page container */}
-      <div className="bg-white shadow-xl mx-auto overflow-hidden" style={{ aspectRatio: "210 / 297", maxWidth: "520px" }}>
+      <div className="bg-white shadow-xl mx-auto overflow-hidden" style={{ aspectRatio: "210 / 297" }}>
         <div className="h-full flex flex-col text-[10px] leading-relaxed text-gray-800">
           {/* Orange top bar */}
           <div className="h-1.5 bg-[#F97316] shrink-0" />
 
           {/* Content area with padding */}
           <div className="flex-1 px-7 pt-5 pb-4 flex flex-col min-h-0">
-            {/* Header: emetteur left + doc type right */}
-            <div className="flex justify-between items-start mb-5">
-              <div className="max-w-[55%]">
-                {emetteur?.logo_url && (
+            {/* Header: emetteur info */}
+            {emetteur && (
+              <div className="mb-3">
+                {emetteur.logo_url && (
                   <div className="mb-1.5">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
@@ -341,38 +341,38 @@ export function DocumentPreview({
                     />
                   </div>
                 )}
-                {emetteur && (
-                  <div className="space-y-px">
-                    <p className="font-bold text-[11px] text-[#F97316]">{emetteur.nom}</p>
-                    {emetteur.siret && <p className="text-gray-500">SIRET : {emetteur.siret}</p>}
-                    {emetteur.nda && <p className="text-gray-500">NDA : {emetteur.nda}</p>}
-                    {emetteur.tva_intra && <p className="text-gray-500">TVA : {emetteur.tva_intra}</p>}
-                    {emetteur.adresse && <p className="text-gray-500">{emetteur.adresse}</p>}
-                    {(emetteur.email || emetteur.telephone) && (
-                      <p className="text-gray-500">{[emetteur.email, emetteur.telephone].filter(Boolean).join(" — ")}</p>
-                    )}
-                  </div>
-                )}
-              </div>
-              <div className="text-right">
-                <p className="font-bold text-[15px] text-[#F97316] tracking-tight">{title}</p>
-                <p className="text-gray-500 mt-0.5">N° {numero || "---"}</p>
-                <div className="mt-2 space-y-0.5">
-                  <p><span className="text-gray-400">Date :</span> {dateEmission || "---"}</p>
-                  {dateEcheance && (
-                    <p><span className="text-gray-400">Échéance :</span> {dateEcheance}</p>
+                <div className="space-y-px">
+                  <p className="font-bold text-[11px] text-[#F97316]">{emetteur.nom}</p>
+                  {emetteur.siret && <p className="text-gray-500">SIRET : {emetteur.siret}</p>}
+                  {emetteur.nda && <p className="text-gray-500">NDA : {emetteur.nda}</p>}
+                  {emetteur.tva_intra && <p className="text-gray-500">TVA : {emetteur.tva_intra}</p>}
+                  {emetteur.adresse && <p className="text-gray-500">{emetteur.adresse}</p>}
+                  {(emetteur.email || emetteur.telephone) && (
+                    <p className="text-gray-500">{[emetteur.email, emetteur.telephone].filter(Boolean).join(" — ")}</p>
                   )}
                 </div>
+              </div>
+            )}
+
+            {/* Document title + separator */}
+            <div className="mb-3">
+              <p className="font-bold text-[14px] text-gray-800">{title} {numero || "---"}</p>
+              <div className="border-b border-gray-200 mt-1.5 mb-2" />
+              <div className="space-y-0.5">
+                <p><span className="font-semibold text-gray-600">Date d&apos;émission :</span> {dateEmission || "---"}</p>
+                {dateEcheance && (
+                  <p><span className="font-semibold text-gray-600">Échéance :</span> {dateEcheance}</p>
+                )}
               </div>
             </div>
 
             {/* Destinataire */}
             {destinataire && (
-              <div className="mb-4 border border-gray-200 rounded-md p-3 bg-gray-50/70">
-                <p className="text-[8px] text-gray-400 uppercase font-semibold tracking-wider mb-1">Destinataire</p>
+              <div className="mb-3">
+                <p className="text-[9px] text-[#F97316] font-bold mb-1">Destinataire</p>
                 <p className="font-semibold text-[11px]">{destinataire.nom}</p>
-                {destinataire.adresse && <p className="text-gray-600 mt-0.5">{destinataire.adresse}</p>}
                 {destinataire.siret && <p className="text-gray-500">SIRET : {destinataire.siret}</p>}
+                {destinataire.adresse && <p className="text-gray-600 mt-0.5">{destinataire.adresse}</p>}
                 {destinataire.email && <p className="text-gray-500">{destinataire.email}</p>}
               </div>
             )}
@@ -380,33 +380,33 @@ export function DocumentPreview({
             {/* Objet */}
             {objet && (
               <div className="mb-3">
-                <p className="text-[8px] text-gray-400 uppercase font-semibold tracking-wider mb-0.5">Objet</p>
+                <p className="text-[9px] text-[#F97316] font-bold mb-0.5">Objet</p>
                 <p className="text-gray-700">{objet}</p>
               </div>
             )}
 
             {/* Formation info */}
             {formationInfo && (
-              <div className="mb-4 border border-orange-200/60 rounded-md p-3 bg-orange-50/30">
-                <p className="text-[8px] text-[#F97316] uppercase font-semibold tracking-wider mb-1.5">Formation</p>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
+              <div className="mb-3">
+                <p className="text-[9px] text-[#F97316] font-bold mb-1">Formation</p>
+                <div className="space-y-0.5">
                   {formationInfo.nom && (
-                    <p className="col-span-2 font-medium text-gray-800 mb-0.5">{formationInfo.nom}</p>
+                    <p className="font-medium text-gray-800">{formationInfo.nom}</p>
                   )}
                   {formationInfo.dates && (
-                    <p><span className="text-gray-400">Dates :</span> <span className="text-gray-700">{formationInfo.dates}</span></p>
+                    <p><span className="font-semibold text-gray-600">Dates :</span> <span className="text-gray-700">{formationInfo.dates}</span></p>
                   )}
                   {formationInfo.lieu && (
-                    <p><span className="text-gray-400">Lieu :</span> <span className="text-gray-700">{formationInfo.lieu}</span></p>
+                    <p><span className="font-semibold text-gray-600">Lieu :</span> <span className="text-gray-700">{formationInfo.lieu}</span></p>
                   )}
                   {formationInfo.modalite && (
-                    <p><span className="text-gray-400">Modalité :</span> <span className="text-gray-700 capitalize">{formationInfo.modalite}</span></p>
+                    <p><span className="font-semibold text-gray-600">Modalité :</span> <span className="text-gray-700 capitalize">{formationInfo.modalite}</span></p>
                   )}
                   {formationInfo.duree && (
-                    <p><span className="text-gray-400">Durée :</span> <span className="text-gray-700">{formationInfo.duree}</span></p>
+                    <p><span className="font-semibold text-gray-600">Durée :</span> <span className="text-gray-700">{formationInfo.duree}</span></p>
                   )}
                   {formationInfo.participantsPrevus != null && (
-                    <p><span className="text-gray-400">Participants :</span> <span className="text-gray-700">{formationInfo.participantsPrevus}</span></p>
+                    <p><span className="font-semibold text-gray-600">Participants prévus :</span> <span className="text-gray-700">{formationInfo.participantsPrevus}</span></p>
                   )}
                 </div>
               </div>
@@ -415,7 +415,7 @@ export function DocumentPreview({
             {/* Participants presents */}
             {participantsPresents && participantsPresents.length > 0 && (
               <div className="mb-3">
-                <p className="text-[8px] text-gray-400 uppercase font-semibold tracking-wider mb-1">
+                <p className="text-[9px] text-[#F97316] font-bold mb-1">
                   Participants présents ({participantsPresents.length})
                 </p>
                 <div className="space-y-px">
@@ -439,7 +439,7 @@ export function DocumentPreview({
 
             {/* Detail table */}
             <div className="mb-4">
-              <p className="text-[8px] text-gray-400 uppercase font-semibold tracking-wider mb-1.5">Détail</p>
+              <p className="text-[9px] text-[#F97316] font-bold mb-1.5">Détail</p>
               <table className="w-full text-[9px]">
                 <thead>
                   <tr className="bg-gray-100">
@@ -518,13 +518,13 @@ export function DocumentPreview({
               <div className="mb-3 space-y-2">
                 {conditions && (
                   <div>
-                    <p className="text-[8px] text-gray-400 uppercase font-semibold tracking-wider mb-0.5">Conditions</p>
+                    <p className="text-[9px] text-[#F97316] font-bold mb-0.5">Conditions</p>
                     <p className="text-gray-500 whitespace-pre-line text-[9px]">{conditions}</p>
                   </div>
                 )}
                 {coordonneesBancaires && (
                   <div>
-                    <p className="text-[8px] text-gray-400 uppercase font-semibold tracking-wider mb-0.5">Coordonnées bancaires</p>
+                    <p className="text-[9px] text-[#F97316] font-bold mb-0.5">Coordonnées bancaires</p>
                     <p className="text-gray-500 whitespace-pre-line text-[9px]">{coordonneesBancaires}</p>
                   </div>
                 )}
