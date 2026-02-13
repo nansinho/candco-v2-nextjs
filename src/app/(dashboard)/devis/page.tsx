@@ -25,6 +25,7 @@ import {
   getEntreprisesForSelect,
   getSessionsForDevisSelect,
   getEntrepriseInterlocuteurs,
+  getSessionDetailForDevis,
   type CreateDevisInput,
   type InterlocuteurContact,
 } from "@/actions/devis";
@@ -39,6 +40,7 @@ import { computeQuantiteFromTarif, formatDatesDisplay, getQuantiteHint } from "@
 import { MultiDatePicker } from "@/components/ui/multi-date-picker";
 import { ProduitSearchCombobox } from "@/components/shared/produit-search-combobox";
 import { EntrepriseSearchCombobox } from "@/components/shared/entreprise-search-combobox";
+import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
 import {
   DevisStatusBadge,
   DEVIS_STATUT_OPTIONS,
@@ -370,6 +372,7 @@ function CreateDevisForm({
   const datesFormation = React.useMemo(() => formatDatesDisplay(datesFormationJours), [datesFormationJours]);
   const [nombreParticipants, setNombreParticipants] = React.useState<string>("");
   const [entrepriseDisplayName, setEntrepriseDisplayName] = React.useState("");
+  const echeanceManuallySet = React.useRef(false);
   const [form, setForm] = React.useState<CreateDevisInput>({
     entreprise_id: "",
     contact_client_id: "",
@@ -425,6 +428,41 @@ function CreateDevisForm({
     }
     loadCmd();
   }, [form.session_id]);
+
+  // Auto-fill lieu/dates/modalité from session
+  React.useEffect(() => {
+    if (!form.session_id) return;
+    async function loadSessionDetail() {
+      const sessionDetail = await getSessionDetailForDevis(form.session_id!);
+      if (sessionDetail) {
+        if (!lieuFormation && sessionDetail.lieu) {
+          setLieuFormation(sessionDetail.lieu);
+        }
+        if (datesFormationJours.length === 0 && sessionDetail.dates.length > 0) {
+          setDatesFormationJours(sessionDetail.dates.map((d) => new Date(d + "T00:00:00")));
+        }
+        if (!form.modalite_pedagogique && sessionDetail.modalite) {
+          const mMap: Record<string, string> = { presentiel: "Présentiel", distanciel: "Distanciel", mixte: "Mixte" };
+          setForm((prev) => ({
+            ...prev,
+            modalite_pedagogique: mMap[sessionDetail.modalite!] || sessionDetail.modalite!,
+          }));
+        }
+      }
+    }
+    loadSessionDetail();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.session_id]);
+
+  // Auto-calculate date d'échéance: emission + 30 days
+  React.useEffect(() => {
+    if (!form.date_emission || echeanceManuallySet.current) return;
+    const emission = new Date(form.date_emission + "T00:00:00");
+    if (isNaN(emission.getTime())) return;
+    const echeance = new Date(emission);
+    echeance.setDate(echeance.getDate() + 30);
+    setForm((prev) => ({ ...prev, date_echeance: echeance.toISOString().split("T")[0] }));
+  }, [form.date_emission]);
 
   // Auto-fill interlocuteur (Direction / Resp. formation) when enterprise changes
   const handleEntrepriseChange = async (newEntrepriseId: string) => {
@@ -690,11 +728,12 @@ function CreateDevisForm({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs">Lieu de formation</Label>
-              <Input
+              <AddressAutocomplete
                 value={lieuFormation}
-                onChange={(e) => setLieuFormation(e.target.value)}
+                onChange={setLieuFormation}
+                onSelect={(result) => setLieuFormation(result.label)}
                 placeholder="Ex: Paris, à distance..."
-                className="h-8 text-xs border-border/60"
+                className="text-xs"
               />
             </div>
             <div className="space-y-1">
@@ -944,7 +983,10 @@ function CreateDevisForm({
           <DatePicker
             id="date_echeance"
             value={form.date_echeance ?? ""}
-            onChange={(val) => updateField("date_echeance", val)}
+            onChange={(val) => {
+              echeanceManuallySet.current = true;
+              updateField("date_echeance", val);
+            }}
           />
         </div>
       </div>
