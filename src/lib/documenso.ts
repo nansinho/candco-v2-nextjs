@@ -1,8 +1,15 @@
 /**
- * Client API Documenso v2 pour C&CO Formation
+ * Client API Documenso v1 pour C&CO Formation
  *
- * Gere la communication avec l'instance Documenso self-hosted
- * pour la signature electronique de devis et conventions.
+ * Gère la communication avec l'instance Documenso self-hosted
+ * pour la signature électronique de devis et conventions.
+ *
+ * API v1 workflow:
+ *   1. POST /api/v1/documents       → create document, get uploadUrl + documentId
+ *   2. PUT  {uploadUrl}              → upload PDF binary
+ *   3. POST /api/v1/documents/{id}/fields → add signature/date fields
+ *   4. POST /api/v1/documents/{id}/send   → send for signing
+ *   5. GET  /api/v1/documents/{id}        → check status
  */
 
 const DOCUMENSO_API_URL = process.env.DOCUMENSO_API_URL || "";
@@ -45,6 +52,46 @@ export interface DocumensoEnvelopeRecipient {
   signingStatus: "NOT_SIGNED" | "SIGNED" | "REJECTED";
   signingUrl?: string;
   signedAt?: string;
+}
+
+// ─── v1 API response types (internal) ───────────────────
+
+interface V1CreateDocumentResponse {
+  uploadUrl: string;
+  documentId: number;
+  externalId?: string | null;
+  recipients: {
+    recipientId: number;
+    name: string;
+    email: string;
+    token: string;
+    role: string;
+    signingOrder?: number | null;
+    signingUrl: string;
+  }[];
+}
+
+interface V1GetDocumentResponse {
+  id: number;
+  externalId?: string | null;
+  userId: number;
+  teamId?: number | null;
+  title: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  completedAt?: string | null;
+  recipients: {
+    id: number;
+    name: string;
+    email: string;
+    role: string;
+    signingStatus: string;
+    sendStatus: string;
+    signedAt?: string | null;
+    token?: string;
+    signingUrl?: string;
+  }[];
 }
 
 // ─── API Client ─────────────────────────────────────────
@@ -119,88 +166,113 @@ export async function checkDocumensoHealth(): Promise<{
   }
 }
 
-// ─── Create envelope with PDF ───────────────────────────
+// ─── Step 1: Create document (v1) ───────────────────────
 
-export async function createEnvelopeFromPdf(params: {
+async function createDocument(params: {
   title: string;
-  pdfUrl: string;
   recipients: DocumensoRecipient[];
   externalId?: string;
-}): Promise<DocumensoEnvelope> {
-  // Download the PDF first
-  const pdfResponse = await fetch(params.pdfUrl);
-  if (!pdfResponse.ok) {
-    throw new Error(`Impossible de télécharger le PDF : ${params.pdfUrl}`);
-  }
-  const pdfBlob = await pdfResponse.blob();
-
-  // Build multipart form
-  const formData = new FormData();
-
-  const payload = {
-    title: params.title,
-    type: "DOCUMENT",
-    externalId: params.externalId || undefined,
-    recipients: params.recipients.map((r, idx) => ({
-      name: r.name,
-      email: r.email,
-      role: r.role,
-      signingOrder: r.signingOrder ?? idx + 1,
-      fields: [
-        {
-          type: "SIGNATURE",
-          pageNumber: 1,
-          pageX: 10,
-          pageY: 80,
-          pageWidth: 30,
-          pageHeight: 5,
-        },
-        {
-          type: "DATE",
-          pageNumber: 1,
-          pageX: 45,
-          pageY: 80,
-          pageWidth: 20,
-          pageHeight: 3,
-        },
-      ],
-    })),
-  };
-
-  formData.append("payload", JSON.stringify(payload));
-  formData.append("file", pdfBlob, `${params.title}.pdf`);
-
-  const response = await fetch(`${DOCUMENSO_API_URL}/api/v2/envelope/create`, {
+}): Promise<V1CreateDocumentResponse> {
+  return documensoFetch<V1CreateDocumentResponse>("/api/v1/documents", {
     method: "POST",
-    headers: getHeaders(),
-    body: formData,
+    headers: getJsonHeaders(),
+    body: JSON.stringify({
+      title: params.title,
+      externalId: params.externalId || undefined,
+      recipients: params.recipients.map((r, idx) => ({
+        name: r.name,
+        email: r.email,
+        role: r.role,
+        signingOrder: r.signingOrder ?? idx + 1,
+      })),
+      meta: {
+        subject: params.title,
+        message: "Veuillez signer ce document.",
+        language: "fr",
+      },
+    }),
+  });
+}
+
+// ─── Step 2: Upload PDF to presigned URL ────────────────
+
+async function uploadPdfToPresignedUrl(
+  uploadUrl: string,
+  pdfBuffer: ArrayBuffer,
+): Promise<void> {
+  const response = await fetch(uploadUrl, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/pdf",
+    },
+    body: pdfBuffer,
   });
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`Erreur création enveloppe Documenso (${response.status}): ${text}`);
+    throw new Error(`Erreur upload PDF vers Documenso (${response.status}): ${text}`);
   }
-
-  return response.json() as Promise<DocumensoEnvelope>;
 }
 
-// ─── Send envelope for signing ──────────────────────────
+// ─── Step 3: Add fields to document ─────────────────────
 
-export async function distributeEnvelope(envelopeId: number): Promise<void> {
-  await documensoFetch("/api/v2/envelope/distribute", {
+async function addFieldsToDocument(
+  documentId: number,
+  fields: DocumensoField[],
+): Promise<void> {
+  await documensoFetch(`/api/v1/documents/${documentId}/fields`, {
     method: "POST",
     headers: getJsonHeaders(),
-    body: JSON.stringify({ envelopeId }),
+    body: JSON.stringify(fields.map((f) => ({
+      recipientId: f.recipientId,
+      type: f.type,
+      pageNumber: f.pageNumber,
+      pageX: f.pageX,
+      pageY: f.pageY,
+      pageWidth: f.pageWidth,
+      pageHeight: f.pageHeight,
+      fieldMeta: {},
+    }))),
   });
 }
 
-// ─── Get envelope details ───────────────────────────────
+// ─── Step 4: Send document for signing ──────────────────
 
-export async function getEnvelope(envelopeId: number): Promise<DocumensoEnvelope> {
-  return documensoFetch<DocumensoEnvelope>(`/api/v2/envelope/${envelopeId}`);
+async function sendDocument(documentId: number): Promise<void> {
+  await documensoFetch(`/api/v1/documents/${documentId}/send`, {
+    method: "POST",
+    headers: getJsonHeaders(),
+    body: JSON.stringify({ sendEmail: true }),
+  });
 }
 
-// ─── Full workflow: Create + Send ───────────────────────
+// ─── Get document details (v1) ──────────────────────────
+
+export async function getEnvelope(envelopeId: number): Promise<DocumensoEnvelope> {
+  const doc = await documensoFetch<V1GetDocumentResponse>(
+    `/api/v1/documents/${envelopeId}`,
+  );
+
+  return {
+    id: doc.id,
+    externalId: doc.externalId ?? undefined,
+    status: doc.status as DocumensoEnvelope["status"],
+    title: doc.title,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
+    recipients: (doc.recipients || []).map((r) => ({
+      id: r.id,
+      email: r.email,
+      name: r.name,
+      role: r.role,
+      signingStatus: (r.signingStatus || "NOT_SIGNED") as DocumensoEnvelopeRecipient["signingStatus"],
+      signingUrl: r.signingUrl,
+      signedAt: r.signedAt ?? undefined,
+    })),
+  };
+}
+
+// ─── Full workflow: Create + Upload + Fields + Send ──────
 
 export async function sendDocumentForSigning(params: {
   title: string;
@@ -211,14 +283,72 @@ export async function sendDocumentForSigning(params: {
   envelopeId: number;
   envelope: DocumensoEnvelope;
 }> {
-  // Step 1: Create envelope with PDF and recipients
-  const envelope = await createEnvelopeFromPdf(params);
+  // Step 1: Download the PDF
+  const pdfResponse = await fetch(params.pdfUrl);
+  if (!pdfResponse.ok) {
+    throw new Error(`Impossible de télécharger le PDF : ${params.pdfUrl}`);
+  }
+  const pdfBuffer = await pdfResponse.arrayBuffer();
 
-  // Step 2: Distribute (send for signing)
-  await distributeEnvelope(envelope.id);
+  // Step 2: Create document in Documenso (returns uploadUrl + documentId)
+  const createResult = await createDocument({
+    title: params.title,
+    recipients: params.recipients,
+    externalId: params.externalId,
+  });
+
+  // Step 3: Upload PDF to the presigned URL
+  await uploadPdfToPresignedUrl(createResult.uploadUrl, pdfBuffer);
+
+  // Step 4: Add signature + date fields for each recipient
+  const fields: DocumensoField[] = [];
+  for (const recipient of createResult.recipients) {
+    fields.push(
+      {
+        recipientId: recipient.recipientId,
+        type: "SIGNATURE",
+        pageNumber: 1,
+        pageX: 10,
+        pageY: 80,
+        pageWidth: 30,
+        pageHeight: 5,
+      },
+      {
+        recipientId: recipient.recipientId,
+        type: "DATE",
+        pageNumber: 1,
+        pageX: 45,
+        pageY: 80,
+        pageWidth: 20,
+        pageHeight: 3,
+      },
+    );
+  }
+  await addFieldsToDocument(createResult.documentId, fields);
+
+  // Step 5: Send for signing
+  await sendDocument(createResult.documentId);
+
+  // Build the envelope response matching our interface
+  const envelope: DocumensoEnvelope = {
+    id: createResult.documentId,
+    externalId: createResult.externalId ?? undefined,
+    status: "PENDING",
+    title: params.title,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    recipients: createResult.recipients.map((r) => ({
+      id: r.recipientId,
+      email: r.email,
+      name: r.name,
+      role: r.role,
+      signingStatus: "NOT_SIGNED" as const,
+      signingUrl: r.signingUrl,
+    })),
+  };
 
   return {
-    envelopeId: envelope.id,
+    envelopeId: createResult.documentId,
     envelope,
   };
 }
