@@ -84,7 +84,7 @@ function SortableWidget({
       {/* Widget header */}
       <div className="flex items-center gap-2 px-4 py-3 border-b border-border/30">
         <button
-          className="cursor-grab active:cursor-grabbing touch-none text-muted-foreground/30 hover:text-muted-foreground/60 transition-colors"
+          className="cursor-grab active:cursor-grabbing touch-none text-muted-foreground/50 hover:text-muted-foreground/70 transition-colors"
           {...attributes}
           {...listeners}
         >
@@ -95,7 +95,7 @@ function SortableWidget({
         </span>
         <button
           onClick={() => onToggle(id)}
-          className="opacity-0 group-hover:opacity-100 text-muted-foreground/30 hover:text-muted-foreground/60 transition-all"
+          className="opacity-0 group-hover:opacity-100 text-muted-foreground/50 hover:text-muted-foreground/70 transition-all"
         >
           <EyeOff className="h-3 w-3" />
         </button>
@@ -128,13 +128,13 @@ function CustomizePanel({
         <div className="flex items-center gap-2">
           <button
             onClick={onReset}
-            className="text-xs text-muted-foreground/40 hover:text-primary transition-colors"
+            className="text-xs text-muted-foreground/60 hover:text-primary transition-colors"
           >
             Réinitialiser
           </button>
           <button
             onClick={onClose}
-            className="text-muted-foreground/40 hover:text-foreground transition-colors"
+            className="text-muted-foreground/60 hover:text-foreground transition-colors"
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -148,7 +148,7 @@ function CustomizePanel({
             className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs transition-all ${
               w.visible
                 ? "border-primary/30 bg-primary/5 text-foreground"
-                : "border-border/30 text-muted-foreground/40 hover:border-border/60"
+                : "border-border/30 text-muted-foreground/60 hover:border-border/60"
             }`}
           >
             {w.visible ? (
@@ -282,7 +282,7 @@ export function WidgetGrid({ widgets: defaultWidgets, children, storageKey }: Wi
       {/* Toolbar */}
       <div className="flex items-center justify-end gap-2">
         {hiddenCount > 0 && !customizing && (
-          <span className="text-xs text-muted-foreground/30">
+          <span className="text-xs text-muted-foreground/50">
             {hiddenCount} widget{hiddenCount > 1 ? "s" : ""} masqué{hiddenCount > 1 ? "s" : ""}
           </span>
         )}
