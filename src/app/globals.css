@@ -57,7 +57,7 @@
    Même structure, accent bleu + gris bleutés (slate)
    ═══════════════════════════════════════════════ */
 html.light {
-  --color-background: #F8FAFC;           /* slate-50 — fond bleuté subtil */
+  --color-background: #E2E8F0;           /* slate-200 — fond gris marqué */
   --color-foreground: #0F172A;           /* slate-900 */
 
   --color-card: #FFFFFF;
@@ -69,13 +69,13 @@ html.light {
   --color-primary: #2563EB;              /* blue-600 — accent principal */
   --color-primary-foreground: #FFFFFF;
 
-  --color-secondary: #F1F5F9;            /* slate-100 */
+  --color-secondary: #CBD5E1;            /* slate-300 */
   --color-secondary-foreground: #0F172A;
 
-  --color-muted: #F1F5F9;               /* slate-100 */
+  --color-muted: #CBD5E1;               /* slate-300 */
   --color-muted-foreground: #334155;     /* slate-700 — assez foncé pour survivre aux opacités /50+ */
 
-  --color-accent: #EFF6FF;              /* blue-50 — hover/active léger */
+  --color-accent: #DBEAFE;              /* blue-100 — hover/active */
   --color-accent-foreground: #0F172A;
 
   --color-destructive: #EF4444;
@@ -85,8 +85,8 @@ html.light {
   --color-warning: #EAB308;
   --color-info: #3B82F6;
 
-  --color-border: #E2E8F0;              /* slate-200 */
-  --color-input: #E2E8F0;
+  --color-border: #CBD5E1;              /* slate-300 */
+  --color-input: #CBD5E1;
   --color-ring: #2563EB;                /* blue-600 — focus ring bleu */
 
   --color-sidebar: #1E3A5F;              /* navy foncé */
