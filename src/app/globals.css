@@ -57,7 +57,7 @@
    Même structure, accent bleu + gris bleutés (slate)
    ═══════════════════════════════════════════════ */
 html.light {
-  --color-background: #E2E8F0;           /* slate-200 — fond gris marqué */
+  --color-background: #D7DEE9;           /* fond gris bleuté */
   --color-foreground: #0F172A;           /* slate-900 */
 
   --color-card: #FFFFFF;
@@ -69,10 +69,10 @@ html.light {
   --color-primary: #2563EB;              /* blue-600 — accent principal */
   --color-primary-foreground: #FFFFFF;
 
-  --color-secondary: #CBD5E1;            /* slate-300 */
+  --color-secondary: #D7DEE9;
   --color-secondary-foreground: #0F172A;
 
-  --color-muted: #CBD5E1;               /* slate-300 */
+  --color-muted: #D7DEE9;
   --color-muted-foreground: #334155;     /* slate-700 — assez foncé pour survivre aux opacités /50+ */
 
   --color-accent: #DBEAFE;              /* blue-100 — hover/active */
@@ -85,8 +85,8 @@ html.light {
   --color-warning: #EAB308;
   --color-info: #3B82F6;
 
-  --color-border: #CBD5E1;              /* slate-300 */
-  --color-input: #CBD5E1;
+  --color-border: #D7DEE9;
+  --color-input: #D7DEE9;
   --color-ring: #2563EB;                /* blue-600 — focus ring bleu */
 
   --color-sidebar: #1E3A5F;              /* navy foncé */
