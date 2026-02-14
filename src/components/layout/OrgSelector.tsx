@@ -67,7 +67,7 @@ export function OrgSelector({
   if (collapsed) {
     return (
       <div className="flex justify-center px-2 py-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-primary">
+        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-accent/30 text-sidebar-accent-foreground">
           <Building2 className="h-4 w-4" />
         </div>
       </div>
@@ -80,22 +80,22 @@ export function OrgSelector({
         onClick={() => !switching && setOpen(!open)}
         disabled={switching}
         className={cn(
-          "flex w-full items-center gap-2 rounded-md border border-border/50 px-3 py-2",
-          "bg-card/50 hover:bg-card transition-colors text-left",
+          "flex w-full items-center gap-2 rounded-md border border-sidebar-border px-3 py-2",
+          "bg-sidebar-accent/30 hover:bg-sidebar-accent/50 transition-colors text-left",
           "text-sm",
           switching && "opacity-70 cursor-wait"
         )}
       >
-        <Building2 className="h-4 w-4 shrink-0 text-primary" />
-        <span className="truncate flex-1 font-medium">
+        <Building2 className="h-4 w-4 shrink-0 text-sidebar-accent-foreground" />
+        <span className="truncate flex-1 font-medium text-sidebar-foreground">
           {currentOrganisation?.nom || "Organisation"}
         </span>
         {switching ? (
-          <Loader2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground animate-spin" />
+          <Loader2 className="h-3.5 w-3.5 shrink-0 text-sidebar-foreground/60 animate-spin" />
         ) : (
           <ChevronDown
             className={cn(
-              "h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform",
+              "h-3.5 w-3.5 shrink-0 text-sidebar-foreground/60 transition-transform",
               open && "rotate-180"
             )}
           />

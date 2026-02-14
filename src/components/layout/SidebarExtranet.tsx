@@ -129,19 +129,19 @@ export function SidebarExtranet({ navItems, title, subtitle, accentColor = "bg-p
                   className={cn(
                     "group relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-all duration-150",
                     isActive
-                      ? "bg-primary/10 text-primary font-medium"
+                      ? "bg-primary/10 text-sidebar-accent-foreground font-medium"
                       : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
                   )}
                   title={collapsed ? item.label : undefined}
                 >
                   {isActive && (
-                    <div className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-primary" />
+                    <div className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-sidebar-accent-foreground" />
                   )}
                   <Icon
                     className={cn(
                       "h-4 w-4 shrink-0 transition-colors",
                       isActive
-                        ? "text-primary"
+                        ? "text-sidebar-accent-foreground"
                         : "text-sidebar-foreground/50 group-hover:text-sidebar-foreground/70"
                     )}
                   />
