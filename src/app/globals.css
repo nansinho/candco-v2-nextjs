@@ -73,7 +73,7 @@ html.light {
   --color-secondary-foreground: #0F172A;
 
   --color-muted: #F1F5F9;               /* slate-100 */
-  --color-muted-foreground: #64748B;     /* slate-500 */
+  --color-muted-foreground: #334155;     /* slate-700 — assez foncé pour survivre aux opacités /50+ */
 
   --color-accent: #EFF6FF;              /* blue-50 — hover/active léger */
   --color-accent-foreground: #0F172A;
@@ -94,7 +94,7 @@ html.light {
   --color-sidebar-border: #E2E8F0;      /* slate-200 */
   --color-sidebar-accent: #EFF6FF;      /* blue-50 — survol/actif */
   --color-sidebar-accent-foreground: #1E40AF;  /* blue-800 — texte actif */
-  --color-sidebar-muted: #64748B;       /* slate-500 */
+  --color-sidebar-muted: #1E293B;       /* slate-800 — section headers lisibles même à /50 */
 }
 
 html {
