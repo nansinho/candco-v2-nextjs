@@ -968,26 +968,26 @@ const COLOR_CATEGORIES: {
   {
     title: "Background",
     keys: [
-      { key: "background", label: "Fond principal", description: "Arriere-plan principal" },
-      { key: "gradient_from", label: "Degrade debut", description: "Couleur de depart du degrade" },
-      { key: "gradient_to", label: "Degrade fin", description: "Couleur de fin du degrade" },
+      { key: "background", label: "Fond principal", description: "Arrière-plan principal" },
+      { key: "gradient_from", label: "Dégradé début", description: "Couleur de départ du dégradé" },
+      { key: "gradient_to", label: "Dégradé fin", description: "Couleur de fin du dégradé" },
       { key: "card", label: "Cartes", description: "Fond des cartes et panneaux" },
-      { key: "muted", label: "Attenue", description: "Fonds secondaires, inputs" },
+      { key: "muted", label: "Atténué", description: "Fonds secondaires, inputs" },
     ],
   },
   {
     title: "Accent",
     keys: [
       { key: "primary", label: "Couleur primaire", description: "Boutons, liens, badges actifs" },
-      { key: "accent", label: "Hover", description: "Fond au survol des elements" },
+      { key: "accent", label: "Hover", description: "Fond au survol des éléments" },
     ],
   },
   {
     title: "Sections",
     keys: [
-      { key: "sidebar", label: "Sidebar", description: "Fond de la barre laterale" },
-      { key: "header", label: "Header", description: "Fond de la barre superieure" },
-      { key: "border", label: "Bordures", description: "Bordures et separateurs" },
+      { key: "sidebar", label: "Sidebar", description: "Fond de la barre latérale" },
+      { key: "header", label: "Header", description: "Fond de la barre supérieure" },
+      { key: "border", label: "Bordures", description: "Bordures et séparateurs" },
     ],
   },
   {
