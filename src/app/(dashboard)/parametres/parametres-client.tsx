@@ -943,6 +943,8 @@ const DEFAULT_DARK: ThemeColors["dark"] = {
   border: "#2A2A2A",
   muted: "#141414",
   accent: "#1A1A1A",
+  gradient_from: "#0A0A0A",
+  gradient_to: "#0A0A0A",
 };
 
 const DEFAULT_LIGHT: ThemeColors["light"] = {
@@ -955,19 +957,46 @@ const DEFAULT_LIGHT: ThemeColors["light"] = {
   border: "#d4d0d1",
   muted: "#F1F5F9",
   accent: "#FFF7ED",
+  gradient_from: "#c5dce4",
+  gradient_to: "#f1eff0",
 };
 
-const COLOR_LABELS: Record<string, { label: string; description: string }> = {
-  background: { label: "Fond", description: "Arrière-plan principal" },
-  foreground: { label: "Texte", description: "Couleur du texte principal" },
-  card: { label: "Cartes", description: "Fond des cartes et panneaux" },
-  primary: { label: "Accent", description: "Boutons, liens, badges actifs" },
-  sidebar: { label: "Sidebar", description: "Fond de la barre latérale" },
-  header: { label: "Header", description: "Fond de la barre supérieure" },
-  border: { label: "Bordures", description: "Bordures et séparateurs" },
-  muted: { label: "Atténué", description: "Fonds secondaires, inputs" },
-  accent: { label: "Hover", description: "Fond au survol des éléments" },
-};
+const COLOR_CATEGORIES: {
+  title: string;
+  keys: { key: string; label: string; description: string }[];
+}[] = [
+  {
+    title: "Background",
+    keys: [
+      { key: "background", label: "Fond principal", description: "Arriere-plan principal" },
+      { key: "gradient_from", label: "Degrade debut", description: "Couleur de depart du degrade" },
+      { key: "gradient_to", label: "Degrade fin", description: "Couleur de fin du degrade" },
+      { key: "card", label: "Cartes", description: "Fond des cartes et panneaux" },
+      { key: "muted", label: "Attenue", description: "Fonds secondaires, inputs" },
+    ],
+  },
+  {
+    title: "Accent",
+    keys: [
+      { key: "primary", label: "Couleur primaire", description: "Boutons, liens, badges actifs" },
+      { key: "accent", label: "Hover", description: "Fond au survol des elements" },
+    ],
+  },
+  {
+    title: "Sections",
+    keys: [
+      { key: "sidebar", label: "Sidebar", description: "Fond de la barre laterale" },
+      { key: "header", label: "Header", description: "Fond de la barre superieure" },
+      { key: "border", label: "Bordures", description: "Bordures et separateurs" },
+    ],
+  },
+  {
+    title: "Polices",
+    keys: [
+      { key: "foreground", label: "Texte principal", description: "Couleur du texte principal" },
+    ],
+  },
+];
 
 function applyThemeColors(colors: ThemeColors) {
   const root = document.documentElement;
@@ -994,11 +1023,11 @@ function applyThemeColors(colors: ThemeColors) {
   root.style.setProperty("--color-secondary", palette.muted);
   root.style.setProperty("--color-secondary-foreground", palette.foreground);
 
-  // Update gradient for light mode
-  if (theme === "light") {
-    document.body.style.background = `linear-gradient(135deg, ${palette.sidebar} 0%, ${palette.background} 50%, ${palette.background} 100%)`;
-    document.body.style.backgroundAttachment = "fixed";
-  }
+  // Update gradient
+  const gradFrom = palette.gradient_from || palette.sidebar || palette.background;
+  const gradTo = palette.gradient_to || palette.background;
+  document.body.style.background = `linear-gradient(135deg, ${gradFrom} 0%, ${gradTo} 50%, ${gradTo} 100%)`;
+  document.body.style.backgroundAttachment = "fixed";
 
   // Persist to localStorage for instant load on next visit
   localStorage.setItem("candco-theme-colors", JSON.stringify(colors));
@@ -1169,16 +1198,25 @@ function ApparenceTab() {
             </button>
           </div>
 
-          {/* Color pickers grid */}
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {Object.entries(COLOR_LABELS).map(([key, meta]) => (
-              <ColorPicker
-                key={`${activeMode}-${key}`}
-                label={meta.label}
-                description={meta.description}
-                value={(currentColors as Record<string, string>)[key] || "#000000"}
-                onChange={(v) => updateColor(key, v)}
-              />
+          {/* Color pickers by category */}
+          <div className="space-y-5">
+            {COLOR_CATEGORIES.map((cat) => (
+              <div key={cat.title} className="space-y-2">
+                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-0.5">
+                  {cat.title}
+                </h4>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {cat.keys.map(({ key, label, description }) => (
+                    <ColorPicker
+                      key={`${activeMode}-${key}`}
+                      label={label}
+                      description={description}
+                      value={(currentColors as Record<string, string>)[key] || "#000000"}
+                      onChange={(v) => updateColor(key, v)}
+                    />
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         </div>
@@ -1207,7 +1245,7 @@ function ApparenceTab() {
               <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: currentColors.foreground, opacity: 0.2 }} />
             </div>
           </div>
-          <div className="flex" style={{ backgroundColor: currentColors.background }}>
+          <div className="flex" style={{ background: `linear-gradient(135deg, ${currentColors.gradient_from || currentColors.sidebar} 0%, ${currentColors.gradient_to || currentColors.background} 50%, ${currentColors.gradient_to || currentColors.background} 100%)` }}>
             {/* Mini sidebar */}
             <div
               className="w-20 p-2 space-y-1.5 border-r shrink-0"

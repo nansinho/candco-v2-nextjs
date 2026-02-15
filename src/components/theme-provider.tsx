@@ -52,9 +52,11 @@ function applyCustomColors(theme: Theme) {
       root.style.setProperty("--color-header-foreground", palette.foreground);
     }
 
-    // Update gradient for light mode
-    if (theme === "light" && palette.sidebar && palette.background) {
-      document.body.style.background = `linear-gradient(135deg, ${palette.sidebar} 0%, ${palette.background} 50%, ${palette.background} 100%)`;
+    // Update gradient (uses custom gradient colors if available)
+    const gradFrom = palette.gradient_from || palette.sidebar || palette.background;
+    const gradTo = palette.gradient_to || palette.background;
+    if (gradFrom && gradTo) {
+      document.body.style.background = `linear-gradient(135deg, ${gradFrom} 0%, ${gradTo} 50%, ${gradTo} 100%)`;
       document.body.style.backgroundAttachment = "fixed";
     }
   } catch {

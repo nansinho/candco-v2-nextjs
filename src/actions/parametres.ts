@@ -265,29 +265,23 @@ export async function removeOrganisationLogo() {
 
 // ─── Theme Colors ──────────────────────────────────────
 
+export interface ThemePalette {
+  background: string;
+  foreground: string;
+  card: string;
+  primary: string;
+  sidebar: string;
+  header: string;
+  border: string;
+  muted: string;
+  accent: string;
+  gradient_from?: string;
+  gradient_to?: string;
+}
+
 export interface ThemeColors {
-  dark: {
-    background: string;
-    foreground: string;
-    card: string;
-    primary: string;
-    sidebar: string;
-    header: string;
-    border: string;
-    muted: string;
-    accent: string;
-  };
-  light: {
-    background: string;
-    foreground: string;
-    card: string;
-    primary: string;
-    sidebar: string;
-    header: string;
-    border: string;
-    muted: string;
-    accent: string;
-  };
+  dark: ThemePalette;
+  light: ThemePalette;
 }
 
 const hexColorRegex = /^#[0-9A-Fa-f]{6}$/;
@@ -302,6 +296,8 @@ const ThemeColorSchema = z.object({
   border: z.string().regex(hexColorRegex),
   muted: z.string().regex(hexColorRegex),
   accent: z.string().regex(hexColorRegex),
+  gradient_from: z.string().regex(hexColorRegex).optional(),
+  gradient_to: z.string().regex(hexColorRegex).optional(),
 });
 
 const ThemeColorsSchema = z.object({
