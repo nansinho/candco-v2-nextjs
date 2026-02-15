@@ -119,9 +119,9 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Fond dégradé en light mode — écrase le background-color + force sur les wrappers */
+/* Fond dégradé en light mode — valeur par défaut, overridé par inline style JS si custom */
 html.light body {
-  background: linear-gradient(135deg, #c5dce4 0%, #f1eff0 50%, #f1eff0 100%) !important;
+  background: linear-gradient(135deg, #c5dce4 0%, #f1eff0 50%, #f1eff0 100%);
   background-attachment: fixed;
 }
 
