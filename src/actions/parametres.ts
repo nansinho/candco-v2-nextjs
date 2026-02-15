@@ -263,6 +263,139 @@ export async function removeOrganisationLogo() {
   return { success: true };
 }
 
+// ─── Theme Colors ──────────────────────────────────────
+
+export interface ThemeColors {
+  dark: {
+    background: string;
+    foreground: string;
+    card: string;
+    primary: string;
+    sidebar: string;
+    header: string;
+    border: string;
+    muted: string;
+    accent: string;
+  };
+  light: {
+    background: string;
+    foreground: string;
+    card: string;
+    primary: string;
+    sidebar: string;
+    header: string;
+    border: string;
+    muted: string;
+    accent: string;
+  };
+}
+
+const hexColorRegex = /^#[0-9A-Fa-f]{6}$/;
+
+const ThemeColorSchema = z.object({
+  background: z.string().regex(hexColorRegex),
+  foreground: z.string().regex(hexColorRegex),
+  card: z.string().regex(hexColorRegex),
+  primary: z.string().regex(hexColorRegex),
+  sidebar: z.string().regex(hexColorRegex),
+  header: z.string().regex(hexColorRegex),
+  border: z.string().regex(hexColorRegex),
+  muted: z.string().regex(hexColorRegex),
+  accent: z.string().regex(hexColorRegex),
+});
+
+const ThemeColorsSchema = z.object({
+  dark: ThemeColorSchema,
+  light: ThemeColorSchema,
+});
+
+export async function updateThemeSettings(input: ThemeColors) {
+  const parsed = ThemeColorsSchema.safeParse(input);
+  if (!parsed.success) return { error: "Couleurs invalides" };
+
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+
+  const { organisationId, admin } = result;
+
+  // Read existing settings JSONB to merge
+  const { data: org } = await admin
+    .from("organisations")
+    .select("settings")
+    .eq("id", organisationId)
+    .single();
+
+  const existingSettings = (org?.settings ?? {}) as Record<string, unknown>;
+  const newSettings = { ...existingSettings, theme_colors: parsed.data };
+
+  const { error } = await admin
+    .from("organisations")
+    .update({
+      settings: newSettings,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", organisationId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/parametres");
+  revalidatePath("/", "layout");
+  return { success: true };
+}
+
+export async function getThemeSettings(): Promise<{
+  data: ThemeColors | null;
+  error: string | null;
+}> {
+  const result = await getOrganisationId();
+  if ("error" in result) return { data: null, error: result.error ?? "Erreur inconnue" };
+
+  const { organisationId, admin } = result;
+
+  const { data: org, error } = await admin
+    .from("organisations")
+    .select("settings")
+    .eq("id", organisationId)
+    .single();
+
+  if (error) return { data: null, error: error.message };
+
+  const settings = (org?.settings ?? {}) as Record<string, unknown>;
+  const themeColors = settings.theme_colors as ThemeColors | undefined;
+
+  return { data: themeColors ?? null, error: null };
+}
+
+export async function resetThemeSettings() {
+  const result = await getOrganisationId();
+  if ("error" in result) return { error: result.error };
+
+  const { organisationId, admin } = result;
+
+  const { data: org } = await admin
+    .from("organisations")
+    .select("settings")
+    .eq("id", organisationId)
+    .single();
+
+  const existingSettings = (org?.settings ?? {}) as Record<string, unknown>;
+  delete existingSettings.theme_colors;
+
+  const { error } = await admin
+    .from("organisations")
+    .update({
+      settings: existingSettings,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", organisationId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/parametres");
+  revalidatePath("/", "layout");
+  return { success: true };
+}
+
 // ─── Get AI Credits ─────────────────────────────────────
 
 export async function getAICredits(): Promise<{
