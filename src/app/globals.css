@@ -58,7 +58,7 @@
 
 /* ═══════════════════════════════════════════════
    LIGHT THEME — Dégradé teal→rose / Orange
-   Sidebar teal #b6d3db, Header #f1eff0, fond dégradé
+   Sidebar teal #c5dce4, Header #f1eff0, fond dégradé
    ═══════════════════════════════════════════════ */
 html.light {
   --color-background: #f1eff0;           /* rose très pâle — ton dominant du dégradé */
@@ -93,22 +93,16 @@ html.light {
   --color-input: #d4d0d1;
   --color-ring: #F97316;                /* orange-500 — focus ring orange */
 
-  --color-sidebar: #b6d3db;              /* teal doux — sidebar */
+  --color-sidebar: #c5dce4;              /* teal clair — sidebar */
   --color-sidebar-foreground: #1A1A2E;   /* navy — texte sidebar */
-  --color-sidebar-border: #9fc5cf;       /* teal plus foncé — bordures */
-  --color-sidebar-accent: #c8e0e6;       /* teal clair — hover items */
+  --color-sidebar-border: #aecdd7;       /* teal plus foncé — bordures */
+  --color-sidebar-accent: #d5e8ee;       /* teal très clair — hover items */
   --color-sidebar-accent-foreground: #F97316; /* orange — items actifs */
-  --color-sidebar-muted: #5f8a94;        /* teal foncé — titres de sections */
+  --color-sidebar-muted: #6d959f;        /* teal foncé — titres de sections */
 
   --color-header: #f1eff0;              /* rose très pâle — header */
   --color-header-foreground: #1A1A2E;   /* navy — texte header */
   --color-header-border: #d4d0d1;       /* rose grisé — bordure header */
-}
-
-/* Fond dégradé en light mode */
-html.light body {
-  background: linear-gradient(135deg, #b6d3db 0%, #f1eff0 50%, #f1eff0 100%);
-  background-attachment: fixed;
 }
 
 html {
@@ -123,6 +117,16 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Fond dégradé en light mode — écrase le background-color + force sur les wrappers */
+html.light body {
+  background: linear-gradient(135deg, #c5dce4 0%, #f1eff0 50%, #f1eff0 100%) !important;
+  background-attachment: fixed;
+}
+
+html.light .bg-background {
+  background-color: transparent !important;
 }
 
 /* Scrollbar styling */
