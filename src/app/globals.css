@@ -77,7 +77,7 @@ html.light {
   --color-secondary-foreground: #1A1A2E;
 
   --color-muted: #F1F5F9;               /* slate-100 — fonds atténués */
-  --color-muted-foreground: #64748B;     /* slate-500 — texte secondaire lisible */
+  --color-muted-foreground: #475569;     /* slate-600 — texte secondaire plus contrasté */
 
   --color-accent: #FFF7ED;              /* orange-50 — hover/active subtil */
   --color-accent-foreground: #1A1A2E;
