@@ -45,6 +45,10 @@
   --color-sidebar-accent-foreground: #FF7C4C;
   --color-sidebar-muted: #A0A0A0;
 
+  --color-header: #0A0A0A;
+  --color-header-foreground: #FAFAFA;
+  --color-header-border: #1A1A1A;
+
   /* Radius */
   --radius-sm: 0.375rem;
   --radius-md: 0.5rem;
@@ -53,11 +57,11 @@
 }
 
 /* ═══════════════════════════════════════════════
-   LIGHT THEME — Blanc / Gris très clair / Orange
-   Style aéré et moderne, accent orange cohérent avec le dark
+   LIGHT THEME — Dégradé teal→rose / Orange
+   Sidebar teal #b6d3db, Header #f1eff0, fond dégradé
    ═══════════════════════════════════════════════ */
 html.light {
-  --color-background: #F5F7FA;           /* gris très clair bleuté — fond aéré */
+  --color-background: #f1eff0;           /* rose très pâle — ton dominant du dégradé */
   --color-foreground: #1A1A2E;           /* navy profond — texte principal */
 
   --color-card: #FFFFFF;                 /* blanc pur — cartes */
@@ -85,16 +89,26 @@ html.light {
   --color-warning: #EAB308;
   --color-info: #3B82F6;
 
-  --color-border: #E2E8F0;              /* slate-200 — bordures subtiles */
-  --color-input: #E2E8F0;
+  --color-border: #d4d0d1;              /* rose grisé — bordures subtiles harmonisées */
+  --color-input: #d4d0d1;
   --color-ring: #F97316;                /* orange-500 — focus ring orange */
 
-  --color-sidebar: #FFFFFF;              /* blanc — sidebar claire */
+  --color-sidebar: #b6d3db;              /* teal doux — sidebar */
   --color-sidebar-foreground: #1A1A2E;   /* navy — texte sidebar */
-  --color-sidebar-border: #E2E8F0;       /* slate-200 — bordures subtiles */
-  --color-sidebar-accent: #FFF7ED;       /* orange-50 — hover items */
+  --color-sidebar-border: #9fc5cf;       /* teal plus foncé — bordures */
+  --color-sidebar-accent: #c8e0e6;       /* teal clair — hover items */
   --color-sidebar-accent-foreground: #F97316; /* orange — items actifs */
-  --color-sidebar-muted: #94A3B8;        /* slate-400 — titres de sections */
+  --color-sidebar-muted: #5f8a94;        /* teal foncé — titres de sections */
+
+  --color-header: #f1eff0;              /* rose très pâle — header */
+  --color-header-foreground: #1A1A2E;   /* navy — texte header */
+  --color-header-border: #d4d0d1;       /* rose grisé — bordure header */
+}
+
+/* Fond dégradé en light mode */
+html.light body {
+  background: linear-gradient(135deg, #b6d3db 0%, #f1eff0 50%, #f1eff0 100%);
+  background-attachment: fixed;
 }
 
 html {
@@ -131,12 +145,12 @@ html.dark ::-webkit-scrollbar-thumb:hover {
 }
 
 html.light ::-webkit-scrollbar-thumb {
-  background: #CBD5E1;                  /* slate-300 — discret */
+  background: #c4c1c2;                  /* rose grisé — harmonisé avec le thème */
   border-radius: 3px;
 }
 
 html.light ::-webkit-scrollbar-thumb:hover {
-  background: #94A3B8;                  /* slate-400 — au survol */
+  background: #a09d9e;                  /* gris rosé plus foncé — au survol */
 }
 
 /* Native select & option styling */
@@ -222,7 +236,7 @@ html.dark .thin-scrollbar::-webkit-scrollbar-thumb {
 }
 
 html.light .thin-scrollbar::-webkit-scrollbar-thumb {
-  background: #CBD5E1;                  /* slate-300 — discret */
+  background: #c4c1c2;                  /* rose grisé — harmonisé */
   border-radius: 2px;
 }
 
