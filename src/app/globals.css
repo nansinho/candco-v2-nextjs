@@ -105,12 +105,6 @@ html.light {
   --color-header-border: #d4d0d1;       /* rose grisé — bordure header */
 }
 
-/* Fond dégradé en light mode */
-html.light body {
-  background: linear-gradient(135deg, #b6d3db 0%, #f1eff0 50%, #f1eff0 100%);
-  background-attachment: fixed;
-}
-
 html {
   font-size: 16px;
 }
@@ -123,6 +117,16 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Fond dégradé en light mode — écrase le background-color + force sur les wrappers */
+html.light body {
+  background: linear-gradient(135deg, #b6d3db 0%, #f1eff0 50%, #f1eff0 100%) !important;
+  background-attachment: fixed;
+}
+
+html.light .bg-background {
+  background-color: transparent !important;
 }
 
 /* Scrollbar styling */
