@@ -47,13 +47,13 @@ export function Header({ aiCredits, userInitial = "N", userName, userEmail }: He
   }
 
   return (
-    <header className="fixed top-0 right-0 left-0 lg:left-[240px] z-30 flex h-14 items-center justify-between border-b border-sidebar-border bg-sidebar px-3 sm:px-6">
+    <header className="fixed top-0 right-0 left-0 lg:left-[240px] z-30 flex h-14 items-center justify-between border-b border-header-border bg-header px-3 sm:px-6">
       <div className="flex items-center gap-2">
         {/* Hamburger menu - mobile only */}
         <Button
           variant="ghost"
           size="icon"
-          className="h-10 w-10 text-sidebar-foreground/60 hover:text-sidebar-foreground lg:hidden compact-btn"
+          className="h-10 w-10 text-header-foreground/60 hover:text-header-foreground lg:hidden compact-btn"
           onClick={() => setMobileOpen(true)}
         >
           <Menu className="h-5 w-5" />
@@ -63,10 +63,10 @@ export function Header({ aiCredits, userInitial = "N", userName, userEmail }: He
       </div>
 
       <div className="flex items-center gap-1">
-        <Button variant="ghost" size="icon" className="h-10 w-10 text-sidebar-foreground/60 hover:text-sidebar-foreground compact-btn">
+        <Button variant="ghost" size="icon" className="h-10 w-10 text-header-foreground/60 hover:text-header-foreground compact-btn">
           <Search className="h-4 w-4" />
         </Button>
-        <Button variant="ghost" size="icon" className="relative h-10 w-10 text-sidebar-foreground/60 hover:text-sidebar-foreground compact-btn">
+        <Button variant="ghost" size="icon" className="relative h-10 w-10 text-header-foreground/60 hover:text-header-foreground compact-btn">
           <Bell className="h-4 w-4" />
           <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-primary" />
         </Button>
@@ -75,14 +75,14 @@ export function Header({ aiCredits, userInitial = "N", userName, userEmail }: He
         {aiCredits && (
           <Link
             href="/parametres?tab=ia"
-            className="group flex items-center gap-1.5 rounded-md px-2 py-1 hover:bg-sidebar-accent/50 transition-colors"
+            className="group flex items-center gap-1.5 rounded-md px-2 py-1 hover:bg-header-foreground/10 transition-colors"
             title={`${remaining} crédits IA restants sur ${limit} ce mois-ci`}
           >
             <Sparkles className={`h-3.5 w-3.5 ${creditColor}`} />
             <span className={`text-xs font-medium tabular-nums ${creditColor}`}>
               {remaining}
             </span>
-            <span className="text-xs text-sidebar-foreground/60 hidden sm:inline">
+            <span className="text-xs text-header-foreground/60 hidden sm:inline">
               /{limit}
             </span>
           </Link>
@@ -93,7 +93,7 @@ export function Header({ aiCredits, userInitial = "N", userName, userEmail }: He
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="ml-1 flex h-9 w-9 items-center justify-center rounded-full bg-sidebar-foreground/15 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-foreground/25 transition-colors cursor-pointer"
+              className="ml-1 flex h-9 w-9 items-center justify-center rounded-full bg-header-foreground/15 text-sm font-medium text-header-foreground hover:bg-header-foreground/25 transition-colors cursor-pointer"
             >
               {userInitial}
             </button>
