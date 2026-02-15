@@ -106,7 +106,7 @@ function SignaturePad({
         />
         {!hasStrokes && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <p className="text-sm text-muted-foreground/30">Signez ici</p>
+            <p className="text-sm text-muted-foreground/40">Signez ici</p>
           </div>
         )}
       </div>

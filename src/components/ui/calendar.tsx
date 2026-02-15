@@ -50,7 +50,7 @@ function Calendar({
         today:
           "[&_.rdp-day_button]:bg-accent [&_.rdp-day_button]:text-accent-foreground",
         outside:
-          "[&_.rdp-day_button]:text-muted-foreground/30 [&_.rdp-day_button]:hover:text-muted-foreground/50",
+          "[&_.rdp-day_button]:text-muted-foreground/40 [&_.rdp-day_button]:hover:text-muted-foreground/50",
         disabled: "[&_.rdp-day_button]:text-muted-foreground/20 [&_.rdp-day_button]:hover:bg-transparent",
         hidden: "invisible",
         ...classNames,

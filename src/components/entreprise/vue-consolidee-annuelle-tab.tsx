@@ -60,7 +60,7 @@ export function VueConsolideeAnnuelleTab({
       <div className="space-y-4">
         <YearSelector years={anneeOptions} selected={selectedYear} onChange={setSelectedYear} />
         <div className="rounded-lg border border-dashed border-border/60 bg-muted/10 p-8 text-center">
-          <BarChart3 className="mx-auto h-8 w-8 text-muted-foreground/30" />
+          <BarChart3 className="mx-auto h-8 w-8 text-muted-foreground/40" />
           <p className="mt-3 text-sm text-muted-foreground/60">
             Aucune donnée de formation pour {selectedYear}
           </p>

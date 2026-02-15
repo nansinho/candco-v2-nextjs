@@ -718,7 +718,7 @@ export function DataTable<T>({
                 >
                   <div className="flex flex-col items-center gap-3">
                     <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50">
-                      <Inbox className="h-6 w-6 text-muted-foreground/30" />
+                      <Inbox className="h-6 w-6 text-muted-foreground/40" />
                     </div>
                     <div>
                       <p className="text-sm font-medium text-muted-foreground/60">

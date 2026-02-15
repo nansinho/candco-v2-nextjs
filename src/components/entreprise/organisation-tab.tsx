@@ -205,7 +205,7 @@ export function OrganisationTab({ entrepriseId }: OrganisationTabProps) {
         {agencesOpen && (
           agences.length === 0 ? (
             <EmptyState
-              icon={<Building className="h-6 w-6 text-muted-foreground/30" />}
+              icon={<Building className="h-6 w-6 text-muted-foreground/40" />}
               title="Aucune agence"
               description="Ajoutez des agences ou sites (siège, établissements secondaires)."
             />
@@ -306,7 +306,7 @@ export function OrganisationTab({ entrepriseId }: OrganisationTabProps) {
         {polesOpen && (
           poles.length === 0 ? (
             <EmptyState
-              icon={<Layers className="h-6 w-6 text-muted-foreground/30" />}
+              icon={<Layers className="h-6 w-6 text-muted-foreground/40" />}
               title="Aucun pôle"
               description="Créez des pôles ou départements (Service RH, Pôle Développement, etc.)."
             />
@@ -411,7 +411,7 @@ export function OrganisationTab({ entrepriseId }: OrganisationTabProps) {
         {membresOpen && (
           membres.length === 0 ? (
             <EmptyState
-              icon={<Users className="h-6 w-6 text-muted-foreground/30" />}
+              icon={<Users className="h-6 w-6 text-muted-foreground/40" />}
               title="Aucun membre"
               description="Ajoutez des personnes à l'organigramme (direction, responsables formation, employés)."
             />

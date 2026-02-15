@@ -631,7 +631,7 @@ export function BesoinsFormationTab({
       {/* Formations list */}
       {besoins.length === 0 && !showForm ? (
         <div className="flex flex-col items-center gap-3 rounded-lg border border-border/60 bg-card py-16">
-          <ClipboardList className="h-8 w-8 text-muted-foreground/30" />
+          <ClipboardList className="h-8 w-8 text-muted-foreground/40" />
           <p className="text-sm text-muted-foreground/60">
             {isPonctuel ? "Aucune formation ponctuelle" : "Aucune formation dans le plan"}
           </p>
@@ -1028,7 +1028,7 @@ function CreateFormationPlanForm({
                       }`}
                     >
                       <div className={`h-3.5 w-3.5 rounded-full border-2 shrink-0 flex items-center justify-center ${
-                        isSelected ? "border-primary" : "border-muted-foreground/30"
+                        isSelected ? "border-primary" : "border-muted-foreground/40"
                       }`}>
                         {isSelected && <div className="h-1.5 w-1.5 rounded-full bg-primary" />}
                       </div>
@@ -1412,7 +1412,7 @@ function EditFormationModal({
                     }`}
                   >
                     <div className={`h-3.5 w-3.5 rounded-full border-2 shrink-0 flex items-center justify-center ${
-                      isSelected ? "border-primary" : "border-muted-foreground/30"
+                      isSelected ? "border-primary" : "border-muted-foreground/40"
                     }`}>
                       {isSelected && <div className="h-1.5 w-1.5 rounded-full bg-primary" />}
                     </div>
@@ -1717,7 +1717,7 @@ function FormationPlanCard({
         </div>
       ) : b.statut !== "realise" && b.statut !== "transforme" ? (
         <div className="flex items-center gap-2">
-          <Link2 className="h-3 w-3 text-muted-foreground/30" />
+          <Link2 className="h-3 w-3 text-muted-foreground/40" />
           <span className="text-xs text-muted-foreground/40">Pas de session liée</span>
         </div>
       ) : null}

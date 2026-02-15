@@ -778,7 +778,7 @@ export function SessionDetail({
 
             {commanditaires.length === 0 && !showAddCommanditaire ? (
               <div className="flex flex-col items-center gap-3 rounded-lg border border-border/60 bg-card py-16">
-                <Building2 className="h-8 w-8 text-muted-foreground/30" />
+                <Building2 className="h-8 w-8 text-muted-foreground/40" />
                 <p className="text-sm text-muted-foreground/60">Aucun commanditaire</p>
               </div>
             ) : (
@@ -972,7 +972,7 @@ export function SessionDetail({
 
             {inscriptions.length === 0 && !showAddApprenant ? (
               <div className="flex flex-col items-center gap-3 rounded-lg border border-border/60 bg-card py-16">
-                <UserPlus className="h-8 w-8 text-muted-foreground/30" />
+                <UserPlus className="h-8 w-8 text-muted-foreground/40" />
                 <p className="text-sm text-muted-foreground/60">Aucun apprenant inscrit</p>
               </div>
             ) : (
@@ -1068,7 +1068,7 @@ export function SessionDetail({
 
             {creneaux.length === 0 && !showAddCreneau ? (
               <div className="flex flex-col items-center gap-3 rounded-lg border border-border/60 bg-card py-16">
-                <CalendarDays className="h-8 w-8 text-muted-foreground/30" />
+                <CalendarDays className="h-8 w-8 text-muted-foreground/40" />
                 <p className="text-sm text-muted-foreground/60">Aucun créneau planifié</p>
               </div>
             ) : (
@@ -1146,7 +1146,7 @@ export function SessionDetail({
 
             {emargements.length === 0 ? (
               <div className="flex flex-col items-center gap-3 rounded-lg border border-border/60 bg-card py-16">
-                <ClipboardCheck className="h-8 w-8 text-muted-foreground/30" />
+                <ClipboardCheck className="h-8 w-8 text-muted-foreground/40" />
                 <p className="text-sm text-muted-foreground/60">Aucun créneau planifié</p>
               </div>
             ) : (
@@ -1205,7 +1205,7 @@ export function SessionDetail({
                                 <div className="flex items-center gap-2">
                                   {isPresent && <CheckCircle2 className="h-4 w-4 text-emerald-400" />}
                                   {isAbsent && <XCircle className="h-4 w-4 text-destructive" />}
-                                  {notMarked && <div className="h-4 w-4 rounded-full border-2 border-muted-foreground/30" />}
+                                  {notMarked && <div className="h-4 w-4 rounded-full border-2 border-muted-foreground/40" />}
                                   <span className="text-sm">{insc.apprenants?.prenom} {insc.apprenants?.nom}</span>
                                   <span className="text-xs font-mono text-muted-foreground/50">{insc.apprenants?.numero_affichage}</span>
                                 </div>
@@ -2000,7 +2000,7 @@ function AddApprenantInline({
               <div className="rounded-md border border-border/60 bg-card overflow-hidden">
                 {filteredApprenants.length === 0 ? (
                   <div className="flex flex-col items-center gap-2 py-8">
-                    <Users className="h-6 w-6 text-muted-foreground/30" />
+                    <Users className="h-6 w-6 text-muted-foreground/40" />
                     <p className="text-xs text-muted-foreground/60">
                       {searchQuery.trim() ? "Aucun apprenant trouvé pour cette recherche." : "Aucun apprenant disponible pour les entreprises commanditaires."}
                     </p>
@@ -2323,7 +2323,7 @@ function DocumentsTab({
 
       {documents.length === 0 && !showUpload ? (
         <div className="flex flex-col items-center gap-3 rounded-lg border border-border/60 bg-card py-16">
-          <FileText className="h-8 w-8 text-muted-foreground/30" />
+          <FileText className="h-8 w-8 text-muted-foreground/40" />
           <p className="text-sm text-muted-foreground/60">Aucun document</p>
         </div>
       ) : documents.length > 0 ? (
@@ -2721,7 +2721,7 @@ function EvaluationsTab({
 
       {evaluations.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border/60 py-12">
-          <ClipboardList className="h-8 w-8 text-muted-foreground/30" />
+          <ClipboardList className="h-8 w-8 text-muted-foreground/40" />
           <p className="mt-3 text-sm text-muted-foreground/60">Aucune évaluation rattachée</p>
           <p className="text-xs text-muted-foreground/40 mt-1">
             Rattachez des questionnaires de satisfaction ou pédagogiques à cette session.

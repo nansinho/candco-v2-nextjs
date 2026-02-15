@@ -109,7 +109,7 @@ export function TicketsWidget({ stats }: { stats: TicketStatsData }) {
           })}
           <Link
             href="/tickets"
-            className="flex items-center justify-center gap-1 text-xs text-muted-foreground/30 hover:text-primary transition-colors pt-1"
+            className="flex items-center justify-center gap-1 text-xs text-muted-foreground/40 hover:text-primary transition-colors pt-1"
           >
             Tout voir <ArrowRight className="h-3 w-3" />
           </Link>

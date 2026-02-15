@@ -2351,7 +2351,7 @@ function ProgrammeTab({
       {modules.length === 0 && !isAdding ? (
         <div className="flex flex-col items-center gap-3 rounded-lg border border-border/60 bg-card py-16">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50">
-            <GripVertical className="h-6 w-6 text-muted-foreground/30" />
+            <GripVertical className="h-6 w-6 text-muted-foreground/40" />
           </div>
           <p className="text-sm text-muted-foreground/60">Aucun module de programme</p>
           <p className="text-xs text-muted-foreground/40">
@@ -3437,7 +3437,7 @@ function BiblioTab({
 
         {sortedRefs.length === 0 && (
           <div className="rounded-lg border border-dashed border-border/40 p-8 text-center">
-            <BookMarked className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
+            <BookMarked className="h-8 w-8 text-muted-foreground/40 mx-auto mb-3" />
             <p className="text-sm text-muted-foreground/60">Aucune référence bibliographique</p>
             <p className="text-xs text-muted-foreground/40 mt-1">Ajoutez des références pour renforcer la crédibilité académique de cette formation</p>
           </div>

@@ -410,7 +410,7 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
             {entreprises.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50">
-                  <Building2 className="h-6 w-6 text-muted-foreground/30" />
+                  <Building2 className="h-6 w-6 text-muted-foreground/40" />
                 </div>
                 <p className="mt-3 text-sm font-medium text-muted-foreground/60">
                   Aucune entreprise associée

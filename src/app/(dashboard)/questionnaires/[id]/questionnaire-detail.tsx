@@ -343,7 +343,7 @@ export function QuestionnaireDetail({
 
             {questions.length === 0 ? (
               <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border/60 py-12">
-                <ListChecks className="h-8 w-8 text-muted-foreground/30" />
+                <ListChecks className="h-8 w-8 text-muted-foreground/40" />
                 <p className="mt-3 text-sm text-muted-foreground/60">Aucune question</p>
                 <Button
                   variant="outline"
@@ -365,14 +365,14 @@ export function QuestionnaireDetail({
                     <div className="flex flex-col items-center gap-1 pt-0.5">
                       <span className="text-xs font-mono text-muted-foreground/50">{i + 1}</span>
                       <button
-                        className="p-0.5 text-muted-foreground/30 hover:text-foreground disabled:opacity-30"
+                        className="p-0.5 text-muted-foreground/40 hover:text-foreground disabled:opacity-30"
                         onClick={() => handleMoveQuestion(i, "up")}
                         disabled={i === 0}
                       >
                         <ChevronUp className="h-3.5 w-3.5" />
                       </button>
                       <button
-                        className="p-0.5 text-muted-foreground/30 hover:text-foreground disabled:opacity-30"
+                        className="p-0.5 text-muted-foreground/40 hover:text-foreground disabled:opacity-30"
                         onClick={() => handleMoveQuestion(i, "down")}
                         disabled={i === questions.length - 1}
                       >
@@ -542,7 +542,7 @@ export function QuestionnaireDetail({
 
             {invitations.length === 0 ? (
               <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border/60 py-12">
-                <Mail className="h-8 w-8 text-muted-foreground/30" />
+                <Mail className="h-8 w-8 text-muted-foreground/40" />
                 <p className="mt-3 text-sm text-muted-foreground/60">Aucune invitation envoyee</p>
               </div>
             ) : (
@@ -608,7 +608,7 @@ export function QuestionnaireDetail({
 
             {responses.length === 0 ? (
               <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border/60 py-12">
-                <BarChart3 className="h-8 w-8 text-muted-foreground/30" />
+                <BarChart3 className="h-8 w-8 text-muted-foreground/40" />
                 <p className="mt-3 text-sm text-muted-foreground/60">Aucune reponse recue</p>
               </div>
             ) : (
@@ -721,7 +721,7 @@ export function QuestionnaireDetail({
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-12">
-              <BarChart3 className="h-8 w-8 text-muted-foreground/30" />
+              <BarChart3 className="h-8 w-8 text-muted-foreground/40" />
               <p className="mt-3 text-sm text-muted-foreground/60">Pas encore de donnees</p>
             </div>
           )}

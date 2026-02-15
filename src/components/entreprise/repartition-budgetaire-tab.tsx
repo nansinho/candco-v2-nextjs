@@ -167,7 +167,7 @@ export function RepartitionBudgetaireTab({
       <div className="space-y-4">
         <YearSelector years={anneeOptions} selected={selectedYear} onChange={setSelectedYear} />
         <div className="rounded-lg border border-dashed border-border/60 bg-muted/10 p-8 text-center">
-          <Wallet className="mx-auto h-8 w-8 text-muted-foreground/30" />
+          <Wallet className="mx-auto h-8 w-8 text-muted-foreground/40" />
           <p className="mt-3 text-sm text-muted-foreground/60">
             Aucun plan de formation pour {selectedYear}. Créez d'abord un plan annuel pour définir le budget global.
           </p>

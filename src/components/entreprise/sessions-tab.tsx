@@ -167,7 +167,7 @@ export function EntrepriseSessionsTab({ entrepriseId }: { entrepriseId: string }
       {/* Session list */}
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center gap-3 rounded-lg border border-border/60 bg-card py-16">
-          <CalendarDays className="h-8 w-8 text-muted-foreground/30" />
+          <CalendarDays className="h-8 w-8 text-muted-foreground/40" />
           <p className="text-sm text-muted-foreground/60">
             {sessions.length === 0
               ? "Aucune session liée à cette entreprise"

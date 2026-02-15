@@ -945,7 +945,7 @@ export default function FormateurDetailPage() {
               {/* Documents table */}
               {documents.length === 0 && !showDocUpload ? (
                 <div className="flex flex-col items-center gap-2 py-8">
-                  <FileText className="h-8 w-8 text-muted-foreground/30" />
+                  <FileText className="h-8 w-8 text-muted-foreground/40" />
                   <p className="text-sm text-muted-foreground/60">Aucun document</p>
                 </div>
               ) : documents.length > 0 ? (

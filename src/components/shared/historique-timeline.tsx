@@ -266,7 +266,7 @@ export function HistoriqueTimeline({
         </div>
       ) : events.length === 0 ? (
         <div className="rounded-lg border border-border/60 bg-card p-8 text-center">
-          <Clock className="mx-auto h-8 w-8 text-muted-foreground/30" />
+          <Clock className="mx-auto h-8 w-8 text-muted-foreground/40" />
           <p className="mt-3 text-sm text-muted-foreground">
             {activeFilterCount > 0
               ? "Aucun événement ne correspond aux filtres sélectionnés."

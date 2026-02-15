@@ -935,7 +935,7 @@ function FileAttachments({ fichiers }: { fichiers: { nom: string; url: string; t
 function HistoriqueEntry({ entry }: { entry: TicketHistoriqueEntry }) {
   return (
     <div className="flex gap-2 text-xs">
-      <div className="mt-1 h-1.5 w-1.5 rounded-full bg-muted-foreground/30 shrink-0" />
+      <div className="mt-1 h-1.5 w-1.5 rounded-full bg-muted-foreground/40 shrink-0" />
       <div>
         <span className="text-muted-foreground">
           {HISTORIQUE_LABELS[entry.action] || entry.action}

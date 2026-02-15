@@ -290,7 +290,7 @@ export function ExtranetTicketDetail({ ticketId, basePath }: ExtranetTicketDetai
           <div className="space-y-2">
             {historique.map((entry) => (
               <div key={entry.id} className="flex gap-2 text-xs">
-                <div className="mt-0.5 h-2 w-2 rounded-full bg-muted-foreground/30 shrink-0" />
+                <div className="mt-0.5 h-2 w-2 rounded-full bg-muted-foreground/40 shrink-0" />
                 <div>
                   <span className="text-muted-foreground">{HISTORIQUE_LABELS[entry.action] || entry.action}</span>
                   {entry.ancien_valeur && entry.nouveau_valeur && (

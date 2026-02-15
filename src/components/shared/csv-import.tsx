@@ -547,7 +547,7 @@ export function CsvImport({
                           .filter((c) => matchedColumnsInfo.includes(c.label))
                           .map((c) => (
                             <td key={c.key} className="px-2 py-1 truncate max-w-[200px]">
-                              {row[c.key] || <span className="text-muted-foreground/30">--</span>}
+                              {row[c.key] || <span className="text-muted-foreground/40">--</span>}
                             </td>
                           ))}
                       </tr>

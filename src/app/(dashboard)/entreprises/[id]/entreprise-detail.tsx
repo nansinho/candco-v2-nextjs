@@ -882,7 +882,7 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
         </div>
       ) : items.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-16">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50"><Users className="h-6 w-6 text-muted-foreground/30" /></div>
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50"><Users className="h-6 w-6 text-muted-foreground/40" /></div>
           <div className="text-center">
             <p className="text-sm font-medium text-muted-foreground/60">Aucun contact ou membre rattaché</p>
             <p className="mt-0.5 text-xs text-muted-foreground/40">Créez un contact ou ajoutez des membres via l&apos;onglet Organisation.</p>
@@ -890,7 +890,7 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
         </div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-12">
-          <Search className="h-5 w-5 text-muted-foreground/30" />
+          <Search className="h-5 w-5 text-muted-foreground/40" />
           <p className="text-sm text-muted-foreground/60">Aucun résultat pour cette recherche.</p>
         </div>
       ) : (
@@ -1127,7 +1127,7 @@ function ApprenantsTab({ entrepriseId }: { entrepriseId: string }) {
         </div>
       ) : apprenants.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-16">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50"><GraduationCap className="h-6 w-6 text-muted-foreground/30" /></div>
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50"><GraduationCap className="h-6 w-6 text-muted-foreground/40" /></div>
           <div className="text-center">
             <p className="text-sm font-medium text-muted-foreground/60">Aucun apprenant rattaché</p>
             <p className="mt-0.5 text-xs text-muted-foreground/40">Utilisez le bouton ci-dessus pour rattacher des apprenants.</p>

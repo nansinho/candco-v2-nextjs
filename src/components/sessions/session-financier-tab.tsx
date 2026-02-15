@@ -254,7 +254,7 @@ function CommanditairePipelineCard({
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-mono font-medium">{formatCurrency(d.total_ttc)}</span>
-                  <ExternalLink className="h-3 w-3 text-muted-foreground/30 opacity-0 group-hover:opacity-100" />
+                  <ExternalLink className="h-3 w-3 text-muted-foreground/40 opacity-0 group-hover:opacity-100" />
                 </div>
               </Link>
             ))}
@@ -302,7 +302,7 @@ function CommanditairePipelineCard({
                   {f.montant_paye > 0 && f.montant_paye < f.total_ttc && (
                     <span className="text-[10px] text-amber-400">({formatCurrency(f.montant_paye)} paye)</span>
                   )}
-                  <ExternalLink className="h-3 w-3 text-muted-foreground/30 opacity-0 group-hover:opacity-100" />
+                  <ExternalLink className="h-3 w-3 text-muted-foreground/40 opacity-0 group-hover:opacity-100" />
                 </div>
               </Link>
             ))}
@@ -487,7 +487,7 @@ export function SessionFinancierTab({
         </div>
       ) : (
         <div className="flex flex-col items-center gap-3 rounded-lg border border-border/60 bg-card py-16">
-          <AlertCircle className="h-8 w-8 text-muted-foreground/30" />
+          <AlertCircle className="h-8 w-8 text-muted-foreground/40" />
           <p className="text-sm text-muted-foreground/60">Ajoutez des commanditaires pour commencer la facturation</p>
         </div>
       )}
