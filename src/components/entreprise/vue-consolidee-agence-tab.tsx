@@ -60,7 +60,7 @@ export function VueConsolideeAgenceTab({
       <div className="space-y-4">
         <YearSelector years={anneeOptions} selected={selectedYear} onChange={setSelectedYear} />
         <div className="rounded-lg border border-dashed border-border/60 bg-muted/10 p-8 text-center">
-          <BarChart3 className="mx-auto h-8 w-8 text-muted-foreground/30" />
+          <BarChart3 className="mx-auto h-8 w-8 text-muted-foreground/40" />
           <p className="mt-3 text-sm text-muted-foreground/60">
             Aucune donnée de budget par agence pour {selectedYear}
           </p>
@@ -113,12 +113,12 @@ export function VueConsolideeAgenceTab({
         <table className="w-full">
           <thead>
             <tr className="border-b border-border/40">
-              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground/70">Entité</th>
-              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground/70">Budget alloué</th>
-              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground/70">Engagé plan</th>
-              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground/70">Engagé ponctuel</th>
-              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground/70">Engagé total</th>
-              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground/70">Restant</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Entité</th>
+              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">Budget alloué</th>
+              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">Engagé plan</th>
+              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">Engagé ponctuel</th>
+              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">Engagé total</th>
+              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">Restant</th>
               <th className="px-4 py-2.5 w-10"></th>
             </tr>
           </thead>
@@ -173,7 +173,7 @@ function AgenceRow({
     }`}>
       <td className="px-4 py-2.5">
         <div className="flex items-center gap-2 text-sm">
-          <span className="text-muted-foreground/50">
+          <span className="text-muted-foreground/60">
             {isSiege ? <Building2 className="h-3.5 w-3.5" /> : <MapPin className="h-3.5 w-3.5" />}
           </span>
           <span className="font-medium">{row.agenceNom}</span>

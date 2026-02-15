@@ -808,7 +808,7 @@ function DescriptionBubble({
         {!isGrouped && (
           <div className={`flex items-center gap-1.5 mb-1 ${isOwn ? "flex-row-reverse" : ""}`}>
             <span className="text-xs font-medium">{auteurNom || "Inconnu"}</span>
-            <span className="text-xs text-muted-foreground/50">{AUTEUR_TYPE_LABELS[auteurType] || auteurType}</span>
+            <span className="text-xs text-muted-foreground/60">{AUTEUR_TYPE_LABELS[auteurType] || auteurType}</span>
             <span className="text-xs text-muted-foreground/40">{formatTime(createdAt)}</span>
           </div>
         )}
@@ -880,7 +880,7 @@ function ChatBubble({
         {!isGrouped && (
           <div className={`flex items-center gap-1.5 mb-1 ${isOwn ? "flex-row-reverse" : ""}`}>
             <span className="text-xs font-medium">{message.auteur_nom || "Inconnu"}</span>
-            <span className="text-xs text-muted-foreground/50">
+            <span className="text-xs text-muted-foreground/60">
               {AUTEUR_TYPE_LABELS[message.auteur_type] || message.auteur_type}
             </span>
             <span className="text-xs text-muted-foreground/40">{formatTime(message.created_at)}</span>
@@ -935,7 +935,7 @@ function FileAttachments({ fichiers }: { fichiers: { nom: string; url: string; t
 function HistoriqueEntry({ entry }: { entry: TicketHistoriqueEntry }) {
   return (
     <div className="flex gap-2 text-xs">
-      <div className="mt-1 h-1.5 w-1.5 rounded-full bg-muted-foreground/30 shrink-0" />
+      <div className="mt-1 h-1.5 w-1.5 rounded-full bg-muted-foreground/40 shrink-0" />
       <div>
         <span className="text-muted-foreground">
           {HISTORIQUE_LABELS[entry.action] || entry.action}
@@ -949,7 +949,7 @@ function HistoriqueEntry({ entry }: { entry: TicketHistoriqueEntry }) {
         {!entry.ancien_valeur && entry.nouveau_valeur && (
           <span className="text-foreground"> : {entry.nouveau_valeur}</span>
         )}
-        <div className="text-muted-foreground/50 mt-0.5">
+        <div className="text-muted-foreground/60 mt-0.5">
           {entry.auteur_nom || "Système"} · {formatTime(entry.created_at)}
         </div>
       </div>

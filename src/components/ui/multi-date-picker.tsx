@@ -60,11 +60,11 @@ export function MultiDatePicker({
             disabled={disabled}
             className={cn(
               "h-9 w-full justify-start border-border/60 bg-muted px-3 text-left text-sm font-normal",
-              !value.length && "text-muted-foreground/50",
+              !value.length && "text-muted-foreground/60",
               className,
             )}
           >
-            <CalendarIcon className="mr-2 h-3.5 w-3.5 shrink-0 text-muted-foreground/50" />
+            <CalendarIcon className="mr-2 h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
             {value.length > 0 ? (
               <span className="flex-1 truncate">{displayText}</span>
             ) : (
@@ -72,7 +72,7 @@ export function MultiDatePicker({
             )}
             {value.length > 0 && (
               <X
-                className="ml-auto h-3.5 w-3.5 shrink-0 text-muted-foreground/50 hover:text-foreground transition-colors"
+                className="ml-auto h-3.5 w-3.5 shrink-0 text-muted-foreground/60 hover:text-foreground transition-colors"
                 onClick={handleClear}
               />
             )}

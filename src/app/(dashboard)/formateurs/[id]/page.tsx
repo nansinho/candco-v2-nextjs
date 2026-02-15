@@ -763,7 +763,7 @@ export default function FormateurDetailPage() {
                   <p className="text-lg font-semibold">
                     {tarifHoraire != null ? formatCurrency(tarifHoraire) : "--"}
                   </p>
-                  <p className="text-xs text-muted-foreground/50 mt-0.5">
+                  <p className="text-xs text-muted-foreground/60 mt-0.5">
                     = tarif jour / {form.heures_par_jour ?? 7}h
                   </p>
                 </div>
@@ -779,7 +779,7 @@ export default function FormateurDetailPage() {
                         )
                       : "--"}
                   </p>
-                  <p className="text-xs text-muted-foreground/50 mt-0.5">
+                  <p className="text-xs text-muted-foreground/60 mt-0.5">
                     TVA : {form.taux_tva ?? 0}%
                   </p>
                 </div>
@@ -945,7 +945,7 @@ export default function FormateurDetailPage() {
               {/* Documents table */}
               {documents.length === 0 && !showDocUpload ? (
                 <div className="flex flex-col items-center gap-2 py-8">
-                  <FileText className="h-8 w-8 text-muted-foreground/30" />
+                  <FileText className="h-8 w-8 text-muted-foreground/40" />
                   <p className="text-sm text-muted-foreground/60">Aucun document</p>
                 </div>
               ) : documents.length > 0 ? (
@@ -967,7 +967,7 @@ export default function FormateurDetailPage() {
                           <tr key={doc.id} className="border-b border-border/40 hover:bg-muted/20 group">
                             <td className="px-4 py-2.5">
                               <div className="flex items-center gap-2">
-                                <FileText className="h-4 w-4 text-muted-foreground/50 shrink-0" />
+                                <FileText className="h-4 w-4 text-muted-foreground/60 shrink-0" />
                                 <span className="text-sm font-medium truncate max-w-[200px]">{doc.nom}</span>
                               </div>
                             </td>

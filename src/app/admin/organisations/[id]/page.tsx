@@ -248,7 +248,7 @@ export default function AdminOrgDetailPage() {
                   <stat.icon className={`h-4 w-4 ${stat.color}`} />
                   <div>
                     <p className="text-lg font-bold leading-none">{stat.value}</p>
-                    <p className="text-xs text-muted-foreground/50">{stat.label}</p>
+                    <p className="text-xs text-muted-foreground/60">{stat.label}</p>
                   </div>
                 </div>
               ))}

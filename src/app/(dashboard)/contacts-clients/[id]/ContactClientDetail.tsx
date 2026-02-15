@@ -392,11 +392,11 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
 
             {/* Meta info */}
             <div className="mt-6 flex items-center gap-4 border-t border-border/40 pt-4">
-              <p className="text-xs text-muted-foreground/50">
+              <p className="text-xs text-muted-foreground/60">
                 Créé le {formatDate(contact.created_at)}
               </p>
               {contact.updated_at && (
-                <p className="text-xs text-muted-foreground/50">
+                <p className="text-xs text-muted-foreground/60">
                   Modifié le {formatDate(contact.updated_at)}
                 </p>
               )}
@@ -410,7 +410,7 @@ export function ContactClientDetail({ contact, entreprises }: ContactClientDetai
             {entreprises.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50">
-                  <Building2 className="h-6 w-6 text-muted-foreground/30" />
+                  <Building2 className="h-6 w-6 text-muted-foreground/40" />
                 </div>
                 <p className="mt-3 text-sm font-medium text-muted-foreground/60">
                   Aucune entreprise associée

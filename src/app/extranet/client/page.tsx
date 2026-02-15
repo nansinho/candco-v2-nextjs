@@ -37,7 +37,7 @@ export default async function ExtranetClientPage() {
       </div>
 
       <div className="rounded-lg border border-border/60 bg-card p-8 text-center">
-        <Calendar className="mx-auto h-8 w-8 text-muted-foreground/30" />
+        <Calendar className="mx-auto h-8 w-8 text-muted-foreground/40" />
         <p className="mt-2 text-sm text-muted-foreground/60">
           Votre tableau de bord s&apos;enrichira au fur et a mesure de l&apos;avancement de vos formations.
         </p>

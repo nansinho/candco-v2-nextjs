@@ -20,7 +20,7 @@ const STATUT_BADGES: Record<string, { label: string; className: string }> = {
   validee: { label: "Validee", className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
   en_cours: { label: "En cours", className: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
   terminee: { label: "Terminee", className: "bg-muted text-muted-foreground border-border/60" },
-  archivee: { label: "Archivee", className: "bg-muted text-muted-foreground/50 border-border/40" },
+  archivee: { label: "Archivee", className: "bg-muted text-muted-foreground/60 border-border/40" },
 };
 
 export function FormateurSessionsList({ sessions }: { sessions: Session[] }) {

@@ -95,7 +95,7 @@ const columns: Column<OpportuniteRow>[] = [
     render: (item) =>
       item.entreprises?.nom ? (
         <span className="flex items-center gap-1.5 text-sm">
-          <Building2 className="h-3 w-3 text-muted-foreground/50" />
+          <Building2 className="h-3 w-3 text-muted-foreground/60" />
           <span className="truncate">{item.entreprises.nom}</span>
         </span>
       ) : (

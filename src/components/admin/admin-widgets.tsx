@@ -40,7 +40,7 @@ export function AdminStatsWidget({ stats }: { stats: AdminDashboardStats }) {
             <item.icon className={`h-4 w-4 ${item.color} shrink-0`} />
             <div className="min-w-0">
               <p className="text-lg font-bold leading-none">{item.value}</p>
-              <p className="text-xs text-muted-foreground/50 truncate mt-0.5">{item.label}</p>
+              <p className="text-xs text-muted-foreground/60 truncate mt-0.5">{item.label}</p>
             </div>
           </div>
         );
@@ -122,7 +122,7 @@ export function AdminTicketsWidget({
           })}
           <Link
             href="/admin/tickets"
-            className="flex items-center justify-center gap-1 text-xs text-muted-foreground/30 hover:text-primary transition-colors pt-1"
+            className="flex items-center justify-center gap-1 text-xs text-muted-foreground/40 hover:text-primary transition-colors pt-1"
           >
             Tout voir <ArrowRight className="h-3 w-3" />
           </Link>
@@ -173,14 +173,14 @@ export function AdminActivityWidget({ activity }: { activity: AdminActivityRow[]
             <Icon className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${actionColor}`} />
             <div className="min-w-0 flex-1">
               <p className="text-xs leading-tight">
-                <span className="text-muted-foreground/80">{event.description || `${event.action} ${event.module}`}</span>
+                <span className="text-muted-foreground">{event.description || `${event.action} ${event.module}`}</span>
               </p>
               <div className="flex items-center gap-2 mt-0.5">
                 <span className="text-xs text-muted-foreground/40">{event.user_nom || "Système"}</span>
                 {event.agence_nom && (
-                  <span className="text-xs text-muted-foreground/30">{event.agence_nom}</span>
+                  <span className="text-xs text-muted-foreground/40">{event.agence_nom}</span>
                 )}
-                <span className="text-xs text-muted-foreground/25">
+                <span className="text-xs text-muted-foreground/40">
                   {formatDistanceToNow(new Date(event.created_at), { addSuffix: true, locale: fr })}
                 </span>
               </div>
@@ -190,7 +190,7 @@ export function AdminActivityWidget({ activity }: { activity: AdminActivityRow[]
       })}
       <Link
         href="/admin/activite"
-        className="flex items-center justify-center gap-1 text-xs text-muted-foreground/30 hover:text-primary transition-colors pt-1"
+        className="flex items-center justify-center gap-1 text-xs text-muted-foreground/40 hover:text-primary transition-colors pt-1"
       >
         Voir tout <ArrowRight className="h-3 w-3" />
       </Link>
@@ -234,7 +234,7 @@ export function AdminOrgsRecentesWidget({ orgs }: { orgs: RecentOrg[] }) {
       ))}
       <Link
         href="/admin/organisations"
-        className="flex items-center justify-center gap-1 text-xs text-muted-foreground/30 hover:text-primary transition-colors pt-1"
+        className="flex items-center justify-center gap-1 text-xs text-muted-foreground/40 hover:text-primary transition-colors pt-1"
       >
         Tout voir <ArrowRight className="h-3 w-3" />
       </Link>

@@ -266,7 +266,7 @@ export function HistoriqueTimeline({
         </div>
       ) : events.length === 0 ? (
         <div className="rounded-lg border border-border/60 bg-card p-8 text-center">
-          <Clock className="mx-auto h-8 w-8 text-muted-foreground/30" />
+          <Clock className="mx-auto h-8 w-8 text-muted-foreground/40" />
           <p className="mt-3 text-sm text-muted-foreground">
             {activeFilterCount > 0
               ? "Aucun événement ne correspond aux filtres sélectionnés."
@@ -315,10 +315,10 @@ export function HistoriqueTimeline({
                         <span className="text-xs text-muted-foreground">
                           {ACTION_LABELS[event.action] || event.action}
                         </span>
-                        <span className="text-xs text-muted-foreground/50">
+                        <span className="text-xs text-muted-foreground/60">
                           &middot;
                         </span>
-                        <span className="text-xs text-muted-foreground/70">
+                        <span className="text-xs text-muted-foreground">
                           {formatDateTime(event.date)}
                         </span>
                       </div>
@@ -334,7 +334,7 @@ export function HistoriqueTimeline({
                           <button
                             type="button"
                             onClick={() => hasDetailedChanges && toggleMetadata(event.id)}
-                            className={`text-xs text-muted-foreground/70 ${hasDetailedChanges ? "cursor-pointer hover:text-muted-foreground" : ""}`}
+                            className={`text-xs text-muted-foreground ${hasDetailedChanges ? "cursor-pointer hover:text-muted-foreground" : ""}`}
                           >
                             Champs modifiés : {changedFields}
                             {hasDetailedChanges && (
@@ -358,7 +358,7 @@ export function HistoriqueTimeline({
                                   <div key={field} className="flex items-baseline gap-1 py-0.5">
                                     <span className="font-medium text-foreground/70">{field} :</span>
                                     <span className="text-red-400/70 line-through">{oldVal != null ? String(oldVal) : "vide"}</span>
-                                    <span className="text-muted-foreground/50">&rarr;</span>
+                                    <span className="text-muted-foreground/60">&rarr;</span>
                                     <span className="text-green-400/70">{newVal != null ? String(newVal) : "vide"}</span>
                                   </div>
                                 );
@@ -374,7 +374,7 @@ export function HistoriqueTimeline({
                           <span className="text-xs text-muted-foreground">
                             Par {event.user_nom}
                             {event.user_role && (
-                              <span className="text-muted-foreground/50"> ({ROLE_LABELS[event.user_role] || event.user_role})</span>
+                              <span className="text-muted-foreground/60"> ({ROLE_LABELS[event.user_role] || event.user_role})</span>
                             )}
                           </span>
                         )}

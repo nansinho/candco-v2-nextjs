@@ -60,7 +60,7 @@ export function VueConsolideeAnnuelleTab({
       <div className="space-y-4">
         <YearSelector years={anneeOptions} selected={selectedYear} onChange={setSelectedYear} />
         <div className="rounded-lg border border-dashed border-border/60 bg-muted/10 p-8 text-center">
-          <BarChart3 className="mx-auto h-8 w-8 text-muted-foreground/30" />
+          <BarChart3 className="mx-auto h-8 w-8 text-muted-foreground/40" />
           <p className="mt-3 text-sm text-muted-foreground/60">
             Aucune donnée de formation pour {selectedYear}
           </p>
@@ -142,11 +142,11 @@ export function VueConsolideeAnnuelleTab({
                   style={{ width: `${Math.min(planPct, 100)}%` }}
                 />
               </div>
-              <p className="text-xs text-muted-foreground/50 text-right">{planPct}% engagé</p>
+              <p className="text-xs text-muted-foreground/60 text-right">{planPct}% engagé</p>
             </div>
           )}
 
-          <p className="text-xs text-muted-foreground/50">
+          <p className="text-xs text-muted-foreground/60">
             {data.plan.nbFormations} formation{data.plan.nbFormations > 1 ? "s" : ""} au plan
           </p>
         </div>
@@ -163,7 +163,7 @@ export function VueConsolideeAnnuelleTab({
             <span className="text-[14px] font-semibold">{formatCurrency(data.ponctuel.budgetTotal)}</span>
           </div>
 
-          <p className="text-xs text-muted-foreground/50">
+          <p className="text-xs text-muted-foreground/60">
             {data.ponctuel.nbFormations} formation{data.ponctuel.nbFormations > 1 ? "s" : ""} ponctuelle{data.ponctuel.nbFormations > 1 ? "s" : ""}
           </p>
 
@@ -184,7 +184,7 @@ export function VueConsolideeAnnuelleTab({
             <span className="text-[18px] font-bold text-primary">{formatCurrency(data.global.depenseTotale)}</span>
           </div>
 
-          <div className="text-xs text-muted-foreground/50 space-y-0.5">
+          <div className="text-xs text-muted-foreground/60 space-y-0.5">
             <div className="flex justify-between">
               <span>Plan annuel engagé</span>
               <span>{formatCurrency(data.plan.budgetEngage)}</span>

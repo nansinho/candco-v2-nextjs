@@ -167,7 +167,7 @@ export function RepartitionBudgetaireTab({
       <div className="space-y-4">
         <YearSelector years={anneeOptions} selected={selectedYear} onChange={setSelectedYear} />
         <div className="rounded-lg border border-dashed border-border/60 bg-muted/10 p-8 text-center">
-          <Wallet className="mx-auto h-8 w-8 text-muted-foreground/30" />
+          <Wallet className="mx-auto h-8 w-8 text-muted-foreground/40" />
           <p className="mt-3 text-sm text-muted-foreground/60">
             Aucun plan de formation pour {selectedYear}. Créez d'abord un plan annuel pour définir le budget global.
           </p>
@@ -281,10 +281,10 @@ export function RepartitionBudgetaireTab({
         <table className="w-full">
           <thead>
             <tr className="border-b border-border/40">
-              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground/70">Entité</th>
-              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground/70">Budget alloué</th>
-              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground/70">Budget engagé</th>
-              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground/70">Budget restant</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Entité</th>
+              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">Budget alloué</th>
+              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">Budget engagé</th>
+              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">Budget restant</th>
               <th className="px-4 py-2.5 w-16"></th>
             </tr>
           </thead>
@@ -307,7 +307,7 @@ export function RepartitionBudgetaireTab({
                 <tr key={key} className="border-b border-border/20 last:border-0">
                   <td className="px-4 py-2.5">
                     <div className="flex items-center gap-2 text-sm">
-                      <span className="text-muted-foreground/50">{entity.icon}</span>
+                      <span className="text-muted-foreground/60">{entity.icon}</span>
                       <span className="font-medium">{entity.nom}</span>
                     </div>
                   </td>

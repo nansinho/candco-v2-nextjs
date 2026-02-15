@@ -52,7 +52,7 @@ export default async function ApprenantDocumentsPage() {
               className="flex items-center gap-3 rounded-lg border border-border/60 bg-card px-4 py-3 hover:bg-accent/30 transition-colors"
             >
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted/30 shrink-0">
-                <FileText className="h-5 w-5 text-muted-foreground/50" />
+                <FileText className="h-5 w-5 text-muted-foreground/60" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{doc.nom}</p>
@@ -63,7 +63,7 @@ export default async function ApprenantDocumentsPage() {
                     </Badge>
                   )}
                   {doc.session_nom && (
-                    <span className="flex items-center gap-1 text-xs text-muted-foreground/50">
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground/60">
                       <Layers className="h-3 w-3" />
                       {doc.session_nom}
                     </span>

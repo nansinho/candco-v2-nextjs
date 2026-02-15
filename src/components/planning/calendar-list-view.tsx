@@ -41,7 +41,7 @@ export function CalendarListView({ creneaux }: CalendarListViewProps) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
         <div className="h-12 w-12 rounded-xl bg-muted/30 flex items-center justify-center mb-3">
-          <Clock className="h-5 w-5 text-muted-foreground/30" />
+          <Clock className="h-5 w-5 text-muted-foreground/40" />
         </div>
         <p className="text-sm text-muted-foreground/60">Aucun créneau sur cette période</p>
       </div>
@@ -130,7 +130,7 @@ export function CalendarListView({ creneaux }: CalendarListViewProps) {
                       </div>
                     </div>
 
-                    <ChevronRight className="h-4 w-4 text-muted-foreground/30 shrink-0" />
+                    <ChevronRight className="h-4 w-4 text-muted-foreground/40 shrink-0" />
                   </Link>
                 );
               })}

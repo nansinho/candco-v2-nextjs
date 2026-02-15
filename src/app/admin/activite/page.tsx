@@ -65,7 +65,7 @@ const columns: Column<AdminActivityRow>[] = [
     label: "Description",
     minWidth: 280,
     render: (item) => (
-      <span className="text-sm text-muted-foreground/80 line-clamp-1">
+      <span className="text-sm text-muted-foreground line-clamp-1">
         {item.description || item.entite_label || "—"}
       </span>
     ),

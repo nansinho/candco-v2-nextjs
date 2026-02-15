@@ -120,7 +120,7 @@ async function WelcomeHeader() {
       <h1 className="text-lg font-medium">
         {getGreeting()}, {prenom}
       </h1>
-      <p className="text-xs text-muted-foreground/50 mt-0.5">
+      <p className="text-xs text-muted-foreground/60 mt-0.5">
         {new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" }).format(new Date())}
       </p>
     </div>

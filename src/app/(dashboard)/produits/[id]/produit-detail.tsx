@@ -2073,7 +2073,7 @@ function TarifsSection({ produitId, tarifs }: { produitId: string; tarifs: Tarif
                 <div className="flex items-center gap-3">
                   <div>
                     <div className="flex items-center gap-1.5">
-                      <Wallet className="h-3 w-3 text-muted-foreground/50" />
+                      <Wallet className="h-3 w-3 text-muted-foreground/60" />
                       <span className="text-sm font-medium">{t.nom || "Sans nom"}</span>
                       {t.is_default && <Badge className="text-xs px-1 py-0" variant="outline">Défaut</Badge>}
                     </div>
@@ -2351,7 +2351,7 @@ function ProgrammeTab({
       {modules.length === 0 && !isAdding ? (
         <div className="flex flex-col items-center gap-3 rounded-lg border border-border/60 bg-card py-16">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50">
-            <GripVertical className="h-6 w-6 text-muted-foreground/30" />
+            <GripVertical className="h-6 w-6 text-muted-foreground/40" />
           </div>
           <p className="text-sm text-muted-foreground/60">Aucun module de programme</p>
           <p className="text-xs text-muted-foreground/40">
@@ -3068,7 +3068,7 @@ function SchedulingConfigPanel({
                 className="h-9 text-sm border-border/60"
                 placeholder="0 = jour J"
               />
-              <p className="text-xs text-muted-foreground/50">
+              <p className="text-xs text-muted-foreground/60">
                 0 = le jour même
               </p>
             </div>
@@ -3437,7 +3437,7 @@ function BiblioTab({
 
         {sortedRefs.length === 0 && (
           <div className="rounded-lg border border-dashed border-border/40 p-8 text-center">
-            <BookMarked className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
+            <BookMarked className="h-8 w-8 text-muted-foreground/40 mx-auto mb-3" />
             <p className="text-sm text-muted-foreground/60">Aucune référence bibliographique</p>
             <p className="text-xs text-muted-foreground/40 mt-1">Ajoutez des références pour renforcer la crédibilité académique de cette formation</p>
           </div>
@@ -3457,7 +3457,7 @@ function BiblioTab({
                   dangerouslySetInnerHTML={{ __html: formatAPA7(ref) }}
                 />
                 {ref.notes && (
-                  <p className="text-xs text-muted-foreground/50 mt-2 italic">{ref.notes}</p>
+                  <p className="text-xs text-muted-foreground/60 mt-2 italic">{ref.notes}</p>
                 )}
               </div>
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
@@ -3739,7 +3739,7 @@ function BiblioTab({
           <button
             type="button"
             onClick={() => setLegacyExpanded(!legacyExpanded)}
-            className="w-full flex items-center justify-between px-6 py-3 text-xs text-muted-foreground/70 hover:text-muted-foreground transition-colors"
+            className="w-full flex items-center justify-between px-6 py-3 text-xs text-muted-foreground hover:text-muted-foreground transition-colors"
           >
             <span>Anciennes références ({ouvrages.length + articles.length})</span>
             {legacyExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}

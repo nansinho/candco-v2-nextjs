@@ -124,7 +124,7 @@ const columns: Column<SessionRow>[] = [
       const count = item.inscriptions?.length ?? 0;
       return (
         <span className="flex items-center gap-1.5 text-sm">
-          <Users className="h-3 w-3 text-muted-foreground/50" />
+          <Users className="h-3 w-3 text-muted-foreground/60" />
           {count}{item.places_max ? `/${item.places_max}` : ""}
         </span>
       );

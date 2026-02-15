@@ -205,7 +205,7 @@ export function OrganisationTab({ entrepriseId }: OrganisationTabProps) {
         {agencesOpen && (
           agences.length === 0 ? (
             <EmptyState
-              icon={<Building className="h-6 w-6 text-muted-foreground/30" />}
+              icon={<Building className="h-6 w-6 text-muted-foreground/40" />}
               title="Aucune agence"
               description="Ajoutez des agences ou sites (siège, établissements secondaires)."
             />
@@ -306,7 +306,7 @@ export function OrganisationTab({ entrepriseId }: OrganisationTabProps) {
         {polesOpen && (
           poles.length === 0 ? (
             <EmptyState
-              icon={<Layers className="h-6 w-6 text-muted-foreground/30" />}
+              icon={<Layers className="h-6 w-6 text-muted-foreground/40" />}
               title="Aucun pôle"
               description="Créez des pôles ou départements (Service RH, Pôle Développement, etc.)."
             />
@@ -411,7 +411,7 @@ export function OrganisationTab({ entrepriseId }: OrganisationTabProps) {
         {membresOpen && (
           membres.length === 0 ? (
             <EmptyState
-              icon={<Users className="h-6 w-6 text-muted-foreground/30" />}
+              icon={<Users className="h-6 w-6 text-muted-foreground/40" />}
               title="Aucun membre"
               description="Ajoutez des personnes à l'organigramme (direction, responsables formation, employés)."
             />
@@ -533,10 +533,10 @@ function MembreRow({
             </Badge>
           ))}
           {m.fonction && (
-            <span className="text-xs text-muted-foreground/50">{m.fonction}</span>
+            <span className="text-xs text-muted-foreground/60">{m.fonction}</span>
           )}
           {m.pole_nom && (
-            <span className="inline-flex items-center gap-0.5 text-xs text-muted-foreground/50">
+            <span className="inline-flex items-center gap-0.5 text-xs text-muted-foreground/60">
               <Layers className="h-2.5 w-2.5" />
               {m.pole_nom}
             </span>
@@ -707,7 +707,7 @@ function MembresHierarchicalView({
         <div>
           {(siegeMembers.length > 0 || agenceGroups.length > 0 || poleOnlyMembers.length > 0) && (
             <div className="flex items-center gap-2 px-5 py-2.5 bg-muted/20 border-b border-border/40">
-              <Users className="h-3.5 w-3.5 text-muted-foreground/50" />
+              <Users className="h-3.5 w-3.5 text-muted-foreground/60" />
               <span className="text-xs font-semibold text-muted-foreground/60">Non rattachés</span>
               <span className="text-xs text-muted-foreground/40">{unaffiliated.length} membre(s)</span>
             </div>
@@ -1366,7 +1366,7 @@ function MembreDialog({
                 <div className="flex items-center gap-2 rounded-md bg-muted/30 px-3 py-2">
                   <GraduationCap className="h-3.5 w-3.5 text-blue-400" />
                   <span className="text-sm font-medium">{selectedPerson.name}</span>
-                  <button type="button" onClick={() => setSelectedPerson(null)} className="ml-auto text-muted-foreground/50 hover:text-foreground">
+                  <button type="button" onClick={() => setSelectedPerson(null)} className="ml-auto text-muted-foreground/60 hover:text-foreground">
                     <X className="h-3 w-3" />
                   </button>
                 </div>
@@ -1374,7 +1374,7 @@ function MembreDialog({
                 <div className="space-y-3 rounded-md border border-border/40 bg-muted/10 p-3">
                   <div className="flex items-center justify-between">
                     <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">Créer un apprenant</p>
-                    <button type="button" onClick={() => setShowQuickCreate(false)} className="text-muted-foreground/50 hover:text-foreground">
+                    <button type="button" onClick={() => setShowQuickCreate(false)} className="text-muted-foreground/60 hover:text-foreground">
                       <X className="h-3 w-3" />
                     </button>
                   </div>
@@ -1425,7 +1425,7 @@ function MembreDialog({
               ) : (
                 <div className="space-y-2">
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/50" />
+                    <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/60" />
                     <Input
                       placeholder="Rechercher un apprenant..."
                       value={searchQuery}
@@ -1455,7 +1455,7 @@ function MembreDialog({
                         >
                           <GraduationCap className="h-3 w-3 text-blue-400" />
                           <span className="text-sm font-medium">{p.prenom} {p.nom}</span>
-                          {p.email && <span className="text-xs text-muted-foreground/50">{p.email}</span>}
+                          {p.email && <span className="text-xs text-muted-foreground/60">{p.email}</span>}
                         </button>
                       ))}
                     </div>
@@ -1782,7 +1782,7 @@ function InscriptionGroupeeDialog({
                 <button
                   type="button"
                   onClick={() => setSelectedSession(null)}
-                  className="text-muted-foreground/50 hover:text-foreground"
+                  className="text-muted-foreground/60 hover:text-foreground"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -1790,7 +1790,7 @@ function InscriptionGroupeeDialog({
             ) : (
               <>
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/50" />
+                  <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/60" />
                   <Input
                     placeholder="Rechercher une session..."
                     value={searchQuery}
@@ -1806,7 +1806,7 @@ function InscriptionGroupeeDialog({
                   </div>
                 )}
                 {!isSearching && sessions.length === 0 && (
-                  <p className="text-xs text-muted-foreground/50 py-3 text-center">
+                  <p className="text-xs text-muted-foreground/60 py-3 text-center">
                     Aucune session trouvée
                   </p>
                 )}
@@ -1827,7 +1827,7 @@ function InscriptionGroupeeDialog({
                               {STATUT_LABELS[s.statut] ?? s.statut}
                             </Badge>
                           </div>
-                          <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground/50">
+                          <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground/60">
                             <span className="font-mono">{s.numero_affichage}</span>
                             {s.date_debut && <span>{formatDate(s.date_debut)}</span>}
                             <span>

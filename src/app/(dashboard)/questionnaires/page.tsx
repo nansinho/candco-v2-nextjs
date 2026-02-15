@@ -88,7 +88,7 @@ const columns: Column<Questionnaire>[] = [
         <div className="min-w-0">
           <span className="font-medium truncate block">{item.nom}</span>
           {item.produits_formation && (
-            <span className="text-xs text-muted-foreground/50 truncate block">
+            <span className="text-xs text-muted-foreground/60 truncate block">
               {item.produits_formation.intitule}
             </span>
           )}
@@ -427,7 +427,7 @@ function CreateQuestionnaireForm({
           name="introduction"
           rows={3}
           placeholder="Merci de prendre quelques minutes pour répondre à ce questionnaire..."
-          className="w-full rounded-md border border-input bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 resize-none"
+          className="w-full rounded-md border border-input bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 resize-none"
         />
       </div>
 

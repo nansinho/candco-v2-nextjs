@@ -30,7 +30,7 @@ export function CalendarLegend({ creneaux }: CalendarLegendProps) {
         return (
           <div key={id} className="flex items-center gap-1.5 min-w-0">
             <div className={cn("h-2 w-2 rounded-full shrink-0", color.dot)} />
-            <span className="text-xs text-muted-foreground/70 truncate max-w-[150px]">
+            <span className="text-xs text-muted-foreground truncate max-w-[150px]">
               {session.numero} — {session.nom}
             </span>
           </div>

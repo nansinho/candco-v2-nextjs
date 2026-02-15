@@ -120,7 +120,7 @@ const columns: Column<Apprenant>[] = [
       if (entreprises.length === 0) return <span className="text-muted-foreground/40">--</span>;
       return (
         <div className="flex items-center gap-1.5">
-          <Building2 className="h-3 w-3 text-muted-foreground/50 shrink-0" />
+          <Building2 className="h-3 w-3 text-muted-foreground/60 shrink-0" />
           <span className="text-sm truncate max-w-[200px]">{entreprises.join(", ")}</span>
         </div>
       );
@@ -522,14 +522,14 @@ function CreateApprenantForm({
 
       {/* Enterprise attachment */}
       <fieldset className="space-y-3 rounded-md border border-border/40 p-3">
-        <legend className="px-1 text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">
+        <legend className="px-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           Rattachement entreprise
         </legend>
 
         {!selectedEntreprise ? (
           <div className="space-y-2">
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/50" />
+              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/60" />
               <Input
                 placeholder="Rechercher une entreprise..."
                 value={entSearch}
@@ -561,7 +561,7 @@ function CreateApprenantForm({
               </div>
             )}
             {entSearch.trim() && !entSearching && entResults.length === 0 && (
-              <p className="text-xs text-muted-foreground/50">Aucune entreprise trouvée</p>
+              <p className="text-xs text-muted-foreground/60">Aucune entreprise trouvée</p>
             )}
           </div>
         ) : (
@@ -596,7 +596,7 @@ function CreateApprenantForm({
               <span className="text-xs">
                 Siège social
                 {selectedAgenceIds.length === 0 && (
-                  <span className="ml-1 text-xs text-muted-foreground/50">(par défaut si aucune agence)</span>
+                  <span className="ml-1 text-xs text-muted-foreground/60">(par défaut si aucune agence)</span>
                 )}
               </span>
             </label>
@@ -617,7 +617,7 @@ function CreateApprenantForm({
                         onChange={() => toggleAgence(ag.id)}
                         className="h-3.5 w-3.5 rounded border-border accent-primary"
                       />
-                      <MapPin className="h-3 w-3 text-muted-foreground/50 shrink-0" />
+                      <MapPin className="h-3 w-3 text-muted-foreground/60 shrink-0" />
                       <span className="text-xs">{ag.nom}</span>
                       {ag.est_siege && (
                         <span className="text-xs font-medium text-orange-400/80 bg-orange-400/10 px-1 py-0.5 rounded">siège</span>

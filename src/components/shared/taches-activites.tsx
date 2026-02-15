@@ -320,7 +320,7 @@ export function TachesActivitesTab({ entiteType, entiteId }: TachesActivitesTabP
         ) : taches.length === 0 ? (
           <div className="flex flex-col items-center py-8">
             <CheckCircle2 className="h-8 w-8 text-muted-foreground/20" />
-            <p className="mt-2 text-sm text-muted-foreground/50">
+            <p className="mt-2 text-sm text-muted-foreground/60">
               Aucune tâche pour le moment
             </p>
           </div>
@@ -404,7 +404,7 @@ export function TachesActivitesTab({ entiteType, entiteId }: TachesActivitesTabP
         ) : activites.length === 0 ? (
           <div className="flex flex-col items-center py-8">
             <MessageSquarePlus className="h-8 w-8 text-muted-foreground/20" />
-            <p className="mt-2 text-sm text-muted-foreground/50">
+            <p className="mt-2 text-sm text-muted-foreground/60">
               Aucune activité enregistrée
             </p>
           </div>
@@ -470,7 +470,7 @@ function TacheRow({
               className={`text-xs ${
                 isOverdue
                   ? "text-red-400"
-                  : "text-muted-foreground/50"
+                  : "text-muted-foreground/60"
               }`}
             >
               {isOverdue && <AlertCircle className="inline mr-0.5 h-3 w-3" />}
@@ -520,7 +520,7 @@ function ActiviteRow({
       {/* Content */}
       <div className="min-w-0 flex-1">
         <p className="text-sm">{activite.contenu}</p>
-        <p className="mt-0.5 text-xs text-muted-foreground/50">
+        <p className="mt-0.5 text-xs text-muted-foreground/60">
           {auteur} &middot;{" "}
           {new Date(activite.created_at).toLocaleDateString("fr-FR", {
             day: "2-digit",

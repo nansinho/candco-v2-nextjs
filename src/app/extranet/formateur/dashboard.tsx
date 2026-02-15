@@ -91,7 +91,7 @@ export function FormateurDashboard({
         <h2 className="mb-3 text-sm font-semibold">Prochaines sessions</h2>
         {upcoming.length === 0 ? (
           <div className="rounded-lg border border-border/60 bg-card p-8 text-center">
-            <Calendar className="mx-auto h-8 w-8 text-muted-foreground/30" />
+            <Calendar className="mx-auto h-8 w-8 text-muted-foreground/40" />
             <p className="mt-2 text-sm text-muted-foreground/60">
               Aucune session a venir
             </p>

@@ -777,7 +777,7 @@ function CatalogueTab({ initialCategories }: { initialCategories: CatalogueCateg
                   </Badge>
                 )}
                 <span className="text-sm truncate">{cat.nom}</span>
-                <Badge variant="outline" className="text-xs font-normal text-muted-foreground/50 px-1.5 py-0 shrink-0">
+                <Badge variant="outline" className="text-xs font-normal text-muted-foreground/60 px-1.5 py-0 shrink-0">
                   {NIVEAU_LABELS[cat.niveau]}
                 </Badge>
               </div>
@@ -913,17 +913,17 @@ function CatalogueTab({ initialCategories }: { initialCategories: CatalogueCateg
           <div className="flex items-center gap-2">
             <Badge className="bg-primary/10 text-primary border-primary/20 text-xs">Niveau 1</Badge>
             <span>Pôle</span>
-            <span className="text-muted-foreground/50">— Domaine principal (ex: Santé, Management)</span>
+            <span className="text-muted-foreground/60">— Domaine principal (ex: Santé, Management)</span>
           </div>
           <div className="flex items-center gap-2 pl-4">
             <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20 text-xs">Niveau 2</Badge>
             <span>Catégorie</span>
-            <span className="text-muted-foreground/50">— Regroupement thématique (ex: Pratiques cliniques)</span>
+            <span className="text-muted-foreground/60">— Regroupement thématique (ex: Pratiques cliniques)</span>
           </div>
           <div className="flex items-center gap-2 pl-8">
             <Badge className="bg-violet-500/10 text-violet-500 border-violet-500/20 text-xs">Niveau 3</Badge>
             <span>Sous-catégorie</span>
-            <span className="text-muted-foreground/50">— Détail fin (ex: Soins infirmiers)</span>
+            <span className="text-muted-foreground/60">— Détail fin (ex: Soins infirmiers)</span>
           </div>
         </div>
       </SettingsCard>
@@ -1335,7 +1335,7 @@ function TextareaGroup({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         rows={rows}
-        className="w-full rounded-md border border-border/60 bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+        className="w-full rounded-md border border-border/60 bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-ring resize-none"
       />
     </div>
   );
