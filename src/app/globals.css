@@ -53,30 +53,30 @@
 }
 
 /* ═══════════════════════════════════════════════
-   LIGHT THEME — Bleu / Blanc / Gris
-   Même structure, accent bleu + gris bleutés (slate)
+   LIGHT THEME — Blanc / Gris très clair / Orange
+   Style aéré et moderne, accent orange cohérent avec le dark
    ═══════════════════════════════════════════════ */
 html.light {
-  --color-background: #E2E8F0;           /* slate-200 — fond gris marqué */
-  --color-foreground: #0F172A;           /* slate-900 */
+  --color-background: #F5F7FA;           /* gris très clair bleuté — fond aéré */
+  --color-foreground: #1A1A2E;           /* navy profond — texte principal */
 
-  --color-card: #FFFFFF;
-  --color-card-foreground: #0F172A;
+  --color-card: #FFFFFF;                 /* blanc pur — cartes */
+  --color-card-foreground: #1A1A2E;
 
   --color-popover: #FFFFFF;
-  --color-popover-foreground: #0F172A;
+  --color-popover-foreground: #1A1A2E;
 
-  --color-primary: #2563EB;              /* blue-600 — accent principal */
+  --color-primary: #F97316;              /* orange-500 — accent principal (cohérent dark) */
   --color-primary-foreground: #FFFFFF;
 
-  --color-secondary: #CBD5E1;            /* slate-300 */
-  --color-secondary-foreground: #0F172A;
+  --color-secondary: #F1F5F9;            /* slate-100 — secondaire très clair */
+  --color-secondary-foreground: #1A1A2E;
 
-  --color-muted: #CBD5E1;               /* slate-300 */
-  --color-muted-foreground: #334155;     /* slate-700 — assez foncé pour survivre aux opacités /50+ */
+  --color-muted: #F1F5F9;               /* slate-100 — fonds atténués */
+  --color-muted-foreground: #64748B;     /* slate-500 — texte secondaire lisible */
 
-  --color-accent: #DBEAFE;              /* blue-100 — hover/active */
-  --color-accent-foreground: #0F172A;
+  --color-accent: #FFF7ED;              /* orange-50 — hover/active subtil */
+  --color-accent-foreground: #1A1A2E;
 
   --color-destructive: #EF4444;
   --color-destructive-foreground: #FFFFFF;
@@ -85,16 +85,16 @@ html.light {
   --color-warning: #EAB308;
   --color-info: #3B82F6;
 
-  --color-border: #CBD5E1;              /* slate-300 */
-  --color-input: #CBD5E1;
-  --color-ring: #2563EB;                /* blue-600 — focus ring bleu */
+  --color-border: #E2E8F0;              /* slate-200 — bordures subtiles */
+  --color-input: #E2E8F0;
+  --color-ring: #F97316;                /* orange-500 — focus ring orange */
 
-  --color-sidebar: #1E3A5F;              /* navy foncé */
-  --color-sidebar-foreground: #E2E8F0;  /* slate-200 — texte clair */
-  --color-sidebar-border: #2D4A6F;      /* navy plus clair — bordures */
-  --color-sidebar-accent: #2D4A6F;      /* navy plus clair — hover/active bg */
-  --color-sidebar-accent-foreground: #FFFFFF; /* blanc — items actifs */
-  --color-sidebar-muted: #94A3B8;       /* slate-400 — titres de sections */
+  --color-sidebar: #FFFFFF;              /* blanc — sidebar claire */
+  --color-sidebar-foreground: #1A1A2E;   /* navy — texte sidebar */
+  --color-sidebar-border: #E2E8F0;       /* slate-200 — bordures subtiles */
+  --color-sidebar-accent: #FFF7ED;       /* orange-50 — hover items */
+  --color-sidebar-accent-foreground: #F97316; /* orange — items actifs */
+  --color-sidebar-muted: #94A3B8;        /* slate-400 — titres de sections */
 }
 
 html {
@@ -131,12 +131,12 @@ html.dark ::-webkit-scrollbar-thumb:hover {
 }
 
 html.light ::-webkit-scrollbar-thumb {
-  background: #CBD5E1;                  /* slate-300 */
+  background: #CBD5E1;                  /* slate-300 — discret */
   border-radius: 3px;
 }
 
 html.light ::-webkit-scrollbar-thumb:hover {
-  background: #94A3B8;                  /* slate-400 */
+  background: #94A3B8;                  /* slate-400 — au survol */
 }
 
 /* Native select & option styling */
@@ -222,7 +222,7 @@ html.dark .thin-scrollbar::-webkit-scrollbar-thumb {
 }
 
 html.light .thin-scrollbar::-webkit-scrollbar-thumb {
-  background: #CBD5E1;                  /* slate-300 */
+  background: #CBD5E1;                  /* slate-300 — discret */
   border-radius: 2px;
 }
 
