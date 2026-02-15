@@ -5,7 +5,8 @@ import { NavigationProgress } from "@/components/layout/navigation-progress";
 import { SidebarProvider } from "@/components/layout/sidebar-context";
 import { BreadcrumbProvider } from "@/components/layout/breadcrumb-context";
 import { getCurrentUser } from "@/lib/auth-helpers";
-import { getAICredits } from "@/actions/parametres";
+import { getAICredits, getThemeSettings } from "@/actions/parametres";
+import { ThemeColorsHydrator } from "@/components/theme-colors-hydrator";
 
 export default async function DashboardLayout({
   children,
@@ -14,14 +15,19 @@ export default async function DashboardLayout({
 }) {
   let user = null;
   let aiCredits = null;
+  let themeColorsJson: string | null = null;
   try {
     // Parallelize independent queries instead of running them sequentially
-    const [userResult, creditsResult] = await Promise.all([
+    const [userResult, creditsResult, themeResult] = await Promise.all([
       getCurrentUser(),
       getAICredits(),
+      getThemeSettings(),
     ]);
     user = userResult;
     aiCredits = creditsResult.data;
+    if (themeResult.data) {
+      themeColorsJson = JSON.stringify(themeResult.data);
+    }
   } catch (err) {
     console.error("[DashboardLayout] getCurrentUser failed:", err);
   }
@@ -30,6 +36,7 @@ export default async function DashboardLayout({
 
   return (
     <ToastProvider>
+      <ThemeColorsHydrator themeColorsJson={themeColorsJson} />
       <SidebarProvider>
         <BreadcrumbProvider>
           <NavigationProgress />
