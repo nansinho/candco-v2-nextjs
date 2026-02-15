@@ -113,12 +113,12 @@ export function VueConsolideeAgenceTab({
         <table className="w-full">
           <thead>
             <tr className="border-b border-border/40">
-              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground/70">Entité</th>
-              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground/70">Budget alloué</th>
-              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground/70">Engagé plan</th>
-              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground/70">Engagé ponctuel</th>
-              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground/70">Engagé total</th>
-              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground/70">Restant</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Entité</th>
+              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">Budget alloué</th>
+              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">Engagé plan</th>
+              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">Engagé ponctuel</th>
+              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">Engagé total</th>
+              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">Restant</th>
               <th className="px-4 py-2.5 w-10"></th>
             </tr>
           </thead>

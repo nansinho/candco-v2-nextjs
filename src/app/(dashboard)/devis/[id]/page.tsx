@@ -1416,7 +1416,7 @@ export default function DevisDetailPage() {
                           {(() => {
                             const tarif = produitTarifs.find((t) => t.id === selectedTarifId);
                             const hint = getQuantiteHint(tarif?.unite);
-                            return hint ? <p className="text-[10px] text-muted-foreground/70 leading-tight mt-0.5">{hint}</p> : null;
+                            return hint ? <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">{hint}</p> : null;
                           })()}
                         </div>
                         <div className="space-y-1">
@@ -1457,7 +1457,7 @@ export default function DevisDetailPage() {
                             {(() => {
                               const tarif = produitTarifs.find((t) => t.id === selectedTarifId);
                               const hint = getQuantiteHint(tarif?.unite);
-                              return hint ? <p className="text-[10px] text-muted-foreground/70 leading-tight mt-0.5">{hint}</p> : null;
+                              return hint ? <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">{hint}</p> : null;
                             })()}
                           </div>
                         )}

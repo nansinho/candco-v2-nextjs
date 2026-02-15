@@ -3739,7 +3739,7 @@ function BiblioTab({
           <button
             type="button"
             onClick={() => setLegacyExpanded(!legacyExpanded)}
-            className="w-full flex items-center justify-between px-6 py-3 text-xs text-muted-foreground/70 hover:text-muted-foreground transition-colors"
+            className="w-full flex items-center justify-between px-6 py-3 text-xs text-muted-foreground hover:text-muted-foreground transition-colors"
           >
             <span>Anciennes références ({ouvrages.length + articles.length})</span>
             {legacyExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}

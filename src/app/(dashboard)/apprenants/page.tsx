@@ -522,7 +522,7 @@ function CreateApprenantForm({
 
       {/* Enterprise attachment */}
       <fieldset className="space-y-3 rounded-md border border-border/40 p-3">
-        <legend className="px-1 text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">
+        <legend className="px-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           Rattachement entreprise
         </legend>
 

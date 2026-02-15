@@ -281,10 +281,10 @@ export function RepartitionBudgetaireTab({
         <table className="w-full">
           <thead>
             <tr className="border-b border-border/40">
-              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground/70">Entité</th>
-              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground/70">Budget alloué</th>
-              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground/70">Budget engagé</th>
-              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground/70">Budget restant</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Entité</th>
+              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">Budget alloué</th>
+              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">Budget engagé</th>
+              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">Budget restant</th>
               <th className="px-4 py-2.5 w-16"></th>
             </tr>
           </thead>

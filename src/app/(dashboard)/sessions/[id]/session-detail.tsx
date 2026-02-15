@@ -560,7 +560,7 @@ export function SessionDetail({
             <div className="rounded-lg border border-border/60 bg-card">
               <div className="p-6 space-y-6">
                 <fieldset className="space-y-4">
-                  <legend className="text-sm font-semibold text-muted-foreground/80 uppercase tracking-wider">
+                  <legend className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                     Informations générales
                   </legend>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -602,7 +602,7 @@ export function SessionDetail({
                 {/* Devis d'origine (bidirectional link) */}
                 {linkedDevis.length > 0 && (
                   <fieldset className="space-y-3">
-                    <legend className="text-sm font-semibold text-muted-foreground/80 uppercase tracking-wider">
+                    <legend className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                       Devis d&apos;origine
                     </legend>
                     {linkedDevis.map((d) => (
@@ -630,7 +630,7 @@ export function SessionDetail({
                 )}
 
                 <fieldset className="space-y-4">
-                  <legend className="text-sm font-semibold text-muted-foreground/80 uppercase tracking-wider">Lieu</legend>
+                  <legend className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Lieu</legend>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="lieu_type" className="text-sm">Type</Label>
@@ -673,7 +673,7 @@ export function SessionDetail({
                 {/* Formateurs section */}
                 <fieldset className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <legend className="text-sm font-semibold text-muted-foreground/80 uppercase tracking-wider">Formateur(s)</legend>
+                    <legend className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Formateur(s)</legend>
                     <Button
                       type="button"
                       variant="outline"

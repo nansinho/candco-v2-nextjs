@@ -318,7 +318,7 @@ export function HistoriqueTimeline({
                         <span className="text-xs text-muted-foreground/60">
                           &middot;
                         </span>
-                        <span className="text-xs text-muted-foreground/70">
+                        <span className="text-xs text-muted-foreground">
                           {formatDateTime(event.date)}
                         </span>
                       </div>
@@ -334,7 +334,7 @@ export function HistoriqueTimeline({
                           <button
                             type="button"
                             onClick={() => hasDetailedChanges && toggleMetadata(event.id)}
-                            className={`text-xs text-muted-foreground/70 ${hasDetailedChanges ? "cursor-pointer hover:text-muted-foreground" : ""}`}
+                            className={`text-xs text-muted-foreground ${hasDetailedChanges ? "cursor-pointer hover:text-muted-foreground" : ""}`}
                           >
                             Champs modifiés : {changedFields}
                             {hasDetailedChanges && (
