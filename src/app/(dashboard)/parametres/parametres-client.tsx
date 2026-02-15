@@ -26,8 +26,13 @@ import {
   X,
   ChevronRight,
   ChevronDown,
+  Palette,
+  RotateCcw,
+  Sun,
+  Moon,
+  Eye,
 } from "lucide-react";
-import type { OrganisationSettings } from "@/actions/parametres";
+import type { OrganisationSettings, ThemeColors } from "@/actions/parametres";
 import {
   updateGeneralSettings,
   updateFacturationSettings,
@@ -35,7 +40,11 @@ import {
   uploadOrganisationLogo,
   removeOrganisationLogo,
   getAICredits,
+  updateThemeSettings,
+  getThemeSettings,
+  resetThemeSettings,
 } from "@/actions/parametres";
+import { useTheme } from "@/components/theme-provider";
 import { SiretSearch } from "@/components/shared/siret-search";
 import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
 import { AI_COSTS } from "@/lib/ai-providers";
@@ -84,6 +93,10 @@ export function ParametresClient({ settings, catalogueCategories = [] }: { setti
             <Bot className="h-3.5 w-3.5" />
             IA
           </TabsTrigger>
+          <TabsTrigger value="apparence" className="text-xs gap-1.5">
+            <Palette className="h-3.5 w-3.5" />
+            Apparence
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="general">
@@ -100,6 +113,9 @@ export function ParametresClient({ settings, catalogueCategories = [] }: { setti
         </TabsContent>
         <TabsContent value="ia">
           <AITab settings={settings} />
+        </TabsContent>
+        <TabsContent value="apparence">
+          <ApparenceTab />
         </TabsContent>
       </Tabs>
     </div>
@@ -911,6 +927,360 @@ function CatalogueTab({ initialCategories }: { initialCategories: CatalogueCateg
           </div>
         </div>
       </SettingsCard>
+    </div>
+  );
+}
+
+// ─── Apparence Tab ────────────────────────────────────
+
+const DEFAULT_DARK: ThemeColors["dark"] = {
+  background: "#0A0A0A",
+  foreground: "#FAFAFA",
+  card: "#1A1A1A",
+  primary: "#FF7C4C",
+  sidebar: "#0A0A0A",
+  header: "#0A0A0A",
+  border: "#2A2A2A",
+  muted: "#141414",
+  accent: "#1A1A1A",
+};
+
+const DEFAULT_LIGHT: ThemeColors["light"] = {
+  background: "#f1eff0",
+  foreground: "#1A1A2E",
+  card: "#FFFFFF",
+  primary: "#F97316",
+  sidebar: "#c5dce4",
+  header: "#f1eff0",
+  border: "#d4d0d1",
+  muted: "#F1F5F9",
+  accent: "#FFF7ED",
+};
+
+const COLOR_LABELS: Record<string, { label: string; description: string }> = {
+  background: { label: "Fond", description: "Arrière-plan principal" },
+  foreground: { label: "Texte", description: "Couleur du texte principal" },
+  card: { label: "Cartes", description: "Fond des cartes et panneaux" },
+  primary: { label: "Accent", description: "Boutons, liens, badges actifs" },
+  sidebar: { label: "Sidebar", description: "Fond de la barre latérale" },
+  header: { label: "Header", description: "Fond de la barre supérieure" },
+  border: { label: "Bordures", description: "Bordures et séparateurs" },
+  muted: { label: "Atténué", description: "Fonds secondaires, inputs" },
+  accent: { label: "Hover", description: "Fond au survol des éléments" },
+};
+
+function applyThemeColors(colors: ThemeColors) {
+  const root = document.documentElement;
+  const theme = root.className as "dark" | "light";
+  const palette = theme === "light" ? colors.light : colors.dark;
+
+  root.style.setProperty("--color-background", palette.background);
+  root.style.setProperty("--color-foreground", palette.foreground);
+  root.style.setProperty("--color-card", palette.card);
+  root.style.setProperty("--color-card-foreground", palette.foreground);
+  root.style.setProperty("--color-popover", palette.card);
+  root.style.setProperty("--color-popover-foreground", palette.foreground);
+  root.style.setProperty("--color-primary", palette.primary);
+  root.style.setProperty("--color-ring", palette.primary);
+  root.style.setProperty("--color-sidebar", palette.sidebar);
+  root.style.setProperty("--color-sidebar-foreground", palette.foreground);
+  root.style.setProperty("--color-header", palette.header);
+  root.style.setProperty("--color-header-foreground", palette.foreground);
+  root.style.setProperty("--color-border", palette.border);
+  root.style.setProperty("--color-input", palette.border);
+  root.style.setProperty("--color-muted", palette.muted);
+  root.style.setProperty("--color-accent", palette.accent);
+  root.style.setProperty("--color-accent-foreground", palette.foreground);
+  root.style.setProperty("--color-secondary", palette.muted);
+  root.style.setProperty("--color-secondary-foreground", palette.foreground);
+
+  // Update gradient for light mode
+  if (theme === "light") {
+    document.body.style.background = `linear-gradient(135deg, ${palette.sidebar} 0%, ${palette.background} 50%, ${palette.background} 100%)`;
+    document.body.style.backgroundAttachment = "fixed";
+  }
+
+  // Persist to localStorage for instant load on next visit
+  localStorage.setItem("candco-theme-colors", JSON.stringify(colors));
+}
+
+function clearThemeColors() {
+  const root = document.documentElement;
+  const props = [
+    "--color-background", "--color-foreground", "--color-card", "--color-card-foreground",
+    "--color-popover", "--color-popover-foreground", "--color-primary", "--color-ring",
+    "--color-sidebar", "--color-sidebar-foreground", "--color-header", "--color-header-foreground",
+    "--color-border", "--color-input", "--color-muted", "--color-accent", "--color-accent-foreground",
+    "--color-secondary", "--color-secondary-foreground",
+  ];
+  props.forEach((p) => root.style.removeProperty(p));
+  document.body.style.removeProperty("background");
+  document.body.style.removeProperty("background-attachment");
+  localStorage.removeItem("candco-theme-colors");
+}
+
+function ColorPicker({
+  label,
+  description,
+  value,
+  onChange,
+}: {
+  label: string;
+  description: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-lg border border-border/60 bg-card p-3">
+      <label className="relative shrink-0 cursor-pointer">
+        <input
+          type="color"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="absolute inset-0 opacity-0 cursor-pointer"
+        />
+        <div
+          className="h-10 w-10 rounded-lg border-2 border-border/60 shadow-sm transition-transform hover:scale-105"
+          style={{ backgroundColor: value }}
+        />
+      </label>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium">{label}</p>
+        <p className="text-xs text-muted-foreground truncate">{description}</p>
+      </div>
+      <Input
+        value={value}
+        onChange={(e) => {
+          const v = e.target.value;
+          if (/^#[0-9A-Fa-f]{0,6}$/.test(v)) onChange(v);
+        }}
+        className="h-8 w-24 text-xs font-mono border-border/60 text-center"
+        maxLength={7}
+      />
+    </div>
+  );
+}
+
+function ApparenceTab() {
+  const { toast } = useToast();
+  const { theme } = useTheme();
+  const [saving, setSaving] = React.useState(false);
+  const [loading, setLoading] = React.useState(true);
+  const [activeMode, setActiveMode] = React.useState<"dark" | "light">(theme === "light" ? "light" : "dark");
+
+  const [dark, setDark] = React.useState({ ...DEFAULT_DARK });
+  const [light, setLight] = React.useState({ ...DEFAULT_LIGHT });
+
+  // Load saved colors from DB
+  React.useEffect(() => {
+    getThemeSettings().then((result) => {
+      if (result.data) {
+        setDark({ ...DEFAULT_DARK, ...result.data.dark });
+        setLight({ ...DEFAULT_LIGHT, ...result.data.light });
+      }
+      setLoading(false);
+    });
+  }, []);
+
+  // Follow current theme toggle
+  React.useEffect(() => {
+    setActiveMode(theme === "light" ? "light" : "dark");
+  }, [theme]);
+
+  const currentColors = activeMode === "dark" ? dark : light;
+  const setCurrentColors = activeMode === "dark" ? setDark : setLight;
+
+  function updateColor(key: string, value: string) {
+    setCurrentColors((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function handlePreview() {
+    applyThemeColors({ dark, light });
+    toast({ title: "Aperçu appliqué", description: "Les couleurs sont visibles temporairement", variant: "success" });
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    const colors: ThemeColors = { dark, light };
+    applyThemeColors(colors);
+    const result = await updateThemeSettings(colors);
+    setSaving(false);
+
+    if ("error" in result) {
+      toast({ title: "Erreur", description: String(result.error), variant: "destructive" });
+    } else {
+      toast({ title: "Enregistré", description: "Les couleurs ont été sauvegardées", variant: "success" });
+    }
+  }
+
+  async function handleReset() {
+    setSaving(true);
+    setDark({ ...DEFAULT_DARK });
+    setLight({ ...DEFAULT_LIGHT });
+    clearThemeColors();
+    const result = await resetThemeSettings();
+    setSaving(false);
+
+    if ("error" in result) {
+      toast({ title: "Erreur", description: String(result.error), variant: "destructive" });
+    } else {
+      toast({ title: "Réinitialisé", description: "Les couleurs par défaut ont été restaurées", variant: "success" });
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6 mt-4">
+      {/* Mode selector */}
+      <SettingsCard title="Personnalisation des couleurs" description="Choisissez les couleurs pour chaque thème. Les modifications sont appliquées en temps réel.">
+        <div className="space-y-4">
+          {/* Dark / Light toggle */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setActiveMode("dark")}
+              className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all cursor-pointer ${
+                activeMode === "dark"
+                  ? "bg-foreground text-background shadow-sm"
+                  : "bg-muted/50 text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              <Moon className="h-4 w-4" />
+              Thème sombre
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveMode("light")}
+              className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all cursor-pointer ${
+                activeMode === "light"
+                  ? "bg-foreground text-background shadow-sm"
+                  : "bg-muted/50 text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              <Sun className="h-4 w-4" />
+              Thème clair
+            </button>
+          </div>
+
+          {/* Color pickers grid */}
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {Object.entries(COLOR_LABELS).map(([key, meta]) => (
+              <ColorPicker
+                key={`${activeMode}-${key}`}
+                label={meta.label}
+                description={meta.description}
+                value={(currentColors as Record<string, string>)[key] || "#000000"}
+                onChange={(v) => updateColor(key, v)}
+              />
+            ))}
+          </div>
+        </div>
+      </SettingsCard>
+
+      {/* Preview card */}
+      <SettingsCard title="Aperçu" description="Visualisez vos choix avant de sauvegarder">
+        <div
+          className="rounded-xl border-2 overflow-hidden"
+          style={{ borderColor: currentColors.border }}
+        >
+          {/* Mini header */}
+          <div
+            className="flex items-center gap-3 px-4 py-2.5 border-b"
+            style={{ backgroundColor: currentColors.header, borderColor: currentColors.border }}
+          >
+            <div
+              className="h-6 w-6 rounded-md flex items-center justify-center text-[8px] font-bold text-white"
+              style={{ backgroundColor: currentColors.primary }}
+            >
+              C
+            </div>
+            <div className="h-2.5 w-24 rounded-full" style={{ backgroundColor: currentColors.foreground, opacity: 0.3 }} />
+            <div className="ml-auto flex gap-1.5">
+              <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: currentColors.foreground, opacity: 0.2 }} />
+              <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: currentColors.foreground, opacity: 0.2 }} />
+            </div>
+          </div>
+          <div className="flex" style={{ backgroundColor: currentColors.background }}>
+            {/* Mini sidebar */}
+            <div
+              className="w-20 p-2 space-y-1.5 border-r shrink-0"
+              style={{ backgroundColor: currentColors.sidebar, borderColor: currentColors.border }}
+            >
+              {[1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  className="h-2 rounded-full"
+                  style={{
+                    backgroundColor: i === 1 ? currentColors.primary : currentColors.foreground,
+                    opacity: i === 1 ? 0.8 : 0.15,
+                  }}
+                />
+              ))}
+            </div>
+            {/* Mini content */}
+            <div className="flex-1 p-3 space-y-2">
+              <div
+                className="rounded-lg p-3 space-y-2"
+                style={{ backgroundColor: currentColors.card, border: `1px solid ${currentColors.border}` }}
+              >
+                <div className="h-2.5 w-20 rounded-full" style={{ backgroundColor: currentColors.foreground, opacity: 0.7 }} />
+                <div className="h-2 w-32 rounded-full" style={{ backgroundColor: currentColors.foreground, opacity: 0.2 }} />
+                <div className="flex gap-2 mt-2">
+                  <div
+                    className="h-6 px-3 rounded-md flex items-center"
+                    style={{ backgroundColor: currentColors.primary }}
+                  >
+                    <span className="text-[9px] font-medium text-white">Action</span>
+                  </div>
+                  <div
+                    className="h-6 px-3 rounded-md flex items-center"
+                    style={{ backgroundColor: currentColors.muted }}
+                  >
+                    <span className="text-[9px]" style={{ color: currentColors.foreground, opacity: 0.6 }}>Annuler</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </SettingsCard>
+
+      {/* Actions */}
+      <div className="flex items-center justify-between">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={handleReset}
+          disabled={saving}
+          className="h-8 text-xs gap-1.5 border-border/60"
+        >
+          <RotateCcw className="h-3 w-3" />
+          Réinitialiser
+        </Button>
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handlePreview}
+            disabled={saving}
+            className="h-8 text-xs gap-1.5 border-border/60"
+          >
+            <Eye className="h-3 w-3" />
+            Aperçu
+          </Button>
+          <Button size="sm" disabled={saving} onClick={handleSave} className="h-8 text-xs gap-1.5">
+            {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+            Enregistrer
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
