@@ -146,7 +146,7 @@ export function CalendarMonthView({ currentDate, creneaux, onDayClick, onEditCre
                     {hasMore && (
                       <button
                         type="button"
-                        className="text-xs text-muted-foreground/50 hover:text-primary transition-colors pl-1 font-medium"
+                        className="text-xs text-muted-foreground/60 hover:text-primary transition-colors pl-1 font-medium"
                         onClick={(e) => {
                           e.stopPropagation();
                           onDayClick?.(day);

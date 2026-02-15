@@ -133,29 +133,29 @@ function ApprenantEventDetail({
       </div>
       <div className="px-4 py-3 space-y-2.5">
         <div className="flex items-center gap-2">
-          <Clock className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
+          <Clock className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
           <span className="text-sm">
             {formatTimeRange(creneau.heure_debut, creneau.heure_fin)}
           </span>
           {creneau.duree_minutes && (
-            <span className="text-xs text-muted-foreground/50">
+            <span className="text-xs text-muted-foreground/60">
               ({formatDuration(creneau.duree_minutes)})
             </span>
           )}
         </div>
         <div className="flex items-center gap-2">
-          <TypeIcon className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
+          <TypeIcon className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
           <span className="text-sm capitalize">{typeConfig?.label ?? creneau.type}</span>
         </div>
         {creneau.salle && (
           <div className="flex items-center gap-2">
-            <MapPin className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
+            <MapPin className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
             <span className="text-sm">{creneau.salle.nom}</span>
           </div>
         )}
         {creneau.formateur && (
           <div className="flex items-center gap-2">
-            <User className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
+            <User className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
             <span className="text-sm">{creneau.formateur.prenom} {creneau.formateur.nom}</span>
           </div>
         )}
@@ -332,7 +332,7 @@ export function ApprenantPlanningClient({ apprenantId }: ApprenantPlanningClient
                   {HOURS.map((hour) => (
                     <div
                       key={hour}
-                      className="absolute right-2 -translate-y-1/2 text-xs text-muted-foreground/50 font-mono"
+                      className="absolute right-2 -translate-y-1/2 text-xs text-muted-foreground/60 font-mono"
                       style={{ top: (hour - HOUR_START) * HOUR_HEIGHT_PX }}
                     >
                       {String(hour).padStart(2, "0")}:00

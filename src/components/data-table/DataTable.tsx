@@ -476,7 +476,7 @@ export function DataTable<T>({
         <div className="flex flex-wrap items-center gap-2">
           {onSearchChange && (
             <div className="relative w-full sm:max-w-xs">
-              <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/50" />
+              <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/60" />
               <Input
                 placeholder="Rechercher..."
                 value={searchValue}
@@ -643,7 +643,7 @@ export function DataTable<T>({
       {/* Search (standalone - when no filter system) */}
       {onSearchChange && !(onFiltersChange && filterableColumns.length > 0) && (
         <div className="relative w-full sm:max-w-xs">
-          <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/50" />
+          <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/60" />
           <Input
             placeholder="Rechercher..."
             value={searchValue}

@@ -276,7 +276,7 @@ export function QuestionnaireDetail({
                 {TYPE_LABELS[questionnaire.type] ?? questionnaire.type}
               </span>
               {questionnaire.produits_formation && (
-                <span className="text-xs text-muted-foreground/50">
+                <span className="text-xs text-muted-foreground/60">
                   | {questionnaire.produits_formation.intitule}
                 </span>
               )}
@@ -363,7 +363,7 @@ export function QuestionnaireDetail({
                     className="group flex items-start gap-3 rounded-lg border border-border/60 bg-card p-4 hover:border-border transition-colors"
                   >
                     <div className="flex flex-col items-center gap-1 pt-0.5">
-                      <span className="text-xs font-mono text-muted-foreground/50">{i + 1}</span>
+                      <span className="text-xs font-mono text-muted-foreground/60">{i + 1}</span>
                       <button
                         className="p-0.5 text-muted-foreground/40 hover:text-foreground disabled:opacity-30"
                         onClick={() => handleMoveQuestion(i, "up")}
@@ -395,7 +395,7 @@ export function QuestionnaireDetail({
                           <span className="text-xs text-muted-foreground">{q.points} pt(s)</span>
                         )}
                         {q.type === "choix_unique" || q.type === "choix_multiple" ? (
-                          <span className="text-xs text-muted-foreground/50">
+                          <span className="text-xs text-muted-foreground/60">
                             {(q.options ?? []).length} option(s)
                           </span>
                         ) : null}
@@ -413,13 +413,13 @@ export function QuestionnaireDetail({
 
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
-                        className="p-1.5 rounded hover:bg-muted/50 text-muted-foreground/50 hover:text-foreground"
+                        className="p-1.5 rounded hover:bg-muted/50 text-muted-foreground/60 hover:text-foreground"
                         onClick={() => { setEditingQuestion(q); setShowAddQuestion(true); }}
                       >
                         <Eye className="h-3.5 w-3.5" />
                       </button>
                       <button
-                        className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground/50 hover:text-destructive"
+                        className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground/60 hover:text-destructive"
                         onClick={() => handleRemoveQuestion(q.id)}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -680,7 +680,7 @@ export function QuestionnaireDetail({
                   {stats.questionStats.map((qs, i) => (
                     <div key={qs.questionId} className="rounded-lg border border-border/60 bg-card p-4">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="text-xs font-mono text-muted-foreground/50">Q{i + 1}</span>
+                        <span className="text-xs font-mono text-muted-foreground/60">Q{i + 1}</span>
                         <span className="text-sm font-medium">{qs.texte}</span>
                         <Badge variant="outline" className="text-xs">{QUESTION_TYPE_LABELS[qs.type] ?? qs.type}</Badge>
                         <span className="text-xs text-muted-foreground ml-auto">{qs.count} reponse(s)</span>
@@ -885,7 +885,7 @@ function QuestionForm({
               />
               <button
                 type="button"
-                className="p-1 text-muted-foreground/50 hover:text-destructive"
+                className="p-1 text-muted-foreground/60 hover:text-destructive"
                 onClick={() => removeOption(i)}
               >
                 <Trash2 className="h-3.5 w-3.5" />
@@ -960,7 +960,7 @@ function SendInvitationsForm({
           className="w-full rounded-md border border-input bg-muted px-3 py-2 text-sm text-foreground font-mono resize-none"
           placeholder={"jean.dupont@email.com\nmarie.martin@email.com"}
         />
-        <p className="text-xs text-muted-foreground/50">
+        <p className="text-xs text-muted-foreground/60">
           {emails.split("\n").filter((l) => l.trim().includes("@")).length} adresse(s) valide(s)
         </p>
       </div>

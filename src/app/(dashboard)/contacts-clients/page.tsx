@@ -128,7 +128,7 @@ const columns: Column<ContactClient>[] = [
       if (entreprises.length === 0) return <span className="text-muted-foreground/40">--</span>;
       return (
         <div className="flex items-center gap-1.5">
-          <Building2 className="h-3 w-3 text-muted-foreground/50 shrink-0" />
+          <Building2 className="h-3 w-3 text-muted-foreground/60 shrink-0" />
           <span className="text-sm truncate max-w-[200px]">{entreprises.join(", ")}</span>
         </div>
       );

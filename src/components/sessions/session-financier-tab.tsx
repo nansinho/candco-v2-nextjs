@@ -207,8 +207,8 @@ function CommanditairePipelineCard({
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex items-center gap-2">
-          {expanded ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground/50" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50" />}
-          <Building2 className="h-4 w-4 text-muted-foreground/50" />
+          {expanded ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground/60" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60" />}
+          <Building2 className="h-4 w-4 text-muted-foreground/60" />
           <span className="text-sm font-medium">{cmd.entreprise_nom ?? "Commanditaire"}</span>
           {cmd.financeur_nom && (
             <Badge variant="outline" className="text-[10px] h-5">{cmd.financeur_nom}</Badge>

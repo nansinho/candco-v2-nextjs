@@ -214,7 +214,7 @@ export function EntrepriseSessionsTab({ entrepriseId }: { entrepriseId: string }
                           </div>
                           <div className="min-w-0">
                             <p className="text-sm font-medium truncate">{s.nom}</p>
-                            <p className="text-xs text-muted-foreground/50 font-mono">
+                            <p className="text-xs text-muted-foreground/60 font-mono">
                               {s.numero_affichage}
                               {s.produits_formation && (
                                 <span className="ml-2 font-sans">{s.produits_formation.intitule}</span>

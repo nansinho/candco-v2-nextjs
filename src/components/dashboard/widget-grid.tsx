@@ -84,7 +84,7 @@ function SortableWidget({
       {/* Widget header */}
       <div className="flex items-center gap-2 px-4 py-3 border-b border-border/30">
         <button
-          className="cursor-grab active:cursor-grabbing touch-none text-muted-foreground/50 hover:text-muted-foreground/70 transition-colors"
+          className="cursor-grab active:cursor-grabbing touch-none text-muted-foreground/60 hover:text-muted-foreground/70 transition-colors"
           {...attributes}
           {...listeners}
         >
@@ -95,7 +95,7 @@ function SortableWidget({
         </span>
         <button
           onClick={() => onToggle(id)}
-          className="opacity-0 group-hover:opacity-100 text-muted-foreground/50 hover:text-muted-foreground/70 transition-all"
+          className="opacity-0 group-hover:opacity-100 text-muted-foreground/60 hover:text-muted-foreground/70 transition-all"
         >
           <EyeOff className="h-3 w-3" />
         </button>
@@ -282,7 +282,7 @@ export function WidgetGrid({ widgets: defaultWidgets, children, storageKey }: Wi
       {/* Toolbar */}
       <div className="flex items-center justify-end gap-2">
         {hiddenCount > 0 && !customizing && (
-          <span className="text-xs text-muted-foreground/50">
+          <span className="text-xs text-muted-foreground/60">
             {hiddenCount} widget{hiddenCount > 1 ? "s" : ""} masqué{hiddenCount > 1 ? "s" : ""}
           </span>
         )}
@@ -291,7 +291,7 @@ export function WidgetGrid({ widgets: defaultWidgets, children, storageKey }: Wi
           className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-all ${
             customizing
               ? "border-primary/30 bg-primary/5 text-primary"
-              : "border-border/40 text-muted-foreground/50 hover:text-muted-foreground hover:border-border/60"
+              : "border-border/40 text-muted-foreground/60 hover:text-muted-foreground hover:border-border/60"
           }`}
         >
           <Plus className={`h-3 w-3 transition-transform ${customizing ? "rotate-45" : ""}`} />

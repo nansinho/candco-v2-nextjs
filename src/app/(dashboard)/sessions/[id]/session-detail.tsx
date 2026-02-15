@@ -608,7 +608,7 @@ export function SessionDetail({
                     {linkedDevis.map((d) => (
                       <div key={d.id} className="flex items-center justify-between rounded-md border border-border/40 bg-muted/20 px-3 py-2">
                         <div className="flex items-center gap-2 min-w-0">
-                          <FileText className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
+                          <FileText className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
                           <span className="text-sm font-medium">{d.numero_affichage}</span>
                           <DevisStatusBadge statut={d.statut} className="text-[10px]" />
                           {d.total_ttc > 0 && (
@@ -707,7 +707,7 @@ export function SessionDetail({
                       {formateurs.map((f) => (
                         <div key={f.id} className="flex items-center justify-between rounded-md border border-border/40 bg-muted/20 px-3 py-2 group">
                           <div className="flex items-center gap-2">
-                            <Users className="h-3.5 w-3.5 text-muted-foreground/50" />
+                            <Users className="h-3.5 w-3.5 text-muted-foreground/60" />
                             <span className="text-sm">{f.formateurs?.prenom} {f.formateurs?.nom}</span>
                             <Badge variant="outline" className="text-xs">{f.role}</Badge>
                           </div>
@@ -732,8 +732,8 @@ export function SessionDetail({
 
               <div className="flex items-center justify-between border-t border-border/60 px-6 py-4">
                 <div className="flex items-center gap-4">
-                  <p className="text-xs text-muted-foreground/50">Créé le {formatDate(session.created_at)}</p>
-                  {session.updated_at && <p className="text-xs text-muted-foreground/50">Modifié le {formatDate(session.updated_at)}</p>}
+                  <p className="text-xs text-muted-foreground/60">Créé le {formatDate(session.created_at)}</p>
+                  {session.updated_at && <p className="text-xs text-muted-foreground/60">Modifié le {formatDate(session.updated_at)}</p>}
                 </div>
                 <Button type="submit" size="sm" className="h-8 text-xs" disabled={isPending}>
                   {isPending ? (
@@ -791,7 +791,7 @@ export function SessionDetail({
                     <div className="flex items-start justify-between">
                       <div>
                         <div className="flex items-center gap-2">
-                          <Building2 className="h-4 w-4 text-muted-foreground/50" />
+                          <Building2 className="h-4 w-4 text-muted-foreground/60" />
                           <span className="text-sm font-medium">{c.entreprises?.nom ?? "Commanditaire"}</span>
                           {c.financeurs && (
                             <Badge variant="outline" className="text-xs">{c.financeurs.nom}</Badge>
@@ -993,7 +993,7 @@ export function SessionDetail({
                         <tr key={insc.id} className="border-b border-border/40 hover:bg-muted/20 group">
                           <td className="px-4 py-2.5 text-sm font-medium">
                             {insc.apprenants?.prenom} {insc.apprenants?.nom}
-                            <span className="ml-2 text-xs font-mono text-muted-foreground/50">{insc.apprenants?.numero_affichage}</span>
+                            <span className="ml-2 text-xs font-mono text-muted-foreground/60">{insc.apprenants?.numero_affichage}</span>
                           </td>
                           <td className="px-4 py-2.5 text-sm text-muted-foreground">{insc.apprenants?.email || "--"}</td>
                           <td className="px-4 py-2.5 text-sm text-muted-foreground">
@@ -1076,16 +1076,16 @@ export function SessionDetail({
                 {creneaux.map((c) => (
                   <div key={c.id} className="flex flex-wrap items-center gap-3 sm:gap-4 rounded-lg border border-border/60 bg-card px-4 py-3 group">
                     <div className="flex items-center gap-2 min-w-[130px]">
-                      <CalendarDays className="h-3.5 w-3.5 text-muted-foreground/50" />
+                      <CalendarDays className="h-3.5 w-3.5 text-muted-foreground/60" />
                       <span className="text-sm font-medium">{formatDate(c.date)}</span>
                     </div>
                     <div className="flex items-center gap-1.5 min-w-[120px]">
-                      <Clock className="h-3 w-3 text-muted-foreground/50" />
+                      <Clock className="h-3 w-3 text-muted-foreground/60" />
                       <span className="text-sm text-muted-foreground">
                         {c.heure_debut.slice(0, 5)} — {c.heure_fin.slice(0, 5)}
                       </span>
                       {c.duree_minutes && (
-                        <span className="text-xs text-muted-foreground/50">
+                        <span className="text-xs text-muted-foreground/60">
                           ({formatDuration(c.duree_minutes)})
                         </span>
                       )}
@@ -1161,11 +1161,11 @@ export function SessionDetail({
                       {/* Créneau header */}
                       <div className="flex flex-wrap items-center gap-3 px-4 py-3 border-b border-border/60 bg-muted/20">
                         <div className="flex items-center gap-2">
-                          <CalendarDays className="h-3.5 w-3.5 text-muted-foreground/50" />
+                          <CalendarDays className="h-3.5 w-3.5 text-muted-foreground/60" />
                           <span className="text-sm font-medium">{formatDate(ec.date)}</span>
                         </div>
                         <div className="flex items-center gap-1.5">
-                          <Clock className="h-3 w-3 text-muted-foreground/50" />
+                          <Clock className="h-3 w-3 text-muted-foreground/60" />
                           <span className="text-sm text-muted-foreground">
                             {ec.heure_debut.slice(0, 5)} — {ec.heure_fin.slice(0, 5)}
                           </span>
@@ -1207,7 +1207,7 @@ export function SessionDetail({
                                   {isAbsent && <XCircle className="h-4 w-4 text-destructive" />}
                                   {notMarked && <div className="h-4 w-4 rounded-full border-2 border-muted-foreground/40" />}
                                   <span className="text-sm">{insc.apprenants?.prenom} {insc.apprenants?.nom}</span>
-                                  <span className="text-xs font-mono text-muted-foreground/50">{insc.apprenants?.numero_affichage}</span>
+                                  <span className="text-xs font-mono text-muted-foreground/60">{insc.apprenants?.numero_affichage}</span>
                                 </div>
                                 <div className="flex items-center gap-1.5">
                                   <Button
@@ -1233,7 +1233,7 @@ export function SessionDetail({
                                     Absent
                                   </Button>
                                   {emargement?.heure_signature && (
-                                    <span className="text-xs text-muted-foreground/50 ml-2">
+                                    <span className="text-xs text-muted-foreground/60 ml-2">
                                       {new Date(emargement.heure_signature).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
                                     </span>
                                   )}
@@ -2009,11 +2009,11 @@ function AddApprenantInline({
                   <>
                     {/* Header */}
                     <div className="grid grid-cols-[50px_1fr_1fr_1fr_1fr] gap-1 px-3 py-1.5 border-b border-border/60 bg-muted/30">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50">Civ.</span>
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50">Nom</span>
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50">Prénom</span>
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50">Email</span>
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50">Agence</span>
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Civ.</span>
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Nom</span>
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Prénom</span>
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Email</span>
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Agence</span>
                     </div>
                     {/* Rows */}
                     <div className="max-h-[240px] overflow-y-auto">
@@ -2344,7 +2344,7 @@ function DocumentsTab({
                   <tr key={doc.id} className="border-b border-border/40 hover:bg-muted/20 group">
                     <td className="px-4 py-2.5">
                       <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-muted-foreground/50 shrink-0" />
+                        <FileText className="h-4 w-4 text-muted-foreground/60 shrink-0" />
                         <span className="text-sm font-medium truncate max-w-[250px]">{doc.nom}</span>
                       </div>
                     </td>
@@ -2830,7 +2830,7 @@ function SessionEvaluationCard({
       {/* Header row */}
       <div className="flex items-center justify-between p-4">
         <div className="flex items-center gap-3 min-w-0">
-          <ClipboardList className="h-4 w-4 text-muted-foreground/50 shrink-0" />
+          <ClipboardList className="h-4 w-4 text-muted-foreground/60 shrink-0" />
           <div className="min-w-0">
             <p className="text-sm font-medium truncate">
               {ev.questionnaires?.nom ?? "Questionnaire supprimé"}
@@ -2850,7 +2850,7 @@ function SessionEvaluationCard({
                 </Badge>
               )}
               {planification?.herite_du_produit && !planification.personnalise && (
-                <span className="text-xs text-muted-foreground/50">Hérité du programme</span>
+                <span className="text-xs text-muted-foreground/60">Hérité du programme</span>
               )}
             </div>
           </div>
@@ -2870,7 +2870,7 @@ function SessionEvaluationCard({
               ) : planification.envoi_auto ? (
                 <ToggleRight className="h-3.5 w-3.5 text-primary" />
               ) : (
-                <ToggleLeft className="h-3.5 w-3.5 text-muted-foreground/50" />
+                <ToggleLeft className="h-3.5 w-3.5 text-muted-foreground/60" />
               )}
             </Button>
           )}
@@ -2899,7 +2899,7 @@ function SessionEvaluationCard({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 text-muted-foreground/50 hover:text-destructive"
+            className="h-7 w-7 text-muted-foreground/60 hover:text-destructive"
             onClick={onRemove}
             title="Retirer"
           >

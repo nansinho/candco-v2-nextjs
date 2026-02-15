@@ -144,7 +144,7 @@ export function ProduitSearchCombobox({ value, onChange, disabled }: ProduitSear
                     )}
                     {product.categorie && product.categorie !== product.domaine && (
                       <>
-                        <span className="text-[10px] text-muted-foreground/50">·</span>
+                        <span className="text-[10px] text-muted-foreground/60">·</span>
                         <span className="text-[10px] text-muted-foreground">{product.categorie}</span>
                       </>
                     )}

@@ -152,12 +152,12 @@ export function EventDetail({ creneau, onClose, onEdit, onDelete }: EventDetailP
       <div className="px-4 py-3 space-y-2.5">
         {/* Time */}
         <div className="flex items-center gap-2">
-          <Clock className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
+          <Clock className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
           <span className="text-sm">
             {formatTimeRange(creneau.heure_debut, creneau.heure_fin)}
           </span>
           {creneau.duree_minutes && (
-            <span className="text-xs text-muted-foreground/50">
+            <span className="text-xs text-muted-foreground/60">
               ({formatDuration(creneau.duree_minutes)})
             </span>
           )}
@@ -165,14 +165,14 @@ export function EventDetail({ creneau, onClose, onEdit, onDelete }: EventDetailP
 
         {/* Type */}
         <div className="flex items-center gap-2">
-          <TypeIcon className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
+          <TypeIcon className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
           <span className="text-sm capitalize">{typeConfig?.label ?? creneau.type}</span>
         </div>
 
         {/* Formateur */}
         {creneau.formateur && (
           <div className="flex items-center gap-2">
-            <User className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
+            <User className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
             <span className="text-sm">
               {creneau.formateur.prenom} {creneau.formateur.nom}
             </span>
@@ -182,7 +182,7 @@ export function EventDetail({ creneau, onClose, onEdit, onDelete }: EventDetailP
         {/* Salle */}
         {creneau.salle && (
           <div className="flex items-center gap-2">
-            <MapPin className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
+            <MapPin className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
             <span className="text-sm">{creneau.salle.nom}</span>
           </div>
         )}

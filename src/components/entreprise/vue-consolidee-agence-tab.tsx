@@ -173,7 +173,7 @@ function AgenceRow({
     }`}>
       <td className="px-4 py-2.5">
         <div className="flex items-center gap-2 text-sm">
-          <span className="text-muted-foreground/50">
+          <span className="text-muted-foreground/60">
             {isSiege ? <Building2 className="h-3.5 w-3.5" /> : <MapPin className="h-3.5 w-3.5" />}
           </span>
           <span className="font-medium">{row.agenceNom}</span>

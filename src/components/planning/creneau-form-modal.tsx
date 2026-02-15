@@ -393,7 +393,7 @@ export function CreneauFormModal({
           )}
 
           {checkingConflicts && (
-            <p className="text-xs text-muted-foreground/50 flex items-center gap-1.5">
+            <p className="text-xs text-muted-foreground/60 flex items-center gap-1.5">
               <Loader2 className="h-3 w-3 animate-spin" /> Verification des conflits...
             </p>
           )}

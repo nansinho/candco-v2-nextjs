@@ -133,7 +133,7 @@ export function EmailModal({
               onChange={(e) => setBody(e.target.value)}
               placeholder="Votre message..."
               rows={6}
-              className="w-full rounded-md border border-border/60 bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+              className="w-full rounded-md border border-border/60 bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-ring resize-none"
             />
           </div>
         </div>

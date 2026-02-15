@@ -426,11 +426,11 @@ export function ApprenantDetail({
               {/* Footer / Save */}
               <div className="flex items-center justify-between border-t border-border/60 px-6 py-4">
                 <div className="flex items-center gap-4">
-                  <p className="text-xs text-muted-foreground/50">
+                  <p className="text-xs text-muted-foreground/60">
                     Créé le {formatDate(apprenant.created_at)}
                   </p>
                   {apprenant.updated_at && (
-                    <p className="text-xs text-muted-foreground/50">
+                    <p className="text-xs text-muted-foreground/60">
                       Modifié le {formatDate(apprenant.updated_at)}
                     </p>
                   )}
@@ -652,7 +652,7 @@ function EntreprisesTab({
           {!linkingEnt ? (
             <>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/50" />
+                <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/60" />
                 <Input placeholder="Rechercher une entreprise par nom ou SIRET..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="h-8 pl-9 text-xs border-border/60" autoFocus />
               </div>
               {isSearching && <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" />Recherche...</div>}
@@ -663,7 +663,7 @@ function EntreprisesTab({
                       <div className="flex items-center gap-2">
                         <Building2 className="h-3.5 w-3.5 text-orange-400" />
                         <span className="text-sm font-medium">{ent.nom}</span>
-                        {ent.siret && <span className="text-xs text-muted-foreground/50">{ent.siret}</span>}
+                        {ent.siret && <span className="text-xs text-muted-foreground/60">{ent.siret}</span>}
                         {ent.adresse_ville && <span className="text-xs text-muted-foreground/40">{ent.adresse_ville}</span>}
                       </div>
                       <span className="text-xs text-primary font-medium flex items-center gap-0.5"><Plus className="h-3 w-3" />Rattacher</span>
@@ -672,7 +672,7 @@ function EntreprisesTab({
                 </div>
               )}
               {searchQuery.trim() && !isSearching && searchResults.length === 0 && (
-                <p className="mt-2 text-xs text-muted-foreground/50">Aucune entreprise trouvée pour &laquo; {searchQuery} &raquo;</p>
+                <p className="mt-2 text-xs text-muted-foreground/60">Aucune entreprise trouvée pour &laquo; {searchQuery} &raquo;</p>
               )}
             </>
           ) : (
@@ -763,7 +763,7 @@ function EntreprisesTab({
                   <div className="flex items-center gap-2">
                     <Building2 className="h-3.5 w-3.5 text-orange-400 shrink-0" />
                     <span className="text-sm font-medium">{ent.nom}</span>
-                    {ent.siret && <span className="text-xs text-muted-foreground/50">{ent.siret}</span>}
+                    {ent.siret && <span className="text-xs text-muted-foreground/60">{ent.siret}</span>}
                   </div>
                   {/* Headquarters / Agency badges */}
                   <div className="mt-1.5 flex flex-wrap items-center gap-1.5 ml-5">
@@ -831,7 +831,7 @@ function SiegeAgencePicker({
         <span className="text-xs">
           Siège social
           {selectedAgenceIds.length === 0 && (
-            <span className="ml-1 text-xs text-muted-foreground/50">(par défaut si aucune agence)</span>
+            <span className="ml-1 text-xs text-muted-foreground/60">(par défaut si aucune agence)</span>
           )}
         </span>
       </label>
@@ -851,7 +851,7 @@ function SiegeAgencePicker({
                   onChange={() => onAgenceToggle(ag.id)}
                   className="h-3.5 w-3.5 rounded border-border accent-primary"
                 />
-                <MapPin className="h-3 w-3 text-muted-foreground/50 shrink-0" />
+                <MapPin className="h-3 w-3 text-muted-foreground/60 shrink-0" />
                 <span className="text-xs">{ag.nom}</span>
                 {ag.est_siege && (
                   <span className="text-xs font-medium text-orange-400/80 bg-orange-400/10 px-1 py-0.5 rounded">siège</span>

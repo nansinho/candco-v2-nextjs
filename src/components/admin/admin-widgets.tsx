@@ -40,7 +40,7 @@ export function AdminStatsWidget({ stats }: { stats: AdminDashboardStats }) {
             <item.icon className={`h-4 w-4 ${item.color} shrink-0`} />
             <div className="min-w-0">
               <p className="text-lg font-bold leading-none">{item.value}</p>
-              <p className="text-xs text-muted-foreground/50 truncate mt-0.5">{item.label}</p>
+              <p className="text-xs text-muted-foreground/60 truncate mt-0.5">{item.label}</p>
             </div>
           </div>
         );

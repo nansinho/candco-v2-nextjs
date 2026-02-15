@@ -2073,7 +2073,7 @@ function TarifsSection({ produitId, tarifs }: { produitId: string; tarifs: Tarif
                 <div className="flex items-center gap-3">
                   <div>
                     <div className="flex items-center gap-1.5">
-                      <Wallet className="h-3 w-3 text-muted-foreground/50" />
+                      <Wallet className="h-3 w-3 text-muted-foreground/60" />
                       <span className="text-sm font-medium">{t.nom || "Sans nom"}</span>
                       {t.is_default && <Badge className="text-xs px-1 py-0" variant="outline">Défaut</Badge>}
                     </div>
@@ -3068,7 +3068,7 @@ function SchedulingConfigPanel({
                 className="h-9 text-sm border-border/60"
                 placeholder="0 = jour J"
               />
-              <p className="text-xs text-muted-foreground/50">
+              <p className="text-xs text-muted-foreground/60">
                 0 = le jour même
               </p>
             </div>
@@ -3457,7 +3457,7 @@ function BiblioTab({
                   dangerouslySetInnerHTML={{ __html: formatAPA7(ref) }}
                 />
                 {ref.notes && (
-                  <p className="text-xs text-muted-foreground/50 mt-2 italic">{ref.notes}</p>
+                  <p className="text-xs text-muted-foreground/60 mt-2 italic">{ref.notes}</p>
                 )}
               </div>
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">

@@ -419,7 +419,7 @@ function GeneralInfoTab({ entreprise, bpfCategories, onUpdate }: GeneralInfoTabP
               setAdresseVille(r.adresse_ville || adresseVille);
             }}
           />
-          <p className="mt-2 text-xs text-muted-foreground/50">
+          <p className="mt-2 text-xs text-muted-foreground/60">
             Recherchez par SIRET, SIREN ou nom pour mettre à jour automatiquement les informations.
           </p>
         </section>
@@ -860,7 +860,7 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
               >
                 {opt.label}
                 <span className={`inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-xs ${
-                  filter === opt.value ? "bg-primary/20 text-primary" : "bg-muted/50 text-muted-foreground/50"
+                  filter === opt.value ? "bg-primary/20 text-primary" : "bg-muted/50 text-muted-foreground/60"
                 }`}>
                   {counts[opt.value]}
                 </span>
@@ -923,7 +923,7 @@ function ContactsTab({ entrepriseId }: { entrepriseId: string }) {
                     <div className="min-w-0">
                       <span className="text-sm font-medium">{item.prenom} {item.nom}</span>
                       {(item.numero_affichage_contact || item.numero_affichage_apprenant) && (
-                        <span className="ml-1.5 font-mono text-xs text-muted-foreground/50">
+                        <span className="ml-1.5 font-mono text-xs text-muted-foreground/60">
                           {item.numero_affichage_contact ?? item.numero_affichage_apprenant}
                         </span>
                       )}
@@ -1092,7 +1092,7 @@ function ApprenantsTab({ entrepriseId }: { entrepriseId: string }) {
       {showSearch && (
         <div className="px-5 py-3 border-b border-border/40 bg-muted/10">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/50" />
+            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/60" />
             <Input placeholder="Rechercher un apprenant par nom ou email..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="h-8 pl-9 text-xs border-border/60" autoFocus />
           </div>
           {isSearching && <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" />Recherche...</div>}
@@ -1103,7 +1103,7 @@ function ApprenantsTab({ entrepriseId }: { entrepriseId: string }) {
                   <div className="flex items-center gap-2">
                     <GraduationCap className="h-3.5 w-3.5 text-blue-400" />
                     <span className="text-sm font-medium">{a.prenom} {a.nom}</span>
-                    {a.email && <span className="text-xs text-muted-foreground/50">{a.email}</span>}
+                    {a.email && <span className="text-xs text-muted-foreground/60">{a.email}</span>}
                   </div>
                   <span className="text-xs text-primary font-medium flex items-center gap-0.5"><Plus className="h-3 w-3" />Rattacher</span>
                 </button>
@@ -1111,7 +1111,7 @@ function ApprenantsTab({ entrepriseId }: { entrepriseId: string }) {
             </div>
           )}
           {searchQuery.trim() && !isSearching && searchResults.length === 0 && (
-            <p className="mt-2 text-xs text-muted-foreground/50">Aucun apprenant trouvé pour &laquo; {searchQuery} &raquo;</p>
+            <p className="mt-2 text-xs text-muted-foreground/60">Aucun apprenant trouvé pour &laquo; {searchQuery} &raquo;</p>
           )}
         </div>
       )}

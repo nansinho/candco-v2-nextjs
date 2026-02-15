@@ -793,7 +793,7 @@ function PlanBudgetCard({
               style={{ width: `${Math.min(pct, 100)}%` }}
             />
           </div>
-          <p className="text-xs text-muted-foreground/50 text-right">{pct}% engagé</p>
+          <p className="text-xs text-muted-foreground/60 text-right">{pct}% engagé</p>
         </div>
       )}
     </div>
@@ -920,7 +920,7 @@ function CreateFormationPlanForm({
             <div className="flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
               <BookOpen className="h-3.5 w-3.5 text-primary shrink-0" />
               <span className="text-xs font-medium truncate">{selectedProduit.intitule}</span>
-              <span className="text-xs font-mono text-muted-foreground/50">{selectedProduit.numero_affichage}</span>
+              <span className="text-xs font-mono text-muted-foreground/60">{selectedProduit.numero_affichage}</span>
               {selectedTarif && (
                 <Badge variant="outline" className="text-xs ml-auto shrink-0 text-emerald-400 border-emerald-500/20">
                   <TrendingUp className="h-2.5 w-2.5 mr-0.5" />
@@ -972,7 +972,7 @@ function CreateFormationPlanForm({
                           onClick={() => handleProduitSelect(p)}
                           className="flex items-center gap-2 w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors"
                         >
-                          <BookOpen className="h-3 w-3 text-muted-foreground/50 shrink-0" />
+                          <BookOpen className="h-3 w-3 text-muted-foreground/60 shrink-0" />
                           <span className="text-xs truncate">{p.intitule}</span>
                           <span className="text-xs font-mono text-muted-foreground/40 shrink-0">{p.numero_affichage}</span>
                         </button>
@@ -1035,13 +1035,13 @@ function CreateFormationPlanForm({
                       <span className="text-xs font-medium truncate">
                         {tarif.nom || "Tarif"}
                         {tarif.is_default && (
-                          <span className="ml-1 text-xs text-muted-foreground/50">(défaut)</span>
+                          <span className="ml-1 text-xs text-muted-foreground/60">(défaut)</span>
                         )}
                       </span>
                       <div className="ml-auto flex items-center gap-2 shrink-0 text-xs">
                         <span className="font-semibold">{formatCurrency(tarif.prix_ht)} HT</span>
                         {tarif.taux_tva > 0 && (
-                          <span className="text-muted-foreground/50">
+                          <span className="text-muted-foreground/60">
                             TVA {tarif.taux_tva}% = {formatCurrency(prixTTC)} TTC
                           </span>
                         )}
@@ -1313,7 +1313,7 @@ function EditFormationModal({
           <div className="flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
             <BookOpen className="h-3.5 w-3.5 text-primary shrink-0" />
             <span className="text-xs font-medium truncate">{selectedProduit.intitule}</span>
-            <span className="text-xs font-mono text-muted-foreground/50">{selectedProduit.numero_affichage}</span>
+            <span className="text-xs font-mono text-muted-foreground/60">{selectedProduit.numero_affichage}</span>
             <button
               type="button"
               onClick={() => { setSelectedProduit(null); setShowProduitSearch(true); }}
@@ -1358,7 +1358,7 @@ function EditFormationModal({
                         onClick={() => handleProduitSelect(p)}
                         className="flex items-center gap-2 w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors"
                       >
-                        <BookOpen className="h-3 w-3 text-muted-foreground/50 shrink-0" />
+                        <BookOpen className="h-3 w-3 text-muted-foreground/60 shrink-0" />
                         <span className="text-xs truncate">{p.intitule}</span>
                         <span className="text-xs font-mono text-muted-foreground/40 shrink-0">{p.numero_affichage}</span>
                       </button>
@@ -1419,13 +1419,13 @@ function EditFormationModal({
                     <span className="text-xs font-medium truncate">
                       {tarif.nom || "Tarif"}
                       {tarif.is_default && (
-                        <span className="ml-1 text-xs text-muted-foreground/50">(défaut)</span>
+                        <span className="ml-1 text-xs text-muted-foreground/60">(défaut)</span>
                       )}
                     </span>
                     <div className="ml-auto flex items-center gap-2 shrink-0 text-xs">
                       <span className="font-semibold">{formatCurrency(tarif.prix_ht)} HT</span>
                       {tarif.taux_tva > 0 && (
-                        <span className="text-muted-foreground/50">
+                        <span className="text-muted-foreground/60">
                           TVA {tarif.taux_tva}% = {formatCurrency(prixTTC)} TTC
                         </span>
                       )}
@@ -1563,7 +1563,7 @@ function FormationPlanCard({
       {/* Header row */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">
-          <GraduationCap className="h-4 w-4 text-muted-foreground/50 shrink-0" />
+          <GraduationCap className="h-4 w-4 text-muted-foreground/60 shrink-0" />
 
           {/* Intitulé (editable inline) */}
           {isEditing ? (
@@ -1661,7 +1661,7 @@ function FormationPlanCard({
 
       {/* Programme linked info */}
       {b.produits_formation && (
-        <div className="flex items-center gap-2 text-xs text-muted-foreground/50">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground/60">
           <BookOpen className="h-3 w-3" />
           <span>Programme : {b.produits_formation.intitule}</span>
           <span className="font-mono">{b.produits_formation.numero_affichage}</span>
@@ -1702,7 +1702,7 @@ function FormationPlanCard({
           <Link2 className="h-3 w-3 text-muted-foreground/40" />
           <span className="text-xs text-muted-foreground/60">Session liée :</span>
           <span className="text-xs font-medium">{b.sessions.nom}</span>
-          <span className="text-xs font-mono text-muted-foreground/50">
+          <span className="text-xs font-mono text-muted-foreground/60">
             {b.sessions.numero_affichage}
           </span>
           <SessionStatusBadge statut={b.sessions.statut} size="sm" />

@@ -240,7 +240,7 @@ export function DisponibilitesClient({ formateurId, organisationId }: Disponibil
                   {HOURS.map((hour) => (
                     <div
                       key={hour}
-                      className="absolute right-2 -translate-y-1/2 text-xs text-muted-foreground/50 font-mono"
+                      className="absolute right-2 -translate-y-1/2 text-xs text-muted-foreground/60 font-mono"
                       style={{ top: (hour - HOUR_START) * HOUR_HEIGHT_PX }}
                     >
                       {String(hour).padStart(2, "0")}:00
@@ -302,7 +302,7 @@ export function DisponibilitesClient({ formateurId, organisationId }: Disponibil
                                 </button>
                               </div>
                               {dispo.note && height > 30 && (
-                                <p className="text-xs text-muted-foreground/50 truncate mt-0.5">{dispo.note}</p>
+                                <p className="text-xs text-muted-foreground/60 truncate mt-0.5">{dispo.note}</p>
                               )}
                             </div>
                           );

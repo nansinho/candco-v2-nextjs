@@ -307,7 +307,7 @@ export function RepartitionBudgetaireTab({
                 <tr key={key} className="border-b border-border/20 last:border-0">
                   <td className="px-4 py-2.5">
                     <div className="flex items-center gap-2 text-sm">
-                      <span className="text-muted-foreground/50">{entity.icon}</span>
+                      <span className="text-muted-foreground/60">{entity.icon}</span>
                       <span className="font-medium">{entity.nom}</span>
                     </div>
                   </td>
